@@ -16,7 +16,17 @@ val Sakura95 = Color(0xFF5E213F)
 
 val CatNight = Color(0xFF2C1E2A)
 val CatCream = Color(0xFFFFF5FA)
+val CatNightSoft = Color(0xFF20151F)
+val SakuraNightGlow = Color(0xFF4A3446)
 
-fun appBackgroundBrush(): Brush = Brush.verticalGradient(
-    listOf(Sakura10, Sakura30, Sakura40)
-)
+fun appBackgroundBrush(darkTheme: Boolean): Brush {
+    return if (darkTheme) {
+        Brush.verticalGradient(
+            listOf(CatNightSoft, CatNight, SakuraNightGlow)
+        )
+    } else {
+        Brush.verticalGradient(
+            listOf(Sakura10, Sakura30, Sakura40)
+        )
+    }
+}

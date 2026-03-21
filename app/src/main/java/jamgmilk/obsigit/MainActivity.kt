@@ -26,10 +26,14 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.material3.NavigationBarDefaults
 import jamgmilk.obsigit.ui.AppPage
 import jamgmilk.obsigit.ui.AppViewModel
 import jamgmilk.obsigit.ui.GitTerminalScreen
@@ -55,13 +59,19 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun AppRoot(viewModel: AppViewModel, modifier: Modifier = Modifier) {
+    val context = LocalContext.current
     val currentPage by viewModel.currentPage.collectAsState()
+    val darkTheme = isSystemInDarkTheme()
+
+    LaunchedEffect(Unit) {
+        viewModel.initializeStorage(context)
+    }
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
         containerColor = androidx.compose.ui.graphics.Color.Transparent,
         bottomBar = {
-            NavigationBar {
+            NavigationBar(windowInsets = NavigationBarDefaults.windowInsets) {
                 NavigationBarItem(
                     selected = currentPage == AppPage.GitTerminal,
                     onClick = { viewModel.switchPage(AppPage.GitTerminal) },
@@ -85,7 +95,7 @@ fun AppRoot(viewModel: AppViewModel, modifier: Modifier = Modifier) {
     ) { innerPadding ->
         val contentModifier = Modifier
             .fillMaxSize()
-            .background(appBackgroundBrush())
+            .background(appBackgroundBrush(darkTheme = darkTheme))
             .statusBarsPadding()
             .navigationBarsPadding()
             .padding(innerPadding)
