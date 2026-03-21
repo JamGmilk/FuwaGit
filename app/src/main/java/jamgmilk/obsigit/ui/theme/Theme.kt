@@ -1,58 +1,69 @@
 package jamgmilk.obsigit.ui.theme
 
-import android.app.Activity
-import android.os.Build
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.dynamicDarkColorScheme
-import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.graphics.Color
 
 private val DarkColorScheme = darkColorScheme(
-    primary = Purple80,
-    secondary = PurpleGrey80,
-    tertiary = Pink80
+    primary = Sakura60,
+    onPrimary = CatCream,
+    primaryContainer = Sakura95,
+    onPrimaryContainer = Sakura20,
+    secondary = Sakura50,
+    onSecondary = CatCream,
+    secondaryContainer = Sakura90,
+    onSecondaryContainer = Sakura20,
+    tertiary = Sakura70,
+    onTertiary = CatCream,
+    background = CatNight,
+    onBackground = Sakura20,
+    surface = ColorTokens.surfaceDark,
+    onSurface = Sakura20,
+    surfaceVariant = ColorTokens.surfaceVariantDark,
+    onSurfaceVariant = Sakura30,
+    outline = Sakura70
 )
 
 private val LightColorScheme = lightColorScheme(
-    primary = Purple40,
-    secondary = PurpleGrey40,
-    tertiary = Pink40
-
-    /* Other default colors to override
-    background = Color(0xFFFFFBFE),
-    surface = Color(0xFFFFFBFE),
-    onPrimary = Color.White,
-    onSecondary = Color.White,
-    onTertiary = Color.White,
-    onBackground = Color(0xFF1C1B1F),
-    onSurface = Color(0xFF1C1B1F),
-    */
+    primary = Sakura80,
+    onPrimary = CatCream,
+    primaryContainer = Sakura40,
+    onPrimaryContainer = Sakura95,
+    secondary = Sakura70,
+    onSecondary = CatCream,
+    secondaryContainer = Sakura30,
+    onSecondaryContainer = Sakura95,
+    tertiary = Sakura80,
+    onTertiary = CatCream,
+    background = Sakura10,
+    onBackground = Sakura95,
+    surface = ColorTokens.surface,
+    onSurface = Sakura95,
+    surfaceVariant = ColorTokens.surfaceVariant,
+    onSurfaceVariant = Sakura90,
+    outline = Sakura50
 )
+
+private object ColorTokens {
+    val surface = Sakura20
+    val surfaceVariant = Sakura30
+    val surfaceDark = Color(0xFF3B2A39)
+    val surfaceVariantDark = Color(0xFF4A3446)
+}
 
 @Composable
 fun ObsiGitTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
-    // Dynamic color is available on Android 12+
-    dynamicColor: Boolean = true,
+    darkTheme: Boolean = false,
     content: @Composable () -> Unit
 ) {
-    val colorScheme = when {
-        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-            val context = LocalContext.current
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-        }
-
-        darkTheme -> DarkColorScheme
-        else -> LightColorScheme
-    }
+    val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
 
     MaterialTheme(
         colorScheme = colorScheme,
         typography = Typography,
+        shapes = AppShapes,
         content = content
     )
 }

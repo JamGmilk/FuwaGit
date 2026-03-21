@@ -1,11 +1,22 @@
 package jamgmilk.obsigit.ui.theme
 
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 
-val Purple80 = Color(0xFFD0BCFF)
-val PurpleGrey80 = Color(0xFFCCC2DC)
-val Pink80 = Color(0xFFEFB8C8)
+val Sakura10 = Color(0xFFFFF7FA)
+val Sakura20 = Color(0xFFFFEFF6)
+val Sakura30 = Color(0xFFFFE3EF)
+val Sakura40 = Color(0xFFFDD2E5)
+val Sakura50 = Color(0xFFF5AFCB)
+val Sakura60 = Color(0xFFEB8EB6)
+val Sakura70 = Color(0xFFD86A9A)
+val Sakura80 = Color(0xFFB94D7E)
+val Sakura90 = Color(0xFF8B355F)
+val Sakura95 = Color(0xFF5E213F)
 
-val Purple40 = Color(0xFF6650a4)
-val PurpleGrey40 = Color(0xFF625b71)
-val Pink40 = Color(0xFF7D5260)
+val CatNight = Color(0xFF2C1E2A)
+val CatCream = Color(0xFFFFF5FA)
+
+fun appBackgroundBrush(): Brush = Brush.verticalGradient(
+    listOf(Sakura10, Sakura30, Sakura40)
+)
