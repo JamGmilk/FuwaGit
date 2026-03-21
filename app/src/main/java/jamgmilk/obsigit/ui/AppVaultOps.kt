@@ -49,6 +49,23 @@ internal object AppVaultOps {
         return if (path.startsWith("/")) path else null
     }
 
+    fun shortDisplayPath(path: String): String {
+        val normalized = path.trim()
+        val prefix = "/storage/emulated/0/"
+        return when {
+            normalized.startsWith(prefix) -> {
+                val relative = normalized.removePrefix(prefix)
+                "/External/$relative"
+            }
+            normalized.startsWith("/storage/") -> {
+                val relative = normalized.removePrefix("/storage/")
+                "/Storage/$relative"
+            }
+            normalized.startsWith("/") -> "/Local$normalized"
+            else -> normalized
+        }
+    }
+
     fun defaultDocumentsTreeUri(): Uri? {
         return runCatching {
             DocumentsContract.buildTreeDocumentUri(

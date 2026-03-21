@@ -1,5 +1,6 @@
 package jamgmilk.obsigit.ui
 
+import android.annotation.SuppressLint
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -15,9 +16,12 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -25,14 +29,11 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Code
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -52,9 +53,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import jamgmilk.obsigit.ui.theme.CatNight
+import jamgmilk.obsigit.ui.theme.ObsiGitTheme
 import jamgmilk.obsigit.ui.theme.Sakura30
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalLayoutApi::class)
@@ -68,10 +71,8 @@ fun GitTerminalScreen(
     val statusText by viewModel.gitStatusText.collectAsState()
     val terminalLogs by viewModel.terminalOutput.collectAsState()
     val targetPath by viewModel.targetPath.collectAsState()
-    val availablePaths by viewModel.availableTargetPaths.collectAsState()
 
     var showCommitDialog by remember { mutableStateOf(false) }
-    var showPathMenu by remember { mutableStateOf(false) }
 
     Column(
         modifier = modifier
@@ -89,60 +90,37 @@ fun GitTerminalScreen(
             ElevatedCard(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .border(BorderStroke(1.dp, colors.outline.copy(alpha = 0.35f)), RoundedCornerShape(24.dp)),
+                    .border(
+                        BorderStroke(1.dp, colors.outline.copy(alpha = 0.35f)),
+                        RoundedCornerShape(24.dp)
+                    ),
                 shape = RoundedCornerShape(24.dp),
                 colors = CardDefaults.elevatedCardColors(
                     containerColor = if (isRepo) colors.surface.copy(alpha = 0.92f) else colors.errorContainer.copy(alpha = 0.86f)
                 ),
                 elevation = CardDefaults.elevatedCardElevation(defaultElevation = 0.dp)
             ) {
-                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = if (isRepo) "Repository Active" else "Repository Not Found",
-                                style = MaterialTheme.typography.titleLarge,
-                                color = colors.primary
-                            )
-                            Text(
-                                text = statusText,
-                                style = MaterialTheme.typography.bodySmall,
-                                fontFamily = FontFamily.Monospace,
-                                color = colors.onSurfaceVariant
-                            )
-                        }
-                        Icon(
-                            imageVector = Icons.Default.Code,
-                            contentDescription = null,
-                            tint = colors.primary,
-                            modifier = Modifier.size(28.dp)
+                Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = if (isRepo) "Repository Active" else "Repository Not Found",
+                            style = MaterialTheme.typography.titleLarge,
+                            color = colors.primary
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        Text(
+                            text = statusText,
+                            style = MaterialTheme.typography.bodySmall,
+                            fontFamily = FontFamily.Monospace,
+                            color = colors.onSurfaceVariant
                         )
                     }
-
-                    Box {
-                        OutlinedButton(onClick = { showPathMenu = true }) {
-                            Text(text = targetPath ?: "Select vault folder")
-                            Icon(Icons.Default.ArrowDropDown, contentDescription = null)
-                        }
-                        DropdownMenu(expanded = showPathMenu, onDismissRequest = { showPathMenu = false }) {
-                            if (availablePaths.isEmpty()) {
-                                DropdownMenuItem(
-                                    text = { Text("No selectable local folders") },
-                                    onClick = { showPathMenu = false }
-                                )
-                            } else {
-                                availablePaths.forEach { path ->
-                                    DropdownMenuItem(
-                                        text = { Text(path) },
-                                        onClick = {
-                                            viewModel.setTargetPath(path)
-                                            showPathMenu = false
-                                        }
-                                    )
-                                }
-                            }
-                        }
-                    }
+                    Icon(
+                        imageVector = Icons.Default.Code,
+                        contentDescription = null,
+                        tint = colors.primary,
+                        modifier = Modifier.size(28.dp)
+                    )
                 }
             }
         }
@@ -156,7 +134,7 @@ fun GitTerminalScreen(
                 Button(
                     onClick = { viewModel.initRepo() },
                     colors = ButtonDefaults.buttonColors(containerColor = colors.primary),
-                    shape = RoundedCornerShape(16.dp),
+                    shape = RoundedCornerShape(16.dp),   // TODO: 统一 App 里的全部 Button 圆角喵~
                     enabled = targetPath != null
                 ) { Text("git init") }
             } else {
@@ -174,7 +152,7 @@ fun GitTerminalScreen(
                 "Terminal Logs",
                 style = MaterialTheme.typography.labelLarge,
                 color = colors.onBackground,
-                modifier = Modifier.padding(start = 8.dp, bottom = 4.dp)
+                modifier = Modifier.padding(start = 8.dp, bottom = 8.dp)
             )
 
             val listState = rememberLazyListState()
@@ -187,12 +165,22 @@ fun GitTerminalScreen(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .shadow(8.dp, RoundedCornerShape(20.dp))
-                    .clip(RoundedCornerShape(20.dp))
+                    .shadow(8.dp, RoundedCornerShape(24.dp))
+                    .clip(RoundedCornerShape(24.dp))
                     .background(CatNight)
+                    //.background(colors.surfaceVariant.copy(alpha = 0.88f))
                     .padding(12.dp)
+
+
             ) {
-                LazyColumn(state = listState, modifier = Modifier.fillMaxSize()) {
+                LazyColumn(
+                    state = listState,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(CatNight),
+                    contentPadding = PaddingValues(4.dp)
+                    ) {
                     items(terminalLogs) { log ->
                         Text(
                             text = log,
@@ -214,7 +202,7 @@ fun GitTerminalScreen(
         var commitMessage by remember { mutableStateOf("") }
         AlertDialog(
             onDismissRequest = { showCommitDialog = false },
-            shape = RoundedCornerShape(28.dp),
+            shape = RoundedCornerShape(24.dp),
             containerColor = colors.surface,
             title = { Text("Commit Message", color = colors.primary) },
             text = {
@@ -222,7 +210,8 @@ fun GitTerminalScreen(
                     value = commitMessage,
                     onValueChange = { commitMessage = it },
                     placeholder = { Text("Describe your changes") },
-                    shape = RoundedCornerShape(16.dp),
+                    // TODO: 这里可以使用模板，包含时间
+                    shape = RoundedCornerShape(12.dp),
                     modifier = Modifier.fillMaxWidth()
                 )
             },
@@ -245,6 +234,7 @@ fun PinkActionButton(text: String, onClick: () -> Unit, outlined: Boolean = fals
     if (outlined) {
         OutlinedButton(
             onClick = onClick,
+            // TODO: 这里给按钮来个图标喵~
             border = BorderStroke(1.5.dp, colors.primary),
             shape = RoundedCornerShape(12.dp),
             modifier = Modifier.animateContentSize()
@@ -254,11 +244,22 @@ fun PinkActionButton(text: String, onClick: () -> Unit, outlined: Boolean = fals
     } else {
         Button(
             onClick = onClick,
+            // TODO: 这里给按钮来个图标喵~
             colors = ButtonDefaults.buttonColors(containerColor = colors.primary),
             shape = RoundedCornerShape(12.dp),
             modifier = Modifier.animateContentSize()
         ) {
             Text(text, color = colors.onPrimary, fontWeight = FontWeight.Bold)
         }
+    }
+}
+
+
+@SuppressLint("ViewModelConstructorInComposable")
+@Preview(showBackground = true)
+@Composable
+fun GitTerminalScreenPreview() {
+    ObsiGitTheme {
+        GitTerminalScreen(viewModel = AppViewModel())
     }
 }

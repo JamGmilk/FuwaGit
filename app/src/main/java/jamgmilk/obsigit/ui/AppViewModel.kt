@@ -18,6 +18,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import androidx.core.net.toUri
+import androidx.core.content.edit
 
 enum class AppPage {
     GitTerminal,
@@ -41,7 +42,22 @@ data class VaultFolderItem(
     val localPath: String?
 )
 
+data class PathScanItem(
+    val id: String,
+    val name: String,
+    val path: String,
+    val source: String,
+    val permissionHint: String,
+    val isActive: Boolean,
+    val isRemovable: Boolean,
+    val uriText: String? = null
+)
+
 class AppViewModel : ViewModel() {
+    private companion object {
+        const val PREFS_NAME = "obsigit_prefs"
+        const val PREF_KEY_GRANTED_TREE_URIS = "granted_tree_uris"
+    }
 
     private val _currentPage = MutableStateFlow(AppPage.GitTerminal)
     val currentPage: StateFlow<AppPage> = _currentPage.asStateFlow()
@@ -50,7 +66,6 @@ class AppViewModel : ViewModel() {
     val targetPath: StateFlow<String?> = _targetPath.asStateFlow()
 
     private val _availableTargetPaths = MutableStateFlow<List<String>>(emptyList())
-    val availableTargetPaths: StateFlow<List<String>> = _availableTargetPaths.asStateFlow()
 
     private val _isGitRepo = MutableStateFlow(false)
     val isGitRepo: StateFlow<Boolean> = _isGitRepo.asStateFlow()
@@ -70,7 +85,13 @@ class AppViewModel : ViewModel() {
     private val _grantedTreeUris = MutableStateFlow<List<String>>(emptyList())
     val grantedTreeUris: StateFlow<List<String>> = _grantedTreeUris.asStateFlow()
 
-    private val obsidianSandboxPath = "/storage/emulated/0/Android/data/md.obsidian"
+    private val _pathScanItems = MutableStateFlow<List<PathScanItem>>(emptyList())
+    val pathScanItems: StateFlow<List<PathScanItem>> = _pathScanItems.asStateFlow()
+
+    private val obsidianSandboxPath = "/storage/emulated/0/Android/data/md.obsidian/files/"
+    private val documentsPath = "/storage/emulated/0/Documents/"
+    // TODO: 这里的 "/storage/emulated/0/" 可以间接从系统调用路径吗？
+    private var storageInitialized = false
 
     init {
         addObsidianSandboxIfExists()
@@ -94,7 +115,101 @@ class AppViewModel : ViewModel() {
         }
 
         _grantedTreeUris.value = (_grantedTreeUris.value + uri.toString()).distinct()
+        persistGrantedTreeUris(context)
         refreshVaultItems(context)
+    }
+
+    fun removePathScan(context: Context, item: PathScanItem) {
+        val uriText = item.uriText ?: return
+        runCatching {
+            context.contentResolver.releasePersistableUriPermission(
+                uriText.toUri(),
+                Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+            )
+        }
+        _grantedTreeUris.value = _grantedTreeUris.value.filterNot { it == uriText }
+        persistGrantedTreeUris(context)
+        refreshVaultItems(context)
+    }
+
+    fun initializeStorage(context: Context) {
+        if (storageInitialized) return
+        storageInitialized = true
+
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val savedUris = prefs.getStringSet(PREF_KEY_GRANTED_TREE_URIS, emptySet()).orEmpty()
+        val persistedUris = context.contentResolver.persistedUriPermissions
+            .map { it.uri.toString() }
+            .toSet()
+        _grantedTreeUris.value = (savedUris + persistedUris).toList()
+        persistGrantedTreeUris(context)
+        refreshVaultItems(context)
+    }
+
+    fun refreshPathScanItems(context: Context) {
+        val appSandboxPath = appSandboxPath(context)
+        val normalizedBuiltIns = setOf(
+            normalizePath(appSandboxPath),
+            normalizePath(obsidianSandboxPath),
+            normalizePath(documentsPath)
+        )
+        val grantedPathByUri = _grantedTreeUris.value.associateWith { uriText ->
+            AppVaultOps.readablePathFromUri(uriText.toUri())
+        }
+
+        val hasDocumentsGrant = grantedPathByUri.values.any {
+            normalizePath(it) == normalizePath(documentsPath)
+        }
+
+        val manualItems = grantedPathByUri.mapNotNull { (uriText, grantedPath) ->
+            val normalized = normalizePath(grantedPath)
+            if (normalized in normalizedBuiltIns) {
+                null
+            } else {
+                PathScanItem(
+                    id = "manual:$uriText",
+                    name = File(normalized).name.ifBlank { "Picked Folder" },
+                    path = ensureTrailingSlash(grantedPath),
+                    source = "Manually picked",
+                    permissionHint = "Folder picker grant",
+                    isActive = true,
+                    isRemovable = true,
+                    uriText = uriText
+                )
+            }
+        }.sortedBy { it.name.lowercase() }
+
+        val builtIns = listOf(
+            PathScanItem(
+                id = "builtin:app",
+                name = "App Sandbox",
+                path = appSandboxPath,
+                source = "No permission needed",
+                permissionHint = "Built-in",
+                isActive = File(appSandboxPath).exists(),
+                isRemovable = false
+            ),
+            PathScanItem(
+                id = "builtin:obsidian",
+                name = "Obsidian Sandbox",
+                path = obsidianSandboxPath,
+                source = "Need root granted",
+                permissionHint = "Root required for full access",
+                isActive = File(obsidianSandboxPath).exists(),
+                isRemovable = false
+            ),
+            PathScanItem(
+                id = "builtin:documents",
+                name = "Documents",
+                path = documentsPath,
+                source = "Need pick \"Documents\" folder",
+                permissionHint = if (hasDocumentsGrant) "Folder grant active" else "Grant required",
+                isActive = hasDocumentsGrant,
+                isRemovable = false
+            )
+        )
+
+        _pathScanItems.value = builtIns + manualItems
     }
 
     fun refreshVaultItems(context: Context) {
@@ -128,6 +243,7 @@ class AppViewModel : ViewModel() {
 
             withContext(Dispatchers.Main) {
                 checkRepoStatus()
+                refreshPathScanItems(context)
             }
         }
     }
@@ -161,7 +277,7 @@ class AppViewModel : ViewModel() {
     }
 
     private fun getOwnSandboxItem(context: Context): VaultFolderItem {
-        val sandboxPath = "/storage/emulated/0/Android/data/${context.packageName}"
+        val sandboxPath = appSandboxPath(context)
         val dir = File(sandboxPath)
         val isAvailable = dir.exists()
         val localPath = if (isAvailable) sandboxPath else null
@@ -187,6 +303,26 @@ class AppViewModel : ViewModel() {
             _targetPath.value = obsidian.localPath
         }
         checkRepoStatus()
+    }
+
+    private fun appSandboxPath(context: Context): String {
+        return "/storage/emulated/0/Android/data/${context.packageName}/files/"
+    }
+
+    private fun normalizePath(path: String): String {
+        return path.trim().trimEnd('/')
+    }
+
+    private fun ensureTrailingSlash(path: String): String {
+        val trimmed = path.trim()
+        return if (trimmed.endsWith("/")) trimmed else "$trimmed/"
+    }
+
+    private fun persistGrantedTreeUris(context: Context) {
+        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            .edit {
+                putStringSet(PREF_KEY_GRANTED_TREE_URIS, _grantedTreeUris.value.toSet())
+            }
     }
 
     fun checkRoot() {
