@@ -47,6 +47,7 @@ fun VaultScreen(
     val selectedTarget by viewModel.targetPath.collectAsState()
 
     LaunchedEffect(Unit) {
+        viewModel.refreshPersistedUris(context)
         viewModel.refreshVaultItems(context)
     }
 

@@ -1,6 +1,7 @@
 package jamgmilk.obsigit.ui
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.content.Intent
 import android.os.Build
 import android.os.Environment
@@ -37,7 +38,9 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -47,7 +50,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import jamgmilk.obsigit.ui.theme.ObsiGitTheme
 
 @Composable
 fun PathScansScreen(
@@ -56,6 +64,7 @@ fun PathScansScreen(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
     val colors = MaterialTheme.colorScheme
     val rootStatus by viewModel.rootStatus.collectAsState()
     val pathScanItems by viewModel.pathScanItems.collectAsState()
@@ -75,8 +84,22 @@ fun PathScansScreen(
     )
 
     LaunchedEffect(Unit) {
+        viewModel.refreshPersistedUris(context)
         viewModel.refreshVaultItems(context)
         viewModel.refreshPathScanItems(context)
+    }
+    DisposableEffect(lifecycleOwner, context) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                viewModel.refreshPersistedUris(context)
+                viewModel.refreshVaultItems(context)
+                viewModel.refreshPathScanItems(context)
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
     }
 
     Scaffold(
@@ -144,7 +167,9 @@ fun PathScansScreen(
                         }
                     }
 
-                    val allFilesAccess = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                    val allFilesAccess = if (LocalInspectionMode.current) {
+                        false
+                    } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                         Environment.isExternalStorageManager()
                     } else {
                         true
@@ -244,5 +269,17 @@ private fun PathScanRow(
                 fontFamily = FontFamily.Monospace
             )
         }
+    }
+}
+
+@SuppressLint("ViewModelConstructorInComposable")
+@Preview(showBackground = true)
+@Composable
+fun PathScansScreenPreview() {
+    ObsiGitTheme {
+        PathScansScreen(
+            viewModel = AppViewModel(),
+            onBack = { }
+        )
     }
 }
