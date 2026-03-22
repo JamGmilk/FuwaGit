@@ -79,8 +79,8 @@ fun AppRoot(viewModel: AppViewModel, modifier: Modifier = Modifier) {
                     label = { Text("Git") }
                 )
                 NavigationBarItem(
-                    selected = currentPage == AppPage.Vault,
-                    onClick = { viewModel.switchPage(AppPage.Vault) },
+                    selected = currentPage == AppPage.Repo,
+                    onClick = { viewModel.switchPage(AppPage.Repo) },
                     icon = { Icon(Icons.Default.Folder, contentDescription = "Vault") },
                     label = { Text("Vault") }
                 )
@@ -109,7 +109,7 @@ fun AppRoot(viewModel: AppViewModel, modifier: Modifier = Modifier) {
         ) { page ->
             when (page) {
                 AppPage.GitTerminal -> GitTerminalScreen(viewModel = viewModel, modifier = contentModifier)
-                AppPage.Vault -> VaultScreen(viewModel = viewModel, modifier = contentModifier)
+                AppPage.Repo -> VaultScreen(viewModel = viewModel, modifier = contentModifier)
                 AppPage.Settings -> SettingsScreen(viewModel = viewModel, modifier = contentModifier)
             }
         }

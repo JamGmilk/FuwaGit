@@ -183,6 +183,32 @@ fun SettingsScreen(
                     )
                 }
             }
+
+            // 这里是测试输出用的小卡片
+            ElevatedCard(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .border(1.dp, colors.outline.copy(alpha = 0.35f), RoundedCornerShape(24.dp))
+                    .animateContentSize(),
+                shape = RoundedCornerShape(24.dp),
+                colors = CardDefaults.elevatedCardColors(containerColor = colors.surface.copy(alpha = 0.9f)),
+                elevation = CardDefaults.elevatedCardElevation(0.dp)
+            ) {
+                Column(modifier = Modifier.padding(vertical = 4.dp)) {
+                    Text(
+                        "Test",
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp)
+                    )
+
+                    Text(
+                        "buildGrantedRepoFolders",
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp)
+                    )
+
+                }
+            }
+
         }
     }
 }
