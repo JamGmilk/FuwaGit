@@ -3,6 +3,7 @@ package jamgmilk.obsigit.ui
 import android.Manifest
 import android.annotation.SuppressLint
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Environment
 import android.provider.Settings
@@ -52,6 +53,8 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
+import androidx.core.net.toUri
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -70,13 +73,15 @@ fun PathScansScreen(
     val pathScanItems by viewModel.pathScanItems.collectAsState()
     val grantedFolders by viewModel.grantedTreeUris.collectAsState()
 
-    val requestReadPermission = rememberLauncherForActivityResult(
+    val requestPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission(),
         onResult = { }
     )
+
     val folderPicker = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.OpenDocumentTree(),
-        onResult = { uri ->
+        contract = ActivityResultContracts.StartActivityForResult(),
+        onResult = { result ->
+            val uri = result.data?.data
             if (uri != null) {
                 viewModel.addGrantedTreeUri(context, uri)
             }
@@ -102,7 +107,12 @@ fun PathScansScreen(
         containerColor = Color.Transparent,
         floatingActionButton = {
             ExtendedFloatingActionButton(
-                onClick = { folderPicker.launch(AppVaultOps.defaultDocumentsTreeUri()) },
+                onClick = {
+                    val intent = Intent(Intent.ACTION_OPEN_DOCUMENT_TREE).apply {
+                        putExtra(Intent.EXTRA_LOCAL_ONLY, true)
+                        // Optional: you can still add a starting location here if needed
+                    }
+                    folderPicker.launch(intent) },
                 icon = { Icon(Icons.Default.Folder, contentDescription = null) },
                 text = { Text("Add Folder") },
                 containerColor = colors.primary,
@@ -144,9 +154,12 @@ fun PathScansScreen(
                         Button(
                             onClick = {
                                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                                    context.startActivity(Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION))
+                                    context.startActivity(Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION).apply {
+                                        data = "package:${context.packageName}".toUri()
+                                    })
                                 } else {
-                                    requestReadPermission.launch(Manifest.permission.READ_EXTERNAL_STORAGE)
+                                    // TODO: 还要请求 READ 权限吗这里
+                                    requestPermissionLauncher.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE)
                                 }
                             },
                             colors = ButtonDefaults.buttonColors(containerColor = colors.primary)
@@ -162,16 +175,21 @@ fun PathScansScreen(
                         }
                     }
 
-                    val allFilesAccess = if (LocalInspectionMode.current) {
-                        false
+                    val context = LocalContext.current
+                    val storageStatus = if (LocalInspectionMode.current) {
+                        "Unknown"
                     } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                        Environment.isExternalStorageManager()
+                        if (Environment.isExternalStorageManager()) "All-Files: Granted" else "All-Files: Denied"
                     } else {
-                        true
+                        val readGranted = ContextCompat.checkSelfPermission(context, Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED
+                        val writeGranted = ContextCompat.checkSelfPermission(context, Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED
+                        val readText = if (readGranted) "Read: Granted" else "Read: Denied"
+                        val writeText = if (writeGranted) "Write: Granted" else "Write: Denied"
+                        "$readText | $writeText"
                     }
 
                     Text(
-                        text = "All-files access: ${if (allFilesAccess) "Granted" else "Not granted"}",
+                        text = storageStatus,
                         style = MaterialTheme.typography.bodySmall,
                         color = colors.onSurfaceVariant
                     )
