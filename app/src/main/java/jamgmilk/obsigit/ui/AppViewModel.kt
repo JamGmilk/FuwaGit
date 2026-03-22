@@ -15,6 +15,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
+import java.security.MessageDigest
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -35,7 +36,6 @@ sealed class RootStatus {
 data class VaultFolderItem(
     val name: String,
     val path: String,
-    val owner: String,
     val isGitRepo: Boolean,
     val isDirectory: Boolean,
     val localPath: String?
@@ -45,11 +45,20 @@ data class PathScanItem(
     val id: String,
     val name: String,
     val path: String,
+    val isGitRepo: Boolean,
     val source: String,
     val permissionHint: String,
     val isActive: Boolean,
     val isRemovable: Boolean,
     val uriText: String? = null
+)
+
+private data class GrantedRepoFolder(
+    val uriText: String,
+    val name: String,
+    val path: String,
+    val localPath: String,
+    val isGitRepo: Boolean
 )
 
 class AppViewModel : ViewModel() {
@@ -82,14 +91,9 @@ class AppViewModel : ViewModel() {
     private val _pathScanItems = MutableStateFlow<List<PathScanItem>>(emptyList())
     val pathScanItems: StateFlow<List<PathScanItem>> = _pathScanItems.asStateFlow()
 
-    private val obsidianSandboxPath = "/storage/emulated/0/Android/data/md.obsidian/files/"
-    private val documentsPath = "/storage/emulated/0/Documents/"
-    // TODO: 这里的 "/storage/emulated/0/" 可以间接从系统调用路径吗？
     private var storageInitialized = false
-
-    init {
-        addObsidianSandboxIfExists()
-    }
+    private var appContext: Context? = null
+    private var mirrorPathToUri: Map<String, String> = emptyMap()
 
     fun switchPage(page: AppPage) {
         _currentPage.value = page
@@ -107,9 +111,7 @@ class AppViewModel : ViewModel() {
                 Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
             )
         }
-
-        refreshPersistedUris(context)
-        refreshVaultItems(context)
+        rebuildGrantedFolders(context)
     }
 
     fun removePathScan(context: Context, item: PathScanItem) {
@@ -120,16 +122,13 @@ class AppViewModel : ViewModel() {
                 Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
             )
         }
-        refreshPersistedUris(context)
-        refreshVaultItems(context)
+        rebuildGrantedFolders(context)
     }
 
     fun initializeStorage(context: Context) {
         if (storageInitialized) return
         storageInitialized = true
-
-        refreshPersistedUris(context)
-        refreshVaultItems(context)
+        rebuildGrantedFolders(context)
     }
 
     fun refreshPersistedUris(context: Context) {
@@ -139,94 +138,50 @@ class AppViewModel : ViewModel() {
             .distinct()
     }
 
-    fun refreshPathScanItems(context: Context) {
-        val appSandboxPath = appSandboxPath(context)
-        val normalizedBuiltIns = setOf(
-            normalizePath(appSandboxPath),
-            normalizePath(obsidianSandboxPath),
-            normalizePath(documentsPath)
-        )
-        val grantedPathByUri = _grantedTreeUris.value.associateWith { uriText ->
-            AppVaultOps.readablePathFromUri(uriText.toUri())
-        }
-
-        val hasDocumentsGrant = grantedPathByUri.values.any {
-            normalizePath(it) == normalizePath(documentsPath)
-        }
-
-        val manualItems = grantedPathByUri.mapNotNull { (uriText, grantedPath) ->
-            val normalized = normalizePath(grantedPath)
-            if (normalized in normalizedBuiltIns) {
-                null
-            } else {
-                PathScanItem(
-                    id = "manual:$uriText",
-                    name = File(normalized).name.ifBlank { "Picked Folder" },
-                    path = ensureTrailingSlash(grantedPath),
-                    source = "Manually picked",
-                    permissionHint = "Folder picker grant",
-                    isActive = true,
-                    isRemovable = true,
-                    uriText = uriText
-                )
-            }
-        }.sortedBy { it.name.lowercase() }
-
-        val builtIns = listOf(
-            PathScanItem(
-                id = "builtin:app",
-                name = "App Sandbox",
-                path = appSandboxPath,
-                source = "No permission needed",
-                permissionHint = "Built-in",
-                isActive = File(appSandboxPath).exists(),
-                isRemovable = false
-            ),
-            PathScanItem(
-                id = "builtin:obsidian",
-                name = "Obsidian Sandbox",
-                path = obsidianSandboxPath,
-                source = "Need root granted",
-                permissionHint = "Root required for full access",
-                isActive = File(obsidianSandboxPath).exists(),
-                isRemovable = false
-            ),
-            PathScanItem(
-                id = "builtin:documents",
-                name = "Documents",
-                path = documentsPath,
-                source = "Need pick \"Documents\" folder",
-                permissionHint = if (hasDocumentsGrant) "Folder grant active" else "Grant required",
-                isActive = hasDocumentsGrant,
-                isRemovable = false
-            )
-        )
-
-        _pathScanItems.value = builtIns + manualItems
+    fun refreshVaultItems(context: Context) {
+        rebuildGrantedFolders(context)
     }
 
-    fun refreshVaultItems(context: Context) {
+    private fun rebuildGrantedFolders(context: Context) {
+        appContext = context.applicationContext
         refreshPersistedUris(context)
+        val grantedUrisSnapshot = _grantedTreeUris.value
+
         viewModelScope.launch(Dispatchers.IO) {
-            val collected = mutableListOf<VaultFolderItem>()
-            val grantedUris = _grantedTreeUris.value
+            val grantedFolders = buildGrantedRepoFolders(context, grantedUrisSnapshot)
+            mirrorPathToUri = grantedFolders.associate { it.localPath to it.uriText }
 
-            grantedUris.forEach { uriText ->
-                val uri = uriText.toUri()
-                val treeRoot = DocumentFile.fromTreeUri(context, uri) ?: return@forEach
-
-                AppVaultOps.collectFolderCandidates(treeRoot).forEach { folder ->
-                    collected += buildFolderItem(folder)
-                }
+            val vaultFolders = grantedFolders.map { folder ->
+                VaultFolderItem(
+                    name = folder.name,
+                    path = folder.path,
+                    isGitRepo = folder.isGitRepo,
+                    isDirectory = true,
+                    localPath = folder.localPath
+                )
             }
 
-            val allItems = (collected + buildSandboxItems(context))
-                .distinctBy { it.path }
-                .sortedBy { it.name.lowercase() }
+            val pathScans = grantedFolders.map { folder ->
+                PathScanItem(
+                    id = "grant:${folder.uriText}",
+                    name = folder.name,
+                    path = folder.path,
+                    isGitRepo = folder.isGitRepo,
+                    source = "Folder picker grant",
+                    permissionHint = "Granted",
+                    isActive = true,
+                    isRemovable = true,
+                    uriText = folder.uriText
+                )
+            }
 
-            _vaultItems.value = allItems
+            _vaultItems.value = vaultFolders
+            _pathScanItems.value = pathScans
 
-            val targetCandidates = allItems.mapNotNull { it.localPath }.distinct().sorted()
+            val targetCandidates = vaultFolders
+                .mapNotNull { it.localPath }
+                .distinct()
+                .sorted()
             _availableTargetPaths.value = targetCandidates
 
             val selectedPath = _targetPath.value
@@ -238,70 +193,58 @@ class AppViewModel : ViewModel() {
 
             withContext(Dispatchers.Main) {
                 checkRepoStatus()
-                refreshPathScanItems(context)
             }
         }
     }
 
-    private fun buildFolderItem(folder: DocumentFile): VaultFolderItem {
-        val path = AppVaultOps.readablePathFromUri(folder.uri)
-        val localPath = AppVaultOps.pathToLocal(path)
+    private fun buildGrantedRepoFolders(context: Context, grantedUris: List<String>): List<GrantedRepoFolder> {
+        val uniqueByPath = linkedMapOf<String, String>()
 
-        return VaultFolderItem(
-            name = folder.name ?: "Unnamed folder",
-            path = path,
-            owner = AppVaultOps.readOwner(path),
-            isGitRepo = AppGitOps.hasGitDir(localPath),
-            isDirectory = folder.isDirectory,
-            localPath = localPath
-        )
-    }
-
-    private fun getObsidianItem(): VaultFolderItem {
-        val dir = File(obsidianSandboxPath)
-        val isAvailable = dir.exists()
-        val localPath = if (isAvailable) obsidianSandboxPath else null
-        return VaultFolderItem(
-            name = "Obsidian Sandbox",
-            path = obsidianSandboxPath,
-            owner = if (isAvailable) AppVaultOps.readOwner(obsidianSandboxPath) else "Unavailable",
-            isGitRepo = AppGitOps.hasGitDir(localPath),
-            isDirectory = true,
-            localPath = localPath
-        )
-    }
-
-    private fun getOwnSandboxItem(context: Context): VaultFolderItem {
-        val sandboxPath = appSandboxPath(context)
-        val dir = File(sandboxPath)
-        val isAvailable = dir.exists()
-        val localPath = if (isAvailable) sandboxPath else null
-        return VaultFolderItem(
-            name = "App Sandbox (${context.packageName})",
-            path = sandboxPath,
-            owner = if (isAvailable) AppVaultOps.readOwner(sandboxPath) else "Unavailable",
-            isGitRepo = AppGitOps.hasGitDir(localPath),
-            isDirectory = true,
-            localPath = localPath
-        )
-    }
-
-    private fun buildSandboxItems(context: Context): List<VaultFolderItem> {
-        return listOf(getObsidianItem(), getOwnSandboxItem(context))
-    }
-
-    private fun addObsidianSandboxIfExists() {
-        val obsidian = getObsidianItem()
-        _vaultItems.value = listOf(obsidian)
-        _availableTargetPaths.value = listOfNotNull(obsidian.localPath)
-        if (obsidian.localPath != null) {
-            _targetPath.value = obsidian.localPath
+        grantedUris.forEach { uriText ->
+            val readablePath = AppVaultOps.readablePathFromUri(uriText.toUri())
+            val normalizedPath = normalizePath(readablePath)
+            if (normalizedPath.isNotEmpty() && normalizedPath !in uniqueByPath) {
+                uniqueByPath[normalizedPath] = uriText
+            }
         }
-        checkRepoStatus()
+
+        return uniqueByPath.entries.map { (normalizedPath, uriText) ->
+            val path = ensureTrailingSlash(normalizedPath)
+            val localPath = ensureMirrorPath(context, uriText)
+            GrantedRepoFolder(
+                uriText = uriText,
+                name = File(normalizedPath).name.ifBlank { "Picked Folder" },
+                path = path,
+                localPath = localPath,
+                isGitRepo = hasGitDirViaSaf(context, uriText)
+            )
+        }.sortedBy { it.name.lowercase() }
     }
 
-    private fun appSandboxPath(context: Context): String {
-        return "/storage/emulated/0/Android/data/${context.packageName}/files/"
+    private fun ensureMirrorPath(context: Context, uriText: String): String {
+        val baseDir = File(context.filesDir, "saf_repo_mirrors")
+        if (!baseDir.exists()) {
+            baseDir.mkdirs()
+        }
+        val folderId = sha256(uriText).take(16)
+        val mirrorDir = File(baseDir, folderId)
+        if (!mirrorDir.exists()) {
+            mirrorDir.mkdirs()
+        }
+        return mirrorDir.absolutePath
+    }
+
+    private fun sha256(text: String): String {
+        val digest = MessageDigest.getInstance("SHA-256").digest(text.toByteArray())
+        return digest.joinToString("") { "%02x".format(it) }
+    }
+
+    private fun hasGitDirViaSaf(context: Context, uriText: String): Boolean {
+        return runCatching {
+            val tree = DocumentFile.fromTreeUri(context, uriText.toUri()) ?: return@runCatching false
+            val git = tree.findFile(".git") ?: return@runCatching false
+            git.isDirectory
+        }.getOrDefault(false)
     }
 
     private fun normalizePath(path: String): String {
@@ -326,6 +269,12 @@ class AppViewModel : ViewModel() {
         return File(path)
     }
 
+    private fun resolveRepoContext(dir: File): Pair<Context, String>? {
+        val context = appContext ?: return null
+        val uriText = mirrorPathToUri[dir.absolutePath] ?: return null
+        return context to uriText
+    }
+
     private fun logToTerminal(command: String, result: String) {
         val time = SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date())
         val line = "[$time] > $command\n$result"
@@ -333,15 +282,11 @@ class AppViewModel : ViewModel() {
     }
 
     fun showStatusInTerminal() {
-        val dir = currentRepoDir() ?: return
-        viewModelScope.launch(Dispatchers.IO) {
-            try {
-                val result = AppGitOps.terminalStatus(dir)
-                logToTerminal("git status", result)
-            } catch (e: Exception) {
-                logToTerminal("git status", "Error: ${e.message}")
-            }
-        }
+        runGitOperation(
+            command = "git status",
+            writeBackToSaf = false,
+            action = { dir -> AppGitOps.terminalStatus(dir) }
+        )
     }
 
     fun checkRepoStatus() {
@@ -352,55 +297,79 @@ class AppViewModel : ViewModel() {
             return
         }
 
+        val repoContext = resolveRepoContext(dir)
+        if (repoContext == null) {
+            _isGitRepo.value = false
+            _gitStatusText.value = "Selected repo is unavailable. Reopen Path Scans and grant the folder again."
+            return
+        }
+
         viewModelScope.launch(Dispatchers.IO) {
+            val (context, uriText) = repoContext
             try {
+                AppVaultOps.syncSafTreeToLocal(context, uriText, dir)
                 val status = AppGitOps.readRepoStatus(dir)
                 _isGitRepo.value = status.isGitRepo
                 _gitStatusText.value = status.message
             } catch (e: Exception) {
                 _isGitRepo.value = false
-                _gitStatusText.value = "Path: ${dir.absolutePath}\nError: ${e.message}"
+                _gitStatusText.value = "Path: ${AppVaultOps.readablePathFromUri(uriText.toUri())}\nError: ${e.message}"
+            }
+        }
+    }
+
+    private fun runGitOperation(
+        command: String,
+        writeBackToSaf: Boolean,
+        action: (File) -> String
+    ) {
+        val dir = currentRepoDir() ?: return
+        val repoContext = resolveRepoContext(dir)
+        if (repoContext == null) {
+            logToTerminal(command, "Error: Selected repo is unavailable. Reopen Path Scans and grant the folder again.")
+            return
+        }
+
+        viewModelScope.launch(Dispatchers.IO) {
+            val (context, uriText) = repoContext
+            try {
+                AppVaultOps.syncSafTreeToLocal(context, uriText, dir)
+                val result = action(dir)
+                if (writeBackToSaf) {
+                    AppVaultOps.syncLocalToSafTree(context, dir, uriText)
+                    rebuildGrantedFolders(context)
+                } else {
+                    checkRepoStatus()
+                }
+                logToTerminal(command, result)
+            } catch (e: Exception) {
+                logToTerminal(command, "Error: ${e.message}")
             }
         }
     }
 
     fun initRepo() {
-        val dir = currentRepoDir() ?: return
-        viewModelScope.launch(Dispatchers.IO) {
-            try {
-                val result = AppGitOps.initRepo(dir)
-                logToTerminal("git init", result)
-                checkRepoStatus()
-            } catch (e: Exception) {
-                logToTerminal("git init", "Error: ${e.message}")
-            }
-        }
+        runGitOperation(
+            command = "git init",
+            writeBackToSaf = true,
+            action = { dir -> AppGitOps.initRepo(dir) }
+        )
     }
 
     fun stageAll() {
-        val dir = currentRepoDir() ?: return
-        viewModelScope.launch(Dispatchers.IO) {
-            try {
-                val result = AppGitOps.stageAll(dir)
-                logToTerminal("git add -A", result)
-                checkRepoStatus()
-            } catch (e: Exception) {
-                logToTerminal("git add -A", "Error: ${e.message}")
-            }
-        }
+        runGitOperation(
+            command = "git add -A",
+            writeBackToSaf = true,
+            action = { dir -> AppGitOps.stageAll(dir) }
+        )
     }
 
     fun unstageAll() {
-        val dir = currentRepoDir() ?: return
-        viewModelScope.launch(Dispatchers.IO) {
-            try {
-                val result = AppGitOps.unstageAll(dir)
-                logToTerminal("git reset", result)
-                checkRepoStatus()
-            } catch (e: Exception) {
-                logToTerminal("git reset", "Error: ${e.message}")
-            }
-        }
+        runGitOperation(
+            command = "git reset",
+            writeBackToSaf = true,
+            action = { dir -> AppGitOps.unstageAll(dir) }
+        )
     }
 
     fun commitChanges(message: String) {
@@ -410,42 +379,28 @@ class AppViewModel : ViewModel() {
             return
         }
 
-        val dir = currentRepoDir() ?: return
-        viewModelScope.launch(Dispatchers.IO) {
-            try {
-                val result = AppGitOps.commit(dir, trimmed)
-                logToTerminal("git commit -m \"$trimmed\"", result)
-                checkRepoStatus()
-            } catch (e: Exception) {
-                logToTerminal("git commit", "Error: ${e.message}")
-            }
-        }
+        runGitOperation(
+            command = "git commit -m \"$trimmed\"",
+            writeBackToSaf = true,
+            action = { dir -> AppGitOps.commit(dir, trimmed) }
+        )
     }
 
     fun pullRepo() {
-        val dir = currentRepoDir() ?: return
-        viewModelScope.launch(Dispatchers.IO) {
-            logToTerminal("git pull", "Attempting pull. Remote auth may be required")
-            try {
-                val result = AppGitOps.pull(dir)
-                logToTerminal("git pull", result)
-                checkRepoStatus()
-            } catch (e: Exception) {
-                logToTerminal("git pull", "Error: ${e.message}")
-            }
-        }
+        logToTerminal("git pull", "Attempting pull. Remote auth may be required")
+        runGitOperation(
+            command = "git pull",
+            writeBackToSaf = true,
+            action = { dir -> AppGitOps.pull(dir) }
+        )
     }
 
     fun pushRepo() {
-        val dir = currentRepoDir() ?: return
-        viewModelScope.launch(Dispatchers.IO) {
-            logToTerminal("git push", "Attempting push. Remote auth may be required")
-            try {
-                val result = AppGitOps.push(dir)
-                logToTerminal("git push", result)
-            } catch (e: Exception) {
-                logToTerminal("git push", "Error: ${e.message}")
-            }
-        }
+        logToTerminal("git push", "Attempting push. Remote auth may be required")
+        runGitOperation(
+            command = "git push",
+            writeBackToSaf = true,
+            action = { dir -> AppGitOps.push(dir) }
+        )
     }
 }

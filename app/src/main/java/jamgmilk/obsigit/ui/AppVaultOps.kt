@@ -1,30 +1,14 @@
 package jamgmilk.obsigit.ui
 
+import android.content.Context
 import android.net.Uri
 import android.provider.DocumentsContract
+import android.webkit.MimeTypeMap
+import androidx.core.net.toUri
 import androidx.documentfile.provider.DocumentFile
-import com.topjohnwu.superuser.Shell
+import java.io.File
 
 internal object AppVaultOps {
-
-    fun readOwner(path: String): String {
-        if (!path.startsWith("/")) {
-            return "Unknown (SAF)"
-        }
-
-        val escaped = path.replace("\"", "\\\"")
-        val command = "stat -c '%U' \"$escaped\" 2>/dev/null || ls -ld \"$escaped\" 2>/dev/null | awk '{print \$3}'"
-        val shellResult = Shell.cmd(command).exec()
-        val owner = shellResult.out.firstOrNull()?.trim().orEmpty()
-        if (shellResult.isSuccess && owner.isNotBlank()) {
-            return owner
-        }
-
-        val rootCommand = command.replace("'", "'\\''")
-        val rootShellResult = Shell.cmd("su -c '$rootCommand'").exec()
-        val rootOwner = rootShellResult.out.firstOrNull()?.trim().orEmpty()
-        return if (rootShellResult.isSuccess && rootOwner.isNotBlank()) rootOwner else "Unavailable"
-    }
 
     fun readablePathFromUri(uri: Uri): String {
         val docId = runCatching { DocumentsContract.getDocumentId(uri) }.getOrNull()
@@ -43,10 +27,6 @@ internal object AppVaultOps {
         } else {
             "$volume:/$rel"
         }
-    }
-
-    fun pathToLocal(path: String): String? {
-        return if (path.startsWith("/")) path else null
     }
 
     fun shortDisplayPath(path: String): String {
@@ -75,12 +55,79 @@ internal object AppVaultOps {
         }.getOrNull()
     }
 
-    fun collectFolderCandidates(root: DocumentFile): List<DocumentFile> {
-        val list = mutableListOf<DocumentFile>()
-        if (root.isDirectory) {
-            list += root
+    fun syncSafTreeToLocal(context: Context, uriText: String, localDir: File) {
+        val tree = DocumentFile.fromTreeUri(context, uriText.toUri()) ?: return
+        if (!localDir.exists()) {
+            localDir.mkdirs()
         }
-        list += root.listFiles().filter { it.isDirectory }
-        return list
+        clearLocalDirectoryContents(localDir)
+        copySafDirectoryToLocal(context, tree, localDir)
+    }
+
+    fun syncLocalToSafTree(context: Context, localDir: File, uriText: String) {
+        val tree = DocumentFile.fromTreeUri(context, uriText.toUri()) ?: return
+        clearSafDirectoryContents(tree)
+        copyLocalDirectoryToSaf(context, localDir, tree)
+    }
+
+    private fun clearLocalDirectoryContents(localDir: File) {
+        localDir.listFiles()?.forEach { entry ->
+            if (entry.isDirectory) {
+                entry.deleteRecursively()
+            } else {
+                entry.delete()
+            }
+        }
+    }
+
+    private fun clearSafDirectoryContents(tree: DocumentFile) {
+        tree.listFiles().forEach { child ->
+            child.delete()
+        }
+    }
+
+    private fun copySafDirectoryToLocal(context: Context, sourceDir: DocumentFile, targetDir: File) {
+        sourceDir.listFiles().forEach { child ->
+            val name = child.name ?: return@forEach
+            val target = File(targetDir, name)
+
+            if (child.isDirectory) {
+                if (!target.exists()) {
+                    target.mkdirs()
+                }
+                copySafDirectoryToLocal(context, child, target)
+            } else if (child.isFile) {
+                context.contentResolver.openInputStream(child.uri)?.use { input ->
+                    target.outputStream().use { output ->
+                        input.copyTo(output)
+                    }
+                }
+            }
+        }
+    }
+
+    private fun copyLocalDirectoryToSaf(context: Context, sourceDir: File, targetDir: DocumentFile) {
+        sourceDir.listFiles()?.forEach { child ->
+            if (child.isDirectory) {
+                val targetChildDir = targetDir.createDirectory(child.name)
+                if (targetChildDir != null) {
+                    copyLocalDirectoryToSaf(context, child, targetChildDir)
+                }
+            } else {
+                val mimeType = guessMimeType(child.name)
+                val targetFile = targetDir.createFile(mimeType, child.name) ?: return@forEach
+                context.contentResolver.openOutputStream(targetFile.uri, "wt")?.use { output ->
+                    child.inputStream().use { input ->
+                        input.copyTo(output)
+                    }
+                }
+            }
+        }
+    }
+
+    private fun guessMimeType(fileName: String): String {
+        val extension = fileName.substringAfterLast('.', "").lowercase()
+        return MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension)
+            ?: "application/octet-stream"
     }
 }
