@@ -1,9 +1,13 @@
 package jamgmilk.obsigit.ui
 
 import android.net.Uri
+import android.os.Environment
 import android.provider.DocumentsContract
 
 internal object AppVaultOps {
+
+    // "/storage/emulated/0"
+    val externalStorageDirPrefix: String = Environment.getExternalStorageDirectory().absolutePath
 
     fun readablePathFromUri(uri: Uri): String {
         val docId = runCatching { DocumentsContract.getDocumentId(uri) }.getOrNull()
@@ -18,7 +22,7 @@ internal object AppVaultOps {
         val volume = pieces[0]
         val rel = pieces[1]
         return if (volume.equals("primary", ignoreCase = true)) {
-            "/storage/emulated/0/$rel"
+            "$externalStorageDirPrefix/$rel"
         } else {
             "$volume:/$rel"
         }
@@ -26,7 +30,7 @@ internal object AppVaultOps {
 
     fun shortDisplayPath(path: String): String {
         val normalized = path.trim()
-        val prefix = "/storage/emulated/0/"
+        val prefix = "$externalStorageDirPrefix/"
         return when {
             normalized.startsWith(prefix) -> {
                 val relative = normalized.removePrefix(prefix)

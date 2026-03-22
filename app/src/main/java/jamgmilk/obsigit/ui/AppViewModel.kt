@@ -20,7 +20,7 @@ import java.util.Locale
 
 enum class AppPage {
     GitTerminal,
-    Vault,
+    Repo,
     Settings
 }
 
@@ -31,34 +31,22 @@ sealed class RootStatus {
     data object Denied : RootStatus()
 }
 
-data class VaultFolderItem(
-    val name: String,
-    val path: String,
-    val isGitRepo: Boolean,
-    val isDirectory: Boolean,
-    val localPath: String?
-)
-
-data class PathScanItem(
+data class RepoFolderItem(
     val id: String,
     val name: String,
     val path: String,
     val isGitRepo: Boolean,
-    val source: String,
-    val permissionHint: String,
+    val isDirectory: Boolean = true,
+    val localPath: String? = null,
+    val source: String = "Folder picker grant",
+    val permissionHint: String = "Granted",
     val isActive: Boolean,
-    val isRemovable: Boolean,
+    val isRemovable: Boolean = true,
     val uriText: String? = null
 )
 
-private data class GrantedRepoFolder(
-    val uriText: String,
-    val name: String,
-    val path: String,
-    val localPath: String?,
-    val isGitRepo: Boolean,
-    val isActive: Boolean
-)
+typealias VaultFolderItem = RepoFolderItem
+typealias PathScanItem = RepoFolderItem
 
 class AppViewModel : ViewModel() {
     private val _currentPage = MutableStateFlow(AppPage.GitTerminal)
@@ -144,36 +132,11 @@ class AppViewModel : ViewModel() {
         val grantedUrisSnapshot = _grantedTreeUris.value
 
         viewModelScope.launch(Dispatchers.IO) {
-            val grantedFolders = buildGrantedRepoFolders(grantedUrisSnapshot)
+            val repoFolders = buildGrantedRepoFolders(grantedUrisSnapshot)
+            _vaultItems.value = repoFolders
+            _pathScanItems.value = repoFolders
 
-            val vaultFolders = grantedFolders.map { folder ->
-                VaultFolderItem(
-                    name = folder.name,
-                    path = folder.path,
-                    isGitRepo = folder.isGitRepo,
-                    isDirectory = true,
-                    localPath = folder.localPath
-                )
-            }
-
-            val pathScans = grantedFolders.map { folder ->
-                PathScanItem(
-                    id = "grant:${folder.uriText}",
-                    name = folder.name,
-                    path = folder.path,
-                    isGitRepo = folder.isGitRepo,
-                    source = "Folder picker grant",
-                    permissionHint = "Granted",
-                    isActive = folder.isActive,
-                    isRemovable = true,
-                    uriText = folder.uriText
-                )
-            }
-
-            _vaultItems.value = vaultFolders
-            _pathScanItems.value = pathScans
-
-            val targetCandidates = vaultFolders
+            val targetCandidates = repoFolders
                 .mapNotNull { it.localPath }
                 .filter { File(it).exists() && File(it).isDirectory }
                 .distinct()
@@ -193,7 +156,7 @@ class AppViewModel : ViewModel() {
         }
     }
 
-    private fun buildGrantedRepoFolders(grantedUris: List<String>): List<GrantedRepoFolder> {
+    private fun buildGrantedRepoFolders(grantedUris: List<String>): List<RepoFolderItem> {
         val uniqueByPath = linkedMapOf<String, String>()
 
         grantedUris.forEach { uriText ->
@@ -208,7 +171,8 @@ class AppViewModel : ViewModel() {
             val path = ensureTrailingSlash(normalizedPath)
             val localPath = normalizedPath
             val dir = File(localPath)
-            GrantedRepoFolder(
+            RepoFolderItem(
+                id = "grant:$uriText",
                 uriText = uriText,
                 name = File(normalizedPath).name.ifBlank { "Picked Folder" },
                 path = path,
@@ -236,31 +200,31 @@ class AppViewModel : ViewModel() {
         }
     }
 
-    private fun currentRepoDir(): File? {
+    private fun currentRepoDirForGit(): File? {
         val path = _targetPath.value ?: return null
         return File(path)
     }
 
-    private fun logToTerminal(command: String, result: String) {
+    private fun appendTerminalLog(command: String, result: String) {
         val time = SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date())
         val line = "[$time] > $command\n$result"
         _terminalOutput.value += line
     }
 
     fun showStatusInTerminal() {
-        val dir = currentRepoDir() ?: return
+        val dir = currentRepoDirForGit() ?: return
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 val result = AppGitOps.terminalStatus(dir)
-                logToTerminal("git status", result)
+                appendTerminalLog("git status", result)
             } catch (e: Exception) {
-                logToTerminal("git status", "Error: ${e.message}")
+                appendTerminalLog("git status", "Error: ${e.message}")
             }
         }
     }
 
     fun checkRepoStatus() {
-        val dir = currentRepoDir()
+        val dir = currentRepoDirForGit()
         if (dir == null) {
             _isGitRepo.value = false
             _gitStatusText.value = "Select a target vault path"
@@ -280,41 +244,41 @@ class AppViewModel : ViewModel() {
     }
 
     fun initRepo() {
-        val dir = currentRepoDir() ?: return
+        val dir = currentRepoDirForGit() ?: return
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 val result = AppGitOps.initRepo(dir)
-                logToTerminal("git init", result)
+                appendTerminalLog("git init", result)
                 checkRepoStatus()
-                refreshVaultItemsByCurrentState()
+                refreshRepoFlagsFromDisk()
             } catch (e: Exception) {
-                logToTerminal("git init", "Error: ${e.message}")
+                appendTerminalLog("git init", "Error: ${e.message}")
             }
         }
     }
 
     fun stageAll() {
-        val dir = currentRepoDir() ?: return
+        val dir = currentRepoDirForGit() ?: return
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 val result = AppGitOps.stageAll(dir)
-                logToTerminal("git add -A", result)
+                appendTerminalLog("git add -A", result)
                 checkRepoStatus()
             } catch (e: Exception) {
-                logToTerminal("git add -A", "Error: ${e.message}")
+                appendTerminalLog("git add -A", "Error: ${e.message}")
             }
         }
     }
 
     fun unstageAll() {
-        val dir = currentRepoDir() ?: return
+        val dir = currentRepoDirForGit() ?: return
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 val result = AppGitOps.unstageAll(dir)
-                logToTerminal("git reset", result)
+                appendTerminalLog("git reset", result)
                 checkRepoStatus()
             } catch (e: Exception) {
-                logToTerminal("git reset", "Error: ${e.message}")
+                appendTerminalLog("git reset", "Error: ${e.message}")
             }
         }
     }
@@ -322,50 +286,50 @@ class AppViewModel : ViewModel() {
     fun commitChanges(message: String) {
         val trimmed = message.trim()
         if (trimmed.isEmpty()) {
-            logToTerminal("git commit", "Commit message cannot be empty")
+            appendTerminalLog("git commit", "Commit message cannot be empty")
             return
         }
 
-        val dir = currentRepoDir() ?: return
+        val dir = currentRepoDirForGit() ?: return
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 val result = AppGitOps.commit(dir, trimmed)
-                logToTerminal("git commit -m \"$trimmed\"", result)
+                appendTerminalLog("git commit -m \"$trimmed\"", result)
                 checkRepoStatus()
             } catch (e: Exception) {
-                logToTerminal("git commit", "Error: ${e.message}")
+                appendTerminalLog("git commit", "Error: ${e.message}")
             }
         }
     }
 
     fun pullRepo() {
-        val dir = currentRepoDir() ?: return
+        val dir = currentRepoDirForGit() ?: return
         viewModelScope.launch(Dispatchers.IO) {
-            logToTerminal("git pull", "Attempting pull. Remote auth may be required")
+            appendTerminalLog("git pull", "Attempting pull. Remote auth may be required")
             try {
                 val result = AppGitOps.pull(dir)
-                logToTerminal("git pull", result)
+                appendTerminalLog("git pull", result)
                 checkRepoStatus()
             } catch (e: Exception) {
-                logToTerminal("git pull", "Error: ${e.message}")
+                appendTerminalLog("git pull", "Error: ${e.message}")
             }
         }
     }
 
     fun pushRepo() {
-        val dir = currentRepoDir() ?: return
+        val dir = currentRepoDirForGit() ?: return
         viewModelScope.launch(Dispatchers.IO) {
-            logToTerminal("git push", "Attempting push. Remote auth may be required")
+            appendTerminalLog("git push", "Attempting push. Remote auth may be required")
             try {
                 val result = AppGitOps.push(dir)
-                logToTerminal("git push", result)
+                appendTerminalLog("git push", result)
             } catch (e: Exception) {
-                logToTerminal("git push", "Error: ${e.message}")
+                appendTerminalLog("git push", "Error: ${e.message}")
             }
         }
     }
 
-    private fun refreshVaultItemsByCurrentState() {
+    private fun refreshRepoFlagsFromDisk() {
         _vaultItems.value = _vaultItems.value.map { item ->
             val localPath = item.localPath
             if (localPath != null) {
