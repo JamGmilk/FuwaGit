@@ -3,6 +3,7 @@ package jamgmilk.obsigit.ui
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import androidx.core.net.toUri
 import androidx.documentfile.provider.DocumentFile
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -17,8 +18,6 @@ import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-import androidx.core.net.toUri
-import androidx.core.content.edit
 
 enum class AppPage {
     GitTerminal,
@@ -54,11 +53,6 @@ data class PathScanItem(
 )
 
 class AppViewModel : ViewModel() {
-    private companion object {
-        const val PREFS_NAME = "obsigit_prefs"
-        const val PREF_KEY_GRANTED_TREE_URIS = "granted_tree_uris"
-    }
-
     private val _currentPage = MutableStateFlow(AppPage.GitTerminal)
     val currentPage: StateFlow<AppPage> = _currentPage.asStateFlow()
 
@@ -114,8 +108,7 @@ class AppViewModel : ViewModel() {
             )
         }
 
-        _grantedTreeUris.value = (_grantedTreeUris.value + uri.toString()).distinct()
-        persistGrantedTreeUris(context)
+        refreshPersistedUris(context)
         refreshVaultItems(context)
     }
 
@@ -127,8 +120,7 @@ class AppViewModel : ViewModel() {
                 Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
             )
         }
-        _grantedTreeUris.value = _grantedTreeUris.value.filterNot { it == uriText }
-        persistGrantedTreeUris(context)
+        refreshPersistedUris(context)
         refreshVaultItems(context)
     }
 
@@ -136,14 +128,15 @@ class AppViewModel : ViewModel() {
         if (storageInitialized) return
         storageInitialized = true
 
-        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        val savedUris = prefs.getStringSet(PREF_KEY_GRANTED_TREE_URIS, emptySet()).orEmpty()
-        val persistedUris = context.contentResolver.persistedUriPermissions
-            .map { it.uri.toString() }
-            .toSet()
-        _grantedTreeUris.value = (savedUris + persistedUris).toList()
-        persistGrantedTreeUris(context)
+        refreshPersistedUris(context)
         refreshVaultItems(context)
+    }
+
+    fun refreshPersistedUris(context: Context) {
+        _grantedTreeUris.value = context.contentResolver.persistedUriPermissions
+            .filter { it.isReadPermission || it.isWritePermission }
+            .map { it.uri.toString() }
+            .distinct()
     }
 
     fun refreshPathScanItems(context: Context) {
@@ -213,10 +206,12 @@ class AppViewModel : ViewModel() {
     }
 
     fun refreshVaultItems(context: Context) {
+        refreshPersistedUris(context)
         viewModelScope.launch(Dispatchers.IO) {
             val collected = mutableListOf<VaultFolderItem>()
+            val grantedUris = _grantedTreeUris.value
 
-            _grantedTreeUris.value.forEach { uriText ->
+            grantedUris.forEach { uriText ->
                 val uri = uriText.toUri()
                 val treeRoot = DocumentFile.fromTreeUri(context, uri) ?: return@forEach
 
@@ -316,13 +311,6 @@ class AppViewModel : ViewModel() {
     private fun ensureTrailingSlash(path: String): String {
         val trimmed = path.trim()
         return if (trimmed.endsWith("/")) trimmed else "$trimmed/"
-    }
-
-    private fun persistGrantedTreeUris(context: Context) {
-        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            .edit {
-                putStringSet(PREF_KEY_GRANTED_TREE_URIS, _grantedTreeUris.value.toSet())
-            }
     }
 
     fun checkRoot() {
