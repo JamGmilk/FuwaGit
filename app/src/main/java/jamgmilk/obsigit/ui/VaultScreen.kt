@@ -101,7 +101,7 @@ fun VaultScreen(
                         verticalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
                         items(folders, key = { it.path }) { item ->
-                            VaultItemRow(
+                            RepoItemRow(
                                 item = item,
                                 isSelectedTarget = item.localPath != null && item.localPath == selectedTarget,
                                 onSetTarget = {
@@ -120,7 +120,7 @@ fun VaultScreen(
 }
 
 @Composable
-fun VaultItemRow(
+fun RepoItemRow(
     item: VaultFolderItem,
     isSelectedTarget: Boolean,
     onSetTarget: () -> Unit
@@ -156,11 +156,6 @@ fun VaultItemRow(
                 style = MaterialTheme.typography.bodySmall,
                 color = colors.onSurfaceVariant,
                 fontFamily = FontFamily.Monospace
-            )
-            Text(
-                text = "Owner: ${item.owner}", // TODO: 这里后面要补上 UID 属于哪个包名喵~ 不过这点确实用不上了
-                style = MaterialTheme.typography.bodySmall,
-                color = colors.onSurfaceVariant
             )
             Text(
                 text = if (item.isGitRepo) "Git repository: yes" else "Git repository: no",

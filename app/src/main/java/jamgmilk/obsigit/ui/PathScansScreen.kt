@@ -38,7 +38,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -48,6 +47,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
@@ -68,7 +68,7 @@ fun PathScansScreen(
     val colors = MaterialTheme.colorScheme
     val rootStatus by viewModel.rootStatus.collectAsState()
     val pathScanItems by viewModel.pathScanItems.collectAsState()
-    val grantedUris by viewModel.grantedTreeUris.collectAsState()
+    val grantedFolders by viewModel.grantedTreeUris.collectAsState()
 
     val requestReadPermission = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission(),
@@ -84,22 +84,17 @@ fun PathScansScreen(
     )
 
     LaunchedEffect(Unit) {
-        viewModel.refreshPersistedUris(context)
         viewModel.refreshVaultItems(context)
-        viewModel.refreshPathScanItems(context)
     }
+
     DisposableEffect(lifecycleOwner, context) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
-                viewModel.refreshPersistedUris(context)
                 viewModel.refreshVaultItems(context)
-                viewModel.refreshPathScanItems(context)
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
-        onDispose {
-            lifecycleOwner.lifecycle.removeObserver(observer)
-        }
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
     Scaffold(
@@ -193,7 +188,7 @@ fun PathScansScreen(
                         color = colors.onSurfaceVariant
                     )
                     Text(
-                        text = "Granted folder trees: ${grantedUris.size}",
+                        text = "Granted folder trees: ${grantedFolders.size}",
                         style = MaterialTheme.typography.bodySmall,
                         color = colors.onSurfaceVariant
                     )
@@ -209,17 +204,26 @@ fun PathScansScreen(
                 colors = CardDefaults.elevatedCardColors(containerColor = colors.surface.copy(alpha = 0.9f)),
                 elevation = CardDefaults.elevatedCardElevation(0.dp)
             ) {
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    items(pathScanItems, key = { it.id }) { item ->
-                        PathScanRow(
-                            item = item,
-                            onRemove = { viewModel.removePathScan(context, item) }
-                        )
+                if (pathScanItems.isEmpty()) {
+                    Text(
+                        text = "No granted folders yet. Tap Add Folder to pick a repo root.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = colors.onSurfaceVariant,
+                        modifier = Modifier.padding(16.dp)
+                    )
+                } else {
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        items(pathScanItems, key = { it.id }) { item ->
+                            PathScanRow(
+                                item = item,
+                                onRemove = { viewModel.removePathScan(context, item) }
+                            )
+                        }
                     }
                 }
             }
@@ -228,15 +232,13 @@ fun PathScansScreen(
 }
 
 @Composable
-private fun PathScanRow(
-    item: PathScanItem,
-    onRemove: () -> Unit
-) {
+private fun PathScanRow(item: PathScanItem, onRemove: () -> Unit) {
     val colors = MaterialTheme.colorScheme
     ElevatedCard(
         modifier = Modifier
             .fillMaxWidth()
             .animateContentSize(),
+        shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.elevatedCardColors(containerColor = colors.surface.copy(alpha = 0.88f)),
         elevation = CardDefaults.elevatedCardElevation(defaultElevation = 0.dp)
     ) {
@@ -246,7 +248,7 @@ private fun PathScanRow(
                 Spacer(Modifier.size(8.dp))
                 Text(item.name, fontWeight = FontWeight.Bold)
                 Spacer(Modifier.weight(1f))
-                if (item.isActive) {
+                if (item.isGitRepo) {
                     Icon(Icons.Default.CheckCircle, contentDescription = null, tint = colors.tertiary, modifier = Modifier.size(18.dp))
                 } else {
                     Icon(Icons.Default.Warning, contentDescription = null, tint = colors.secondary, modifier = Modifier.size(18.dp))
@@ -267,6 +269,11 @@ private fun PathScanRow(
                 style = MaterialTheme.typography.bodySmall,
                 color = colors.onSurfaceVariant,
                 fontFamily = FontFamily.Monospace
+            )
+            Text(
+                text = if (item.isGitRepo) "Git repository: yes" else "Git repository: no",
+                style = MaterialTheme.typography.bodySmall,
+                color = if (item.isGitRepo) colors.tertiary else colors.onSurfaceVariant
             )
         }
     }
