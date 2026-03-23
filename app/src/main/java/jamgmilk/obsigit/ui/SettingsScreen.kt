@@ -1,6 +1,7 @@
 package jamgmilk.obsigit.ui
 
 import android.annotation.SuppressLint
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.tween
@@ -11,8 +12,10 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -42,6 +45,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import jamgmilk.obsigit.ui.theme.ObsiGitTheme
+import jamgmilk.obsigit.ui.theme.ObsiGitThemeExtras
 
 @Composable
 fun SettingsScreen(
@@ -49,6 +53,7 @@ fun SettingsScreen(
     modifier: Modifier = Modifier
 ) {
     val colors = MaterialTheme.colorScheme
+    val uiColors = ObsiGitThemeExtras.colors
     var showPathScans by rememberSaveable { mutableStateOf(false) }
     var autoSync by rememberSaveable { mutableStateOf(false) }
     var credentialsStored by rememberSaveable { mutableStateOf(false) }
@@ -63,6 +68,9 @@ fun SettingsScreen(
         label = "settings_path_scans_transition"
     ) { inPathScans ->
         if (inPathScans) {
+            BackHandler {
+                showPathScans = false
+            }
             PathScansScreen(
                 viewModel = viewModel,
                 onBack = { showPathScans = false },
@@ -74,7 +82,7 @@ fun SettingsScreen(
         Column(
             modifier = modifier
                 .fillMaxSize()
-                .padding(16.dp)
+                .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 0.dp)
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
@@ -87,10 +95,10 @@ fun SettingsScreen(
             ElevatedCard(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .border(1.dp, colors.outline.copy(alpha = 0.35f), RoundedCornerShape(24.dp))
+                    .border(1.dp, uiColors.cardBorder, RoundedCornerShape(24.dp))
                     .animateContentSize(),
                 shape = RoundedCornerShape(24.dp),
-                colors = CardDefaults.elevatedCardColors(containerColor = colors.surface.copy(alpha = 0.9f)),
+                colors = CardDefaults.elevatedCardColors(containerColor = uiColors.cardContainer),
                 elevation = CardDefaults.elevatedCardElevation(0.dp)
             ) {
                 Column(modifier = Modifier.padding(vertical = 4.dp)) {
@@ -117,10 +125,10 @@ fun SettingsScreen(
             ElevatedCard(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .border(1.dp, colors.outline.copy(alpha = 0.35f), RoundedCornerShape(24.dp))
+                    .border(1.dp, uiColors.cardBorder, RoundedCornerShape(24.dp))
                     .animateContentSize(),
                 shape = RoundedCornerShape(24.dp),
-                colors = CardDefaults.elevatedCardColors(containerColor = colors.surface.copy(alpha = 0.9f)),
+                colors = CardDefaults.elevatedCardColors(containerColor = uiColors.cardContainer),
                 elevation = CardDefaults.elevatedCardElevation(0.dp)
             ) {
                 Column(modifier = Modifier.padding(vertical = 4.dp)) {
@@ -188,10 +196,10 @@ fun SettingsScreen(
             ElevatedCard(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .border(1.dp, colors.outline.copy(alpha = 0.35f), RoundedCornerShape(24.dp))
+                    .border(1.dp, uiColors.cardBorder, RoundedCornerShape(24.dp))
                     .animateContentSize(),
                 shape = RoundedCornerShape(24.dp),
-                colors = CardDefaults.elevatedCardColors(containerColor = colors.surface.copy(alpha = 0.9f)),
+                colors = CardDefaults.elevatedCardColors(containerColor = uiColors.cardContainer),
                 elevation = CardDefaults.elevatedCardElevation(0.dp)
             ) {
                 Column(modifier = Modifier.padding(vertical = 4.dp)) {
@@ -208,7 +216,7 @@ fun SettingsScreen(
 
                 }
             }
-
+            Spacer(Modifier.height(4.dp))
         }
     }
 }

@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -24,6 +25,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Folder
@@ -32,7 +34,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedCard
-import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -59,6 +61,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import jamgmilk.obsigit.ui.theme.ObsiGitTheme
+import jamgmilk.obsigit.ui.theme.ObsiGitThemeExtras
 
 @Composable
 fun PathScansScreen(
@@ -69,6 +72,7 @@ fun PathScansScreen(
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val colors = MaterialTheme.colorScheme
+    val uiColors = ObsiGitThemeExtras.colors
     val rootStatus by viewModel.rootStatus.collectAsState()
     val pathScanItems by viewModel.pathScanItems.collectAsState()
     val grantedFolders by viewModel.grantedTreeUris.collectAsState()
@@ -106,18 +110,22 @@ fun PathScansScreen(
         modifier = modifier.fillMaxSize(),
         containerColor = Color.Transparent,
         floatingActionButton = {
-            ExtendedFloatingActionButton(
+            FloatingActionButton(
                 onClick = {
                     val intent = Intent(Intent.ACTION_OPEN_DOCUMENT_TREE).apply {
                         putExtra(Intent.EXTRA_LOCAL_ONLY, true)
                         // Optional: you can still add a starting location here if needed
                     }
-                    folderPicker.launch(intent) },
-                icon = { Icon(Icons.Default.Folder, contentDescription = null) },
-                text = { Text("Add Folder") },
+                    folderPicker.launch(intent)
+                },
                 containerColor = colors.primary,
                 elevation = FloatingActionButtonDefaults.elevation(0.dp)
-            )
+            ) {
+                Icon(
+                    Icons.Default.Add,
+                    contentDescription = "Add Folder"
+                )
+            }
         }
     ) { innerPadding ->
         Column(
@@ -141,10 +149,10 @@ fun PathScansScreen(
             ElevatedCard(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .border(1.dp, colors.outline.copy(alpha = 0.35f), RoundedCornerShape(24.dp))
+                    .border(1.dp, uiColors.cardBorder, RoundedCornerShape(24.dp))
                     .animateContentSize(),
                 shape = RoundedCornerShape(24.dp),
-                colors = CardDefaults.elevatedCardColors(containerColor = colors.surface.copy(alpha = 0.9f)),
+                colors = CardDefaults.elevatedCardColors(containerColor = uiColors.cardContainer),
                 elevation = CardDefaults.elevatedCardElevation(0.dp)
             ) {
                 Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -217,9 +225,9 @@ fun PathScansScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f)
-                    .border(1.dp, colors.outline.copy(alpha = 0.35f), RoundedCornerShape(24.dp)),
+                    .border(1.dp, uiColors.cardBorder, RoundedCornerShape(24.dp)),
                 shape = RoundedCornerShape(24.dp),
-                colors = CardDefaults.elevatedCardColors(containerColor = colors.surface.copy(alpha = 0.9f)),
+                colors = CardDefaults.elevatedCardColors(containerColor = uiColors.cardContainer),
                 elevation = CardDefaults.elevatedCardElevation(0.dp)
             ) {
                 if (pathScanItems.isEmpty()) {
@@ -245,6 +253,7 @@ fun PathScansScreen(
                     }
                 }
             }
+            Spacer(Modifier.height(4.dp))
         }
     }
 }
@@ -252,12 +261,13 @@ fun PathScansScreen(
 @Composable
 private fun PathScanRow(item: PathScanItem, onRemove: () -> Unit) {
     val colors = MaterialTheme.colorScheme
+    val uiColors = ObsiGitThemeExtras.colors
     ElevatedCard(
         modifier = Modifier
             .fillMaxWidth()
             .animateContentSize(),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.elevatedCardColors(containerColor = colors.surface.copy(alpha = 0.88f)),
+        colors = CardDefaults.elevatedCardColors(containerColor = uiColors.cardContainer),
         elevation = CardDefaults.elevatedCardElevation(defaultElevation = 0.dp)
     ) {
         Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {

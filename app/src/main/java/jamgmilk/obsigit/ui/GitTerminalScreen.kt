@@ -56,9 +56,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import jamgmilk.obsigit.ui.theme.CatNight
 import jamgmilk.obsigit.ui.theme.ObsiGitTheme
-import jamgmilk.obsigit.ui.theme.Sakura30
+import jamgmilk.obsigit.ui.theme.ObsiGitThemeExtras
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalLayoutApi::class)
 @Composable
@@ -67,6 +66,7 @@ fun GitTerminalScreen(
     modifier: Modifier = Modifier
 ) {
     val colors = MaterialTheme.colorScheme
+    val uiColors = ObsiGitThemeExtras.colors
     val isRepo by viewModel.isGitRepo.collectAsState()
     val statusText by viewModel.gitStatusText.collectAsState()
     val terminalLogs by viewModel.terminalOutput.collectAsState()
@@ -91,12 +91,12 @@ fun GitTerminalScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .border(
-                        BorderStroke(1.dp, colors.outline.copy(alpha = 0.35f)),
+                        BorderStroke(1.dp, uiColors.cardBorder),
                         RoundedCornerShape(24.dp)
                     ),
                 shape = RoundedCornerShape(24.dp),
                 colors = CardDefaults.elevatedCardColors(
-                    containerColor = if (isRepo) colors.surface.copy(alpha = 0.92f) else colors.errorContainer.copy(alpha = 0.86f)
+                    containerColor = if (isRepo) uiColors.cardContainer else colors.errorContainer
                 ),
                 elevation = CardDefaults.elevatedCardElevation(defaultElevation = 0.dp)
             ) {
@@ -167,7 +167,7 @@ fun GitTerminalScreen(
                     .fillMaxSize()
                     .shadow(8.dp, RoundedCornerShape(24.dp))
                     .clip(RoundedCornerShape(24.dp))
-                    .background(CatNight)
+                    .background(uiColors.terminalBackground)
                     //.background(colors.surfaceVariant.copy(alpha = 0.88f))
                     .padding(12.dp)
 
@@ -178,13 +178,13 @@ fun GitTerminalScreen(
                     modifier = Modifier
                         .fillMaxSize()
                         .clip(RoundedCornerShape(12.dp))
-                        .background(CatNight),
+                        .background(uiColors.terminalBackground),
                     contentPadding = PaddingValues(4.dp)
                     ) {
                     items(terminalLogs) { log ->
                         Text(
                             text = log,
-                            color = Sakura30,
+                            color = uiColors.terminalText,
                             fontFamily = FontFamily.Monospace,
                             fontSize = 12.sp,
                             modifier = Modifier

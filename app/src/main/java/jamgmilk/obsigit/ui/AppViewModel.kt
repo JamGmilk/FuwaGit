@@ -161,14 +161,14 @@ class AppViewModel : ViewModel() {
 
         grantedUris.forEach { uriText ->
             val readablePath = AppVaultOps.readablePathFromUri(uriText.toUri())
-            val normalizedPath = normalizePath(readablePath)
+            val normalizedPath = AppVaultOps.normalizeLocalPath(readablePath)
             if (normalizedPath.startsWith("/") && normalizedPath !in uniqueByPath) {
                 uniqueByPath[normalizedPath] = uriText
             }
         }
 
         return uniqueByPath.entries.map { (normalizedPath, uriText) ->
-            val path = ensureTrailingSlash(normalizedPath)
+            val path = AppVaultOps.ensureTrailingSlash(normalizedPath)
             val localPath = normalizedPath
             val dir = File(localPath)
             RepoFolderItem(
@@ -181,15 +181,6 @@ class AppViewModel : ViewModel() {
                 isActive = dir.exists() && dir.isDirectory
             )
         }.sortedBy { it.name.lowercase() }
-    }
-
-    private fun normalizePath(path: String): String {
-        return path.trim().trimEnd('/')
-    }
-
-    private fun ensureTrailingSlash(path: String): String {
-        val trimmed = path.trim()
-        return if (trimmed.endsWith("/")) trimmed else "$trimmed/"
     }
 
     fun checkRoot() {
@@ -238,7 +229,7 @@ class AppViewModel : ViewModel() {
                 _gitStatusText.value = status.message
             } catch (e: Exception) {
                 _isGitRepo.value = false
-                _gitStatusText.value = "Path: ${dir.absolutePath}\nError: ${e.message}"
+                _gitStatusText.value = "Path: ${AppVaultOps.shortDisplayPath(dir)}\nError: ${e.message}"
             }
         }
     }
@@ -339,8 +330,12 @@ class AppViewModel : ViewModel() {
             }
         }
         _pathScanItems.value = _pathScanItems.value.map { item ->
-            val localPath = normalizePath(item.path)
-            item.copy(isGitRepo = AppGitOps.hasGitDir(localPath))
+            val localPath = item.localPath
+            if (localPath != null) {
+                item.copy(isGitRepo = AppGitOps.hasGitDir(localPath))
+            } else {
+                item
+            }
         }
     }
 }

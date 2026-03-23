@@ -3,6 +3,7 @@ package jamgmilk.obsigit.ui
 import android.net.Uri
 import android.os.Environment
 import android.provider.DocumentsContract
+import java.io.File
 
 internal object AppVaultOps {
 
@@ -28,8 +29,21 @@ internal object AppVaultOps {
         }
     }
 
+    fun normalizeLocalPath(path: String): String {
+        return path.trim().trimEnd('/')
+    }
+
+    fun ensureTrailingSlash(path: String): String {
+        val trimmed = path.trim()
+        return if (trimmed.endsWith("/")) trimmed else "$trimmed/"
+    }
+
+    fun shortDisplayPath(path: File): String {
+        return shortDisplayPath(path.absolutePath)
+    }
+
     fun shortDisplayPath(path: String): String {
-        val normalized = path.trim()
+        val normalized = path.trim().trimEnd('/')
         val prefix = "$externalStorageDirPrefix/"
         return when {
             normalized.startsWith(prefix) -> {

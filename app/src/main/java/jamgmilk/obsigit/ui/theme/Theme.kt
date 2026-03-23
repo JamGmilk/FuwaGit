@@ -1,10 +1,13 @@
 package jamgmilk.obsigit.ui.theme
 
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 
 private val DarkColorScheme = darkColorScheme(
@@ -54,17 +57,53 @@ private object ColorTokens {
     val surfaceVariantDark = Color(0xFF4A3446)
 }
 
+@Immutable
+data class ObsiGitExtraColors(
+    val cardContainer: Color,
+    val cardBorder: Color,
+    val terminalBackground: Color,
+    val terminalText: Color,
+    val navBarContainer: Color
+)
+
+private val LightExtraColors = ObsiGitExtraColors(
+    cardContainer = Sakura20,
+    cardBorder = Sakura50.copy(alpha = 0.40f),
+    terminalBackground = CatNightSoft,
+    terminalText = Sakura30,
+    navBarContainer = Sakura20.copy(alpha = 0.95f)
+)
+
+private val DarkExtraColors = ObsiGitExtraColors(
+    cardContainer = ColorTokens.surfaceDark,
+    cardBorder = Sakura70.copy(alpha = 0.40f),
+    terminalBackground = CatNightSoft,
+    terminalText = Sakura30,
+    navBarContainer = CatNight
+)
+
+private val LocalExtraColors = staticCompositionLocalOf { LightExtraColors }
+
+object ObsiGitThemeExtras {
+    val colors: ObsiGitExtraColors
+        @Composable
+        get() = LocalExtraColors.current
+}
+
 @Composable
 fun ObsiGitTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     content: @Composable () -> Unit
 ) {
     val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
+    val extraColors = if (darkTheme) DarkExtraColors else LightExtraColors
 
-    MaterialTheme(
-        colorScheme = colorScheme,
-        typography = Typography,
-        shapes = AppShapes,
-        content = content
-    )
+    CompositionLocalProvider(LocalExtraColors provides extraColors) {
+        MaterialTheme(
+            colorScheme = colorScheme,
+            typography = Typography,
+            shapes = AppShapes,
+            content = content
+        )
+    }
 }
