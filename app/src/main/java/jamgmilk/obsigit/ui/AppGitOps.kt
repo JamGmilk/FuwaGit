@@ -21,7 +21,8 @@ internal object AppGitOps {
                 val status = git.status().call()
                 GitRepoStatus(
                     isGitRepo = true,
-                    message = "Path: ${dir.absolutePath}\n" +
+
+                    message = "Path: ${AppVaultOps.shortDisplayPath(dir)}\n" +
                         "Branch: ${git.repository.branch}\n" +
                         "Uncommitted: ${status.hasUncommittedChanges()}\n" +
                         "Untracked: ${status.untracked.size}"
@@ -30,7 +31,7 @@ internal object AppGitOps {
         } catch (_: RepositoryNotFoundException) {
             GitRepoStatus(
                 isGitRepo = false,
-                message = "Path: ${dir.absolutePath}\nNot a Git repository"
+                message = "Path: ${AppVaultOps.shortDisplayPath(dir)}\nNot a Git repository"
             )
         }
     }
@@ -50,7 +51,7 @@ internal object AppGitOps {
             dir.mkdirs()
         }
         Git.init().setDirectory(dir).call().use { }
-        return "Initialized repository in ${dir.absolutePath}"
+        return "Initialized repository in ${AppVaultOps.shortDisplayPath(dir)}"
     }
 
     fun stageAll(dir: File): String {

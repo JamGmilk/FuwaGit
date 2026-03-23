@@ -2,6 +2,7 @@ package jamgmilk.obsigit.ui
 
 import android.annotation.SuppressLint
 import androidx.compose.foundation.border
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -35,6 +36,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import jamgmilk.obsigit.ui.theme.ObsiGitTheme
+import jamgmilk.obsigit.ui.theme.ObsiGitThemeExtras
 
 @Composable
 fun VaultScreen(
@@ -42,6 +44,7 @@ fun VaultScreen(
     modifier: Modifier = Modifier
 ) {
     val colors = MaterialTheme.colorScheme
+    val uiColors = ObsiGitThemeExtras.colors
     val context = LocalContext.current
     val folders by viewModel.vaultItems.collectAsState()
     val selectedTarget by viewModel.targetPath.collectAsState()
@@ -67,9 +70,9 @@ fun VaultScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .weight(1f)
-                .border(1.dp, colors.outline.copy(alpha = 0.35f), RoundedCornerShape(24.dp)),
+                .border(1.dp, uiColors.cardBorder, RoundedCornerShape(24.dp)),
             shape = RoundedCornerShape(24.dp),
-            colors = CardDefaults.elevatedCardColors(containerColor = colors.surface.copy(alpha = 0.9f)),
+            colors = CardDefaults.elevatedCardColors(containerColor = uiColors.cardContainer),
             elevation = CardDefaults.elevatedCardElevation(0.dp)
         ) {
             if (folders.isEmpty()) {
@@ -126,18 +129,26 @@ fun RepoItemRow(
     onSetTarget: () -> Unit
 ) {
     val colors = MaterialTheme.colorScheme
+    val uiColors = ObsiGitThemeExtras.colors
     val canSetTarget = item.localPath != null
+    val containerColor = if (isSelectedTarget) colors.primaryContainer else uiColors.cardContainer
     ElevatedCard(
         onClick = onSetTarget,
         enabled = canSetTarget,
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.elevatedCardColors(
-            containerColor = if (isSelectedTarget) colors.primaryContainer else colors.surface.copy(alpha = 0.88f)
+            containerColor = containerColor
         ),
         elevation = CardDefaults.elevatedCardElevation(defaultElevation = 0.dp)
     ) {
-        Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(containerColor)
+                .padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Default.Folder, contentDescription = null, tint = colors.primary, modifier = Modifier.size(20.dp))
                 Spacer(Modifier.size(8.dp))
