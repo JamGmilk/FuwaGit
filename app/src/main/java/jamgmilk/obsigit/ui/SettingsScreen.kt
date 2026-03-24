@@ -54,26 +54,26 @@ fun SettingsScreen(
 ) {
     val colors = MaterialTheme.colorScheme
     val uiColors = ObsiGitThemeExtras.colors
-    var showPathScans by rememberSaveable { mutableStateOf(false) }
+    var showPermissions by rememberSaveable { mutableStateOf(false) }
     var autoSync by rememberSaveable { mutableStateOf(false) }
     var credentialsStored by rememberSaveable { mutableStateOf(false) }
     var conflictSafeMode by rememberSaveable { mutableStateOf(true) }
     var backupBeforeSync by rememberSaveable { mutableStateOf(true) }
 
     AnimatedContent(
-        targetState = showPathScans,
+        targetState = showPermissions,
         transitionSpec = {
             fadeIn(animationSpec = tween(260)) togetherWith fadeOut(animationSpec = tween(200))
         },
-        label = "settings_path_scans_transition"
-    ) { inPathScans ->
-        if (inPathScans) {
+        label = "settings_permissions_transition"
+    ) { inPermissions ->
+        if (inPermissions) {
             BackHandler {
-                showPathScans = false
+                showPermissions = false
             }
-            PathScansScreen(
+            PermissionsScreen(
                 viewModel = viewModel,
-                onBack = { showPathScans = false },
+                onBack = { showPermissions = false },
                 modifier = modifier
             )
             return@AnimatedContent
@@ -109,13 +109,13 @@ fun SettingsScreen(
                     )
 
                     ListItem(
-                        headlineContent = { Text("Path Scans") },
-                        supportingContent = { Text("Manage scanned folders and permission grants") },
-                        leadingContent = { Icon(Icons.Default.Folder, contentDescription = null) },
+                        headlineContent = { Text("Permissions") },
+                        supportingContent = { Text("Manage system and scoped storage permissions") },
+                        leadingContent = { Icon(Icons.Default.Security, contentDescription = null) },
                         trailingContent = { Icon(Icons.Default.ChevronRight, contentDescription = null) },
                         modifier = Modifier
                             .animateContentSize()
-                            .clickable { showPathScans = true },
+                            .clickable { showPermissions = true },
                         tonalElevation = 0.dp,
                         shadowElevation = 0.dp
                     )

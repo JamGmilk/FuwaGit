@@ -42,7 +42,7 @@ import jamgmilk.obsigit.ui.AppPage
 import jamgmilk.obsigit.ui.AppViewModel
 import jamgmilk.obsigit.ui.GitTerminalScreen
 import jamgmilk.obsigit.ui.SettingsScreen
-import jamgmilk.obsigit.ui.VaultScreen
+import jamgmilk.obsigit.ui.RepoScreen
 import jamgmilk.obsigit.ui.theme.ObsiGitTheme
 import jamgmilk.obsigit.ui.theme.ObsiGitThemeExtras
 import jamgmilk.obsigit.ui.theme.appBackgroundBrush
@@ -78,7 +78,7 @@ fun AppRoot(viewModel: AppViewModel, modifier: Modifier = Modifier) {
         containerColor = MaterialTheme.colorScheme.background,
         bottomBar = {
             NavigationBar(
-                modifier = Modifier.height(64.dp),
+                //modifier = Modifier.height(64.dp),
                 windowInsets = NavigationBarDefaults.windowInsets,
                 containerColor = uiColors.navBarContainer
             ) {
@@ -92,8 +92,8 @@ fun AppRoot(viewModel: AppViewModel, modifier: Modifier = Modifier) {
                 NavigationBarItem(
                     selected = currentPage == AppPage.Repo,
                     onClick = { viewModel.switchPage(AppPage.Repo) },
-                    icon = { Icon(Icons.Default.Folder, contentDescription = "Vault") },
-                    label = { Text("Vault") },
+                    icon = { Icon(Icons.Default.Folder, contentDescription = "Repo") },
+                    label = { Text("Repo") },
                     alwaysShowLabel = false
                 )
                 NavigationBarItem(
@@ -126,7 +126,7 @@ fun AppRoot(viewModel: AppViewModel, modifier: Modifier = Modifier) {
             ) { page ->
                 when (page) {
                     AppPage.GitTerminal -> GitTerminalScreen(viewModel = viewModel, modifier = contentModifier)
-                    AppPage.Repo -> VaultScreen(viewModel = viewModel, modifier = contentModifier)
+                    AppPage.Repo -> RepoScreen(viewModel = viewModel, modifier = contentModifier)
                     AppPage.Settings -> SettingsScreen(viewModel = viewModel, modifier = contentModifier)
                 }
             }
