@@ -17,6 +17,7 @@ import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import androidx.core.content.edit
 
 enum class AppPage {
     GitTerminal,
@@ -42,11 +43,9 @@ data class RepoFolderItem(
     val permissionHint: String = "Granted",
     val isActive: Boolean,
     val isRemovable: Boolean = true,
-    val uriText: String? = null
+    val uriText: String? = null,
+    val lastModified: Long = 0L,
 )
-
-typealias VaultFolderItem = RepoFolderItem
-typealias PathScanItem = RepoFolderItem
 
 class AppViewModel : ViewModel() {
     private val _currentPage = MutableStateFlow(AppPage.GitTerminal)
@@ -57,10 +56,10 @@ class AppViewModel : ViewModel() {
 
     private val _availableTargetPaths = MutableStateFlow<List<String>>(emptyList())
 
-    private val _isGitRepo = MutableStateFlow(false)
+    private val _isGitRepo = MutableStateFlow(value = false)
     val isGitRepo: StateFlow<Boolean> = _isGitRepo.asStateFlow()
 
-    private val _gitStatusText = MutableStateFlow("Select a target vault path")
+    private val _gitStatusText = MutableStateFlow("Select a target repo")
     val gitStatusText: StateFlow<String> = _gitStatusText.asStateFlow()
 
     private val _terminalOutput = MutableStateFlow<List<String>>(emptyList())
@@ -69,14 +68,11 @@ class AppViewModel : ViewModel() {
     private val _rootStatus = MutableStateFlow<RootStatus>(RootStatus.Idle)
     val rootStatus: StateFlow<RootStatus> = _rootStatus.asStateFlow()
 
-    private val _vaultItems = MutableStateFlow<List<VaultFolderItem>>(emptyList())
-    val vaultItems: StateFlow<List<VaultFolderItem>> = _vaultItems.asStateFlow()
+    private val _repoItems = MutableStateFlow<List<RepoFolderItem>>(emptyList())
+    val repoItems: StateFlow<List<RepoFolderItem>> = _repoItems.asStateFlow()
 
     private val _grantedTreeUris = MutableStateFlow<List<String>>(emptyList())
     val grantedTreeUris: StateFlow<List<String>> = _grantedTreeUris.asStateFlow()
-
-    private val _pathScanItems = MutableStateFlow<List<PathScanItem>>(emptyList())
-    val pathScanItems: StateFlow<List<PathScanItem>> = _pathScanItems.asStateFlow()
 
     private var storageInitialized = false
 
@@ -84,8 +80,9 @@ class AppViewModel : ViewModel() {
         _currentPage.value = page
     }
 
-    fun setTargetPath(path: String) {
+    fun setTargetPath(context: Context, path: String?) {
         _targetPath.value = path
+        saveTargetPath(context, path)
         checkRepoStatus()
     }
 
@@ -93,13 +90,13 @@ class AppViewModel : ViewModel() {
         runCatching {
             context.contentResolver.takePersistableUriPermission(
                 uri,
-                Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+                Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION,
             )
         }
         rebuildGrantedFolders(context)
     }
 
-    fun removePathScan(context: Context, item: PathScanItem) {
+    fun removeRepo(context: Context, item: RepoFolderItem) {
         val uriText = item.uriText ?: return
         runCatching {
             context.contentResolver.releasePersistableUriPermission(
@@ -113,17 +110,19 @@ class AppViewModel : ViewModel() {
     fun initializeStorage(context: Context) {
         if (storageInitialized) return
         storageInitialized = true
+        _targetPath.value = loadTargetPath(context)
         rebuildGrantedFolders(context)
     }
 
     fun refreshPersistedUris(context: Context) {
-        _grantedTreeUris.value = context.contentResolver.persistedUriPermissions
+        _grantedTreeUris.value = context.contentResolver.persistedUriPermissions.asSequence()
             .filter { it.isReadPermission || it.isWritePermission }
             .map { it.uri.toString() }
             .distinct()
+            .toList()
     }
 
-    fun refreshVaultItems(context: Context) {
+    fun refreshRepoItems(context: Context) {
         rebuildGrantedFolders(context)
     }
 
@@ -133,8 +132,7 @@ class AppViewModel : ViewModel() {
 
         viewModelScope.launch(Dispatchers.IO) {
             val repoFolders = buildGrantedRepoFolders(grantedUrisSnapshot)
-            _vaultItems.value = repoFolders
-            _pathScanItems.value = repoFolders
+            _repoItems.value = repoFolders
 
             val targetCandidates = repoFolders
                 .mapNotNull { it.localPath }
@@ -144,10 +142,9 @@ class AppViewModel : ViewModel() {
             _availableTargetPaths.value = targetCandidates
 
             val selectedPath = _targetPath.value
-            if (selectedPath == null && targetCandidates.isNotEmpty()) {
-                _targetPath.value = targetCandidates.first()
-            } else if (selectedPath != null && selectedPath !in targetCandidates) {
-                _targetPath.value = targetCandidates.firstOrNull()
+            if (selectedPath != null && (selectedPath !in targetCandidates)) {
+                _targetPath.value = null
+                saveTargetPath(context, null)
             }
 
             withContext(Dispatchers.Main) {
@@ -160,15 +157,15 @@ class AppViewModel : ViewModel() {
         val uniqueByPath = linkedMapOf<String, String>()
 
         grantedUris.forEach { uriText ->
-            val readablePath = AppVaultOps.readablePathFromUri(uriText.toUri())
-            val normalizedPath = AppVaultOps.normalizeLocalPath(readablePath)
-            if (normalizedPath.startsWith("/") && normalizedPath !in uniqueByPath) {
+            val readablePath = AppRepoOps.readablePathFromUri(uriText.toUri())
+            val normalizedPath = AppRepoOps.normalizeLocalPath(readablePath)
+            if (normalizedPath.startsWith("/") && (normalizedPath !in uniqueByPath)) {
                 uniqueByPath[normalizedPath] = uriText
             }
         }
 
-        return uniqueByPath.entries.map { (normalizedPath, uriText) ->
-            val path = AppVaultOps.ensureTrailingSlash(normalizedPath)
+        return uniqueByPath.entries.asSequence().map { (normalizedPath, uriText) ->
+            val path = AppRepoOps.ensureTrailingSlash(normalizedPath)
             val localPath = normalizedPath
             val dir = File(localPath)
             RepoFolderItem(
@@ -178,9 +175,10 @@ class AppViewModel : ViewModel() {
                 path = path,
                 localPath = localPath,
                 isGitRepo = AppGitOps.hasGitDir(localPath),
-                isActive = dir.exists() && dir.isDirectory
+                isActive = dir.exists() && dir.isDirectory,
+                lastModified = if (dir.exists()) dir.lastModified() else 0L,
             )
-        }.sortedBy { it.name.lowercase() }
+        }.sortedBy { it.name.lowercase() }.toList()
     }
 
     fun checkRoot() {
@@ -218,7 +216,7 @@ class AppViewModel : ViewModel() {
         val dir = currentRepoDirForGit()
         if (dir == null) {
             _isGitRepo.value = false
-            _gitStatusText.value = "Select a target vault path"
+            _gitStatusText.value = "Select a target repo path"
             return
         }
 
@@ -229,7 +227,7 @@ class AppViewModel : ViewModel() {
                 _gitStatusText.value = status.message
             } catch (e: Exception) {
                 _isGitRepo.value = false
-                _gitStatusText.value = "Path: ${AppVaultOps.shortDisplayPath(dir)}\nError: ${e.message}"
+                _gitStatusText.value = "Path: ${AppRepoOps.shortDisplayPath(dir)}\nError: ${e.message}"
             }
         }
     }
@@ -321,7 +319,7 @@ class AppViewModel : ViewModel() {
     }
 
     private fun refreshRepoFlagsFromDisk() {
-        _vaultItems.value = _vaultItems.value.map { item ->
+        _repoItems.value = _repoItems.value.map { item ->
             val localPath = item.localPath
             if (localPath != null) {
                 item.copy(isGitRepo = AppGitOps.hasGitDir(localPath))
@@ -329,13 +327,15 @@ class AppViewModel : ViewModel() {
                 item
             }
         }
-        _pathScanItems.value = _pathScanItems.value.map { item ->
-            val localPath = item.localPath
-            if (localPath != null) {
-                item.copy(isGitRepo = AppGitOps.hasGitDir(localPath))
-            } else {
-                item
-            }
-        }
+    }
+
+    private fun saveTargetPath(context: Context, path: String?) {
+        val prefs = context.getSharedPreferences("obsigit_prefs", Context.MODE_PRIVATE)
+        prefs.edit { putString("target_path", path) }
+    }
+
+    private fun loadTargetPath(context: Context): String? {
+        val prefs = context.getSharedPreferences("obsigit_prefs", Context.MODE_PRIVATE)
+        return prefs.getString("target_path", null)
     }
 }

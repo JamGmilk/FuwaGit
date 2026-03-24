@@ -5,7 +5,7 @@ import android.os.Environment
 import android.provider.DocumentsContract
 import java.io.File
 
-internal object AppVaultOps {
+internal object AppRepoOps {
 
     // "/storage/emulated/0"
     val externalStorageDirPrefix: String = Environment.getExternalStorageDirectory().absolutePath
