@@ -22,7 +22,12 @@ import androidx.core.content.edit
 enum class AppPage {
     GitTerminal,
     Repo,
-    Settings
+    Settings,
+    Workspace
+}
+
+enum class WorkspaceTab {
+    Status, History, Branches
 }
 
 sealed class RootStatus {
@@ -74,6 +79,18 @@ class AppViewModel : ViewModel() {
     private val _grantedTreeUris = MutableStateFlow<List<String>>(emptyList())
     val grantedTreeUris: StateFlow<List<String>> = _grantedTreeUris.asStateFlow()
 
+    private val _workspaceFiles = MutableStateFlow<List<GitFileStatus>>(emptyList())
+    val workspaceFiles: StateFlow<List<GitFileStatus>> = _workspaceFiles.asStateFlow()
+
+    private val _commitHistory = MutableStateFlow<List<GitCommit>>(emptyList())
+    val commitHistory: StateFlow<List<GitCommit>> = _commitHistory.asStateFlow()
+
+    private val _branches = MutableStateFlow<List<GitBranch>>(emptyList())
+    val branches: StateFlow<List<GitBranch>> = _branches.asStateFlow()
+
+    private val _workspaceTab = MutableStateFlow(WorkspaceTab.Status)
+    val workspaceTab: StateFlow<WorkspaceTab> = _workspaceTab.asStateFlow()
+
     private var storageInitialized = false
 
     fun switchPage(page: AppPage) {
@@ -84,6 +101,9 @@ class AppViewModel : ViewModel() {
         _targetPath.value = path
         saveTargetPath(context, path)
         checkRepoStatus()
+        if (path != null) {
+            refreshWorkspace()
+        }
     }
 
     fun addGrantedTreeUri(context: Context, uri: Uri) {
@@ -110,8 +130,12 @@ class AppViewModel : ViewModel() {
     fun initializeStorage(context: Context) {
         if (storageInitialized) return
         storageInitialized = true
-        _targetPath.value = loadTargetPath(context)
+        val path = loadTargetPath(context)
+        _targetPath.value = path
         rebuildGrantedFolders(context)
+        if (path != null) {
+            refreshWorkspace()
+        }
     }
 
     fun refreshPersistedUris(context: Context) {
@@ -314,6 +338,94 @@ class AppViewModel : ViewModel() {
                 appendTerminalLog("git push", result)
             } catch (e: Exception) {
                 appendTerminalLog("git push", "Error: ${e.message}")
+            }
+        }
+    }
+
+    fun refreshWorkspace() {
+        val dir = currentRepoDirForGit() ?: return
+        viewModelScope.launch(Dispatchers.IO) {
+            _workspaceFiles.value = AppGitOps.getDetailedStatus(dir)
+            _commitHistory.value = AppGitOps.getLog(dir)
+            _branches.value = AppGitOps.getBranches(dir)
+        }
+    }
+
+    fun setWorkspaceTab(tab: WorkspaceTab) {
+        _workspaceTab.value = tab
+    }
+
+    fun stageFile(path: String) {
+        val dir = currentRepoDirForGit() ?: return
+        viewModelScope.launch(Dispatchers.IO) {
+            AppGitOps.stageFile(dir, path)
+            refreshWorkspace()
+        }
+    }
+
+    fun unstageFile(path: String) {
+        val dir = currentRepoDirForGit() ?: return
+        viewModelScope.launch(Dispatchers.IO) {
+            AppGitOps.unstageFile(dir, path)
+            refreshWorkspace()
+        }
+    }
+
+    fun discardChanges(path: String) {
+        val dir = currentRepoDirForGit() ?: return
+        viewModelScope.launch(Dispatchers.IO) {
+            AppGitOps.discardChanges(dir, path)
+            refreshWorkspace()
+        }
+    }
+
+    fun checkoutBranch(name: String) {
+        val dir = currentRepoDirForGit() ?: return
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                AppGitOps.checkoutBranch(dir, name)
+                refreshWorkspace()
+                checkRepoStatus()
+            } catch (e: Exception) {
+                appendTerminalLog("git checkout $name", "Error: ${e.message}")
+            }
+        }
+    }
+    
+    fun mergeBranch(name: String) {
+        val dir = currentRepoDirForGit() ?: return
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                AppGitOps.mergeBranch(dir, name)
+                refreshWorkspace()
+                checkRepoStatus()
+            } catch (e: Exception) {
+                appendTerminalLog("git merge $name", "Error: ${e.message}")
+            }
+        }
+    }
+
+    fun rebaseBranch(name: String) {
+        val dir = currentRepoDirForGit() ?: return
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                AppGitOps.rebaseBranch(dir, name)
+                refreshWorkspace()
+                checkRepoStatus()
+            } catch (e: Exception) {
+                appendTerminalLog("git rebase $name", "Error: ${e.message}")
+            }
+        }
+    }
+
+    fun deleteBranch(name: String, force: Boolean = false) {
+        val dir = currentRepoDirForGit() ?: return
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                AppGitOps.deleteBranch(dir, name, force)
+                refreshWorkspace()
+            } catch (e: Exception) {
+                appendTerminalLog("git branch -d $name", "Error: ${e.message}")
             }
         }
     }
