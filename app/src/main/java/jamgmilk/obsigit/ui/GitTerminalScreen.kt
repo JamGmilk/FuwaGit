@@ -24,6 +24,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -73,10 +75,12 @@ fun GitTerminalScreen(
     val targetPath by viewModel.targetPath.collectAsState()
 
     var showCommitDialog by remember { mutableStateOf(false) }
+    val scrollState = rememberScrollState()
 
     Column(
         modifier = modifier
             .fillMaxSize()
+            .verticalScroll(scrollState)
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
@@ -147,7 +151,7 @@ fun GitTerminalScreen(
             }
         }
 
-        Column(modifier = Modifier.weight(1f)) {
+        Column(modifier = Modifier.height(260.dp).fillMaxWidth()) {
             Text(
                 "Terminal Logs",
                 style = MaterialTheme.typography.labelLarge,
@@ -164,14 +168,11 @@ fun GitTerminalScreen(
 
             Box(
                 modifier = Modifier
-                    .fillMaxSize()
+                    .weight(1f)
                     .shadow(8.dp, RoundedCornerShape(24.dp))
                     .clip(RoundedCornerShape(24.dp))
                     .background(uiColors.terminalBackground)
-                    //.background(colors.surfaceVariant.copy(alpha = 0.88f))
                     .padding(12.dp)
-
-
             ) {
                 LazyColumn(
                     state = listState,
@@ -180,7 +181,7 @@ fun GitTerminalScreen(
                         .clip(RoundedCornerShape(12.dp))
                         .background(uiColors.terminalBackground),
                     contentPadding = PaddingValues(4.dp)
-                    ) {
+                ) {
                     items(terminalLogs) { log ->
                         Text(
                             text = log,
@@ -196,6 +197,11 @@ fun GitTerminalScreen(
                 }
             }
         }
+
+        RepoWorkspaceModule(
+            viewModel = viewModel,
+            modifier = Modifier.height(560.dp).fillMaxWidth()
+        )
     }
 
     if (showCommitDialog) {

@@ -12,9 +12,9 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -25,8 +25,10 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarDefaults
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -34,15 +36,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
-import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.material3.NavigationBarDefaults
-import androidx.compose.material3.Text
 import jamgmilk.obsigit.ui.AppPage
 import jamgmilk.obsigit.ui.AppViewModel
 import jamgmilk.obsigit.ui.GitTerminalScreen
-import jamgmilk.obsigit.ui.SettingsScreen
 import jamgmilk.obsigit.ui.RepoScreen
+import jamgmilk.obsigit.ui.SettingsScreen
+import jamgmilk.obsigit.ui.WorkspaceScreen
 import jamgmilk.obsigit.ui.theme.ObsiGitTheme
 import jamgmilk.obsigit.ui.theme.ObsiGitThemeExtras
 import jamgmilk.obsigit.ui.theme.appBackgroundBrush
@@ -77,32 +76,34 @@ fun AppRoot(viewModel: AppViewModel, modifier: Modifier = Modifier) {
         modifier = modifier.fillMaxSize(),
         containerColor = MaterialTheme.colorScheme.background,
         bottomBar = {
-            NavigationBar(
-                //modifier = Modifier.height(64.dp),
-                windowInsets = NavigationBarDefaults.windowInsets,
-                containerColor = uiColors.navBarContainer
-            ) {
-                NavigationBarItem(
-                    selected = currentPage == AppPage.GitTerminal,
-                    onClick = { viewModel.switchPage(AppPage.GitTerminal) },
-                    icon = { Icon(Icons.Default.Code, contentDescription = "Git") },
-                    label = { Text("Git") },
-                    alwaysShowLabel = false
-                )
-                NavigationBarItem(
-                    selected = currentPage == AppPage.Repo,
-                    onClick = { viewModel.switchPage(AppPage.Repo) },
-                    icon = { Icon(Icons.Default.Folder, contentDescription = "Repo") },
-                    label = { Text("Repo") },
-                    alwaysShowLabel = false
-                )
-                NavigationBarItem(
-                    selected = currentPage == AppPage.Settings,
-                    onClick = { viewModel.switchPage(AppPage.Settings) },
-                    icon = { Icon(Icons.Default.Settings, contentDescription = "Settings") },
-                    label = { Text("Settings") },
-                    alwaysShowLabel = false
-                )
+            if (currentPage != AppPage.Workspace) {
+                NavigationBar(
+                    //modifier = Modifier.height(64.dp),
+                    windowInsets = NavigationBarDefaults.windowInsets,
+                    containerColor = uiColors.navBarContainer
+                ) {
+                    NavigationBarItem(
+                        selected = currentPage == AppPage.GitTerminal,
+                        onClick = { viewModel.switchPage(AppPage.GitTerminal) },
+                        icon = { Icon(Icons.Default.Code, contentDescription = "Git") },
+                        label = { Text("Git") },
+                        alwaysShowLabel = false
+                    )
+                    NavigationBarItem(
+                        selected = currentPage == AppPage.Repo,
+                        onClick = { viewModel.switchPage(AppPage.Repo) },
+                        icon = { Icon(Icons.Default.Folder, contentDescription = "Repo") },
+                        label = { Text("Repo") },
+                        alwaysShowLabel = false
+                    )
+                    NavigationBarItem(
+                        selected = currentPage == AppPage.Settings,
+                        onClick = { viewModel.switchPage(AppPage.Settings) },
+                        icon = { Icon(Icons.Default.Settings, contentDescription = "Settings") },
+                        label = { Text("Settings") },
+                        alwaysShowLabel = false
+                    )
+                }
             }
         }
     ) { innerPadding ->
@@ -128,6 +129,7 @@ fun AppRoot(viewModel: AppViewModel, modifier: Modifier = Modifier) {
                     AppPage.GitTerminal -> GitTerminalScreen(viewModel = viewModel, modifier = contentModifier)
                     AppPage.Repo -> RepoScreen(viewModel = viewModel, modifier = contentModifier)
                     AppPage.Settings -> SettingsScreen(viewModel = viewModel, modifier = contentModifier)
+                    AppPage.Workspace -> WorkspaceScreen(viewModel = viewModel, modifier = contentModifier)
                 }
             }
         }
