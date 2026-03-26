@@ -222,7 +222,7 @@ class AppViewModel : ViewModel() {
         val dir = currentRepoDirForGit() ?: return
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                val result = AppGitOps.terminalStatus(dir)
+                val result = AppGitOps.withGitLock { AppGitOps.terminalStatus(dir) }
                 appendTerminalLog("git status", result)
             } catch (e: Exception) {
                 appendTerminalLog("git status", "Error: ${e.message}")
@@ -240,7 +240,7 @@ class AppViewModel : ViewModel() {
 
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                val status = AppGitOps.readRepoStatus(dir)
+                val status = AppGitOps.withGitLock { AppGitOps.readRepoStatus(dir) }
                 _isGitRepo.value = status.isGitRepo
                 _gitStatusText.value = status.message
             } catch (e: Exception) {
@@ -254,7 +254,7 @@ class AppViewModel : ViewModel() {
         val dir = currentRepoDirForGit() ?: return
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                val result = AppGitOps.initRepo(dir)
+                val result = AppGitOps.withGitLock { AppGitOps.initRepo(dir) }
                 appendTerminalLog("git init", result)
                 checkRepoStatus()
                 refreshRepoFlagsFromDisk()
@@ -268,7 +268,11 @@ class AppViewModel : ViewModel() {
         val dir = currentRepoDirForGit() ?: return
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                val result = AppGitOps.stageAll(dir)
+                val result = AppGitOps.withGitLock {
+                    val res = AppGitOps.stageAll(dir)
+                    _workspaceFiles.value = AppGitOps.getDetailedStatus(dir)
+                    res
+                }
                 appendTerminalLog("git add -A", result)
                 checkRepoStatus()
             } catch (e: Exception) {
@@ -281,7 +285,11 @@ class AppViewModel : ViewModel() {
         val dir = currentRepoDirForGit() ?: return
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                val result = AppGitOps.unstageAll(dir)
+                val result = AppGitOps.withGitLock {
+                    val res = AppGitOps.unstageAll(dir)
+                    _workspaceFiles.value = AppGitOps.getDetailedStatus(dir)
+                    res
+                }
                 appendTerminalLog("git reset", result)
                 checkRepoStatus()
             } catch (e: Exception) {
@@ -300,7 +308,12 @@ class AppViewModel : ViewModel() {
         val dir = currentRepoDirForGit() ?: return
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                val result = AppGitOps.commit(dir, trimmed)
+                val result = AppGitOps.withGitLock {
+                    val res = AppGitOps.commit(dir, trimmed)
+                    _workspaceFiles.value = AppGitOps.getDetailedStatus(dir)
+                    _commitHistory.value = AppGitOps.getLog(dir)
+                    res
+                }
                 appendTerminalLog("git commit -m \"$trimmed\"", result)
                 checkRepoStatus()
             } catch (e: Exception) {
@@ -314,7 +327,12 @@ class AppViewModel : ViewModel() {
         viewModelScope.launch(Dispatchers.IO) {
             appendTerminalLog("git pull", "Attempting pull. Remote auth may be required")
             try {
-                val result = AppGitOps.pull(dir)
+                val result = AppGitOps.withGitLock {
+                    val res = AppGitOps.pull(dir)
+                    _workspaceFiles.value = AppGitOps.getDetailedStatus(dir)
+                    _commitHistory.value = AppGitOps.getLog(dir)
+                    res
+                }
                 appendTerminalLog("git pull", result)
                 checkRepoStatus()
             } catch (e: Exception) {
@@ -328,7 +346,7 @@ class AppViewModel : ViewModel() {
         viewModelScope.launch(Dispatchers.IO) {
             appendTerminalLog("git push", "Attempting push. Remote auth may be required")
             try {
-                val result = AppGitOps.push(dir)
+                val result = AppGitOps.withGitLock { AppGitOps.push(dir) }
                 appendTerminalLog("git push", result)
             } catch (e: Exception) {
                 appendTerminalLog("git push", "Error: ${e.message}")
@@ -339,33 +357,57 @@ class AppViewModel : ViewModel() {
     fun refreshWorkspace() {
         val dir = currentRepoDirForGit() ?: return
         viewModelScope.launch(Dispatchers.IO) {
-            _workspaceFiles.value = AppGitOps.getDetailedStatus(dir)
-            _commitHistory.value = AppGitOps.getLog(dir)
-            _branches.value = AppGitOps.getBranches(dir)
+            try {
+                AppGitOps.withGitLock {
+                    _workspaceFiles.value = AppGitOps.getDetailedStatus(dir)
+                    _commitHistory.value = AppGitOps.getLog(dir)
+                    _branches.value = AppGitOps.getBranches(dir)
+                }
+            } catch (e: Exception) {
+                appendTerminalLog("refresh", "Error during workspace refresh: ${e.message}")
+            }
         }
     }
 
     fun stageFile(path: String) {
         val dir = currentRepoDirForGit() ?: return
         viewModelScope.launch(Dispatchers.IO) {
-            AppGitOps.stageFile(dir, path)
-            refreshWorkspace()
+            try {
+                AppGitOps.withGitLock {
+                    AppGitOps.stageFile(dir, path)
+                    _workspaceFiles.value = AppGitOps.getDetailedStatus(dir)
+                }
+            } catch (e: Exception) {
+                appendTerminalLog("git add $path", "Error: ${e.message}")
+            }
         }
     }
 
     fun unstageFile(path: String) {
         val dir = currentRepoDirForGit() ?: return
         viewModelScope.launch(Dispatchers.IO) {
-            AppGitOps.unstageFile(dir, path)
-            refreshWorkspace()
+            try {
+                AppGitOps.withGitLock {
+                    AppGitOps.unstageFile(dir, path)
+                    _workspaceFiles.value = AppGitOps.getDetailedStatus(dir)
+                }
+            } catch (e: Exception) {
+                appendTerminalLog("git reset $path", "Error: ${e.message}")
+            }
         }
     }
 
     fun discardChanges(path: String) {
         val dir = currentRepoDirForGit() ?: return
         viewModelScope.launch(Dispatchers.IO) {
-            AppGitOps.discardChanges(dir, path)
-            refreshWorkspace()
+            try {
+                AppGitOps.withGitLock {
+                    AppGitOps.discardChanges(dir, path)
+                    _workspaceFiles.value = AppGitOps.getDetailedStatus(dir)
+                }
+            } catch (e: Exception) {
+                appendTerminalLog("git checkout -- $path", "Error: ${e.message}")
+            }
         }
     }
 
@@ -373,8 +415,11 @@ class AppViewModel : ViewModel() {
         val dir = currentRepoDirForGit() ?: return
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                AppGitOps.checkoutBranch(dir, name)
-                refreshWorkspace()
+                AppGitOps.withGitLock {
+                    AppGitOps.checkoutBranch(dir, name)
+                    _workspaceFiles.value = AppGitOps.getDetailedStatus(dir)
+                    _branches.value = AppGitOps.getBranches(dir)
+                }
                 checkRepoStatus()
             } catch (e: Exception) {
                 appendTerminalLog("git checkout $name", "Error: ${e.message}")
@@ -386,8 +431,11 @@ class AppViewModel : ViewModel() {
         val dir = currentRepoDirForGit() ?: return
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                AppGitOps.mergeBranch(dir, name)
-                refreshWorkspace()
+                AppGitOps.withGitLock {
+                    AppGitOps.mergeBranch(dir, name)
+                    _workspaceFiles.value = AppGitOps.getDetailedStatus(dir)
+                    _commitHistory.value = AppGitOps.getLog(dir)
+                }
                 checkRepoStatus()
             } catch (e: Exception) {
                 appendTerminalLog("git merge $name", "Error: ${e.message}")
@@ -399,8 +447,11 @@ class AppViewModel : ViewModel() {
         val dir = currentRepoDirForGit() ?: return
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                AppGitOps.rebaseBranch(dir, name)
-                refreshWorkspace()
+                AppGitOps.withGitLock {
+                    AppGitOps.rebaseBranch(dir, name)
+                    _workspaceFiles.value = AppGitOps.getDetailedStatus(dir)
+                    _commitHistory.value = AppGitOps.getLog(dir)
+                }
                 checkRepoStatus()
             } catch (e: Exception) {
                 appendTerminalLog("git rebase $name", "Error: ${e.message}")
@@ -412,8 +463,10 @@ class AppViewModel : ViewModel() {
         val dir = currentRepoDirForGit() ?: return
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                AppGitOps.deleteBranch(dir, name, force)
-                refreshWorkspace()
+                AppGitOps.withGitLock {
+                    AppGitOps.deleteBranch(dir, name, force)
+                    _branches.value = AppGitOps.getBranches(dir)
+                }
             } catch (e: Exception) {
                 appendTerminalLog("git branch -d $name", "Error: ${e.message}")
             }
