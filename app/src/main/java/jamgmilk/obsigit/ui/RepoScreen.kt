@@ -192,7 +192,7 @@ fun RepoScreen(
                                     onSetTarget = {
                                         item.localPath?.let { path ->
                                             viewModel.setTargetPath(context, path)
-                                            viewModel.switchPage(AppPage.Workspace)
+                                            viewModel.switchPage(AppPage.Status)
                                         }
                                     },
                                     onLongClick = {
