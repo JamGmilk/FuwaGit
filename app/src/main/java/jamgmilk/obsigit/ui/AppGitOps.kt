@@ -2,9 +2,13 @@ package jamgmilk.obsigit.ui
 
 import org.eclipse.jgit.api.Git
 import org.eclipse.jgit.api.ListBranchCommand
+import org.eclipse.jgit.api.errors.JGitInternalException
+import org.eclipse.jgit.errors.LockFailedException
 import org.eclipse.jgit.errors.RepositoryNotFoundException
 import org.eclipse.jgit.lib.Repository
 import java.io.File
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 internal data class GitRepoStatus(
     val isGitRepo: Boolean,
@@ -12,6 +16,29 @@ internal data class GitRepoStatus(
 )
 
 internal object AppGitOps {
+    private val gitMutex = Mutex()
+
+    suspend fun <T> withGitLock(block: suspend () -> T): T = gitMutex.withLock {
+        block()
+    }
+
+    private fun <T> runGit(dir: File, block: (Git) -> T): T {
+        return try {
+            Git.open(dir).use { git -> block(git) }
+        } catch (e: JGitInternalException) {
+            val cause = e.cause
+            if (cause is LockFailedException) {
+                val lockFile = cause.file
+                if (lockFile != null && lockFile.exists()) {
+                    lockFile.delete()
+                }
+                // Retry once
+                Git.open(dir).use { git -> block(git) }
+            } else {
+                throw e
+            }
+        }
+    }
 
     fun readRepoStatus(dir: File): GitRepoStatus {
         if (!dir.exists()) {
@@ -19,7 +46,7 @@ internal object AppGitOps {
         }
 
         return try {
-            Git.open(dir).use { git ->
+            runGit(dir) { git ->
                 val status = git.status().call()
                 GitRepoStatus(
                     isGitRepo = true,
@@ -35,13 +62,18 @@ internal object AppGitOps {
                 isGitRepo = false,
                 message = "Path: ${AppRepoOps.shortDisplayPath(dir)}\nNot a Git repository"
             )
+        } catch (_: Exception) {
+            GitRepoStatus(
+                isGitRepo = false,
+                message = "Path: ${AppRepoOps.shortDisplayPath(dir)}\nError reading status"
+            )
         }
     }
 
     fun getDetailedStatus(dir: File): List<GitFileStatus> {
         val result = mutableListOf<GitFileStatus>()
         try {
-            Git.open(dir).use { git ->
+            runGit(dir) { git ->
                 val status = git.status().call()
 
                 // Staged
@@ -63,8 +95,8 @@ internal object AppGitOps {
 
     fun getLog(dir: File, maxCount: Int = 100): List<GitCommit> {
         try {
-            Git.open(dir).use { git ->
-                return git.log().setMaxCount(maxCount).call().map { rev ->
+            return runGit(dir) { git ->
+                git.log().setMaxCount(maxCount).call().map { rev ->
                     GitCommit(
                         hash = rev.name,
                         shortHash = rev.name.take(7),
@@ -83,7 +115,7 @@ internal object AppGitOps {
     fun getBranches(dir: File): List<GitBranch> {
         val result = mutableListOf<GitBranch>()
         try {
-            Git.open(dir).use { git ->
+            runGit(dir) { git ->
                 val repo = git.repository
                 val currentBranch = try { repo.branch } catch(_: Exception) { null }
 
@@ -105,7 +137,7 @@ internal object AppGitOps {
 
     fun terminalStatus(dir: File): String {
         return try {
-            Git.open(dir).use { git ->
+            runGit(dir) { git ->
                 val status = git.status().call()
                 "Branch: ${git.repository.branch}\n" +
                     "Added: ${status.added.size}\n" +
@@ -126,77 +158,77 @@ internal object AppGitOps {
     }
 
     fun stageAll(dir: File): String {
-        Git.open(dir).use { git ->
+        runGit(dir) { git ->
             git.add().addFilepattern(".").call()
         }
         return "All files staged"
     }
 
     fun unstageAll(dir: File): String {
-        Git.open(dir).use { git ->
+        runGit(dir) { git ->
             git.reset().call()
         }
         return "Unstaged all changes"
     }
 
     fun unstageFile(dir: File, path: String) {
-        Git.open(dir).use { git ->
+        runGit(dir) { git ->
             git.reset().addPath(path).call()
         }
     }
     
     fun discardChanges(dir: File, path: String) {
-        Git.open(dir).use { git ->
+        runGit(dir) { git ->
             git.checkout().addPath(path).call()
         }
     }
 
     fun stageFile(dir: File, path: String) {
-        Git.open(dir).use { git ->
+        runGit(dir) { git ->
             git.add().addFilepattern(path).call()
         }
     }
 
     fun checkoutBranch(dir: File, name: String) {
-        Git.open(dir).use { git ->
+        runGit(dir) { git ->
             git.checkout().setName(name).call()
         }
     }
     
     fun deleteBranch(dir: File, name: String, force: Boolean = false) {
-        Git.open(dir).use { git ->
+        runGit(dir) { git ->
             git.branchDelete().setBranchNames(name).setForce(force).call()
         }
     }
     
     fun mergeBranch(dir: File, ref: String) {
-        Git.open(dir).use { git ->
+        runGit(dir) { git ->
             git.merge().include(git.repository.findRef(ref)).call()
         }
     }
 
     fun rebaseBranch(dir: File, ref: String) {
-        Git.open(dir).use { git ->
+        runGit(dir) { git ->
             git.rebase().setUpstream(ref).call()
         }
     }
 
     fun commit(dir: File, message: String): String {
-        Git.open(dir).use { git ->
+        runGit(dir) { git ->
             git.commit().setMessage(message).call()
         }
         return "Commit successful"
     }
 
     fun pull(dir: File): String {
-        Git.open(dir).use { git ->
+        return runGit(dir) { git ->
             val result = git.pull().call()
-            return "Success: ${result.isSuccessful}"
+            "Success: ${result.isSuccessful}"
         }
     }
 
     fun push(dir: File): String {
-        Git.open(dir).use { git ->
+        runGit(dir) { git ->
             git.push().call()
         }
         return "Push command executed"
