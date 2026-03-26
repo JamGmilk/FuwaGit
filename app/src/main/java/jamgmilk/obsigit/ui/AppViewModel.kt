@@ -20,14 +20,11 @@ import java.util.Locale
 import androidx.core.content.edit
 
 enum class AppPage {
-    GitTerminal,
+    Status,
+    History,
+    Branches,
     Repo,
-    Settings,
-    Workspace
-}
-
-enum class WorkspaceTab {
-    Status, History, Branches
+    Settings
 }
 
 sealed class RootStatus {
@@ -53,7 +50,7 @@ data class RepoFolderItem(
 )
 
 class AppViewModel : ViewModel() {
-    private val _currentPage = MutableStateFlow(AppPage.GitTerminal)
+    private val _currentPage = MutableStateFlow(AppPage.Status)
     val currentPage: StateFlow<AppPage> = _currentPage.asStateFlow()
 
     private val _targetPath = MutableStateFlow<String?>(null)
@@ -87,9 +84,6 @@ class AppViewModel : ViewModel() {
 
     private val _branches = MutableStateFlow<List<GitBranch>>(emptyList())
     val branches: StateFlow<List<GitBranch>> = _branches.asStateFlow()
-
-    private val _workspaceTab = MutableStateFlow(WorkspaceTab.Status)
-    val workspaceTab: StateFlow<WorkspaceTab> = _workspaceTab.asStateFlow()
 
     private var storageInitialized = false
 
@@ -349,10 +343,6 @@ class AppViewModel : ViewModel() {
             _commitHistory.value = AppGitOps.getLog(dir)
             _branches.value = AppGitOps.getBranches(dir)
         }
-    }
-
-    fun setWorkspaceTab(tab: WorkspaceTab) {
-        _workspaceTab.value = tab
     }
 
     fun stageFile(path: String) {

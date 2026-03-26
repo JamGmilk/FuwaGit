@@ -19,8 +19,10 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Code
+import androidx.compose.material.icons.automirrored.filled.List
+import androidx.compose.material.icons.filled.AccountTree
 import androidx.compose.material.icons.filled.Folder
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -38,10 +40,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import jamgmilk.obsigit.ui.AppPage
 import jamgmilk.obsigit.ui.AppViewModel
-import jamgmilk.obsigit.ui.GitTerminalScreen
+import jamgmilk.obsigit.ui.BranchesModule
+import jamgmilk.obsigit.ui.HistoryModule
 import jamgmilk.obsigit.ui.RepoScreen
 import jamgmilk.obsigit.ui.SettingsScreen
-import jamgmilk.obsigit.ui.WorkspaceScreen
+import jamgmilk.obsigit.ui.StatusModule
 import jamgmilk.obsigit.ui.theme.ObsiGitTheme
 import jamgmilk.obsigit.ui.theme.ObsiGitThemeExtras
 import jamgmilk.obsigit.ui.theme.appBackgroundBrush
@@ -76,34 +79,46 @@ fun AppRoot(viewModel: AppViewModel, modifier: Modifier = Modifier) {
         modifier = modifier.fillMaxSize(),
         containerColor = MaterialTheme.colorScheme.background,
         bottomBar = {
-            if (currentPage != AppPage.Workspace) {
-                NavigationBar(
-                    //modifier = Modifier.height(64.dp),
-                    windowInsets = NavigationBarDefaults.windowInsets,
-                    containerColor = uiColors.navBarContainer
-                ) {
-                    NavigationBarItem(
-                        selected = currentPage == AppPage.GitTerminal,
-                        onClick = { viewModel.switchPage(AppPage.GitTerminal) },
-                        icon = { Icon(Icons.Default.Code, contentDescription = "Git") },
-                        label = { Text("Git") },
-                        alwaysShowLabel = false
-                    )
-                    NavigationBarItem(
-                        selected = currentPage == AppPage.Repo,
-                        onClick = { viewModel.switchPage(AppPage.Repo) },
-                        icon = { Icon(Icons.Default.Folder, contentDescription = "Repo") },
-                        label = { Text("Repo") },
-                        alwaysShowLabel = false
-                    )
-                    NavigationBarItem(
-                        selected = currentPage == AppPage.Settings,
-                        onClick = { viewModel.switchPage(AppPage.Settings) },
-                        icon = { Icon(Icons.Default.Settings, contentDescription = "Settings") },
-                        label = { Text("Settings") },
-                        alwaysShowLabel = false
-                    )
-                }
+            NavigationBar(
+                //modifier = Modifier.height(64.dp),
+                windowInsets = NavigationBarDefaults.windowInsets,
+                containerColor = uiColors.navBarContainer
+            ) {
+                NavigationBarItem(
+                    selected = currentPage == AppPage.Status,
+                    onClick = { viewModel.switchPage(AppPage.Status) },
+                    icon = { Icon(Icons.AutoMirrored.Filled.List, contentDescription = "Status") },
+                    label = { Text("Status") },
+                    alwaysShowLabel = false
+                )
+                NavigationBarItem(
+                    selected = currentPage == AppPage.History,
+                    onClick = { viewModel.switchPage(AppPage.History) },
+                    icon = { Icon(Icons.Default.History, contentDescription = "History") },
+                    label = { Text("History") },
+                    alwaysShowLabel = false
+                )
+                NavigationBarItem(
+                    selected = currentPage == AppPage.Branches,
+                    onClick = { viewModel.switchPage(AppPage.Branches) },
+                    icon = { Icon(Icons.Default.AccountTree, contentDescription = "Branches") },
+                    label = { Text("Branches") },
+                    alwaysShowLabel = false
+                )
+                NavigationBarItem(
+                    selected = currentPage == AppPage.Repo,
+                    onClick = { viewModel.switchPage(AppPage.Repo) },
+                    icon = { Icon(Icons.Default.Folder, contentDescription = "Repo") },
+                    label = { Text("Repo") },
+                    alwaysShowLabel = false
+                )
+                NavigationBarItem(
+                    selected = currentPage == AppPage.Settings,
+                    onClick = { viewModel.switchPage(AppPage.Settings) },
+                    icon = { Icon(Icons.Default.Settings, contentDescription = "Settings") },
+                    label = { Text("Settings") },
+                    alwaysShowLabel = false
+                )
             }
         }
     ) { innerPadding ->
@@ -126,10 +141,11 @@ fun AppRoot(viewModel: AppViewModel, modifier: Modifier = Modifier) {
                 label = "page_transition"
             ) { page ->
                 when (page) {
-                    AppPage.GitTerminal -> GitTerminalScreen(viewModel = viewModel, modifier = contentModifier)
+                    AppPage.Status -> StatusModule(viewModel = viewModel, modifier = contentModifier)
+                    AppPage.History -> HistoryModule(viewModel = viewModel, modifier = contentModifier)
+                    AppPage.Branches -> BranchesModule(viewModel = viewModel, modifier = contentModifier)
                     AppPage.Repo -> RepoScreen(viewModel = viewModel, modifier = contentModifier)
                     AppPage.Settings -> SettingsScreen(viewModel = viewModel, modifier = contentModifier)
-                    AppPage.Workspace -> WorkspaceScreen(viewModel = viewModel, modifier = contentModifier)
                 }
             }
         }
