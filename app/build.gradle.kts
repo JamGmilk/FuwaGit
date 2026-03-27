@@ -83,4 +83,5 @@ dependencies {
     implementation(libs.jsch)
     implementation(libs.bouncycastle)
     implementation(libs.androidx.security.crypto)
+    implementation(libs.androidx.navigation.compose)
 }

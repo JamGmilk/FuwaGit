@@ -19,6 +19,7 @@ documentfile = "1.1.0"
 jsch = "2.27.9"
 securityCrypto = "1.1.0"
 bouncycastle = "1.83"
+navigationCompose = "2.9.0"
 
 [libraries]
 androidx-compose-material-icons-extended = { module = "androidx.compose.material:material-icons-extended" }
@@ -49,6 +50,7 @@ androidx-documentfile = { group = "androidx.documentfile", name = "documentfile"
 jsch = { module = "com.github.mwiede:jsch", version.ref = "jsch" }
 androidx-security-crypto = { group = "androidx.security", name = "security-crypto", version.ref = "securityCrypto" }
 bouncycastle = { module = "org.bouncycastle:bcprov-jdk18on", version.ref = "bouncycastle" }
+androidx-navigation-compose = { group = "androidx.navigation", name = "navigation-compose", version.ref = "navigationCompose" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

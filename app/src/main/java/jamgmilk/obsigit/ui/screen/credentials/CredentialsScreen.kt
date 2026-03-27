@@ -7,6 +7,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -47,13 +48,13 @@ import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -67,6 +68,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.AnnotatedString
@@ -74,12 +76,17 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.DialogProperties
+import androidx.compose.ui.unit.sp
 import jamgmilk.obsigit.credential.SshKeyInfo
 import jamgmilk.obsigit.credential.SshKeyType
 import jamgmilk.obsigit.domain.model.HttpsCredential
 import jamgmilk.obsigit.ui.theme.ObsiGitThemeExtras
+import jamgmilk.obsigit.ui.theme.Sakura50
+import jamgmilk.obsigit.ui.theme.Sakura80
+import jamgmilk.obsigit.ui.theme.Sakura90
 
 sealed class CredentialsTab {
     data object Https : CredentialsTab()
@@ -105,13 +112,13 @@ fun CredentialsScreen(
     val colors = MaterialTheme.colorScheme
 
     val uiState by viewModel.uiState.collectAsState()
-    
+
     var selectedTab by remember { mutableStateOf<CredentialsTab>(CredentialsTab.Https) }
     var dialogState by remember { mutableStateOf<CredentialDialogState>(CredentialDialogState.None) }
     var showDeleteConfirm by remember { mutableStateOf<Pair<String, Boolean>?>(null) }
-    
+
     val clipboardManager = LocalClipboardManager.current
-    
+
     Scaffold(
         modifier = modifier.fillMaxSize(),
         containerColor = Color.Transparent
@@ -122,37 +129,15 @@ fun CredentialsScreen(
                 .padding(innerPadding)
                 .padding(horizontal = 16.dp)
                 .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = onBack) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = colors.primary)
-                }
-                Text(
-                    text = "Credentials",
-                    style = MaterialTheme.typography.titleLarge,
-                    color = colors.primary
-                )
-            }
-            
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                TabButton(
-                    text = "HTTPS",
-                    selected = selectedTab is CredentialsTab.Https,
-                    onClick = { selectedTab = CredentialsTab.Https },
-                    modifier = Modifier.weight(1f)
-                )
-                TabButton(
-                    text = "SSH Keys",
-                    selected = selectedTab is CredentialsTab.Ssh,
-                    onClick = { selectedTab = CredentialsTab.Ssh },
-                    modifier = Modifier.weight(1f)
-                )
-            }
-            
+            CredentialsHeader(onBack = onBack)
+
+            CredentialsTabSelector(
+                selectedTab = selectedTab,
+                onTabSelected = { selectedTab = it }
+            )
+
             AnimatedContent(
                 targetState = selectedTab,
                 transitionSpec = {
@@ -168,7 +153,7 @@ fun CredentialsScreen(
                             onAdd = { dialogState = CredentialDialogState.AddHttps() },
                             onEdit = { dialogState = CredentialDialogState.EditHttps(it) },
                             onDelete = { showDeleteConfirm = it.id to false },
-                            onCopyPassword = { 
+                            onCopyPassword = {
                                 clipboardManager.setText(AnnotatedString(it))
                                 Toast.makeText(context, "Password copied", Toast.LENGTH_SHORT).show()
                             }
@@ -189,11 +174,11 @@ fun CredentialsScreen(
                     }
                 }
             }
-            
-            Spacer(Modifier.height(4.dp))
+
+            Spacer(Modifier.height(8.dp))
         }
     }
-    
+
     when (val state = dialogState) {
         is CredentialDialogState.AddHttps -> {
             HttpsCredentialDialog(
@@ -261,7 +246,7 @@ fun CredentialsScreen(
         }
         is CredentialDialogState.None -> {}
     }
-    
+
     showDeleteConfirm?.let { (id, isSsh) ->
         AlertDialog(
             onDismissRequest = { showDeleteConfirm = null },
@@ -292,40 +277,113 @@ fun CredentialsScreen(
 }
 
 @Composable
+private fun CredentialsHeader(
+    onBack: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val colors = MaterialTheme.colorScheme
+
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        IconButton(onClick = onBack) {
+            Icon(
+                Icons.AutoMirrored.Filled.ArrowBack,
+                contentDescription = "Back",
+                tint = colors.primary
+            )
+        }
+        Column {
+            Text(
+                text = "Credentials",
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold,
+                color = colors.primary
+            )
+            Text(
+                text = "Manage your authentication",
+                style = MaterialTheme.typography.bodySmall,
+                color = colors.onSurfaceVariant
+            )
+        }
+    }
+}
+
+@Composable
+private fun CredentialsTabSelector(
+    selectedTab: CredentialsTab,
+    onTabSelected: (CredentialsTab) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val colors = MaterialTheme.colorScheme
+    val uiColors = ObsiGitThemeExtras.colors
+
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        TabButton(
+            text = "HTTPS",
+            icon = Icons.Default.Link,
+            selected = selectedTab is CredentialsTab.Https,
+            onClick = { onTabSelected(CredentialsTab.Https) },
+            modifier = Modifier.weight(1f)
+        )
+        TabButton(
+            text = "SSH Keys",
+            icon = Icons.Default.Key,
+            selected = selectedTab is CredentialsTab.Ssh,
+            onClick = { onTabSelected(CredentialsTab.Ssh) },
+            modifier = Modifier.weight(1f)
+        )
+    }
+}
+
+@Composable
 private fun TabButton(
     text: String,
+    icon: ImageVector,
     selected: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val colors = MaterialTheme.colorScheme
     val uiColors = ObsiGitThemeExtras.colors
-    
-    ElevatedCard(
+    val accentColor = if (text == "HTTPS") Sakura80 else Sakura90
+
+    Surface(
         modifier = modifier
-            .border(
-                width = if (selected) 2.dp else 1.dp,
-                color = if (selected) colors.primary else uiColors.cardBorder,
-                shape = RoundedCornerShape(12.dp)
-            )
-            .clip(RoundedCornerShape(12.dp))
+            .clip(RoundedCornerShape(16.dp))
             .clickable(onClick = onClick),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.elevatedCardColors(
-            containerColor = if (selected) colors.primaryContainer else uiColors.cardContainer
-        ),
-        elevation = CardDefaults.elevatedCardElevation(0.dp)
+        shape = RoundedCornerShape(16.dp),
+        color = if (selected) accentColor.copy(alpha = 0.15f) else uiColors.cardContainer,
+        border = if (selected) {
+            androidx.compose.foundation.BorderStroke(2.dp, accentColor)
+        } else {
+            androidx.compose.foundation.BorderStroke(1.dp, uiColors.cardBorder)
+        }
     ) {
-        Box(
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 12.dp),
-            contentAlignment = Alignment.Center
+                .padding(vertical = 14.dp, horizontal = 16.dp),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically
         ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = if (selected) accentColor else colors.onSurfaceVariant,
+                modifier = Modifier.size(20.dp)
+            )
+            Spacer(Modifier.width(8.dp))
             Text(
                 text = text,
-                fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
-                color = if (selected) colors.primary else colors.onSurface
+                fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+                color = if (selected) accentColor else colors.onSurface
             )
         }
     }
@@ -343,88 +401,121 @@ private fun HttpsCredentialsContent(
 ) {
     val colors = MaterialTheme.colorScheme
     val uiColors = ObsiGitThemeExtras.colors
-    
+
     Column(modifier = modifier.animateContentSize(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         ElevatedCard(
             modifier = Modifier
                 .fillMaxWidth()
-                .border(1.dp, uiColors.cardBorder, RoundedCornerShape(24.dp)),
-            shape = RoundedCornerShape(24.dp),
+                .border(1.dp, uiColors.cardBorder, RoundedCornerShape(20.dp)),
+            shape = RoundedCornerShape(20.dp),
             colors = CardDefaults.elevatedCardColors(containerColor = uiColors.cardContainer),
             elevation = CardDefaults.elevatedCardElevation(0.dp)
         ) {
-            Column(modifier = Modifier.padding(vertical = 4.dp)) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 14.dp, vertical = 8.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+            Column(modifier = Modifier.fillMaxWidth()) {
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    color = Sakura80.copy(alpha = 0.1f),
+                    shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)
                 ) {
-                    Text("HTTPS Credentials", fontWeight = FontWeight.Bold)
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        if (keyStoreAvailable) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(
                                 Icons.Default.Shield,
-                                contentDescription = "KeyStore Available",
-                                tint = colors.primary,
-                                modifier = Modifier.size(16.dp)
+                                contentDescription = null,
+                                tint = Sakura80,
+                                modifier = Modifier.size(22.dp)
                             )
-                            Spacer(Modifier.width(4.dp))
+                            Spacer(Modifier.width(10.dp))
+                            Column {
+                                Text(
+                                    text = "HTTPS Credentials",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Sakura80
+                                )
+                                Text(
+                                    text = "${credentials.size} saved",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = colors.onSurfaceVariant
+                                )
+                            }
                         }
                         IconButton(onClick = onAdd) {
-                            Icon(Icons.Default.Add, contentDescription = "Add Credential")
+                            Icon(
+                                Icons.Default.Add,
+                                contentDescription = "Add Credential",
+                                tint = Sakura80
+                            )
                         }
                     }
                 }
-                
+
                 if (!keyStoreAvailable) {
-                    Text(
-                        "KeyStore not available. Credentials may not be securely stored.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = colors.error,
-                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 4.dp)
-                    )
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                        shape = RoundedCornerShape(10.dp),
+                        color = colors.error.copy(alpha = 0.1f)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                Icons.Default.Security,
+                                contentDescription = null,
+                                tint = colors.error,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(Modifier.width(8.dp))
+                            Text(
+                                "KeyStore unavailable. Credentials may not be securely stored.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = colors.error
+                            )
+                        }
+                    }
                 }
-                
+
                 if (credentials.isEmpty()) {
-                    Text(
-                        "No HTTPS credentials saved",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = colors.onSurfaceVariant,
-                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp)
+                    EmptyStateMessage(
+                        icon = Icons.Default.Lock,
+                        message = "No HTTPS credentials saved",
+                        modifier = Modifier.padding(24.dp)
                     )
                 } else {
-                    credentials.forEachIndexed { index, credential ->
-                        if (index > 0) HorizontalDivider(modifier = Modifier.padding(horizontal = 14.dp))
-                        HttpsCredentialItem(
-                            credential = credential,
-                            onEdit = { onEdit(credential) },
-                            onDelete = { onDelete(credential) },
-                            onCopyPassword = { onCopyPassword(credential.password) }
-                        )
+                    Column(modifier = Modifier.padding(vertical = 8.dp)) {
+                        credentials.forEachIndexed { index, credential ->
+                            if (index > 0) {
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 16.dp)
+                                        .height(1.dp)
+                                        .background(uiColors.cardBorder)
+                                )
+                            }
+                            HttpsCredentialItem(
+                                credential = credential,
+                                onEdit = { onEdit(credential) },
+                                onDelete = { onDelete(credential) },
+                                onCopyPassword = { onCopyPassword(credential.password) }
+                            )
+                        }
                     }
                 }
             }
         }
-        
-        ElevatedCard(
-            modifier = Modifier
-                .fillMaxWidth()
-                .border(1.dp, uiColors.cardBorder, RoundedCornerShape(24.dp)),
-            shape = RoundedCornerShape(24.dp),
-            colors = CardDefaults.elevatedCardColors(containerColor = uiColors.cardContainer),
-            elevation = CardDefaults.elevatedCardElevation(0.dp)
-        ) {
-            Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("Security Info", fontWeight = FontWeight.Bold, color = colors.primary)
-                ListItem(
-                    headlineContent = { Text("Storage") },
-                    supportingContent = { Text("Credentials are encrypted using Android KeyStore with AES-256-GCM encryption") },
-                    leadingContent = { Icon(Icons.Default.Lock, contentDescription = null) }
-                )
-            }
-        }
+
+        SecurityInfoCard()
     }
 }
 
@@ -435,43 +526,116 @@ private fun HttpsCredentialItem(
     onDelete: () -> Unit,
     onCopyPassword: () -> Unit
 ) {
+    val colors = MaterialTheme.colorScheme
     var showPassword by remember { mutableStateOf(false) }
-    
-    ListItem(
-        headlineContent = { Text(credential.host) },
-        supportingContent = {
-            Column {
-                Text("Username: ${credential.username}")
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        "Password: ${if (showPassword) credential.password else "••••••••"}",
-                        fontFamily = if (showPassword) FontFamily.Monospace else FontFamily.Default
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 12.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Surface(
+                shape = RoundedCornerShape(10.dp),
+                color = Sakura80.copy(alpha = 0.15f),
+                modifier = Modifier.size(40.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        Icons.Default.Link,
+                        contentDescription = null,
+                        tint = Sakura80,
+                        modifier = Modifier.size(20.dp)
                     )
-                    IconButton(onClick = { showPassword = !showPassword }, modifier = Modifier.size(24.dp)) {
-                        Icon(
-                            if (showPassword) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                            contentDescription = if (showPassword) "Hide" else "Show",
-                            modifier = Modifier.size(16.dp)
-                        )
-                    }
                 }
             }
-        },
-        leadingContent = { Icon(Icons.Default.Link, contentDescription = null) },
-        trailingContent = {
+
+            Spacer(Modifier.width(12.dp))
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = credential.host,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    text = credential.username,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = colors.onSurfaceVariant
+                )
+            }
+
             Row {
-                IconButton(onClick = onCopyPassword) {
-                    Icon(Icons.Default.ContentCopy, contentDescription = "Copy Password")
+                IconButton(onClick = onCopyPassword, modifier = Modifier.size(36.dp)) {
+                    Icon(
+                        Icons.Default.ContentCopy,
+                        contentDescription = "Copy Password",
+                        tint = colors.onSurfaceVariant,
+                        modifier = Modifier.size(18.dp)
+                    )
                 }
-                IconButton(onClick = onEdit) {
-                    Icon(Icons.Default.Edit, contentDescription = "Edit")
+                IconButton(onClick = onEdit, modifier = Modifier.size(36.dp)) {
+                    Icon(
+                        Icons.Default.Edit,
+                        contentDescription = "Edit",
+                        tint = colors.onSurfaceVariant,
+                        modifier = Modifier.size(18.dp)
+                    )
                 }
-                IconButton(onClick = onDelete) {
-                    Icon(Icons.Default.Delete, contentDescription = "Delete")
+                IconButton(onClick = onDelete, modifier = Modifier.size(36.dp)) {
+                    Icon(
+                        Icons.Default.Delete,
+                        contentDescription = "Delete",
+                        tint = colors.error,
+                        modifier = Modifier.size(18.dp)
+                    )
                 }
             }
         }
-    )
+
+        Spacer(Modifier.height(8.dp))
+
+        Surface(
+            shape = RoundedCornerShape(10.dp),
+            color = colors.surfaceVariant.copy(alpha = 0.5f)
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(10.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    Icons.Default.Password,
+                    contentDescription = null,
+                    tint = colors.onSurfaceVariant,
+                    modifier = Modifier.size(16.dp)
+                )
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    text = if (showPassword) credential.password else "••••••••••••",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontFamily = if (showPassword) FontFamily.Monospace else FontFamily.Default,
+                    modifier = Modifier.weight(1f)
+                )
+                IconButton(
+                    onClick = { showPassword = !showPassword },
+                    modifier = Modifier.size(28.dp)
+                ) {
+                    Icon(
+                        if (showPassword) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                        contentDescription = if (showPassword) "Hide" else "Show",
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
+            }
+        }
+    }
 }
 
 @Composable
@@ -486,78 +650,102 @@ private fun SshKeysContent(
 ) {
     val colors = MaterialTheme.colorScheme
     val uiColors = ObsiGitThemeExtras.colors
-    
+
     Column(modifier = modifier.animateContentSize(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         ElevatedCard(
             modifier = Modifier
                 .fillMaxWidth()
-                .border(1.dp, uiColors.cardBorder, RoundedCornerShape(24.dp)),
-            shape = RoundedCornerShape(24.dp),
+                .border(1.dp, uiColors.cardBorder, RoundedCornerShape(20.dp)),
+            shape = RoundedCornerShape(20.dp),
             colors = CardDefaults.elevatedCardColors(containerColor = uiColors.cardContainer),
             elevation = CardDefaults.elevatedCardElevation(0.dp)
         ) {
-            Column(modifier = Modifier.padding(vertical = 4.dp)) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 14.dp, vertical = 8.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+            Column(modifier = Modifier.fillMaxWidth()) {
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    color = Sakura90.copy(alpha = 0.1f),
+                    shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)
                 ) {
-                    Text("SSH Keys", fontWeight = FontWeight.Bold)
-                    Row {
-                        IconButton(onClick = onGenerate) {
-                            Icon(Icons.Default.Add, contentDescription = "Generate Key")
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                Icons.Default.Key,
+                                contentDescription = null,
+                                tint = Sakura90,
+                                modifier = Modifier.size(22.dp)
+                            )
+                            Spacer(Modifier.width(10.dp))
+                            Column {
+                                Text(
+                                    text = "SSH Keys",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Sakura90
+                                )
+                                Text(
+                                    text = "${keys.size} saved",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = colors.onSurfaceVariant
+                                )
+                            }
                         }
-                        IconButton(onClick = onImport) {
-                            Icon(Icons.Default.Key, contentDescription = "Import Key")
+                        Row {
+                            IconButton(onClick = onGenerate) {
+                                Icon(
+                                    Icons.Default.Add,
+                                    contentDescription = "Generate Key",
+                                    tint = Sakura90
+                                )
+                            }
+                            IconButton(onClick = onImport) {
+                                Icon(
+                                    Icons.Default.Key,
+                                    contentDescription = "Import Key",
+                                    tint = Sakura90
+                                )
+                            }
                         }
                     }
                 }
-                
+
                 if (keys.isEmpty()) {
-                    Text(
-                        "No SSH keys saved",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = colors.onSurfaceVariant,
-                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp)
+                    EmptyStateMessage(
+                        icon = Icons.Default.Key,
+                        message = "No SSH keys saved",
+                        modifier = Modifier.padding(24.dp)
                     )
                 } else {
-                    keys.forEachIndexed { index, key ->
-                        if (index > 0) HorizontalDivider(modifier = Modifier.padding(horizontal = 14.dp))
-                        SshKeyItem(
-                            key = key,
-                            onView = { onView(key) },
-                            onDelete = { onDelete(key) },
-                            onCopyPublicKey = { onCopyPublicKey(key.publicKey) }
-                        )
+                    Column(modifier = Modifier.padding(vertical = 8.dp)) {
+                        keys.forEachIndexed { index, key ->
+                            if (index > 0) {
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 16.dp)
+                                        .height(1.dp)
+                                        .background(uiColors.cardBorder)
+                                )
+                            }
+                            SshKeyItem(
+                                key = key,
+                                onView = { onView(key) },
+                                onDelete = { onDelete(key) },
+                                onCopyPublicKey = { onCopyPublicKey(key.publicKey) }
+                            )
+                        }
                     }
                 }
             }
         }
-        
-        ElevatedCard(
-            modifier = Modifier
-                .fillMaxWidth()
-                .border(1.dp, uiColors.cardBorder, RoundedCornerShape(24.dp)),
-            shape = RoundedCornerShape(24.dp),
-            colors = CardDefaults.elevatedCardColors(containerColor = uiColors.cardContainer),
-            elevation = CardDefaults.elevatedCardElevation(0.dp)
-        ) {
-            Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("SSH Key Info", fontWeight = FontWeight.Bold, color = colors.primary)
-                ListItem(
-                    headlineContent = { Text("Supported Types") },
-                    supportingContent = { Text("RSA (4096-bit), Ed25519") },
-                    leadingContent = { Icon(Icons.Default.Key, contentDescription = null) }
-                )
-                ListItem(
-                    headlineContent = { Text("Storage") },
-                    supportingContent = { Text("Private keys are stored in app-private storage with restricted access") },
-                    leadingContent = { Icon(Icons.Default.Security, contentDescription = null) }
-                )
-            }
-        }
+
+        SshInfoCard()
     }
 }
 
@@ -568,33 +756,260 @@ private fun SshKeyItem(
     onDelete: () -> Unit,
     onCopyPublicKey: () -> Unit
 ) {
-    ListItem(
-        headlineContent = { Text(key.name) },
-        supportingContent = {
-            Column {
-                Text("${key.type.displayName} ${if (key.hasPrivateKey) "• Private key stored" else "• Public key only"}")
-                Text(
-                    "Fingerprint: ${key.fingerprint.take(24)}...",
-                    style = MaterialTheme.typography.bodySmall,
-                    fontFamily = FontFamily.Monospace
-                )
+    val colors = MaterialTheme.colorScheme
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 12.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Surface(
+                shape = RoundedCornerShape(10.dp),
+                color = Sakura90.copy(alpha = 0.15f),
+                modifier = Modifier.size(40.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        Icons.Default.Key,
+                        contentDescription = null,
+                        tint = Sakura90,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
             }
-        },
-        leadingContent = { Icon(Icons.Default.Key, contentDescription = null) },
-        trailingContent = {
+
+            Spacer(Modifier.width(12.dp))
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = key.name,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = key.type.displayName,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = colors.onSurfaceVariant
+                    )
+                    Text(
+                        text = " • ",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = colors.onSurfaceVariant
+                    )
+                    Text(
+                        text = if (key.hasPrivateKey) "Private stored" else "Public only",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = if (key.hasPrivateKey) Color(0xFF4CAF50) else colors.onSurfaceVariant
+                    )
+                }
+            }
+
             Row {
-                IconButton(onClick = onCopyPublicKey) {
-                    Icon(Icons.Default.ContentCopy, contentDescription = "Copy Public Key")
+                IconButton(onClick = onCopyPublicKey, modifier = Modifier.size(36.dp)) {
+                    Icon(
+                        Icons.Default.ContentCopy,
+                        contentDescription = "Copy Public Key",
+                        tint = colors.onSurfaceVariant,
+                        modifier = Modifier.size(18.dp)
+                    )
                 }
-                IconButton(onClick = onView) {
-                    Icon(Icons.Default.Visibility, contentDescription = "View")
+                IconButton(onClick = onView, modifier = Modifier.size(36.dp)) {
+                    Icon(
+                        Icons.Default.Visibility,
+                        contentDescription = "View",
+                        tint = colors.onSurfaceVariant,
+                        modifier = Modifier.size(18.dp)
+                    )
                 }
-                IconButton(onClick = onDelete) {
-                    Icon(Icons.Default.Delete, contentDescription = "Delete")
+                IconButton(onClick = onDelete, modifier = Modifier.size(36.dp)) {
+                    Icon(
+                        Icons.Default.Delete,
+                        contentDescription = "Delete",
+                        tint = colors.error,
+                        modifier = Modifier.size(18.dp)
+                    )
                 }
             }
         }
-    )
+
+        Spacer(Modifier.height(6.dp))
+
+        Surface(
+            shape = RoundedCornerShape(8.dp),
+            color = colors.surfaceVariant.copy(alpha = 0.3f)
+        ) {
+            Text(
+                text = "Fingerprint: ${key.fingerprint.take(32)}...",
+                style = MaterialTheme.typography.labelSmall,
+                fontFamily = FontFamily.Monospace,
+                color = colors.onSurfaceVariant,
+                modifier = Modifier.padding(8.dp)
+            )
+        }
+    }
+}
+
+@Composable
+private fun SecurityInfoCard() {
+    val colors = MaterialTheme.colorScheme
+    val uiColors = ObsiGitThemeExtras.colors
+
+    ElevatedCard(
+        modifier = Modifier
+            .fillMaxWidth()
+            .border(1.dp, uiColors.cardBorder, RoundedCornerShape(20.dp)),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.elevatedCardColors(containerColor = uiColors.cardContainer),
+        elevation = CardDefaults.elevatedCardElevation(0.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    Icons.Default.Lock,
+                    contentDescription = null,
+                    tint = Sakura80,
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    text = "Security Information",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = Sakura80
+                )
+            }
+
+            InfoRow(
+                icon = Icons.Default.Shield,
+                title = "Encryption",
+                description = "AES-256-GCM via Android KeyStore"
+            )
+            InfoRow(
+                icon = Icons.Default.Security,
+                title = "Storage",
+                description = "Encrypted credentials in secure enclave"
+            )
+        }
+    }
+}
+
+@Composable
+private fun SshInfoCard() {
+    val colors = MaterialTheme.colorScheme
+    val uiColors = ObsiGitThemeExtras.colors
+
+    ElevatedCard(
+        modifier = Modifier
+            .fillMaxWidth()
+            .border(1.dp, uiColors.cardBorder, RoundedCornerShape(20.dp)),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.elevatedCardColors(containerColor = uiColors.cardContainer),
+        elevation = CardDefaults.elevatedCardElevation(0.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    Icons.Default.Key,
+                    contentDescription = null,
+                    tint = Sakura90,
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    text = "SSH Key Information",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = Sakura90
+                )
+            }
+
+            InfoRow(
+                icon = Icons.Default.Key,
+                title = "Supported Types",
+                description = "RSA (4096-bit), Ed25519"
+            )
+            InfoRow(
+                icon = Icons.Default.Security,
+                title = "Storage",
+                description = "Private keys in app-private storage"
+            )
+        }
+    }
+}
+
+@Composable
+private fun InfoRow(
+    icon: ImageVector,
+    title: String,
+    description: String
+) {
+    val colors = MaterialTheme.colorScheme
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            icon,
+            contentDescription = null,
+            tint = colors.onSurfaceVariant,
+            modifier = Modifier.size(16.dp)
+        )
+        Spacer(Modifier.width(10.dp))
+        Column {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Medium
+            )
+            Text(
+                text = description,
+                style = MaterialTheme.typography.bodySmall,
+                color = colors.onSurfaceVariant
+            )
+        }
+    }
+}
+
+@Composable
+private fun EmptyStateMessage(
+    icon: ImageVector,
+    message: String,
+    modifier: Modifier = Modifier
+) {
+    val colors = MaterialTheme.colorScheme
+
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Icon(
+            icon,
+            contentDescription = null,
+            tint = colors.onSurfaceVariant.copy(alpha = 0.4f),
+            modifier = Modifier.size(40.dp)
+        )
+        Spacer(Modifier.height(8.dp))
+        Text(
+            text = message,
+            style = MaterialTheme.typography.bodyMedium,
+            color = colors.onSurfaceVariant,
+            textAlign = TextAlign.Center
+        )
+    }
 }
 
 @Composable
@@ -610,12 +1025,13 @@ private fun HttpsCredentialDialog(
     var username by rememberSaveable { mutableStateOf(initialUsername) }
     var password by rememberSaveable { mutableStateOf(initialPassword) }
     var showPassword by remember { mutableStateOf(false) }
-    
+    val colors = MaterialTheme.colorScheme
+
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(title) },
+        title = { Text(title, fontWeight = FontWeight.Bold) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
                 OutlinedTextField(
                     value = host,
                     onValueChange = { host = it },
@@ -623,7 +1039,12 @@ private fun HttpsCredentialDialog(
                     placeholder = { Text("github.com") },
                     leadingIcon = { Icon(Icons.Default.Link, contentDescription = null) },
                     singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Sakura80,
+                        focusedLabelColor = Sakura80
+                    )
                 )
                 OutlinedTextField(
                     value = username,
@@ -631,7 +1052,12 @@ private fun HttpsCredentialDialog(
                     label = { Text("Username") },
                     leadingIcon = { Icon(Icons.Default.Person, contentDescription = null) },
                     singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Sakura80,
+                        focusedLabelColor = Sakura80
+                    )
                 )
                 OutlinedTextField(
                     value = password,
@@ -648,14 +1074,21 @@ private fun HttpsCredentialDialog(
                     },
                     visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
                     singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Sakura80,
+                        focusedLabelColor = Sakura80
+                    )
                 )
             }
         },
         confirmButton = {
             Button(
                 onClick = { onSave(host, username, password) },
-                enabled = host.isNotBlank() && username.isNotBlank() && password.isNotBlank()
+                enabled = host.isNotBlank() && username.isNotBlank() && password.isNotBlank(),
+                colors = ButtonDefaults.buttonColors(containerColor = Sakura80),
+                shape = RoundedCornerShape(12.dp)
             ) {
                 Text("Save")
             }
@@ -678,21 +1111,27 @@ private fun GenerateSshKeyDialog(
     var selectedType by rememberSaveable { mutableStateOf(SshKeyType.ED25519) }
     var comment by rememberSaveable { mutableStateOf("") }
     var expanded by remember { mutableStateOf(false) }
-    
+    val colors = MaterialTheme.colorScheme
+
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Generate SSH Key") },
+        title = { Text("Generate SSH Key", fontWeight = FontWeight.Bold) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
                     label = { Text("Key Name") },
                     placeholder = { Text("My Key") },
                     singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Sakura90,
+                        focusedLabelColor = Sakura90
+                    )
                 )
-                
+
                 ExposedDropdownMenuBox(
                     expanded = expanded,
                     onExpandedChange = { expanded = it }
@@ -703,9 +1142,14 @@ private fun GenerateSshKeyDialog(
                         readOnly = true,
                         label = { Text("Key Type") },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                        shape = RoundedCornerShape(12.dp),
                         modifier = Modifier
                             .fillMaxWidth()
-                            .menuAnchor()
+                            .menuAnchor(),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = Sakura90,
+                            focusedLabelColor = Sakura90
+                        )
                     )
                     ExposedDropdownMenu(
                         expanded = expanded,
@@ -722,21 +1166,28 @@ private fun GenerateSshKeyDialog(
                         }
                     }
                 }
-                
+
                 OutlinedTextField(
                     value = comment,
                     onValueChange = { comment = it },
                     label = { Text("Comment (optional)") },
                     placeholder = { Text("user@host") },
                     singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Sakura90,
+                        focusedLabelColor = Sakura90
+                    )
                 )
             }
         },
         confirmButton = {
             Button(
                 onClick = { onGenerate(name, selectedType, comment) },
-                enabled = name.isNotBlank()
+                enabled = name.isNotBlank(),
+                colors = ButtonDefaults.buttonColors(containerColor = Sakura90),
+                shape = RoundedCornerShape(12.dp)
             ) {
                 Text("Generate")
             }
@@ -760,20 +1211,26 @@ private fun ImportSshKeyDialog(
     var passphrase by rememberSaveable { mutableStateOf("") }
     var showPrivateKey by remember { mutableStateOf(false) }
     var showPassphrase by remember { mutableStateOf(false) }
+    val colors = MaterialTheme.colorScheme
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Import SSH Key") },
+        title = { Text("Import SSH Key", fontWeight = FontWeight.Bold) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
                     label = { Text("Key Name") },
                     singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Sakura90,
+                        focusedLabelColor = Sakura90
+                    )
                 )
-                
+
                 OutlinedTextField(
                     value = privateKey,
                     onValueChange = { privateKey = it },
@@ -789,10 +1246,15 @@ private fun ImportSshKeyDialog(
                     },
                     visualTransformation = if (showPrivateKey) VisualTransformation.None else PasswordVisualTransformation(),
                     minLines = 3,
-                    maxLines = 6,
-                    modifier = Modifier.fillMaxWidth()
+                    maxLines = 5,
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Sakura90,
+                        focusedLabelColor = Sakura90
+                    )
                 )
-                
+
                 OutlinedTextField(
                     value = passphrase,
                     onValueChange = { passphrase = it },
@@ -807,31 +1269,43 @@ private fun ImportSshKeyDialog(
                     },
                     visualTransformation = if (showPassphrase) VisualTransformation.None else PasswordVisualTransformation(),
                     singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Sakura90,
+                        focusedLabelColor = Sakura90
+                    )
                 )
-                
+
                 OutlinedTextField(
                     value = publicKey,
                     onValueChange = { publicKey = it },
                     label = { Text("Public Key (optional)") },
                     placeholder = { Text("ssh-rsa AAAA...") },
                     minLines = 2,
-                    maxLines = 4,
-                    modifier = Modifier.fillMaxWidth()
+                    maxLines = 3,
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Sakura90,
+                        focusedLabelColor = Sakura90
+                    )
                 )
             }
         },
         confirmButton = {
             Button(
-                onClick = { 
+                onClick = {
                     onImport(
-                        name, 
-                        privateKey, 
+                        name,
+                        privateKey,
                         publicKey.ifBlank { null },
                         passphrase.ifBlank { null }
-                    ) 
+                    )
                 },
-                enabled = name.isNotBlank() && privateKey.isNotBlank()
+                enabled = name.isNotBlank() && privateKey.isNotBlank(),
+                colors = ButtonDefaults.buttonColors(containerColor = Sakura90),
+                shape = RoundedCornerShape(12.dp)
             ) {
                 Text("Import")
             }
@@ -840,8 +1314,7 @@ private fun ImportSshKeyDialog(
             TextButton(onClick = onDismiss) {
                 Text("Cancel")
             }
-        },
-        properties = DialogProperties(usePlatformDefaultWidth = false)
+        }
     )
 }
 
@@ -851,49 +1324,67 @@ private fun SshKeyDetailDialog(
     onDismiss: () -> Unit,
     onExportPublicKey: () -> Unit
 ) {
+    val colors = MaterialTheme.colorScheme
+
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(keyInfo.name) },
+        title = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    Icons.Default.Key,
+                    contentDescription = null,
+                    tint = Sakura90,
+                    modifier = Modifier.size(24.dp)
+                )
+                Spacer(Modifier.width(10.dp))
+                Text(keyInfo.name, fontWeight = FontWeight.Bold)
+            }
+        },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                ListItem(
-                    headlineContent = { Text("Type") },
-                    supportingContent = { Text(keyInfo.type.displayName) }
-                )
-                ListItem(
-                    headlineContent = { Text("Private Key") },
-                    supportingContent = { Text(if (keyInfo.hasPrivateKey) "Stored" else "Not available") }
-                )
+                DetailRow("Type", keyInfo.type.displayName)
+                DetailRow("Private Key", if (keyInfo.hasPrivateKey) "Stored" else "Not available")
                 if (keyInfo.comment.isNotBlank()) {
-                    ListItem(
-                        headlineContent = { Text("Comment") },
-                        supportingContent = { Text(keyInfo.comment) }
+                    DetailRow("Comment", keyInfo.comment)
+                }
+                Column {
+                    Text(
+                        "Fingerprint",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = colors.onSurfaceVariant
+                    )
+                    Text(
+                        keyInfo.fingerprint,
+                        style = MaterialTheme.typography.bodySmall,
+                        fontFamily = FontFamily.Monospace
                     )
                 }
-                ListItem(
-                    headlineContent = { Text("Fingerprint") },
-                    supportingContent = { 
-                        Text(
-                            keyInfo.fingerprint,
-                            fontFamily = FontFamily.Monospace,
-                            style = MaterialTheme.typography.bodySmall
-                        ) 
-                    }
-                )
-                ListItem(
-                    headlineContent = { Text("Public Key") },
-                    supportingContent = { 
-                        Text(
-                            keyInfo.publicKey.take(60) + "...",
-                            fontFamily = FontFamily.Monospace,
-                            style = MaterialTheme.typography.bodySmall
-                        ) 
-                    }
-                )
+                Column {
+                    Text(
+                        "Public Key",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = colors.onSurfaceVariant
+                    )
+                    Text(
+                        keyInfo.publicKey.take(80) + "...",
+                        style = MaterialTheme.typography.bodySmall,
+                        fontFamily = FontFamily.Monospace
+                    )
+                }
             }
         },
         confirmButton = {
-            Button(onClick = onExportPublicKey) {
+            Button(
+                onClick = onExportPublicKey,
+                colors = ButtonDefaults.buttonColors(containerColor = Sakura90),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Icon(
+                    Icons.Default.ContentCopy,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(Modifier.width(6.dp))
                 Text("Copy Public Key")
             }
         },
@@ -903,4 +1394,21 @@ private fun SshKeyDetailDialog(
             }
         }
     )
+}
+
+@Composable
+private fun DetailRow(label: String, value: String) {
+    val colors = MaterialTheme.colorScheme
+
+    Column {
+        Text(
+            label,
+            style = MaterialTheme.typography.labelMedium,
+            color = colors.onSurfaceVariant
+        )
+        Text(
+            value,
+            style = MaterialTheme.typography.bodyMedium
+        )
+    }
 }
