@@ -80,4 +80,7 @@ dependencies {
     implementation(libs.libsu.core)
     implementation(libs.libsu.service)
     implementation(libs.org.eclipse.jgit)
+    implementation(libs.jsch)
+    implementation(libs.bouncycastle)
+    implementation(libs.androidx.security.crypto)
 }

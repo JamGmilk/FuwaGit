@@ -7,15 +7,18 @@ espressoCore = "3.7.0"
 lifecycleRuntimeKtx = "2.10.0"
 activityCompose = "1.13.0"
 kotlin = "2.3.20"
-composeBom = "2026.03.00"
+composeBom = "2026.03.01"
 material3 = "1.4.0"
 orgEclipseJgit = "6.8.0.202311291450-r"
-uiText = "1.10.5"
+uiText = "1.10.6"
 libsu = "6.0.0"
-runtime = "1.10.5"
-foundation = "1.10.5"
-foundationLayout = "1.10.5"
+runtime = "1.10.6"
+foundation = "1.10.6"
+foundationLayout = "1.10.6"
 documentfile = "1.1.0"
+jsch = "2.27.9"
+securityCrypto = "1.1.0"
+bouncycastle = "1.83"
 
 [libraries]
 androidx-compose-material-icons-extended = { module = "androidx.compose.material:material-icons-extended" }
@@ -43,6 +46,9 @@ org-eclipse-jgit = { module = "org.eclipse.jgit:org.eclipse.jgit", version.ref =
 androidx-compose-foundation = { group = "androidx.compose.foundation", name = "foundation", version.ref = "foundation" }
 androidx-compose-foundation-layout = { group = "androidx.compose.foundation", name = "foundation-layout", version.ref = "foundationLayout" }
 androidx-documentfile = { group = "androidx.documentfile", name = "documentfile", version.ref = "documentfile" }
+jsch = { module = "com.github.mwiede:jsch", version.ref = "jsch" }
+androidx-security-crypto = { group = "androidx.security", name = "security-crypto", version.ref = "securityCrypto" }
+bouncycastle = { module = "org.bouncycastle:bcprov-jdk18on", version.ref = "bouncycastle" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

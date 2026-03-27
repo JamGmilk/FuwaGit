@@ -18,6 +18,14 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import androidx.core.content.edit
+import android.util.Log
+import jamgmilk.obsigit.credential.CredentialManager
+import jamgmilk.obsigit.credential.HttpsCredential
+import jamgmilk.obsigit.credential.SshKeyInfo
+import jamgmilk.obsigit.credential.SshKeyManager
+import jamgmilk.obsigit.credential.SshKeyType
+
+private const val TAG = "ObsiGit"
 
 enum class AppPage {
     Status,
@@ -85,7 +93,18 @@ class AppViewModel : ViewModel() {
     private val _branches = MutableStateFlow<List<GitBranch>>(emptyList())
     val branches: StateFlow<List<GitBranch>> = _branches.asStateFlow()
 
+    private val _httpsCredentials = MutableStateFlow<List<HttpsCredential>>(emptyList())
+    val httpsCredentials: StateFlow<List<HttpsCredential>> = _httpsCredentials.asStateFlow()
+
+    private val _sshKeys = MutableStateFlow<List<SshKeyInfo>>(emptyList())
+    val sshKeys: StateFlow<List<SshKeyInfo>> = _sshKeys.asStateFlow()
+
+    private val _keyStoreAvailable = MutableStateFlow(false)
+    val keyStoreAvailable: StateFlow<Boolean> = _keyStoreAvailable.asStateFlow()
+
     private var storageInitialized = false
+    private var credentialManager: CredentialManager? = null
+    private var sshKeyManager: SshKeyManager? = null
 
     fun switchPage(page: AppPage) {
         _currentPage.value = page
@@ -492,5 +511,168 @@ class AppViewModel : ViewModel() {
     private fun loadTargetPath(context: Context): String? {
         val prefs = context.getSharedPreferences("obsigit_prefs", Context.MODE_PRIVATE)
         return prefs.getString("target_path", null)
+    }
+
+    fun initCredentialManagers(context: Context) {
+        if (credentialManager == null) {
+            credentialManager = CredentialManager(context)
+            _keyStoreAvailable.value = credentialManager!!.isKeyStoreAvailable()
+        }
+        if (sshKeyManager == null) {
+            sshKeyManager = SshKeyManager(context)
+        }
+        loadCredentials()
+    }
+
+    private fun loadCredentials() {
+        loadHttpsCredentials()
+        loadSshKeys()
+    }
+
+    private fun loadHttpsCredentials() {
+        val manager = credentialManager ?: return
+        viewModelScope.launch {
+            val result = withContext(Dispatchers.IO) {
+                manager.getAllCredentials().getOrNull() ?: emptyList()
+            }
+            _httpsCredentials.value = result
+        }
+    }
+
+    private fun loadSshKeys() {
+        val manager = sshKeyManager ?: return
+        viewModelScope.launch {
+            val result = withContext(Dispatchers.IO) {
+                manager.getAllKeys().getOrNull() ?: emptyList()
+            }
+            _sshKeys.value = result
+        }
+    }
+
+    fun saveHttpsCredential(credential: HttpsCredential) {
+        val manager = credentialManager ?: run {
+            Log.e(TAG, "saveHttpsCredential: credentialManager is null")
+            return
+        }
+        viewModelScope.launch {
+            try {
+                withContext(Dispatchers.IO) {
+                    val result = manager.saveCredential(credential)
+                    result.onFailure { e ->
+                        Log.e(TAG, "saveHttpsCredential failed", e)
+                    }
+                }
+                loadHttpsCredentials()
+            } catch (e: Exception) {
+                Log.e(TAG, "saveHttpsCredential exception", e)
+            }
+        }
+    }
+
+    fun updateHttpsCredential(credential: HttpsCredential) {
+        val manager = credentialManager ?: run {
+            Log.e(TAG, "updateHttpsCredential: credentialManager is null")
+            return
+        }
+        viewModelScope.launch {
+            try {
+                withContext(Dispatchers.IO) {
+                    val result = manager.updateCredential(credential)
+                    result.onFailure { e ->
+                        Log.e(TAG, "updateHttpsCredential failed", e)
+                    }
+                }
+                loadHttpsCredentials()
+            } catch (e: Exception) {
+                Log.e(TAG, "updateHttpsCredential exception", e)
+            }
+        }
+    }
+
+    fun deleteHttpsCredential(id: String) {
+        val manager = credentialManager ?: run {
+            Log.e(TAG, "deleteHttpsCredential: credentialManager is null")
+            return
+        }
+        viewModelScope.launch {
+            try {
+                withContext(Dispatchers.IO) {
+                    val result = manager.deleteCredential(id)
+                    result.onFailure { e ->
+                        Log.e(TAG, "deleteHttpsCredential failed", e)
+                    }
+                }
+                loadHttpsCredentials()
+            } catch (e: Exception) {
+                Log.e(TAG, "deleteHttpsCredential exception", e)
+            }
+        }
+    }
+
+    fun generateSshKey(name: String, type: SshKeyType, comment: String) {
+        val manager = sshKeyManager ?: run {
+            Log.e(TAG, "generateSshKey: sshKeyManager is null")
+            return
+        }
+        viewModelScope.launch {
+            try {
+                withContext(Dispatchers.IO) {
+                    val result = manager.generateKeyPair(name, type, comment)
+                    result.onFailure { e ->
+                        Log.e(TAG, "generateSshKey failed", e)
+                    }
+                }
+                loadSshKeys()
+            } catch (e: Exception) {
+                Log.e(TAG, "generateSshKey exception", e)
+            }
+        }
+    }
+
+    fun importSshKey(name: String, privateKey: String, publicKey: String?, passphrase: String?) {
+        val manager = sshKeyManager ?: run {
+            Log.e(TAG, "importSshKey: sshKeyManager is null")
+            return
+        }
+        viewModelScope.launch {
+            try {
+                withContext(Dispatchers.IO) {
+                    val result = manager.importKeyPair(name, privateKey, publicKey, passphrase)
+                    result.onFailure { e ->
+                        Log.e(TAG, "importSshKey failed", e)
+                    }
+                }
+                loadSshKeys()
+            } catch (e: Exception) {
+                Log.e(TAG, "importSshKey exception", e)
+            }
+        }
+    }
+
+    fun deleteSshKey(id: String) {
+        val manager = sshKeyManager ?: run {
+            Log.e(TAG, "deleteSshKey: sshKeyManager is null")
+            return
+        }
+        viewModelScope.launch {
+            try {
+                withContext(Dispatchers.IO) {
+                    val result = manager.deleteKey(id)
+                    result.onFailure { e ->
+                        Log.e(TAG, "deleteSshKey failed", e)
+                    }
+                }
+                loadSshKeys()
+            } catch (e: Exception) {
+                Log.e(TAG, "deleteSshKey exception", e)
+            }
+        }
+    }
+
+    fun exportSshPublicKey(id: String) {
+        val manager = sshKeyManager ?: return
+        viewModelScope.launch(Dispatchers.IO) {
+            manager.exportPublicKey(id)
+        }
     }
 }
