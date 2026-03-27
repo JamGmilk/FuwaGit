@@ -103,7 +103,8 @@ internal object AppGitOps {
                         authorName = rev.authorIdent.name,
                         authorEmail = rev.authorIdent.emailAddress,
                         message = rev.shortMessage,
-                        timestamp = rev.commitTime.toLong() * 1000L
+                        timestamp = rev.commitTime.toLong() * 1000L,
+                        parentHashes = rev.parents.map { it.name }
                     )
                 }
             }
@@ -192,6 +193,12 @@ internal object AppGitOps {
     fun checkoutBranch(dir: File, name: String) {
         runGit(dir) { git ->
             git.checkout().setName(name).call()
+        }
+    }
+    
+    fun createBranch(dir: File, name: String) {
+        runGit(dir) { git ->
+            git.branchCreate().setName(name).call()
         }
     }
     

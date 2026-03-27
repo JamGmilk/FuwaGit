@@ -1,23 +1,22 @@
 package jamgmilk.obsigit
 
 import android.annotation.SuppressLint
+import android.content.res.Configuration
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.AccountTree
@@ -29,26 +28,28 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarDefaults
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationRail
+import androidx.compose.material3.NavigationRailItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
-import jamgmilk.obsigit.ui.AppPage
+import androidx.compose.ui.unit.dp
+import jamgmilk.obsigit.di.AppContainer
 import jamgmilk.obsigit.ui.AppViewModel
-import jamgmilk.obsigit.ui.BranchesModule
-import jamgmilk.obsigit.ui.HistoryModule
-import jamgmilk.obsigit.ui.RepoScreen
-import jamgmilk.obsigit.ui.SettingsScreen
-import jamgmilk.obsigit.ui.StatusModule
+import jamgmilk.obsigit.ui.navigation.ObsiGitNavHost
+import jamgmilk.obsigit.ui.navigation.Screen
+import jamgmilk.obsigit.ui.theme.ObsiGitExtraColors
 import jamgmilk.obsigit.ui.theme.ObsiGitTheme
 import jamgmilk.obsigit.ui.theme.ObsiGitThemeExtras
 import jamgmilk.obsigit.ui.theme.appBackgroundBrush
-import jamgmilk.obsigit.di.AppContainer
 
 class MainActivity : ComponentActivity() {
 
@@ -69,88 +70,166 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun AppRoot(viewModel: AppViewModel, modifier: Modifier = Modifier) {
     val context = LocalContext.current
-    val currentPage by viewModel.currentPage.collectAsState()
     val darkTheme = isSystemInDarkTheme()
     val uiColors = ObsiGitThemeExtras.colors
+
+    val configuration = LocalConfiguration.current
+    val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+
+    val currentScreen by viewModel.currentScreenFlow.collectAsState()
+    val screens = listOf(
+        Screen.Status,
+        Screen.History,
+        Screen.Branches,
+        Screen.Repo,
+        Screen.Settings
+    )
 
     LaunchedEffect(Unit) {
         viewModel.initializeStorage(context)
     }
 
-    Scaffold(
-        modifier = modifier.fillMaxSize(),
-        containerColor = MaterialTheme.colorScheme.background,
-        bottomBar = {
-            NavigationBar(
-                //modifier = Modifier.height(64.dp),
-                windowInsets = NavigationBarDefaults.windowInsets,
-                containerColor = uiColors.navBarContainer
-            ) {
-                NavigationBarItem(
-                    selected = currentPage == AppPage.Status,
-                    onClick = { viewModel.switchPage(AppPage.Status) },
-                    icon = { Icon(Icons.AutoMirrored.Filled.List, contentDescription = "Status") },
-                    label = { Text("Status") },
-                    alwaysShowLabel = false
-                )
-                NavigationBarItem(
-                    selected = currentPage == AppPage.History,
-                    onClick = { viewModel.switchPage(AppPage.History) },
-                    icon = { Icon(Icons.Default.History, contentDescription = "History") },
-                    label = { Text("History") },
-                    alwaysShowLabel = false
-                )
-                NavigationBarItem(
-                    selected = currentPage == AppPage.Branches,
-                    onClick = { viewModel.switchPage(AppPage.Branches) },
-                    icon = { Icon(Icons.Default.AccountTree, contentDescription = "Branches") },
-                    label = { Text("Branches") },
-                    alwaysShowLabel = false
-                )
-                NavigationBarItem(
-                    selected = currentPage == AppPage.Repo,
-                    onClick = { viewModel.switchPage(AppPage.Repo) },
-                    icon = { Icon(Icons.Default.Folder, contentDescription = "Repo") },
-                    label = { Text("Repo") },
-                    alwaysShowLabel = false
-                )
-                NavigationBarItem(
-                    selected = currentPage == AppPage.Settings,
-                    onClick = { viewModel.switchPage(AppPage.Settings) },
-                    icon = { Icon(Icons.Default.Settings, contentDescription = "Settings") },
-                    label = { Text("Settings") },
-                    alwaysShowLabel = false
-                )
-            }
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(appBackgroundBrush(darkTheme = darkTheme))
+    ) {
+        if (isLandscape) {
+            LandscapeLayout(
+                currentScreen = currentScreen,
+                screens = screens,
+                onScreenChange = { viewModel.currentScreen = it },
+                uiColors = uiColors
+            )
+        } else {
+            PortraitLayout(
+                currentScreen = currentScreen,
+                screens = screens,
+                onScreenChange = { viewModel.currentScreen = it },
+                uiColors = uiColors
+            )
         }
-    ) { innerPadding ->
-        Box(
+
+        ObsiGitNavHost(
+            currentScreen = currentScreen,
+            onScreenChange = { viewModel.currentScreen = it },
+            viewModel = viewModel,
             modifier = Modifier
-                .fillMaxSize()
-                .background(appBackgroundBrush(darkTheme = darkTheme))
-        ) {
-            val contentModifier = Modifier
                 .fillMaxSize()
                 .statusBarsPadding()
                 .navigationBarsPadding()
-                .padding(innerPadding)
+                .then(
+                    if (isLandscape) {
+                        Modifier.padding(start = 80.dp)
+                    } else {
+                        Modifier.padding(bottom = 80.dp)
+                    }
+                )
+        )
+    }
+}
 
-            AnimatedContent(
-                targetState = currentPage,
-                transitionSpec = {
-                    fadeIn(animationSpec = tween(280)) togetherWith fadeOut(animationSpec = tween(220))
-                },
-                label = "page_transition"
-            ) { page ->
-                when (page) {
-                    AppPage.Status -> StatusModule(viewModel = viewModel, modifier = contentModifier)
-                    AppPage.History -> HistoryModule(viewModel = viewModel, modifier = contentModifier)
-                    AppPage.Branches -> BranchesModule(viewModel = viewModel, modifier = contentModifier)
-                    AppPage.Repo -> RepoScreen(viewModel = viewModel, modifier = contentModifier)
-                    AppPage.Settings -> SettingsScreen(viewModel = viewModel, modifier = contentModifier)
+@SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
+@Composable
+private fun PortraitLayout(
+    currentScreen: Screen,
+    screens: List<Screen>,
+    onScreenChange: (Screen) -> Unit,
+    uiColors: ObsiGitExtraColors
+) {
+    val colors = MaterialTheme.colorScheme
+
+    Scaffold(
+        modifier = Modifier.fillMaxSize(),
+        containerColor = colors.background,
+        bottomBar = {
+            NavigationBar(
+                windowInsets = NavigationBarDefaults.windowInsets,
+                containerColor = uiColors.navBarContainer
+            ) {
+                screens.forEach { screen ->
+                    val selected = currentScreen == screen
+
+                    NavigationBarItem(
+                        selected = selected,
+                        onClick = { onScreenChange(screen) },
+                        icon = {
+                            when (screen) {
+                                Screen.Status -> Icon(Icons.AutoMirrored.Filled.List, contentDescription = "Status")
+                                Screen.History -> Icon(Icons.Default.History, contentDescription = "History")
+                                Screen.Branches -> Icon(Icons.Default.AccountTree, contentDescription = "Branches")
+                                Screen.Repo -> Icon(Icons.Default.Folder, contentDescription = "Repo")
+                                Screen.Settings -> Icon(Icons.Default.Settings, contentDescription = "Settings")
+                            }
+                        },
+                        label = {
+                            Text(
+                                when (screen) {
+                                    Screen.Status -> "Status"
+                                    Screen.History -> "History"
+                                    Screen.Branches -> "Branches"
+                                    Screen.Repo -> "Repo"
+                                    Screen.Settings -> "Settings"
+                                }
+                            )
+                        },
+                        alwaysShowLabel = false
+                    )
                 }
             }
         }
+    ) { }
+}
+
+@Composable
+private fun LandscapeLayout(
+    currentScreen: Screen,
+    screens: List<Screen>,
+    onScreenChange: (Screen) -> Unit,
+    uiColors: ObsiGitExtraColors
+) {
+    Row(modifier = Modifier.fillMaxSize()) {
+        NavigationRail(
+            containerColor = uiColors.navBarContainer,
+            modifier = Modifier.fillMaxHeight()
+        ) {
+            screens.forEach { screen ->
+                val selected = currentScreen == screen
+
+                NavigationRailItem(
+                    selected = selected,
+                    onClick = { onScreenChange(screen) },
+                    icon = {
+                        when (screen) {
+                            Screen.Status -> Icon(Icons.AutoMirrored.Filled.List, contentDescription = "Status")
+                            Screen.History -> Icon(Icons.Default.History, contentDescription = "History")
+                            Screen.Branches -> Icon(Icons.Default.AccountTree, contentDescription = "Branches")
+                            Screen.Repo -> Icon(Icons.Default.Folder, contentDescription = "Repo")
+                            Screen.Settings -> Icon(Icons.Default.Settings, contentDescription = "Settings")
+                        }
+                    },
+                    label = {
+                        Text(
+                            when (screen) {
+                                Screen.Status -> "Status"
+                                Screen.History -> "History"
+                                Screen.Branches -> "Branches"
+                                Screen.Repo -> "Repo"
+                                Screen.Settings -> "Settings"
+                            }
+                        )
+                    },
+                    alwaysShowLabel = true
+                )
+            }
+        }
+
+        VerticalDivider(
+            modifier = Modifier
+                .fillMaxHeight()
+                .width(1.dp),
+            color = uiColors.cardBorder
+        )
     }
 }
 

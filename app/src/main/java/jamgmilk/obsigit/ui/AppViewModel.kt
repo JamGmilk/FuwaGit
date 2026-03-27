@@ -7,6 +7,8 @@ import androidx.core.net.toUri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.topjohnwu.superuser.Shell
+import jamgmilk.obsigit.di.AppContainer
+import jamgmilk.obsigit.ui.navigation.Screen
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -60,6 +62,13 @@ data class RepoFolderItem(
 class AppViewModel : ViewModel() {
     private val _currentPage = MutableStateFlow(AppPage.Status)
     val currentPage: StateFlow<AppPage> = _currentPage.asStateFlow()
+
+    private val _currentScreen: MutableStateFlow<Screen> = MutableStateFlow(Screen.Status)
+    val currentScreenFlow: StateFlow<Screen> = _currentScreen.asStateFlow()
+
+    var currentScreen: Screen
+        get() = _currentScreen.value
+        set(value) { _currentScreen.value = value }
 
     private val _targetPath = MutableStateFlow<String?>(null)
     val targetPath: StateFlow<String?> = _targetPath.asStateFlow()
@@ -442,6 +451,21 @@ class AppViewModel : ViewModel() {
                 checkRepoStatus()
             } catch (e: Exception) {
                 appendTerminalLog("git checkout $name", "Error: ${e.message}")
+            }
+        }
+    }
+    
+    fun createBranch(name: String) {
+        val dir = currentRepoDirForGit() ?: return
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                AppGitOps.withGitLock {
+                    AppGitOps.createBranch(dir, name)
+                    _branches.value = AppGitOps.getBranches(dir)
+                }
+                appendTerminalLog("git branch $name", "Branch created successfully")
+            } catch (e: Exception) {
+                appendTerminalLog("git branch $name", "Error: ${e.message}")
             }
         }
     }
