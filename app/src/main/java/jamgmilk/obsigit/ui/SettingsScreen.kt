@@ -24,6 +24,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Backup
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Folder
+import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Sync
@@ -38,12 +39,16 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import jamgmilk.obsigit.di.AppContainer
+import jamgmilk.obsigit.ui.screen.credentials.CredentialsScreen
+import jamgmilk.obsigit.ui.screen.credentials.CredentialsViewModel
 import jamgmilk.obsigit.ui.theme.ObsiGitTheme
 import jamgmilk.obsigit.ui.theme.ObsiGitThemeExtras
 
@@ -55,28 +60,47 @@ fun SettingsScreen(
     val colors = MaterialTheme.colorScheme
     val uiColors = ObsiGitThemeExtras.colors
     var showPermissions by rememberSaveable { mutableStateOf(false) }
+    var showCredentials by rememberSaveable { mutableStateOf(false) }
     var autoSync by rememberSaveable { mutableStateOf(false) }
     var credentialsStored by rememberSaveable { mutableStateOf(false) }
     var conflictSafeMode by rememberSaveable { mutableStateOf(true) }
     var backupBeforeSync by rememberSaveable { mutableStateOf(true) }
 
     AnimatedContent(
-        targetState = showPermissions,
+        targetState = when {
+            showCredentials -> "credentials"
+            showPermissions -> "permissions"
+            else -> "main"
+        },
         transitionSpec = {
             fadeIn(animationSpec = tween(260)) togetherWith fadeOut(animationSpec = tween(200))
         },
-        label = "settings_permissions_transition"
-    ) { inPermissions ->
-        if (inPermissions) {
-            BackHandler {
-                showPermissions = false
+        label = "settings_transition"
+    ) { screen ->
+        when (screen) {
+            "credentials" -> {
+                BackHandler {
+                    showCredentials = false
+                }
+                val credentialsViewModel = remember { AppContainer.createCredentialsViewModel() }
+                CredentialsScreen(
+                    viewModel = credentialsViewModel,
+                    onBack = { showCredentials = false },
+                    modifier = modifier
+                )
+                return@AnimatedContent
             }
-            PermissionsScreen(
-                viewModel = viewModel,
-                onBack = { showPermissions = false },
-                modifier = modifier
-            )
-            return@AnimatedContent
+            "permissions" -> {
+                BackHandler {
+                    showPermissions = false
+                }
+                PermissionsScreen(
+                    viewModel = viewModel,
+                    onBack = { showPermissions = false },
+                    modifier = modifier
+                )
+                return@AnimatedContent
+            }
         }
 
         Column(
@@ -116,6 +140,36 @@ fun SettingsScreen(
                         modifier = Modifier
                             .animateContentSize()
                             .clickable { showPermissions = true },
+                        tonalElevation = 0.dp,
+                        shadowElevation = 0.dp
+                    )
+                }
+            }
+
+            ElevatedCard(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .border(1.dp, uiColors.cardBorder, RoundedCornerShape(24.dp))
+                    .animateContentSize(),
+                shape = RoundedCornerShape(24.dp),
+                colors = CardDefaults.elevatedCardColors(containerColor = uiColors.cardContainer),
+                elevation = CardDefaults.elevatedCardElevation(0.dp)
+            ) {
+                Column(modifier = Modifier.padding(vertical = 4.dp)) {
+                    Text(
+                        "Credentials",
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp)
+                    )
+
+                    ListItem(
+                        headlineContent = { Text("Git Credentials") },
+                        supportingContent = { Text("Manage HTTPS passwords and SSH keys") },
+                        leadingContent = { Icon(Icons.Default.Key, contentDescription = null) },
+                        trailingContent = { Icon(Icons.Default.ChevronRight, contentDescription = null) },
+                        modifier = Modifier
+                            .animateContentSize()
+                            .clickable { showCredentials = true },
                         tonalElevation = 0.dp,
                         shadowElevation = 0.dp
                     )

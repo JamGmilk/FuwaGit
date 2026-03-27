@@ -48,6 +48,7 @@ import jamgmilk.obsigit.ui.StatusModule
 import jamgmilk.obsigit.ui.theme.ObsiGitTheme
 import jamgmilk.obsigit.ui.theme.ObsiGitThemeExtras
 import jamgmilk.obsigit.ui.theme.appBackgroundBrush
+import jamgmilk.obsigit.di.AppContainer
 
 class MainActivity : ComponentActivity() {
 
@@ -55,6 +56,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        AppContainer.initCredentialRepository(this)
         enableEdgeToEdge()
         setContent {
             ObsiGitTheme {
