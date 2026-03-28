@@ -2,10 +2,10 @@ package jamgmilk.obsigit.ui.screen.status
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import jamgmilk.obsigit.data.source.JGitDataSource
 import jamgmilk.obsigit.data.source.RepoPathUtils
 import jamgmilk.obsigit.domain.model.GitBranch
 import jamgmilk.obsigit.domain.model.GitFileStatus
+import jamgmilk.obsigit.domain.repository.GitRepository
 import jamgmilk.obsigit.domain.usecase.git.CommitChangesUseCase
 import jamgmilk.obsigit.domain.usecase.git.GetBranchesUseCase
 import jamgmilk.obsigit.domain.usecase.git.GetWorkspaceStatusUseCase
@@ -21,8 +21,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -51,7 +49,8 @@ class StatusViewModel(
     private val unstageFileUseCase: UnstageFileUseCase,
     private val commitChangesUseCase: CommitChangesUseCase,
     private val pullUseCase: PullUseCase,
-    private val pushUseCase: PushUseCase
+    private val pushUseCase: PushUseCase,
+    private val gitRepository: GitRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(StatusUiState())
@@ -94,23 +93,23 @@ class StatusViewModel(
         }
 
         viewModelScope.launch(Dispatchers.IO) {
-            try {
-                val dir = File(path)
-                val status = JGitDataSource.withGitLock { JGitDataSource.readRepoStatus(dir) }
-                _uiState.update { 
-                    it.copy(
-                        isGitRepo = status.isGitRepo,
-                        statusMessage = status.message
-                    )
+            gitRepository.getStatus(path)
+                .onSuccess { status ->
+                    _uiState.update { 
+                        it.copy(
+                            isGitRepo = status.isGitRepo,
+                            statusMessage = status.message
+                        )
+                    }
                 }
-            } catch (e: Exception) {
-                _uiState.update { 
-                    it.copy(
-                        isGitRepo = false,
-                        statusMessage = "Path: ${RepoPathUtils.shortDisplayPath(path)}\nError: ${e.message}"
-                    )
+                .onFailure { e ->
+                    _uiState.update { 
+                        it.copy(
+                            isGitRepo = false,
+                            statusMessage = "Path: ${RepoPathUtils.shortDisplayPath(path)}\nError: ${e.message}"
+                        )
+                    }
                 }
-            }
         }
     }
 
@@ -209,17 +208,15 @@ class StatusViewModel(
 
     fun discardChanges(filePath: String) {
         val path = currentRepoPath ?: return
-        val dir = File(path)
 
         viewModelScope.launch(Dispatchers.IO) {
-            try {
-                JGitDataSource.withGitLock {
-                    JGitDataSource.discardChanges(dir, filePath)
+            gitRepository.discardChanges(path, filePath)
+                .onSuccess {
+                    refreshWorkspace()
                 }
-                withContext(Dispatchers.Main) { refreshWorkspace() }
-            } catch (e: Exception) {
-                appendTerminalLog("git checkout -- $filePath", "Error: ${e.message}")
-            }
+                .onFailure { e ->
+                    appendTerminalLog("git checkout -- $filePath", "Error: ${e.message}")
+                }
         }
     }
 
@@ -280,16 +277,16 @@ class StatusViewModel(
 
     fun initRepo() {
         val path = currentRepoPath ?: return
-        val dir = File(path)
 
         viewModelScope.launch(Dispatchers.IO) {
-            try {
-                val result = JGitDataSource.withGitLock { JGitDataSource.initRepo(dir) }
-                appendTerminalLog("git init", result)
-                withContext(Dispatchers.Main) { checkRepoStatus() }
-            } catch (e: Exception) {
-                appendTerminalLog("git init", "Error: ${e.message}")
-            }
+            gitRepository.initRepo(path)
+                .onSuccess { result ->
+                    appendTerminalLog("git init", result)
+                    checkRepoStatus()
+                }
+                .onFailure { e ->
+                    appendTerminalLog("git init", "Error: ${e.message}")
+                }
         }
     }
 

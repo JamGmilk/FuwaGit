@@ -1,20 +1,13 @@
 package jamgmilk.obsigit.domain.usecase.git
 
-import jamgmilk.obsigit.data.source.JGitDataSource
 import jamgmilk.obsigit.domain.model.GitBranch
-import java.io.File
+import jamgmilk.obsigit.domain.repository.GitRepository
 
-class GetBranchesUseCase {
+class GetBranchesUseCase(
+    private val gitRepository: GitRepository
+) {
     
     suspend operator fun invoke(repoPath: String): Result<List<GitBranch>> {
-        return try {
-            val dir = File(repoPath)
-            val branches = JGitDataSource.withGitLock { 
-                JGitDataSource.getBranches(dir) 
-            }
-            Result.success(branches)
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
+        return gitRepository.getBranches(repoPath)
     }
 }

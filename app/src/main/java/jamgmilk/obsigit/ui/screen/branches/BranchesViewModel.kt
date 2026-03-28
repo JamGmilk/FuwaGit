@@ -2,15 +2,15 @@ package jamgmilk.obsigit.ui.screen.branches
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import jamgmilk.obsigit.data.source.JGitDataSource
 import jamgmilk.obsigit.domain.model.GitBranch
+import jamgmilk.obsigit.domain.repository.GitRepository
+import jamgmilk.obsigit.domain.usecase.git.GetBranchesUseCase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import java.io.File
 
 data class BranchesUiState(
     val isLoading: Boolean = false,
@@ -24,7 +24,10 @@ data class BranchesUiState(
     val selectedBranch: GitBranch? = null
 )
 
-class BranchesViewModel : ViewModel() {
+class BranchesViewModel(
+    private val getBranchesUseCase: GetBranchesUseCase,
+    private val gitRepository: GitRepository
+) : ViewModel() {
 
     private val _uiState = MutableStateFlow(BranchesUiState())
     val uiState: StateFlow<BranchesUiState> = _uiState.asStateFlow()
@@ -57,110 +60,101 @@ class BranchesViewModel : ViewModel() {
 
         viewModelScope.launch(Dispatchers.IO) {
             _uiState.update { it.copy(isLoading = true) }
-            try {
-                val dir = File(path)
-                val branches = JGitDataSource.withGitLock { JGitDataSource.getBranches(dir) }
-                val local = branches.filter { !it.isRemote }
-                val remote = branches.filter { it.isRemote }
-                val current = branches.find { it.isCurrent }
+            getBranchesUseCase(path)
+                .onSuccess { branches ->
+                    val local = branches.filter { !it.isRemote }
+                    val remote = branches.filter { it.isRemote }
+                    val current = branches.find { it.isCurrent }
 
-                _uiState.update {
-                    it.copy(
-                        branches = branches,
-                        localBranches = local,
-                        remoteBranches = remote,
-                        currentBranch = current,
-                        isLoading = false
-                    )
+                    _uiState.update {
+                        it.copy(
+                            branches = branches,
+                            localBranches = local,
+                            remoteBranches = remote,
+                            currentBranch = current,
+                            isLoading = false,
+                            error = null
+                        )
+                    }
                 }
-            } catch (e: Exception) {
-                _uiState.update {
-                    it.copy(
-                        error = e.message,
-                        isLoading = false
-                    )
+                .onFailure { e ->
+                    _uiState.update {
+                        it.copy(
+                            error = e.message,
+                            isLoading = false
+                        )
+                    }
                 }
-            }
         }
     }
 
     fun checkoutBranch(name: String) {
         val path = currentRepoPath ?: return
-        val dir = File(path)
 
         viewModelScope.launch(Dispatchers.IO) {
-            try {
-                JGitDataSource.withGitLock {
-                    JGitDataSource.checkoutBranch(dir, name)
+            gitRepository.checkoutBranch(path, name)
+                .onSuccess {
                     loadBranches()
                 }
-            } catch (e: Exception) {
-                _uiState.update { it.copy(error = e.message) }
-            }
+                .onFailure { e ->
+                    _uiState.update { it.copy(error = e.message) }
+                }
         }
     }
 
     fun createBranch(name: String) {
         val path = currentRepoPath ?: return
-        val dir = File(path)
 
         viewModelScope.launch(Dispatchers.IO) {
-            try {
-                JGitDataSource.withGitLock {
-                    JGitDataSource.createBranch(dir, name)
+            gitRepository.checkoutBranch(path, name)
+                .onSuccess {
                     loadBranches()
                 }
-            } catch (e: Exception) {
-                _uiState.update { it.copy(error = e.message) }
-            }
+                .onFailure { e ->
+                    _uiState.update { it.copy(error = e.message) }
+                }
         }
     }
 
     fun deleteBranch(name: String, force: Boolean = false) {
         val path = currentRepoPath ?: return
-        val dir = File(path)
 
         viewModelScope.launch(Dispatchers.IO) {
-            try {
-                JGitDataSource.withGitLock {
-                    JGitDataSource.deleteBranch(dir, name, force)
+            gitRepository.deleteBranch(path, name, force)
+                .onSuccess {
                     loadBranches()
                 }
-            } catch (e: Exception) {
-                _uiState.update { it.copy(error = e.message) }
-            }
+                .onFailure { e ->
+                    _uiState.update { it.copy(error = e.message) }
+                }
         }
     }
 
     fun mergeBranch(name: String) {
         val path = currentRepoPath ?: return
-        val dir = File(path)
 
         viewModelScope.launch(Dispatchers.IO) {
-            try {
-                JGitDataSource.withGitLock {
-                    JGitDataSource.mergeBranch(dir, name)
+            gitRepository.mergeBranch(path, name)
+                .onSuccess {
                     loadBranches()
                 }
-            } catch (e: Exception) {
-                _uiState.update { it.copy(error = e.message) }
-            }
+                .onFailure { e ->
+                    _uiState.update { it.copy(error = e.message) }
+                }
         }
     }
 
     fun rebaseBranch(name: String) {
         val path = currentRepoPath ?: return
-        val dir = File(path)
 
         viewModelScope.launch(Dispatchers.IO) {
-            try {
-                JGitDataSource.withGitLock {
-                    JGitDataSource.rebaseBranch(dir, name)
+            gitRepository.rebaseBranch(path, name)
+                .onSuccess {
                     loadBranches()
                 }
-            } catch (e: Exception) {
-                _uiState.update { it.copy(error = e.message) }
-            }
+                .onFailure { e ->
+                    _uiState.update { it.copy(error = e.message) }
+                }
         }
     }
 
