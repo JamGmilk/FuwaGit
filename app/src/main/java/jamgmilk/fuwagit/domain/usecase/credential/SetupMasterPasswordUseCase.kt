@@ -1,0 +1,22 @@
+package jamgmilk.fuwagit.domain.usecase.credential
+
+import jamgmilk.fuwagit.domain.model.AppException
+import jamgmilk.fuwagit.domain.model.AppResult
+import jamgmilk.fuwagit.domain.repository.CredentialRepository
+
+class SetupMasterPasswordUseCase(
+    private val repository: CredentialRepository
+) {
+    suspend operator fun invoke(password: String, confirmPassword: String, hint: String?): AppResult<Unit> {
+        if (password.isBlank()) {
+            return AppResult.Error(AppException.Unknown("Password cannot be empty"))
+        }
+        if (password != confirmPassword) {
+            return AppResult.Error(AppException.PasswordMismatch())
+        }
+        if (password.length < 6) {
+            return AppResult.Error(AppException.Unknown("Password must be at least 6 characters"))
+        }
+        return repository.setupMasterPassword(password, hint)
+    }
+}
