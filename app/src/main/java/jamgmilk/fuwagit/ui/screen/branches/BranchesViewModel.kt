@@ -4,7 +4,12 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import jamgmilk.fuwagit.domain.model.GitBranch
 import jamgmilk.fuwagit.domain.repository.GitRepository
+import jamgmilk.fuwagit.domain.usecase.git.CheckoutBranchUseCase
+import jamgmilk.fuwagit.domain.usecase.git.CreateBranchUseCase
+import jamgmilk.fuwagit.domain.usecase.git.DeleteBranchUseCase
 import jamgmilk.fuwagit.domain.usecase.git.GetBranchesUseCase
+import jamgmilk.fuwagit.domain.usecase.git.MergeBranchUseCase
+import jamgmilk.fuwagit.domain.usecase.git.RebaseBranchUseCase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -26,6 +31,11 @@ data class BranchesUiState(
 
 class BranchesViewModel(
     private val getBranchesUseCase: GetBranchesUseCase,
+    private val checkoutBranchUseCase: CheckoutBranchUseCase,
+    private val createBranchUseCase: CreateBranchUseCase,
+    private val mergeBranchUseCase: MergeBranchUseCase,
+    private val rebaseBranchUseCase: RebaseBranchUseCase,
+    private val deleteBranchUseCase: DeleteBranchUseCase,
     private val gitRepository: GitRepository
 ) : ViewModel() {
 
@@ -91,8 +101,8 @@ class BranchesViewModel(
     fun checkoutBranch(name: String) {
         val path = currentRepoPath ?: return
 
-        viewModelScope.launch(Dispatchers.IO) {
-            gitRepository.checkoutBranch(path, name)
+        viewModelScope.launch {
+            checkoutBranchUseCase(path, name)
                 .onSuccess {
                     loadBranches()
                 }
@@ -105,8 +115,8 @@ class BranchesViewModel(
     fun createBranch(name: String) {
         val path = currentRepoPath ?: return
 
-        viewModelScope.launch(Dispatchers.IO) {
-            gitRepository.createBranch(path, name)
+        viewModelScope.launch {
+            createBranchUseCase(path, name)
                 .onSuccess {
                     loadBranches()
                 }
@@ -119,8 +129,8 @@ class BranchesViewModel(
     fun deleteBranch(name: String, force: Boolean = false) {
         val path = currentRepoPath ?: return
 
-        viewModelScope.launch(Dispatchers.IO) {
-            gitRepository.deleteBranch(path, name, force)
+        viewModelScope.launch {
+            deleteBranchUseCase(path, name, force)
                 .onSuccess {
                     loadBranches()
                 }
@@ -133,8 +143,8 @@ class BranchesViewModel(
     fun mergeBranch(name: String) {
         val path = currentRepoPath ?: return
 
-        viewModelScope.launch(Dispatchers.IO) {
-            gitRepository.mergeBranch(path, name)
+        viewModelScope.launch {
+            mergeBranchUseCase(path, name)
                 .onSuccess {
                     loadBranches()
                 }
@@ -147,8 +157,8 @@ class BranchesViewModel(
     fun rebaseBranch(name: String) {
         val path = currentRepoPath ?: return
 
-        viewModelScope.launch(Dispatchers.IO) {
-            gitRepository.rebaseBranch(path, name)
+        viewModelScope.launch {
+            rebaseBranchUseCase(path, name)
                 .onSuccess {
                     loadBranches()
                 }

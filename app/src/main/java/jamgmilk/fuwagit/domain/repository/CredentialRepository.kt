@@ -27,6 +27,8 @@ interface CredentialRepository {
 
     suspend fun addHttpsCredential(host: String, username: String, password: String): AppResult<String>
 
+    suspend fun updateHttpsCredential(uuid: String, host: String?, username: String?, password: String?): AppResult<Unit>
+
     suspend fun deleteHttpsCredential(uuid: String): AppResult<Unit>
 
     suspend fun getHttpsPassword(uuid: String): AppResult<String>

@@ -2,10 +2,10 @@ package jamgmilk.fuwagit.domain.usecase.git
 
 import jamgmilk.fuwagit.domain.repository.GitRepository
 
-class CreateBranchUseCase(
+class RebaseBranchUseCase(
     private val gitRepository: GitRepository
 ) {
     suspend operator fun invoke(repoPath: String, branchName: String): Result<Unit> {
-        return gitRepository.createBranch(repoPath, branchName)
+        return gitRepository.rebaseBranch(repoPath, branchName)
     }
 }

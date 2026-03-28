@@ -7,8 +7,10 @@ import jamgmilk.fuwagit.domain.model.GitBranch
 import jamgmilk.fuwagit.domain.model.GitFileStatus
 import jamgmilk.fuwagit.domain.repository.GitRepository
 import jamgmilk.fuwagit.domain.usecase.git.CommitChangesUseCase
+import jamgmilk.fuwagit.domain.usecase.git.DiscardChangesUseCase
 import jamgmilk.fuwagit.domain.usecase.git.GetBranchesUseCase
 import jamgmilk.fuwagit.domain.usecase.git.GetWorkspaceStatusUseCase
+import jamgmilk.fuwagit.domain.usecase.git.InitRepoUseCase
 import jamgmilk.fuwagit.domain.usecase.git.PullUseCase
 import jamgmilk.fuwagit.domain.usecase.git.PushUseCase
 import jamgmilk.fuwagit.domain.usecase.git.StageAllUseCase
@@ -50,6 +52,8 @@ class StatusViewModel(
     private val commitChangesUseCase: CommitChangesUseCase,
     private val pullUseCase: PullUseCase,
     private val pushUseCase: PushUseCase,
+    private val initRepoUseCase: InitRepoUseCase,
+    private val discardChangesUseCase: DiscardChangesUseCase,
     private val gitRepository: GitRepository
 ) : ViewModel() {
 
@@ -209,14 +213,13 @@ class StatusViewModel(
     fun discardChanges(filePath: String) {
         val path = currentRepoPath ?: return
 
-        viewModelScope.launch(Dispatchers.IO) {
-            gitRepository.discardChanges(path, filePath)
-                .onSuccess {
-                    refreshWorkspace()
-                }
-                .onFailure { e ->
+        viewModelScope.launch {
+            discardChangesUseCase(path, filePath).fold(
+                onSuccess = { refreshWorkspace() },
+                onFailure = { e ->
                     appendTerminalLog("git checkout -- $filePath", "Error: ${e.message}")
                 }
+            )
         }
     }
 
@@ -278,15 +281,16 @@ class StatusViewModel(
     fun initRepo() {
         val path = currentRepoPath ?: return
 
-        viewModelScope.launch(Dispatchers.IO) {
-            gitRepository.initRepo(path)
-                .onSuccess { result ->
+        viewModelScope.launch {
+            initRepoUseCase(path).fold(
+                onSuccess = { result ->
                     appendTerminalLog("git init", result)
                     checkRepoStatus()
-                }
-                .onFailure { e ->
+                },
+                onFailure = { e ->
                     appendTerminalLog("git init", "Error: ${e.message}")
                 }
+            )
         }
     }
 
