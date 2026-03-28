@@ -23,5 +23,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "ObsiGit"
+rootProject.name = "FuwaGit"
 include(":app")
