@@ -27,8 +27,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
@@ -92,8 +94,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.fragment.app.FragmentActivity
-import jamgmilk.obsigit.credential.store.PublicHttpsCredential
-import jamgmilk.obsigit.credential.store.PublicSshKey
+import jamgmilk.obsigit.credential.store.HttpsCredential
+import jamgmilk.obsigit.credential.store.SshKey
 import jamgmilk.obsigit.ui.components.SubSettingsTemplate
 import jamgmilk.obsigit.ui.theme.ObsiGitThemeExtras
 import jamgmilk.obsigit.ui.theme.Sakura60
@@ -108,11 +110,12 @@ sealed class CredentialsTab {
 
 private sealed class CredentialDialogState {
     data object None : CredentialDialogState()
+    data object SetupFirst : CredentialDialogState()
     data object AddHttps : CredentialDialogState()
     data object GenerateSsh : CredentialDialogState()
     data object ImportSsh : CredentialDialogState()
-    data class HttpsInfo(val credential: PublicHttpsCredential) : CredentialDialogState()
-    data class SshInfo(val key: PublicSshKey) : CredentialDialogState()
+    data class HttpsInfo(val credential: HttpsCredential) : CredentialDialogState()
+    data class SshInfo(val key: SshKey) : CredentialDialogState()
 }
 
 @Composable
@@ -136,7 +139,7 @@ fun CredentialsScreen(
     var showDeleteConfirm by remember { mutableStateOf<Pair<String, Boolean>?>(null) }
 
     LaunchedEffect(Unit) {
-        viewModel.initialize(context)
+        viewModel.initialize()
     }
 
     SubSettingsTemplate(
@@ -149,66 +152,78 @@ fun CredentialsScreen(
             modifier = Modifier.fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            if (!uiState.isUnlocked) {
-                SecurityStatusCard(
-                    isUnlocked = uiState.isUnlocked,
-                    isMasterPasswordSet = uiState.isMasterPasswordSet,
-                    isBiometricEnabled = uiState.isBiometricEnabled,
-                    httpsCount = uiState.httpsCredentials.size,
-                    sshCount = uiState.sshKeys.size,
-                    onUnlockPassword = { viewModel.showUnlockDialog() }
-                )
-            }
+            CredentialsTabSelector(
+                selectedTab = selectedTab,
+                onTabSelected = { selectedTab = it },
+                httpsCount = uiState.httpsCredentials.size,
+                sshCount = uiState.sshKeys.size
+            )
 
-            if (uiState.isUnlocked) {
-                CredentialsTabSelector(
-                    selectedTab = selectedTab,
-                    onTabSelected = { selectedTab = it },
-                    httpsCount = uiState.httpsCredentials.size,
-                    sshCount = uiState.sshKeys.size
-                )
-
-                AnimatedContent(
-                    targetState = selectedTab,
-                    transitionSpec = {
-                        fadeIn(animationSpec = tween(260)) togetherWith fadeOut(animationSpec = tween(200))
-                    },
-                    label = "credentials_tab_transition"
-                ) { tab ->
-                    when (tab) {
-                        is CredentialsTab.Https -> {
-                            HttpsCredentialsSection(
-                                credentials = uiState.httpsCredentials,
-                                onAdd = { dialogState = CredentialDialogState.AddHttps },
-                                onInfo = { dialogState = CredentialDialogState.HttpsInfo(it) }
-                            )
-                        }
-                        is CredentialsTab.Ssh -> {
-                            SshKeysSection(
-                                keys = uiState.sshKeys,
-                                onGenerate = { dialogState = CredentialDialogState.GenerateSsh },
-                                onImport = { dialogState = CredentialDialogState.ImportSsh },
-                                onInfo = { dialogState = CredentialDialogState.SshInfo(it) }
-                            )
-                        }
+            AnimatedContent(
+                targetState = selectedTab,
+                transitionSpec = {
+                    fadeIn(animationSpec = tween(260)) togetherWith fadeOut(animationSpec = tween(200))
+                },
+                label = "credentials_tab_transition"
+            ) { tab ->
+                when (tab) {
+                    is CredentialsTab.Https -> {
+                        HttpsCredentialsSection(
+                            credentials = uiState.httpsCredentials,
+                            onAdd = {
+                                when {
+                                    !uiState.isMasterPasswordSet -> {
+                                        dialogState = CredentialDialogState.SetupFirst
+                                    }
+                                    !uiState.isDecryptionUnlocked -> {
+                                        viewModel.showUnlockDialog()
+                                    }
+                                    else -> {
+                                        dialogState = CredentialDialogState.AddHttps
+                                    }
+                                }
+                            },
+                            onInfo = { dialogState = CredentialDialogState.HttpsInfo(it) }
+                        )
+                    }
+                    is CredentialsTab.Ssh -> {
+                        SshKeysSection(
+                            keys = uiState.sshKeys,
+                            onGenerate = {
+                                when {
+                                    !uiState.isMasterPasswordSet -> {
+                                        dialogState = CredentialDialogState.SetupFirst
+                                    }
+                                    !uiState.isDecryptionUnlocked -> {
+                                        viewModel.showUnlockDialog()
+                                    }
+                                    else -> {
+                                        dialogState = CredentialDialogState.GenerateSsh
+                                    }
+                                }
+                            },
+                            onImport = {
+                                when {
+                                    !uiState.isMasterPasswordSet -> {
+                                        dialogState = CredentialDialogState.SetupFirst
+                                    }
+                                    !uiState.isDecryptionUnlocked -> {
+                                        viewModel.showUnlockDialog()
+                                    }
+                                    else -> {
+                                        dialogState = CredentialDialogState.ImportSsh
+                                    }
+                                }
+                            },
+                            onInfo = { dialogState = CredentialDialogState.SshInfo(it) }
+                        )
                     }
                 }
             }
         }
     }
 
-    if (uiState.showSetupDialog) {
-        SetupPasswordDialog(
-            onDismiss = { },
-            onConfirm = { password, hint ->
-                viewModel.setupMasterPassword(password, password, hint)
-            },
-            error = uiState.error,
-            isLoading = uiState.isLoading
-        )
-    }
-
-    if (uiState.showUnlockDialog && !uiState.showSetupDialog) {
+    if (uiState.showUnlockDialog) {
         UnlockDialog(
             onDismiss = { viewModel.hideUnlockDialog() },
             onUnlock = { password ->
@@ -224,6 +239,17 @@ fun CredentialsScreen(
     }
 
     when (val state = dialogState) {
+        is CredentialDialogState.SetupFirst -> {
+            SetupPasswordDialog(
+                onDismiss = { dialogState = CredentialDialogState.None },
+                onConfirm = { password, hint ->
+                    viewModel.setupMasterPassword(password, password, hint)
+                    dialogState = CredentialDialogState.None
+                },
+                error = uiState.error,
+                isLoading = uiState.isLoading
+            )
+        }
         is CredentialDialogState.AddHttps -> {
             AddHttpsCredentialDialog(
                 onDismiss = { dialogState = CredentialDialogState.None },
@@ -272,6 +298,7 @@ fun CredentialsScreen(
             HttpsCredentialInfoDialog(
                 credential = state.credential,
                 viewModel = viewModel,
+                isDecryptionUnlocked = uiState.isDecryptionUnlocked,
                 snackbarHostState = snackbarHostState,
                 onDismiss = { dialogState = CredentialDialogState.None },
                 onDelete = {
@@ -284,6 +311,7 @@ fun CredentialsScreen(
             SshKeyInfoDialog(
                 key = state.key,
                 viewModel = viewModel,
+                isDecryptionUnlocked = uiState.isDecryptionUnlocked,
                 snackbarHostState = snackbarHostState,
                 onDismiss = { dialogState = CredentialDialogState.None },
                 onDelete = {
@@ -528,9 +556,9 @@ private fun TabChip(
 
 @Composable
 private fun HttpsCredentialsSection(
-    credentials: List<PublicHttpsCredential>,
+    credentials: List<HttpsCredential>,
     onAdd: () -> Unit,
-    onInfo: (PublicHttpsCredential) -> Unit
+    onInfo: (HttpsCredential) -> Unit
 ) {
     val colors = MaterialTheme.colorScheme
     val uiColors = ObsiGitThemeExtras.colors
@@ -622,7 +650,7 @@ private fun HttpsCredentialsSection(
 
 @Composable
 private fun HttpsCredentialItem(
-    credential: PublicHttpsCredential,
+    credential: HttpsCredential,
     onInfo: () -> Unit
 ) {
     val colors = MaterialTheme.colorScheme
@@ -688,10 +716,10 @@ private fun HttpsCredentialItem(
 
 @Composable
 private fun SshKeysSection(
-    keys: List<PublicSshKey>,
+    keys: List<SshKey>,
     onGenerate: () -> Unit,
     onImport: () -> Unit,
-    onInfo: (PublicSshKey) -> Unit
+    onInfo: (SshKey) -> Unit
 ) {
     val colors = MaterialTheme.colorScheme
     val uiColors = ObsiGitThemeExtras.colors
@@ -798,7 +826,7 @@ private fun SshKeysSection(
 
 @Composable
 private fun SshKeyItem(
-    key: PublicSshKey,
+    key: SshKey,
     onInfo: () -> Unit
 ) {
     val colors = MaterialTheme.colorScheme
@@ -932,8 +960,9 @@ private fun EmptyStateContent(
 
 @Composable
 private fun HttpsCredentialInfoDialog(
-    credential: PublicHttpsCredential,
+    credential: HttpsCredential,
     viewModel: CredentialsStoreViewModel,
+    isDecryptionUnlocked: Boolean,
     snackbarHostState: SnackbarHostState,
     onDismiss: () -> Unit,
     onDelete: () -> Unit
@@ -947,8 +976,10 @@ private fun HttpsCredentialInfoDialog(
     var showPassword by remember { mutableStateOf(false) }
     var showDeleteConfirm by remember { mutableStateOf(false) }
 
-    LaunchedEffect(credential.uuid) {
-        passwordValue = viewModel.getHttpsPassword(credential.uuid)
+    LaunchedEffect(credential.uuid, isDecryptionUnlocked) {
+        if (isDecryptionUnlocked) {
+            passwordValue = viewModel.getHttpsPassword(credential.uuid)
+        }
     }
 
     if (showDeleteConfirm) {
@@ -1005,19 +1036,45 @@ private fun HttpsCredentialInfoDialog(
                     }
                 )
                 HorizontalDivider(color = colors.outline.copy(alpha = 0.2f))
-                SensitiveInfoRow(
-                    label = "Password",
-                    value = passwordValue ?: "",
-                    isSensitive = true,
-                    isRevealed = showPassword,
-                    onToggleReveal = { showPassword = !showPassword },
-                    onCopy = {
-                        clipboardManager.setText(AnnotatedString(passwordValue ?: ""))
-                        scope.launch {
-                            snackbarHostState.showSnackbar(message = "Password copied", duration = SnackbarDuration.Short)
+                if (!isDecryptionUnlocked && passwordValue == null) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Password",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = colors.onSurfaceVariant,
+                            modifier = Modifier.width(80.dp)
+                        )
+                        FilledTonalButton(
+                            onClick = { viewModel.showUnlockDialog() },
+                            colors = ButtonDefaults.filledTonalButtonColors(
+                                containerColor = Sakura80.copy(alpha = 0.15f),
+                                contentColor = Sakura80
+                            )
+                        ) {
+                            Icon(Icons.Default.Lock, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(Modifier.width(4.dp))
+                            Text("Unlock to Reveal")
                         }
                     }
-                )
+                } else {
+                    SensitiveInfoRow(
+                        label = "Password",
+                        value = passwordValue ?: "",
+                        isSensitive = true,
+                        isRevealed = showPassword,
+                        onToggleReveal = { showPassword = !showPassword },
+                        onCopy = {
+                            clipboardManager.setText(AnnotatedString(passwordValue ?: ""))
+                            scope.launch {
+                                snackbarHostState.showSnackbar(message = "Password copied", duration = SnackbarDuration.Short)
+                            }
+                        }
+                    )
+                }
                 HorizontalDivider(color = colors.outline.copy(alpha = 0.2f))
                 InfoRow(label = "Created", value = formatTimestamp(credential.created_at))
                 HorizontalDivider(color = colors.outline.copy(alpha = 0.2f))
@@ -1047,8 +1104,9 @@ private fun HttpsCredentialInfoDialog(
 
 @Composable
 private fun SshKeyInfoDialog(
-    key: PublicSshKey,
+    key: SshKey,
     viewModel: CredentialsStoreViewModel,
+    isDecryptionUnlocked: Boolean,
     snackbarHostState: SnackbarHostState,
     onDismiss: () -> Unit,
     onDelete: () -> Unit
@@ -1060,9 +1118,13 @@ private fun SshKeyInfoDialog(
     var privateKeyValue by remember { mutableStateOf<String?>(null) }
     var showPrivateKey by remember { mutableStateOf(false) }
     var showDeleteConfirm by remember { mutableStateOf(false) }
+    var needsUnlock by remember { mutableStateOf(false) }
 
-    LaunchedEffect(key.uuid) {
-        privateKeyValue = viewModel.getSshPrivateKey(key.uuid)
+    LaunchedEffect(key.uuid, isDecryptionUnlocked) {
+        if (isDecryptionUnlocked) {
+            privateKeyValue = viewModel.getSshPrivateKey(key.uuid)
+            needsUnlock = false
+        }
     }
 
     if (showDeleteConfirm) {
@@ -1146,7 +1208,32 @@ private fun SshKeyInfoDialog(
                     }
                 )
                 HorizontalDivider(color = colors.outline.copy(alpha = 0.2f))
-                if (privateKeyValue != null) {
+                if (!isDecryptionUnlocked && privateKeyValue == null) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Private Key",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = colors.onSurfaceVariant,
+                            modifier = Modifier.width(80.dp)
+                        )
+                        FilledTonalButton(
+                            onClick = { viewModel.showUnlockDialog() },
+                            colors = ButtonDefaults.filledTonalButtonColors(
+                                containerColor = Sakura90.copy(alpha = 0.15f),
+                                contentColor = Sakura90
+                            )
+                        ) {
+                            Icon(Icons.Default.Lock, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(Modifier.width(4.dp))
+                            Text("Unlock to Reveal")
+                        }
+                    }
+                    HorizontalDivider(color = colors.outline.copy(alpha = 0.2f))
+                } else if (privateKeyValue != null) {
                     SensitiveInfoRow(
                         label = "Private Key",
                         value = privateKeyValue ?: "",
@@ -1165,8 +1252,8 @@ private fun SshKeyInfoDialog(
                 }
                 InfoRow(
                     label = "Passphrase",
-                    value = if (key.has_passphrase) "Protected" else "None",
-                    valueColor = if (key.has_passphrase) Color(0xFFFF9800) else colors.onSurfaceVariant
+                    value = if (key.passphrase != null) "Protected" else "None",
+                    valueColor = if (key.passphrase != null) Color(0xFFFF9800) else colors.onSurfaceVariant
                 )
                 HorizontalDivider(color = colors.outline.copy(alpha = 0.2f))
                 InfoRow(label = "Created", value = formatTimestamp(key.created_at))
@@ -1820,19 +1907,29 @@ private fun generateRsaKeyPair(): Pair<String, String> {
 private fun encodeRsaPublicKey(publicKey: java.security.interfaces.RSAPublicKey): String {
     val byteStream = java.io.ByteArrayOutputStream()
     val dos = java.io.DataOutputStream(byteStream)
-    
+
     dos.writeInt(7)
     dos.write("ssh-rsa".toByteArray())
-    
+
     val exponent = publicKey.publicExponent
     val modulus = publicKey.modulus
-    
-    dos.writeInt(exponent.toByteArray().size)
-    dos.write(exponent.toByteArray())
-    
-    dos.writeInt(modulus.toByteArray().size)
-    dos.write(modulus.toByteArray())
-    
+
+    var exponentBytes = exponent.toByteArray()
+    if (exponentBytes.isNotEmpty() && exponentBytes[0] == 0x00.toByte()) {
+        exponentBytes = exponentBytes.copyOfRange(1, exponentBytes.size)
+    }
+
+    var modulusBytes = modulus.toByteArray()
+    if (modulusBytes.isNotEmpty() && modulusBytes[0] == 0x00.toByte()) {
+        modulusBytes = modulusBytes.copyOfRange(1, modulusBytes.size)
+    }
+
+    dos.writeInt(exponentBytes.size)
+    dos.write(exponentBytes)
+
+    dos.writeInt(modulusBytes.size)
+    dos.write(modulusBytes)
+
     return "ssh-rsa ${java.util.Base64.getEncoder().encodeToString(byteStream.toByteArray())}"
 }
 

@@ -64,6 +64,13 @@ class AppViewModel : ViewModel() {
     private val _currentScreen: MutableStateFlow<Screen> = MutableStateFlow(Screen.Status)
     val currentScreenFlow: StateFlow<Screen> = _currentScreen.asStateFlow()
 
+    private val _swipeEnabled = MutableStateFlow(true)
+    val swipeEnabledFlow: StateFlow<Boolean> = _swipeEnabled.asStateFlow()
+
+    var swipeEnabled: Boolean
+        get() = _swipeEnabled.value
+        set(value) { _swipeEnabled.value = value }
+
     var currentScreen: Screen
         get() = _currentScreen.value
         set(value) { _currentScreen.value = value }
@@ -499,6 +506,28 @@ class AppViewModel : ViewModel() {
                 }
             } catch (e: Exception) {
                 appendTerminalLog("git branch -d $name", "Error: ${e.message}")
+            }
+        }
+    }
+
+    fun getRepoInfo(localPath: String): Map<String, String> {
+        return JGitDataSource.getRepoInfo(File(localPath))
+    }
+
+    fun getRemoteUrl(localPath: String, name: String = "origin"): String? {
+        return JGitDataSource.getRemoteUrl(File(localPath), name)
+    }
+
+    fun configureRemote(localPath: String, name: String, url: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val result = JGitDataSource.withGitLock {
+                    JGitDataSource.configureRemote(File(localPath), name, url)
+                }
+                appendTerminalLog("git remote add $name $url", result)
+                checkRepoStatus()
+            } catch (e: Exception) {
+                appendTerminalLog("git remote add $name $url", "Error: ${e.message}")
             }
         }
     }

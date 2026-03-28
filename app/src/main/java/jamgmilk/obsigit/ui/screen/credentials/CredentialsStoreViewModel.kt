@@ -1,227 +1,177 @@
 package jamgmilk.obsigit.ui.screen.credentials
 
-import android.content.Context
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import jamgmilk.obsigit.credential.store.MasterKeyManager
-import jamgmilk.obsigit.credential.store.PublicHttpsCredential
-import jamgmilk.obsigit.credential.store.PublicSshKey
-import jamgmilk.obsigit.credential.store.SecureCredentialStore
+import jamgmilk.obsigit.credential.store.HttpsCredential
+import jamgmilk.obsigit.credential.store.SshKey
+import jamgmilk.obsigit.domain.model.AppException
+import jamgmilk.obsigit.domain.repository.CredentialRepository
+import jamgmilk.obsigit.domain.usecase.credential.AddHttpsCredentialUseCase
+import jamgmilk.obsigit.domain.usecase.credential.AddSshKeyUseCase
+import jamgmilk.obsigit.domain.usecase.credential.DeleteHttpsCredentialUseCase
+import jamgmilk.obsigit.domain.usecase.credential.DeleteSshKeyUseCase
+import jamgmilk.obsigit.domain.usecase.credential.GetHttpsCredentialsUseCase
+import jamgmilk.obsigit.domain.usecase.credential.GetHttpsPasswordUseCase
+import jamgmilk.obsigit.domain.usecase.credential.GetSshKeysUseCase
+import jamgmilk.obsigit.domain.usecase.credential.GetSshPrivateKeyUseCase
+import jamgmilk.obsigit.domain.usecase.credential.SetupMasterPasswordUseCase
+import jamgmilk.obsigit.domain.usecase.credential.UnlockWithPasswordUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import javax.crypto.SecretKey
 
 data class CredentialsStoreUiState(
     val isMasterPasswordSet: Boolean = false,
     val isBiometricEnabled: Boolean = false,
-    val isUnlocked: Boolean = false,
-    val showSetupDialog: Boolean = false,
+    val isDecryptionUnlocked: Boolean = false,
     val showUnlockDialog: Boolean = false,
     val passwordHint: String? = null,
-    val httpsCredentials: List<PublicHttpsCredential> = emptyList(),
-    val sshKeys: List<PublicSshKey> = emptyList(),
+    val httpsCredentials: List<HttpsCredential> = emptyList(),
+    val sshKeys: List<SshKey> = emptyList(),
     val isLoading: Boolean = false,
     val error: String? = null
 )
 
-class CredentialsStoreViewModel : ViewModel() {
-    
+class CredentialsStoreViewModel(
+    private val credentialRepository: CredentialRepository,
+    private val setupMasterPasswordUseCase: SetupMasterPasswordUseCase,
+    private val unlockWithPasswordUseCase: UnlockWithPasswordUseCase,
+    private val getHttpsCredentialsUseCase: GetHttpsCredentialsUseCase,
+    private val addHttpsCredentialUseCase: AddHttpsCredentialUseCase,
+    private val deleteHttpsCredentialUseCase: DeleteHttpsCredentialUseCase,
+    private val getHttpsPasswordUseCase: GetHttpsPasswordUseCase,
+    private val getSshKeysUseCase: GetSshKeysUseCase,
+    private val addSshKeyUseCase: AddSshKeyUseCase,
+    private val deleteSshKeyUseCase: DeleteSshKeyUseCase,
+    private val getSshPrivateKeyUseCase: GetSshPrivateKeyUseCase
+) : ViewModel() {
+
     private val _uiState = MutableStateFlow(CredentialsStoreUiState())
     val uiState: StateFlow<CredentialsStoreUiState> = _uiState.asStateFlow()
-    
-    private var credentialStore: SecureCredentialStore? = null
-    private var masterKeyManager: MasterKeyManager? = null
-    private var masterKey: SecretKey? = null
-    
-    fun initialize(context: Context) {
-        credentialStore = SecureCredentialStore(context)
-        masterKeyManager = MasterKeyManager(context)
-        
-        val isSet = masterKeyManager!!.isMasterPasswordSet()
-        val isBioEnabled = masterKeyManager!!.isBiometricEnabled()
-        
+
+    fun initialize() {
+        val isSet = credentialRepository.isMasterPasswordSet()
+        val isBioEnabled = credentialRepository.isBiometricEnabled()
+
         _uiState.value = _uiState.value.copy(
             isMasterPasswordSet = isSet,
             isBiometricEnabled = isBioEnabled,
-            showSetupDialog = !isSet,
-            passwordHint = masterKeyManager!!.getPasswordHint()
+            passwordHint = credentialRepository.getMasterPasswordHint()
         )
-        
-        if (isSet) {
-            val cachedKey = credentialStore!!.getCachedMasterKey()
-            if (cachedKey != null) {
-                masterKey = cachedKey
-                loadCredentials()
-            } else {
-                _uiState.value = _uiState.value.copy(showUnlockDialog = true)
-            }
-        }
+
+        loadCredentials()
     }
-    
+
     fun setupMasterPassword(password: String, confirmPassword: String, hint: String?) {
-        if (password != confirmPassword) {
-            _uiState.value = _uiState.value.copy(error = "Passwords do not match")
-            return
-        }
-        
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
-            
-            try {
-                val result = masterKeyManager!!.setupMasterPassword(password)
-                if (result.isSuccess) {
-                    val key = result.getOrThrow()
-                    if (hint != null) {
-                        masterKeyManager!!.setPasswordHint(hint)
-                    }
-                    masterKey = key
-                    credentialStore!!.cacheMasterKey(key)
-                    
+
+            setupMasterPasswordUseCase(password, confirmPassword, hint)
+                .onSuccess {
                     _uiState.value = _uiState.value.copy(
                         isMasterPasswordSet = true,
-                        isUnlocked = true,
-                        showSetupDialog = false,
+                        isDecryptionUnlocked = true,
                         isLoading = false,
                         passwordHint = hint
                     )
-                    
-                    loadCredentials()
-                } else {
+                }
+                .onError { exception ->
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
-                        error = result.exceptionOrNull()?.message ?: "Failed to setup password"
+                        error = exception.message
                     )
                 }
-            } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(
-                    isLoading = false,
-                    error = "Failed to setup password: ${e.message}"
-                )
-            }
         }
     }
-    
+
     fun showUnlockDialog() {
         _uiState.value = _uiState.value.copy(showUnlockDialog = true, error = null)
     }
-    
+
     fun hideUnlockDialog() {
         _uiState.value = _uiState.value.copy(showUnlockDialog = false, error = null)
     }
-    
+
     fun unlockWithPassword(password: String) {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
-            
-            try {
-                val result = masterKeyManager!!.unlockWithPassword(password)
-                if (result.isSuccess) {
-                    val key = result.getOrThrow()
-                    masterKey = key
-                    credentialStore!!.cacheMasterKey(key)
-                    
+
+            unlockWithPasswordUseCase(password)
+                .onSuccess {
                     _uiState.value = _uiState.value.copy(
-                        isUnlocked = true,
+                        isDecryptionUnlocked = true,
                         showUnlockDialog = false,
                         isLoading = false
                     )
-                    
-                    loadCredentials()
-                } else {
+                }
+                .onError { exception ->
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
-                        error = result.exceptionOrNull()?.message ?: "Incorrect password"
+                        error = exception.message
                     )
                 }
-            } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(
-                    isLoading = false,
-                    error = "Failed to unlock: ${e.message}"
-                )
-            }
         }
     }
-    
+
     fun unlockWithBiometric(activity: FragmentActivity) {
-        masterKeyManager?.unlockWithBiometric(
-            activity,
-            onSuccess = { key ->
-                masterKey = key
-                credentialStore!!.cacheMasterKey(key)
-                
-                _uiState.value = _uiState.value.copy(
-                    isUnlocked = true,
-                    showUnlockDialog = false
-                )
-                
-                loadCredentials()
-            },
-            onError = { error ->
-                _uiState.value = _uiState.value.copy(error = error)
-            }
+        _uiState.value = _uiState.value.copy(
+            error = "Biometric authentication not yet implemented"
         )
     }
-    
+
     private fun loadCredentials() {
         viewModelScope.launch {
-            val store = credentialStore ?: return@launch
-            val key = masterKey ?: return@launch
-            
-            val publicData = store.loadPublicData()
-            
-            _uiState.value = _uiState.value.copy(
-                httpsCredentials = publicData.https_credentials,
-                sshKeys = publicData.ssh_keys,
-                passwordHint = masterKeyManager?.getPasswordHint()
-            )
+            getHttpsCredentialsUseCase()
+                .onSuccess { credentials ->
+                    _uiState.value = _uiState.value.copy(httpsCredentials = credentials)
+                }
+
+            getSshKeysUseCase()
+                .onSuccess { keys ->
+                    _uiState.value = _uiState.value.copy(sshKeys = keys)
+                }
         }
     }
-    
+
     fun addHttpsCredential(host: String, username: String, password: String) {
         viewModelScope.launch {
-            val store = credentialStore ?: return@launch
-            val key = masterKey ?: return@launch
-            
             _uiState.value = _uiState.value.copy(isLoading = true)
-            
-            try {
-                store.addHttpsCredential(host, username, password, key)
-                loadCredentials()
-                _uiState.value = _uiState.value.copy(isLoading = false)
-            } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(
-                    isLoading = false,
-                    error = "Failed to add credential: ${e.message}"
-                )
-            }
+
+            addHttpsCredentialUseCase(host, username, password)
+                .onSuccess {
+                    loadCredentials()
+                    _uiState.value = _uiState.value.copy(isLoading = false)
+                }
+                .onError { exception ->
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        error = exception.message
+                    )
+                }
         }
     }
-    
+
     fun deleteHttpsCredential(uuid: String) {
         viewModelScope.launch {
-            val store = credentialStore ?: return@launch
-            val key = masterKey ?: return@launch
-            
-            try {
-                store.deleteHttpsCredential(uuid, key)
-                loadCredentials()
-            } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(
-                    error = "Failed to delete credential: ${e.message}"
-                )
-            }
+            deleteHttpsCredentialUseCase(uuid)
+                .onSuccess {
+                    loadCredentials()
+                }
+                .onError { exception ->
+                    _uiState.value = _uiState.value.copy(error = exception.message)
+                }
         }
     }
-    
+
     suspend fun getHttpsPassword(uuid: String): String? {
-        val store = credentialStore ?: return null
-        val key = masterKey ?: return null
-        return store.getHttpsPassword(uuid, key)
+        return when (val result = getHttpsPasswordUseCase(uuid)) {
+            is jamgmilk.obsigit.domain.model.AppResult.Success -> result.data
+            is jamgmilk.obsigit.domain.model.AppResult.Error -> null
+        }
     }
-    
+
     fun addSshKey(
         name: String,
         type: String,
@@ -232,62 +182,53 @@ class CredentialsStoreViewModel : ViewModel() {
         comment: String
     ) {
         viewModelScope.launch {
-            val store = credentialStore ?: return@launch
-            val key = masterKey ?: return@launch
-            
             _uiState.value = _uiState.value.copy(isLoading = true)
-            
-            try {
-                store.addSshKey(
-                    name = name,
-                    type = type,
-                    publicKey = publicKey,
-                    privateKey = privateKey,
-                    passphrase = passphrase,
-                    fingerprint = fingerprint,
-                    comment = comment,
-                    masterKey = key
-                )
+
+            addSshKeyUseCase(
+                name = name,
+                type = type,
+                publicKey = publicKey,
+                privateKey = privateKey,
+                passphrase = passphrase,
+                fingerprint = fingerprint,
+                comment = comment
+            ).onSuccess {
                 loadCredentials()
                 _uiState.value = _uiState.value.copy(isLoading = false)
-            } catch (e: Exception) {
+            }.onError { exception ->
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
-                    error = "Failed to add SSH key: ${e.message}"
+                    error = exception.message
                 )
             }
         }
     }
-    
+
     fun deleteSshKey(uuid: String) {
         viewModelScope.launch {
-            val store = credentialStore ?: return@launch
-            val key = masterKey ?: return@launch
-            
-            try {
-                store.deleteSshKey(uuid, key)
-                loadCredentials()
-            } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(
-                    error = "Failed to delete SSH key: ${e.message}"
-                )
-            }
+            deleteSshKeyUseCase(uuid)
+                .onSuccess {
+                    loadCredentials()
+                }
+                .onError { exception ->
+                    _uiState.value = _uiState.value.copy(error = exception.message)
+                }
         }
     }
-    
+
     suspend fun getSshPrivateKey(uuid: String): String? {
-        val store = credentialStore ?: return null
-        val key = masterKey ?: return null
-        return store.getSshPrivateKey(uuid, key)
+        return when (val result = getSshPrivateKeyUseCase(uuid)) {
+            is jamgmilk.obsigit.domain.model.AppResult.Success -> result.data
+            is jamgmilk.obsigit.domain.model.AppResult.Error -> null
+        }
     }
-    
+
+    fun isDecryptionUnlocked(): Boolean {
+        return credentialRepository.isUnlocked()
+    }
+
     fun lock() {
-        masterKey = null
-        credentialStore?.clearCachedMasterKey()
-        _uiState.value = _uiState.value.copy(
-            isUnlocked = false,
-            httpsCredentials = emptyList(),
-            sshKeys = emptyList()
-        )
+        credentialRepository.lock()
+        _uiState.value = _uiState.value.copy(isDecryptionUnlocked = false)
     }
 }
