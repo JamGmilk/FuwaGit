@@ -45,6 +45,8 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -62,7 +64,9 @@ import androidx.compose.ui.unit.dp
 import jamgmilk.obsigit.di.AppContainer
 import jamgmilk.obsigit.ui.AppViewModel
 import jamgmilk.obsigit.ui.components.ScreenTemplate
+import jamgmilk.obsigit.ui.navigation.Screen
 import jamgmilk.obsigit.ui.screen.credentials.CredentialsScreen
+import jamgmilk.obsigit.ui.screen.permissions.PermissionsScreen
 import jamgmilk.obsigit.ui.theme.ObsiGitThemeExtras
 
 @Composable
@@ -72,8 +76,23 @@ fun SettingsScreen(
 ) {
     val colors = MaterialTheme.colorScheme
     val uiColors = ObsiGitThemeExtras.colors
+    val currentScreen by viewModel.currentScreenFlow.collectAsState()
+
     var showPermissions by rememberSaveable { mutableStateOf(false) }
     var showCredentials by rememberSaveable { mutableStateOf(false) }
+
+    // Reset sub-screen flags when navigating away
+    LaunchedEffect(currentScreen) {
+        if (currentScreen != Screen.Settings) {
+            showPermissions = false
+            showCredentials = false
+        }
+    }
+
+    // Disable swipe when in sub-screen
+    LaunchedEffect(showPermissions, showCredentials) {
+        viewModel.swipeEnabled = !(showPermissions || showCredentials)
+    }
 
     var autoSync by rememberSaveable { mutableStateOf(false) }
     var conflictSafeMode by rememberSaveable { mutableStateOf(true) }
@@ -105,7 +124,7 @@ fun SettingsScreen(
             }
             "permissions" -> {
                 BackHandler { showPermissions = false }
-                jamgmilk.obsigit.ui.screen.permissions.PermissionsScreen(
+                PermissionsScreen(
                     viewModel = viewModel,
                     onBack = { showPermissions = false },
                     modifier = modifier

@@ -111,6 +111,8 @@ fun RepoScreen(
     var cloneUrl by remember { mutableStateOf("") }
     var expandedFab by remember { mutableStateOf(false) }
     var selectedItemForSheet by remember { mutableStateOf<RepoFolderItem?>(null) }
+    var showRemoteDialog by remember { mutableStateOf<RepoFolderItem?>(null) }
+    var showInfoDialog by remember { mutableStateOf<RepoFolderItem?>(null) }
     val sheetState = rememberModalBottomSheetState()
     val scope = rememberCoroutineScope()
 
@@ -199,9 +201,101 @@ fun RepoScreen(
                     selectedItemForSheet = null
                 }
             },
-            onConfigure = {
+            onConfigureRemote = {
                 scope.launch { sheetState.hide() }.invokeOnCompletion {
+                    showRemoteDialog = item
                     selectedItemForSheet = null
+                }
+            },
+            onShowInfo = {
+                scope.launch { sheetState.hide() }.invokeOnCompletion {
+                    showInfoDialog = item
+                    selectedItemForSheet = null
+                }
+            }
+        )
+    }
+
+    showRemoteDialog?.let { item ->
+        val currentRemoteUrl = remember(item) {
+            item.localPath?.let { viewModel.getRemoteUrl(it) } ?: ""
+        }
+        var remoteUrl by remember { mutableStateOf(currentRemoteUrl) }
+
+        AlertDialog(
+            onDismissRequest = { showRemoteDialog = null },
+            title = { Text("Configure Remote", fontWeight = FontWeight.Bold) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text("Set the remote 'origin' URL for this repository.", style = MaterialTheme.typography.bodyMedium)
+                    OutlinedTextField(
+                        value = remoteUrl,
+                        onValueChange = { remoteUrl = it },
+                        label = { Text("Remote URL") },
+                        placeholder = { Text("https://github.com/user/repo.git") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp)
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        item.localPath?.let { viewModel.configureRemote(it, "origin", remoteUrl) }
+                        showRemoteDialog = null
+                    },
+                    enabled = remoteUrl.isNotBlank(),
+                    colors = ButtonDefaults.buttonColors(containerColor = Sakura80)
+                ) {
+                    Text("Save")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showRemoteDialog = null }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
+    showInfoDialog?.let { item ->
+        val info = remember(item) { 
+            if (item.localPath != null) viewModel.getRepoInfo(item.localPath) else emptyMap()
+        }
+        
+        AlertDialog(
+            onDismissRequest = { showInfoDialog = null },
+            title = { Text("Repository Info", fontWeight = FontWeight.Bold) },
+            text = {
+                LazyColumn(
+                    modifier = Modifier.fillMaxWidth().height(300.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(info.toList()) { (key, value) ->
+                        Column {
+                            Text(
+                                text = key,
+                                style = MaterialTheme.typography.labelMedium,
+                                color = Sakura80,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                text = value,
+                                style = MaterialTheme.typography.bodySmall,
+                                fontFamily = FontFamily.Monospace
+                            )
+                            HorizontalDivider(modifier = Modifier.padding(top = 4.dp), thickness = 1.dp, color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = { showInfoDialog = null },
+                    colors = ButtonDefaults.buttonColors(containerColor = Sakura80)
+                ) {
+                    Text("Close")
                 }
             }
         )
@@ -445,7 +539,8 @@ private fun RepoOptionsSheet(
     sheetState: androidx.compose.material3.SheetState,
     onDismiss: () -> Unit,
     onRemove: () -> Unit,
-    onConfigure: () -> Unit
+    onConfigureRemote: () -> Unit,
+    onShowInfo: () -> Unit
 ) {
     val colors = MaterialTheme.colorScheme
     val uiColors = ObsiGitThemeExtras.colors
@@ -521,14 +616,14 @@ private fun RepoOptionsSheet(
                 icon = Icons.Default.Settings,
                 title = "Configure Remote",
                 subtitle = "Set up remote origin URL",
-                onClick = onConfigure
+                onClick = onConfigureRemote
             )
 
             SheetOptionItem(
                 icon = Icons.Default.Info,
                 title = "Repository Info",
                 subtitle = "View detailed information",
-                onClick = onConfigure
+                onClick = onShowInfo
             )
         }
     }

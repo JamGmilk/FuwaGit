@@ -238,6 +238,63 @@ object JGitDataSource {
         return "Push command executed"
     }
 
+    fun getRepoInfo(dir: File): Map<String, String> {
+        val info = mutableMapOf<String, String>()
+        try {
+            runGit(dir) { git ->
+                val repo = git.repository
+                val config = repo.config
+                val remotes = config.getSubsections("remote")
+                
+                info["Current Branch"] = try { repo.branch ?: "N/A" } catch(_: Exception) { "N/A" }
+                info["Status"] = try { if (git.status().call().isClean) "Clean" else "Modified" } catch(_: Exception) { "Unknown" }
+                
+                remotes.forEach { remote ->
+                    val url = config.getString("remote", remote, "url") ?: "No URL"
+                    info["Remote: $remote"] = url
+                }
+                
+                val lastCommit = try { git.log().setMaxCount(1).call().firstOrNull() } catch(_: Exception) { null }
+                if (lastCommit != null) {
+                    info["Last Commit"] = lastCommit.shortMessage
+                    info["Last Commit Hash"] = lastCommit.name.take(7)
+                    info["Last Commit Date"] = java.util.Date(lastCommit.commitTime.toLong() * 1000L).toString()
+                } else {
+                    info["Last Commit"] = "None"
+                }
+                
+                info["Local Path"] = dir.absolutePath
+            }
+        } catch (e: Exception) {
+            info["Error"] = e.message ?: "Unknown error"
+        }
+        return info
+    }
+
+    fun getRemoteUrl(dir: File, name: String = "origin"): String? {
+        return try {
+            runGit(dir) { git ->
+                git.repository.config.getString("remote", name, "url")
+            }
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    fun configureRemote(dir: File, name: String, url: String): String {
+        return try {
+            runGit(dir) { git ->
+                val config = git.repository.config
+                config.setString("remote", name, "url", url)
+                config.setString("remote", name, "fetch", "+refs/heads/*:refs/remotes/$name/*")
+                config.save()
+                "Remote '$name' configured with URL: $url"
+            }
+        } catch (e: Exception) {
+            "Error: ${e.message}"
+        }
+    }
+
     fun hasGitDir(path: String?): Boolean {
         if (path == null) return false
         return File(path, ".git").exists()

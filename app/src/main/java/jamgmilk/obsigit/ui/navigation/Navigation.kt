@@ -60,6 +60,7 @@ fun ObsiGitNavHost(
     val branchesViewModel = remember { AppContainer.createBranchesViewModel() }
     val targetPath by viewModel.targetPath.collectAsState()
     val currentScreenState by viewModel.currentScreenFlow.collectAsState()
+    val swipeEnabled by viewModel.swipeEnabledFlow.collectAsState()
     
     LaunchedEffect(targetPath) {
         statusViewModel.setRepoPath(targetPath)
@@ -98,7 +99,8 @@ fun ObsiGitNavHost(
         state = pagerState,
         modifier = modifier,
         beyondViewportPageCount = 1,
-        pageSpacing = 0.dp
+        pageSpacing = 0.dp,
+        userScrollEnabled = swipeEnabled
     ) { pageIndex ->
         val screen = Screen.fromIndex(pageIndex)
         
