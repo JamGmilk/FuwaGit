@@ -89,6 +89,7 @@ import jamgmilk.obsigit.ui.theme.ObsiGitThemeExtras
 import jamgmilk.obsigit.ui.theme.Sakura50
 import jamgmilk.obsigit.ui.theme.Sakura80
 import jamgmilk.obsigit.ui.theme.Sakura90
+import jamgmilk.obsigit.ui.components.ScreenTemplate
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -144,18 +145,12 @@ fun RepoScreen(
             )
         }
     ) { innerPadding ->
-        Column(
+        ScreenTemplate(
+            title = "Repositories",
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            RepoHeader(
-                onRefresh = { viewModel.refreshRepoItems(context) },
-                repoCount = folders.size
-            )
-
             ElevatedCard(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -214,49 +209,6 @@ fun RepoScreen(
                 }
             }
         )
-    }
-}
-
-@Composable
-private fun RepoHeader(
-    onRefresh: () -> Unit,
-    repoCount: Int,
-    modifier: Modifier = Modifier
-) {
-    val colors = MaterialTheme.colorScheme
-
-    Row(
-        modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Column {
-            Text(
-                text = "Repositories",
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold,
-                color = colors.primary
-            )
-            Text(
-                text = "$repoCount folder${if (repoCount != 1) "s" else ""} added",
-                style = MaterialTheme.typography.bodySmall,
-                color = colors.onSurfaceVariant
-            )
-        }
-
-        IconButton(
-            onClick = onRefresh,
-            modifier = Modifier
-                .size(44.dp)
-                .background(Sakura80.copy(alpha = 0.1f), CircleShape)
-        ) {
-            Icon(
-                Icons.Default.Refresh,
-                contentDescription = "Refresh",
-                tint = Sakura80,
-                modifier = Modifier.size(22.dp)
-            )
-        }
     }
 }
 

@@ -77,10 +77,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import jamgmilk.obsigit.ui.CommitStats
-import jamgmilk.obsigit.ui.GitCommit
+import jamgmilk.obsigit.domain.model.CommitStats
+import jamgmilk.obsigit.domain.model.GitCommit
 import jamgmilk.obsigit.ui.theme.ObsiGitThemeExtras
-import jamgmilk.obsigit.ui.AppViewModel
+import jamgmilk.obsigit.ui.components.ScreenTemplate
+import jamgmilk.obsigit.ui.components.RefreshAction
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
@@ -89,54 +90,35 @@ import kotlin.math.abs
 
 @Composable
 fun HistoryModule(
-    viewModel: AppViewModel,
+    historyViewModel: HistoryViewModel,
     modifier: Modifier = Modifier
 ) {
-    val history by viewModel.commitHistory.collectAsState()
+    val uiState by historyViewModel.uiState.collectAsState()
+    val history = uiState.commits
     val colors = MaterialTheme.colorScheme
     val uiColors = ObsiGitThemeExtras.colors
 
-    LaunchedEffect(Unit) {
-        viewModel.refreshWorkspace()
+    LaunchedEffect(uiState.repoPath) {
+        if (uiState.repoPath != null) {
+            historyViewModel.loadCommitHistory()
+        }
     }
 
-    val commitStats = remember(history) {
-        calculateCommitStats(history)
-    }
-
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = "History",
-                style = MaterialTheme.typography.titleLarge,
-                color = colors.primary
-            )
+    ScreenTemplate(
+        title = "History",
+        modifier = modifier,
+        actions = {
             Text(
                 text = "${history.size} commits",
                 style = MaterialTheme.typography.bodySmall,
                 color = colors.onSurfaceVariant
             )
         }
-
-        CommitStatsCard(
-            stats = commitStats,
-            modifier = Modifier.fillMaxWidth()
-        )
-
+    ) {
         ElevatedCard(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(400.dp)
+                .height(500.dp)
                 .border(1.dp, uiColors.cardBorder, RoundedCornerShape(24.dp)),
             shape = RoundedCornerShape(24.dp),
             colors = CardDefaults.elevatedCardColors(containerColor = uiColors.cardContainer),
@@ -148,174 +130,6 @@ fun HistoryModule(
                 CommitTimelineList(
                     commits = history,
                     modifier = Modifier.fillMaxSize()
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun CommitStatsCard(
-    stats: CommitStats,
-    modifier: Modifier = Modifier
-) {
-    val colors = MaterialTheme.colorScheme
-    val uiColors = ObsiGitThemeExtras.colors
-
-    ElevatedCard(
-        modifier = modifier.border(1.dp, uiColors.cardBorder, RoundedCornerShape(20.dp)),
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.elevatedCardColors(containerColor = uiColors.cardContainer),
-        elevation = CardDefaults.elevatedCardElevation(0.dp)
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            Text(
-                text = "Activity Overview",
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.Bold
-            )
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                StatItem(
-                    icon = Icons.Default.Commit,
-                    label = "Total",
-                    value = stats.totalCommits.toString(),
-                    color = Color(0xFFE91E63),
-                    modifier = Modifier.weight(1f)
-                )
-                StatItem(
-                    icon = Icons.Default.Person,
-                    label = "Authors",
-                    value = stats.uniqueAuthors.toString(),
-                    color = Color(0xFF9C27B0),
-                    modifier = Modifier.weight(1f)
-                )
-                StatItem(
-                    icon = Icons.Default.DateRange,
-                    label = "Today",
-                    value = stats.commitsToday.toString(),
-                    color = Color(0xFF4CAF50),
-                    modifier = Modifier.weight(1f)
-                )
-            }
-
-            ActivityBarChart(
-                today = stats.commitsToday,
-                week = stats.commitsThisWeek,
-                month = stats.commitsThisMonth,
-                total = stats.totalCommits,
-                modifier = Modifier.fillMaxWidth().height(60.dp)
-            )
-        }
-    }
-}
-
-@Composable
-private fun StatItem(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    label: String,
-    value: String,
-    color: Color,
-    modifier: Modifier = Modifier
-) {
-    val colors = MaterialTheme.colorScheme
-
-    Column(
-        modifier = modifier
-            .clip(RoundedCornerShape(12.dp))
-            .background(color.copy(alpha = 0.08f))
-            .padding(horizontal = 12.dp, vertical = 10.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(4.dp)
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = color,
-            modifier = Modifier.size(20.dp)
-        )
-        Text(
-            text = value,
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
-            color = color
-        )
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelSmall,
-            color = colors.onSurfaceVariant
-        )
-    }
-}
-
-@Composable
-private fun ActivityBarChart(
-    today: Int,
-    week: Int,
-    month: Int,
-    total: Int,
-    modifier: Modifier = Modifier
-) {
-    val colors = MaterialTheme.colorScheme
-
-    if (total == 0) {
-        Box(modifier = modifier, contentAlignment = Alignment.Center) {
-            Text(
-                "No activity yet",
-                style = MaterialTheme.typography.bodySmall,
-                color = colors.onSurfaceVariant
-            )
-        }
-        return
-    }
-
-    val weekRatio = if (total > 0) week.toFloat() / total else 0f
-    val monthRatio = if (total > 0) month.toFloat() / total else 0f
-
-    Column(
-        modifier = modifier,
-        verticalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Text(
-                text = "This Week: $week",
-                style = MaterialTheme.typography.labelSmall,
-                color = colors.onSurfaceVariant
-            )
-            Text(
-                text = "This Month: $month",
-                style = MaterialTheme.typography.labelSmall,
-                color = colors.onSurfaceVariant
-            )
-        }
-
-        Row(
-            modifier = Modifier.fillMaxWidth().height(12.dp),
-            horizontalArrangement = Arrangement.spacedBy(4.dp)
-        ) {
-            Box(
-                modifier = Modifier
-                    .weight(weekRatio.coerceIn(0.1f, 1f))
-                    .fillMaxHeight()
-                    .clip(RoundedCornerShape(6.dp))
-                    .background(Color(0xFF4CAF50))
-            )
-            if (weekRatio < 0.9f) {
-                Box(
-                    modifier = Modifier
-                        .weight((1f - weekRatio).coerceIn(0.1f, 1f))
-                        .fillMaxHeight()
-                        .clip(RoundedCornerShape(6.dp))
-                        .background(colors.surfaceVariant.copy(alpha = 0.3f))
                 )
             }
         }
@@ -687,37 +501,6 @@ private fun DetailRow(
             )
         }
     }
-}
-
-private fun calculateCommitStats(commits: List<GitCommit>): CommitStats {
-    if (commits.isEmpty()) return CommitStats(0, 0, 0, 0, 0)
-
-    val now = Calendar.getInstance()
-    val todayStart = Calendar.getInstance().apply {
-        set(Calendar.HOUR_OF_DAY, 0)
-        set(Calendar.MINUTE, 0)
-        set(Calendar.SECOND, 0)
-        set(Calendar.MILLISECOND, 0)
-    }
-    val weekStart = Calendar.getInstance().apply {
-        add(Calendar.DAY_OF_YEAR, -7)
-    }
-    val monthStart = Calendar.getInstance().apply {
-        add(Calendar.DAY_OF_YEAR, -30)
-    }
-
-    val uniqueAuthors = commits.map { it.authorEmail }.distinct().size
-    val commitsToday = commits.count { it.timestamp >= todayStart.timeInMillis }
-    val commitsThisWeek = commits.count { it.timestamp >= weekStart.timeInMillis }
-    val commitsThisMonth = commits.count { it.timestamp >= monthStart.timeInMillis }
-
-    return CommitStats(
-        totalCommits = commits.size,
-        uniqueAuthors = uniqueAuthors,
-        commitsToday = commitsToday,
-        commitsThisWeek = commitsThisWeek,
-        commitsThisMonth = commitsThisMonth
-    )
 }
 
 private fun formatRelativeTime(timestamp: Long): String {

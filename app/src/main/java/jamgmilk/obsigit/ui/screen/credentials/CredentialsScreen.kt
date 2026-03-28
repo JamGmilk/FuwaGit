@@ -87,6 +87,7 @@ import jamgmilk.obsigit.ui.theme.ObsiGitThemeExtras
 import jamgmilk.obsigit.ui.theme.Sakura50
 import jamgmilk.obsigit.ui.theme.Sakura80
 import jamgmilk.obsigit.ui.theme.Sakura90
+import jamgmilk.obsigit.ui.components.SubSettingsTemplate
 
 sealed class CredentialsTab {
     data object Https : CredentialsTab()
@@ -119,63 +120,51 @@ fun CredentialsScreen(
 
     val clipboardManager = LocalClipboardManager.current
 
-    Scaffold(
-        modifier = modifier.fillMaxSize(),
-        containerColor = Color.Transparent
-    ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .padding(horizontal = 16.dp)
-                .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
-        ) {
-            CredentialsHeader(onBack = onBack)
+    SubSettingsTemplate(
+        title = "Credentials",
+        onBack = onBack,
+        modifier = modifier
+    ) {
+        CredentialsTabSelector(
+            selectedTab = selectedTab,
+            onTabSelected = { selectedTab = it }
+        )
 
-            CredentialsTabSelector(
-                selectedTab = selectedTab,
-                onTabSelected = { selectedTab = it }
-            )
-
-            AnimatedContent(
-                targetState = selectedTab,
-                transitionSpec = {
-                    fadeIn(animationSpec = tween(260)) togetherWith fadeOut(animationSpec = tween(200))
-                },
-                label = "credentials_tab_transition"
-            ) { tab ->
-                when (tab) {
-                    is CredentialsTab.Https -> {
-                        HttpsCredentialsContent(
-                            credentials = uiState.httpsCredentials,
-                            keyStoreAvailable = uiState.keyStoreAvailable,
-                            onAdd = { dialogState = CredentialDialogState.AddHttps() },
-                            onEdit = { dialogState = CredentialDialogState.EditHttps(it) },
-                            onDelete = { showDeleteConfirm = it.id to false },
-                            onCopyPassword = {
-                                clipboardManager.setText(AnnotatedString(it))
-                                Toast.makeText(context, "Password copied", Toast.LENGTH_SHORT).show()
-                            }
-                        )
-                    }
-                    is CredentialsTab.Ssh -> {
-                        SshKeysContent(
-                            keys = uiState.sshKeys,
-                            onGenerate = { dialogState = CredentialDialogState.AddSshKey() },
-                            onImport = { dialogState = CredentialDialogState.ImportSshKey() },
-                            onView = { dialogState = CredentialDialogState.ShowSshKey(it) },
-                            onDelete = { showDeleteConfirm = it.id to true },
-                            onCopyPublicKey = {
-                                clipboardManager.setText(AnnotatedString(it))
-                                Toast.makeText(context, "Public key copied", Toast.LENGTH_SHORT).show()
-                            }
-                        )
-                    }
+        AnimatedContent(
+            targetState = selectedTab,
+            transitionSpec = {
+                fadeIn(animationSpec = tween(260)) togetherWith fadeOut(animationSpec = tween(200))
+            },
+            label = "credentials_tab_transition"
+        ) { tab ->
+            when (tab) {
+                is CredentialsTab.Https -> {
+                    HttpsCredentialsContent(
+                        credentials = uiState.httpsCredentials,
+                        keyStoreAvailable = uiState.keyStoreAvailable,
+                        onAdd = { dialogState = CredentialDialogState.AddHttps() },
+                        onEdit = { dialogState = CredentialDialogState.EditHttps(it) },
+                        onDelete = { showDeleteConfirm = it.id to false },
+                        onCopyPassword = {
+                            clipboardManager.setText(AnnotatedString(it))
+                            Toast.makeText(context, "Password copied", Toast.LENGTH_SHORT).show()
+                        }
+                    )
+                }
+                is CredentialsTab.Ssh -> {
+                    SshKeysContent(
+                        keys = uiState.sshKeys,
+                        onGenerate = { dialogState = CredentialDialogState.AddSshKey() },
+                        onImport = { dialogState = CredentialDialogState.ImportSshKey() },
+                        onView = { dialogState = CredentialDialogState.ShowSshKey(it) },
+                        onDelete = { showDeleteConfirm = it.id to true },
+                        onCopyPublicKey = {
+                            clipboardManager.setText(AnnotatedString(it))
+                            Toast.makeText(context, "Public key copied", Toast.LENGTH_SHORT).show()
+                        }
+                    )
                 }
             }
-
-            Spacer(Modifier.height(8.dp))
         }
     }
 
@@ -273,42 +262,6 @@ fun CredentialsScreen(
                 }
             }
         )
-    }
-}
-
-@Composable
-private fun CredentialsHeader(
-    onBack: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    val colors = MaterialTheme.colorScheme
-
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        IconButton(onClick = onBack) {
-            Icon(
-                Icons.AutoMirrored.Filled.ArrowBack,
-                contentDescription = "Back",
-                tint = colors.primary
-            )
-        }
-        Column {
-            Text(
-                text = "Credentials",
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold,
-                color = colors.primary
-            )
-            Text(
-                text = "Manage your authentication",
-                style = MaterialTheme.typography.bodySmall,
-                color = colors.onSurfaceVariant
-            )
-        }
     }
 }
 
@@ -514,8 +467,6 @@ private fun HttpsCredentialsContent(
                 }
             }
         }
-
-        SecurityInfoCard()
     }
 }
 
@@ -744,8 +695,6 @@ private fun SshKeysContent(
                 }
             }
         }
-
-        SshInfoCard()
     }
 }
 
@@ -851,134 +800,6 @@ private fun SshKeyItem(
                 fontFamily = FontFamily.Monospace,
                 color = colors.onSurfaceVariant,
                 modifier = Modifier.padding(8.dp)
-            )
-        }
-    }
-}
-
-@Composable
-private fun SecurityInfoCard() {
-    val colors = MaterialTheme.colorScheme
-    val uiColors = ObsiGitThemeExtras.colors
-
-    ElevatedCard(
-        modifier = Modifier
-            .fillMaxWidth()
-            .border(1.dp, uiColors.cardBorder, RoundedCornerShape(20.dp)),
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.elevatedCardColors(containerColor = uiColors.cardContainer),
-        elevation = CardDefaults.elevatedCardElevation(0.dp)
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    Icons.Default.Lock,
-                    contentDescription = null,
-                    tint = Sakura80,
-                    modifier = Modifier.size(20.dp)
-                )
-                Spacer(Modifier.width(8.dp))
-                Text(
-                    text = "Security Information",
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = Sakura80
-                )
-            }
-
-            InfoRow(
-                icon = Icons.Default.Shield,
-                title = "Encryption",
-                description = "AES-256-GCM via Android KeyStore"
-            )
-            InfoRow(
-                icon = Icons.Default.Security,
-                title = "Storage",
-                description = "Encrypted credentials in secure enclave"
-            )
-        }
-    }
-}
-
-@Composable
-private fun SshInfoCard() {
-    val colors = MaterialTheme.colorScheme
-    val uiColors = ObsiGitThemeExtras.colors
-
-    ElevatedCard(
-        modifier = Modifier
-            .fillMaxWidth()
-            .border(1.dp, uiColors.cardBorder, RoundedCornerShape(20.dp)),
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.elevatedCardColors(containerColor = uiColors.cardContainer),
-        elevation = CardDefaults.elevatedCardElevation(0.dp)
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    Icons.Default.Key,
-                    contentDescription = null,
-                    tint = Sakura90,
-                    modifier = Modifier.size(20.dp)
-                )
-                Spacer(Modifier.width(8.dp))
-                Text(
-                    text = "SSH Key Information",
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = Sakura90
-                )
-            }
-
-            InfoRow(
-                icon = Icons.Default.Key,
-                title = "Supported Types",
-                description = "RSA (4096-bit), Ed25519"
-            )
-            InfoRow(
-                icon = Icons.Default.Security,
-                title = "Storage",
-                description = "Private keys in app-private storage"
-            )
-        }
-    }
-}
-
-@Composable
-private fun InfoRow(
-    icon: ImageVector,
-    title: String,
-    description: String
-) {
-    val colors = MaterialTheme.colorScheme
-
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Icon(
-            icon,
-            contentDescription = null,
-            tint = colors.onSurfaceVariant,
-            modifier = Modifier.size(16.dp)
-        )
-        Spacer(Modifier.width(10.dp))
-        Column {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.labelMedium,
-                fontWeight = FontWeight.Medium
-            )
-            Text(
-                text = description,
-                style = MaterialTheme.typography.bodySmall,
-                color = colors.onSurfaceVariant
             )
         }
     }

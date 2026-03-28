@@ -1,13 +1,12 @@
-package jamgmilk.obsigit.ui
+package jamgmilk.obsigit.data.source
 
 import android.net.Uri
 import android.os.Environment
 import android.provider.DocumentsContract
 import java.io.File
 
-internal object AppRepoOps {
+object RepoPathUtils {
 
-    // "/storage/emulated/0"
     val externalStorageDirPrefix: String = Environment.getExternalStorageDirectory().absolutePath
 
     fun readablePathFromUri(uri: Uri): String {
@@ -58,5 +57,4 @@ internal object AppRepoOps {
             else -> normalized
         }
     }
-
 }

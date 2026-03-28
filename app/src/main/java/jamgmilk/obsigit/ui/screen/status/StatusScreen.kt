@@ -1,23 +1,16 @@
 package jamgmilk.obsigit.ui.screen.status
 
 import android.annotation.SuppressLint
-import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideOutHorizontally
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -37,38 +30,32 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.CloudDownload
+import androidx.compose.material.icons.filled.CloudUpload
+import androidx.compose.material.icons.automirrored.filled.Undo
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.CloudDownload
+import androidx.compose.material.icons.filled.CloudUpload
 import androidx.compose.material.icons.filled.Code
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Error
-import androidx.compose.material.icons.filled.Folder
-import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Pending
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Remove
-import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Sync
-import androidx.compose.material.icons.outlined.Description
-import androidx.compose.material.icons.outlined.FolderOpen
-import androidx.compose.material.icons.rounded.Add
-import androidx.compose.material.icons.rounded.Check
-import androidx.compose.material.icons.rounded.Delete
-import androidx.compose.material.icons.rounded.Edit
-import androidx.compose.material.icons.rounded.Remove
+import androidx.compose.material.icons.filled.Upload
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ElevatedCard
+import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -79,43 +66,34 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import jamgmilk.obsigit.ui.AppViewModel
-import jamgmilk.obsigit.ui.GitBranch
-import jamgmilk.obsigit.ui.GitChangeType
-import jamgmilk.obsigit.ui.GitFileStatus
-import jamgmilk.obsigit.ui.SettingsScreen
+import jamgmilk.obsigit.domain.model.GitBranch
+import jamgmilk.obsigit.domain.model.GitChangeType
+import jamgmilk.obsigit.domain.model.GitFileStatus
 import jamgmilk.obsigit.ui.theme.ObsiGitTheme
 import jamgmilk.obsigit.ui.theme.ObsiGitThemeExtras
 import jamgmilk.obsigit.ui.theme.Sakura50
-import jamgmilk.obsigit.ui.theme.Sakura60
 import jamgmilk.obsigit.ui.theme.Sakura80
 import jamgmilk.obsigit.ui.theme.Sakura90
-import kotlin.math.max
+import jamgmilk.obsigit.ui.components.ScreenTemplate
+import jamgmilk.obsigit.ui.components.RefreshAction
 
 data class StatusStats(
     val totalChanges: Int,
@@ -129,26 +107,27 @@ data class StatusStats(
 
 @Composable
 fun StatusModule(
-    viewModel: AppViewModel,
+    statusViewModel: StatusViewModel,
     modifier: Modifier = Modifier
 ) {
-    val files by viewModel.workspaceFiles.collectAsState()
+    val uiState by statusViewModel.uiState.collectAsState()
+    val files = uiState.workspaceFiles
     val staged = remember(files) { files.filter { it.isStaged } }
     val workspace = remember(files) { files.filter { !it.isStaged } }
     var commitMessage by remember { mutableStateOf("") }
     val colors = MaterialTheme.colorScheme
     val uiColors = ObsiGitThemeExtras.colors
 
-    val isRepo by viewModel.isGitRepo.collectAsState()
-    val statusText by viewModel.gitStatusText.collectAsState()
-    val terminalLogs by viewModel.terminalOutput.collectAsState()
-    val targetPath by viewModel.targetPath.collectAsState()
-    val branches by viewModel.branches.collectAsState()
-    val currentBranch = remember(branches) { branches.find { it.isCurrent } }
+    val isRepo = uiState.isGitRepo
+    val statusText = uiState.statusMessage
+    val terminalLogs = uiState.terminalOutput
+    val targetPath = uiState.repoPath
+    val currentBranch = uiState.currentBranch
 
-    LaunchedEffect(Unit) {
-        viewModel.refreshWorkspace()
-        viewModel.checkRepoStatus()
+    LaunchedEffect(uiState.repoPath) {
+        if (uiState.repoPath != null) {
+            statusViewModel.refreshAll()
+        }
     }
 
     val statusStats = remember(files, staged, workspace) {
@@ -163,18 +142,13 @@ fun StatusModule(
         )
     }
 
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ScreenTemplate(
+        title = "Status",
+        modifier = modifier,
+        actions = {
+            RefreshAction(onRefresh = { statusViewModel.refreshWorkspace() })
+        }
     ) {
-        StatusHeader(
-            onRefresh = { viewModel.refreshWorkspace() },
-            isRepo = isRepo
-        )
-
         RepositoryStatusCard(
             isRepo = isRepo,
             statusText = statusText,
@@ -188,12 +162,22 @@ fun StatusModule(
             enter = fadeIn() + expandVertically(),
             exit = fadeOut() + shrinkVertically()
         ) {
-            ChangesOverviewCard(
-                stats = statusStats,
-                onStageAll = { viewModel.stageAll() },
-                onUnstageAll = { viewModel.unstageAll() },
-                modifier = Modifier.fillMaxWidth()
-            )
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                ActionToolbar(
+                    stats = statusStats,
+                    onStageAll = { statusViewModel.stageAll() },
+                    onUnstageAll = { statusViewModel.unstageAll() },
+                    onPull = { statusViewModel.pullRepo() },
+                    onPush = { statusViewModel.pushRepo() },
+                    onFetch = { },
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                ChangesOverviewCard(
+                    stats = statusStats,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
         }
 
         AnimatedVisibility(
@@ -215,12 +199,11 @@ fun StatusModule(
                     accentColor = Sakura80,
                     onFileAction = { file ->
                         when (file.changeType) {
-                            GitChangeType.Untracked -> viewModel.stageFile(file.path)
-                            GitChangeType.Removed -> viewModel.discardChanges(file.path)
-                            else -> viewModel.stageFile(file.path)
+                            GitChangeType.Untracked -> statusViewModel.stageFile(file.path)
+                            GitChangeType.Removed -> statusViewModel.discardChanges(file.path)
+                            else -> statusViewModel.stageFile(file.path)
                         }
                     },
-                    onDiscard = { file -> viewModel.discardChanges(file.path) },
                     emptyMessage = "Working directory clean"
                 )
 
@@ -230,7 +213,7 @@ fun StatusModule(
                     files = staged,
                     modifier = Modifier.weight(1f),
                     accentColor = Color(0xFF4CAF50),
-                    onFileAction = { file -> viewModel.unstageFile(file.path) },
+                    onFileAction = { file -> statusViewModel.unstageFile(file.path) },
                     emptyMessage = "Nothing to commit"
                 )
             }
@@ -241,12 +224,12 @@ fun StatusModule(
             enter = fadeIn() + expandVertically(),
             exit = fadeOut() + shrinkVertically()
         ) {
-            CommitSection(
+            CommitCard(
                 commitMessage = commitMessage,
                 onCommitMessageChange = { commitMessage = it },
                 onCommit = {
                     if (commitMessage.isNotBlank()) {
-                        viewModel.commitChanges(commitMessage)
+                        statusViewModel.commitChanges(commitMessage)
                         commitMessage = ""
                     }
                 },
@@ -261,46 +244,124 @@ fun StatusModule(
                 .fillMaxWidth()
                 .height(160.dp)
         )
-
-        Spacer(Modifier.height(4.dp))
     }
 }
 
 @Composable
-private fun StatusHeader(
-    onRefresh: () -> Unit,
-    isRepo: Boolean,
+private fun ActionToolbar(
+    stats: StatusStats,
+    onStageAll: () -> Unit,
+    onUnstageAll: () -> Unit,
+    onPull: () -> Unit,
+    onPush: () -> Unit,
+    onFetch: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val uiColors = ObsiGitThemeExtras.colors
+
+    ElevatedCard(
+        modifier = modifier.border(1.dp, uiColors.cardBorder, RoundedCornerShape(20.dp)),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.elevatedCardColors(containerColor = uiColors.cardContainer),
+        elevation = CardDefaults.elevatedCardElevation(0.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                ActionButton(
+                    icon = Icons.Default.CloudDownload,
+                    label = "Pull",
+                    color = Color(0xFF1E88E5),
+                    enabled = true,
+                    onClick = onPull,
+                    modifier = Modifier.weight(1f)
+                )
+                ActionButton(
+                    icon = Icons.Default.CloudUpload,
+                    label = "Push",
+                    color = Color(0xFF43A047),
+                    enabled = true,
+                    onClick = onPush,
+                    modifier = Modifier.weight(1f)
+                )
+                ActionButton(
+                    icon = Icons.Default.CloudDownload,
+                    label = "Fetch",
+                    color = Color(0xFF7B1FA2),
+                    enabled = true,
+                    onClick = onFetch,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                ActionButton(
+                    icon = Icons.Default.Check,
+                    label = "Stage All",
+                    color = Color(0xFF4CAF50),
+                    enabled = stats.unstaged + stats.untracked > 0,
+                    onClick = onStageAll,
+                    modifier = Modifier.weight(1f)
+                )
+                ActionButton(
+                    icon = Icons.AutoMirrored.Filled.Undo,
+                    label = "Unstage",
+                    color = Color(0xFFFF9800),
+                    enabled = stats.staged > 0,
+                    onClick = onUnstageAll,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ActionButton(
+    icon: ImageVector,
+    label: String,
+    color: Color,
+    enabled: Boolean,
+    onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val colors = MaterialTheme.colorScheme
 
-    Row(
-        modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
+    Surface(
+        modifier = modifier
+            .height(56.dp)
+            .clip(RoundedCornerShape(14.dp))
+            .clickable(enabled = enabled, onClick = onClick),
+        shape = RoundedCornerShape(14.dp),
+        color = if (enabled) color.copy(alpha = 0.12f) else colors.surfaceVariant.copy(alpha = 0.5f)
     ) {
-        Column {
-            Text(
-                text = "Status",
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold,
-                color = colors.primary
-            )
-            Text(
-                text = if (isRepo) "Repository overview" else "No repository selected",
-                style = MaterialTheme.typography.bodySmall,
-                color = colors.onSurfaceVariant
-            )
-        }
-
-        FilledTonalIconButton(
-            onClick = onRefresh,
-            modifier = Modifier.size(44.dp)
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center
         ) {
             Icon(
-                Icons.Default.Refresh,
-                contentDescription = "Refresh",
-                modifier = Modifier.size(22.dp)
+                imageVector = icon,
+                contentDescription = null,
+                tint = if (enabled) color else colors.onSurfaceVariant.copy(alpha = 0.5f),
+                modifier = Modifier.size(20.dp)
+            )
+            Spacer(Modifier.width(8.dp))
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.Medium,
+                color = if (enabled) color else colors.onSurfaceVariant.copy(alpha = 0.5f)
             )
         }
     }
@@ -413,8 +474,6 @@ private fun RepositoryStatusCard(
 @Composable
 private fun ChangesOverviewCard(
     stats: StatusStats,
-    onStageAll: () -> Unit,
-    onUnstageAll: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val colors = MaterialTheme.colorScheme
@@ -462,35 +521,6 @@ private fun ChangesOverviewCard(
                         .fillMaxWidth()
                         .height(10.dp)
                 )
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    if (stats.unstaged + stats.untracked > 0) {
-                        Button(
-                            onClick = onStageAll,
-                            modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50))
-                        ) {
-                            Icon(Icons.Rounded.Add, contentDescription = null, modifier = Modifier.size(18.dp))
-                            Spacer(Modifier.width(6.dp))
-                            Text("Stage All", fontSize = 13.sp, fontWeight = FontWeight.Medium)
-                        }
-                    }
-                    if (stats.staged > 0) {
-                        FilledTonalButton(
-                            onClick = onUnstageAll,
-                            modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(12.dp)
-                        ) {
-                            Icon(Icons.Rounded.Remove, contentDescription = null, modifier = Modifier.size(18.dp))
-                            Spacer(Modifier.width(6.dp))
-                            Text("Unstage All", fontSize = 13.sp, fontWeight = FontWeight.Medium)
-                        }
-                    }
-                }
             }
         }
     }
@@ -603,7 +633,6 @@ private fun FileSectionCard(
     modifier: Modifier = Modifier,
     accentColor: Color,
     onFileAction: (GitFileStatus) -> Unit,
-    onDiscard: ((GitFileStatus) -> Unit)? = null,
     emptyMessage: String
 ) {
     val colors = MaterialTheme.colorScheme
@@ -694,8 +723,7 @@ private fun FileSectionCard(
                         FileStatusItem(
                             file = file,
                             accentColor = accentColor,
-                            onAction = { onFileAction(file) },
-                            onDiscard = onDiscard?.let { { it(file) } }
+                            onAction = { onFileAction(file) }
                         )
                     }
                 }
@@ -708,11 +736,9 @@ private fun FileSectionCard(
 private fun FileStatusItem(
     file: GitFileStatus,
     accentColor: Color,
-    onAction: () -> Unit,
-    onDiscard: (() -> Unit)? = null
+    onAction: () -> Unit
 ) {
     val colors = MaterialTheme.colorScheme
-    var showMenu by remember { mutableStateOf(false) }
 
     val (changeColor, changeLabel) = when (file.changeType) {
         GitChangeType.Added -> Color(0xFF43A047) to "A"
@@ -781,7 +807,7 @@ private fun FileStatusItem(
 }
 
 @Composable
-private fun CommitSection(
+private fun CommitCard(
     commitMessage: String,
     onCommitMessageChange: (String) -> Unit,
     onCommit: () -> Unit,
@@ -807,22 +833,51 @@ private fun CommitSection(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = "Commit",
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Surface(
+                        shape = RoundedCornerShape(10.dp),
+                        color = Sakura80.copy(alpha = 0.15f),
+                        modifier = Modifier.size(36.dp)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                Icons.Default.Check,
+                                contentDescription = null,
+                                tint = Sakura80,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                    }
+                    Spacer(Modifier.width(10.dp))
+                    Text(
+                        text = "Commit Changes",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+
                 if (stagedCount > 0) {
                     Surface(
                         shape = RoundedCornerShape(8.dp),
                         color = Color(0xFF4CAF50).copy(alpha = 0.15f)
                     ) {
-                        Text(
-                            text = "$stagedCount file${if (stagedCount > 1) "s" else ""} staged",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = Color(0xFF4CAF50),
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
-                        )
+                        Row(
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                Icons.Default.Pending,
+                                contentDescription = null,
+                                tint = Color(0xFF4CAF50),
+                                modifier = Modifier.size(14.dp)
+                            )
+                            Spacer(Modifier.width(4.dp))
+                            Text(
+                                text = "$stagedCount staged",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = Color(0xFF4CAF50)
+                            )
+                        }
                     }
                 }
             }
@@ -841,34 +896,40 @@ private fun CommitSection(
                 minLines = 2,
                 maxLines = 4,
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = colors.primary,
+                    focusedBorderColor = Sakura80,
                     unfocusedBorderColor = colors.outline.copy(alpha = 0.3f)
                 )
             )
 
-            Button(
-                onClick = onCommit,
+            Surface(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(48.dp),
+                    .height(48.dp)
+                    .clip(RoundedCornerShape(14.dp))
+                    .clickable(enabled = canCommit, onClick = onCommit),
                 shape = RoundedCornerShape(14.dp),
-                enabled = canCommit,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = colors.primary,
-                    disabledContainerColor = colors.primary.copy(alpha = 0.3f)
-                )
+                color = if (canCommit) Sakura80 else colors.surfaceVariant
             ) {
-                Icon(
-                    Icons.Rounded.Check,
-                    contentDescription = null,
-                    modifier = Modifier.size(20.dp)
-                )
-                Spacer(Modifier.width(8.dp))
-                Text(
-                    "Commit Changes",
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.Medium
-                )
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            Icons.Default.Check,
+                            contentDescription = null,
+                            tint = if (canCommit) Color.White else colors.onSurfaceVariant.copy(alpha = 0.5f),
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            text = "Commit",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = if (canCommit) Color.White else colors.onSurfaceVariant.copy(alpha = 0.5f)
+                        )
+                    }
+                }
             }
         }
     }
@@ -966,6 +1027,16 @@ private fun TerminalLogsCard(
 @Composable
 fun StatusModulePreview() {
     ObsiGitTheme {
-        StatusModule(viewModel = AppViewModel())
+        StatusModule(statusViewModel = StatusViewModel(
+            getWorkspaceStatusUseCase = jamgmilk.obsigit.domain.usecase.git.GetWorkspaceStatusUseCase(),
+            getBranchesUseCase = jamgmilk.obsigit.domain.usecase.git.GetBranchesUseCase(),
+            stageAllUseCase = jamgmilk.obsigit.domain.usecase.git.StageAllUseCase(),
+            unstageAllUseCase = jamgmilk.obsigit.domain.usecase.git.UnstageAllUseCase(),
+            stageFileUseCase = jamgmilk.obsigit.domain.usecase.git.StageFileUseCase(),
+            unstageFileUseCase = jamgmilk.obsigit.domain.usecase.git.UnstageFileUseCase(),
+            commitChangesUseCase = jamgmilk.obsigit.domain.usecase.git.CommitChangesUseCase(),
+            pullUseCase = jamgmilk.obsigit.domain.usecase.git.PullUseCase(),
+            pushUseCase = jamgmilk.obsigit.domain.usecase.git.PushUseCase()
+        ))
     }
 }

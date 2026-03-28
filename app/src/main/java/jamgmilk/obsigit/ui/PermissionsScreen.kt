@@ -65,6 +65,7 @@ import jamgmilk.obsigit.ui.theme.ObsiGitThemeExtras
 import jamgmilk.obsigit.ui.theme.Sakura50
 import jamgmilk.obsigit.ui.theme.Sakura80
 import jamgmilk.obsigit.ui.theme.Sakura90
+import jamgmilk.obsigit.ui.components.SubSettingsTemplate
 
 @Composable
 fun PermissionsScreen(
@@ -83,78 +84,28 @@ fun PermissionsScreen(
         onResult = { }
     )
 
-    Scaffold(
-        modifier = modifier.fillMaxSize(),
-        containerColor = Color.Transparent
-    ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .padding(horizontal = 16.dp)
-                .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
-        ) {
-            PermissionsHeader(onBack = onBack)
-
-            SystemPermissionsCard(
-                rootStatus = rootStatus,
-                onRequestAllFilesAccess = {
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                        context.startActivity(Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION).apply {
-                            data = "package:${context.packageName}".toUri()
-                        })
-                    } else {
-                        requestPermissionLauncher.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE)
-                    }
-                },
-                onCheckRoot = { viewModel.checkRoot() }
-            )
-
-            ScopedStorageCard(
-                grantedFoldersCount = grantedFolders.size
-            )
-
-            SecurityInfoCard()
-
-            Spacer(Modifier.height(8.dp))
-        }
-    }
-}
-
-@Composable
-private fun PermissionsHeader(
-    onBack: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    val colors = MaterialTheme.colorScheme
-
-    Row(
+    SubSettingsTemplate(
+        title = "Permissions",
+        onBack = onBack,
         modifier = modifier
-            .fillMaxWidth()
-            .padding(vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically
     ) {
-        IconButton(onClick = onBack) {
-            Icon(
-                Icons.AutoMirrored.Filled.ArrowBack,
-                contentDescription = "Back",
-                tint = colors.primary
-            )
-        }
-        Column {
-            Text(
-                text = "Permissions",
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold,
-                color = colors.primary
-            )
-            Text(
-                text = "Manage app permissions",
-                style = MaterialTheme.typography.bodySmall,
-                color = colors.onSurfaceVariant
-            )
-        }
+        SystemPermissionsCard(
+            rootStatus = rootStatus,
+            onRequestAllFilesAccess = {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                    context.startActivity(Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION).apply {
+                        data = "package:${context.packageName}".toUri()
+                    })
+                } else {
+                    requestPermissionLauncher.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                }
+            },
+            onCheckRoot = { viewModel.checkRoot() }
+        )
+
+        ScopedStorageCard(
+            grantedFoldersCount = grantedFolders.size
+        )
     }
 }
 
@@ -394,55 +345,6 @@ private fun ScopedStorageCard(
 }
 
 @Composable
-private fun SecurityInfoCard(
-    modifier: Modifier = Modifier
-) {
-    val colors = MaterialTheme.colorScheme
-    val uiColors = ObsiGitThemeExtras.colors
-
-    ElevatedCard(
-        modifier = modifier
-            .fillMaxWidth()
-            .border(1.dp, uiColors.cardBorder, RoundedCornerShape(20.dp)),
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.elevatedCardColors(containerColor = uiColors.cardContainer),
-        elevation = CardDefaults.elevatedCardElevation(0.dp)
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    Icons.Default.Info,
-                    contentDescription = null,
-                    tint = Sakura80,
-                    modifier = Modifier.size(20.dp)
-                )
-                Spacer(Modifier.width(8.dp))
-                Text(
-                    text = "Security Information",
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = Sakura80
-                )
-            }
-
-            InfoRow(
-                icon = Icons.Default.Shield,
-                title = "Encryption",
-                description = "Git operations use system-level security providers"
-            )
-            InfoRow(
-                icon = Icons.Default.Lock,
-                title = "Privacy",
-                description = "Credentials stored in Android KeyStore"
-            )
-        }
-    }
-}
-
-@Composable
 private fun PermissionItem(
     icon: ImageVector,
     title: String,
@@ -541,40 +443,6 @@ private fun StatusBadge(status: PermissionStatus) {
             color = color,
             fontWeight = FontWeight.Medium
         )
-    }
-}
-
-@Composable
-private fun InfoRow(
-    icon: ImageVector,
-    title: String,
-    description: String
-) {
-    val colors = MaterialTheme.colorScheme
-
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Icon(
-            icon,
-            contentDescription = null,
-            tint = colors.onSurfaceVariant,
-            modifier = Modifier.size(16.dp)
-        )
-        Spacer(Modifier.width(10.dp))
-        Column {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.labelMedium,
-                fontWeight = FontWeight.Medium
-            )
-            Text(
-                text = description,
-                style = MaterialTheme.typography.bodySmall,
-                color = colors.onSurfaceVariant
-            )
-        }
     }
 }
 

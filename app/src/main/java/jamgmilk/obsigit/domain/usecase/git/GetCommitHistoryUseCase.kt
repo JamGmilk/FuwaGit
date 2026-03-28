@@ -1,12 +1,20 @@
 package jamgmilk.obsigit.domain.usecase.git
 
+import jamgmilk.obsigit.data.source.JGitDataSource
 import jamgmilk.obsigit.domain.model.GitCommit
-import jamgmilk.obsigit.domain.repository.GitRepository
+import java.io.File
 
-class GetCommitHistoryUseCase(
-    private val gitRepository: GitRepository
-) {
+class GetCommitHistoryUseCase {
+    
     suspend operator fun invoke(repoPath: String, maxCount: Int = 100): Result<List<GitCommit>> {
-        return gitRepository.getCommitHistory(repoPath, maxCount)
+        return try {
+            val dir = File(repoPath)
+            val commits = JGitDataSource.withGitLock { 
+                JGitDataSource.getLog(dir, maxCount) 
+            }
+            Result.success(commits)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
     }
 }

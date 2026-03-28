@@ -3,17 +3,13 @@ package jamgmilk.obsigit.domain.usecase.git
 import jamgmilk.obsigit.data.source.JGitDataSource
 import java.io.File
 
-class CommitChangesUseCase {
+class PullUseCase {
     
-    suspend operator fun invoke(repoPath: String, message: String): Result<String> {
-        if (message.isBlank()) {
-            return Result.failure(IllegalArgumentException("Commit message cannot be empty"))
-        }
-        
+    suspend operator fun invoke(repoPath: String): Result<String> {
         return try {
             val dir = File(repoPath)
             val result = JGitDataSource.withGitLock { 
-                JGitDataSource.commit(dir, message.trim()) 
+                JGitDataSource.pull(dir) 
             }
             Result.success(result)
         } catch (e: Exception) {

@@ -87,64 +87,39 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import jamgmilk.obsigit.ui.AppViewModel
-import jamgmilk.obsigit.ui.GitBranch
+import jamgmilk.obsigit.domain.model.GitBranch
 import jamgmilk.obsigit.ui.theme.ObsiGitThemeExtras
-
-data class BranchStats(
-    val totalBranches: Int,
-    val localBranches: Int,
-    val remoteBranches: Int,
-    val currentBranch: String?
-)
+import jamgmilk.obsigit.ui.components.ScreenTemplate
+import jamgmilk.obsigit.ui.components.RefreshAction
 
 @Composable
 fun BranchesModule(
-    viewModel: AppViewModel,
+    branchesViewModel: BranchesViewModel,
     modifier: Modifier = Modifier
 ) {
-    val branches by viewModel.branches.collectAsState()
-    val local = remember(branches) { branches.filter { !it.isRemote } }
-    val remote = remember(branches) { branches.filter { it.isRemote } }
-    val currentBranch = remember(branches) { branches.find { it.isCurrent }?.name }
+    val uiState by branchesViewModel.uiState.collectAsState()
+    val branches = uiState.branches
+    val local = uiState.localBranches
+    val remote = uiState.remoteBranches
+    val currentBranch = uiState.currentBranch?.name
     val colors = MaterialTheme.colorScheme
     val uiColors = ObsiGitThemeExtras.colors
 
-    val branchStats = remember(branches) {
-        BranchStats(
-            totalBranches = branches.size,
-            localBranches = local.size,
-            remoteBranches = remote.size,
-            currentBranch = currentBranch
-        )
-    }
-
     var showCreateDialog by remember { mutableStateOf(false) }
 
-    LaunchedEffect(Unit) {
-        viewModel.refreshWorkspace()
+    LaunchedEffect(uiState.repoPath) {
+        if (uiState.repoPath != null) {
+            branchesViewModel.loadBranches()
+        }
     }
 
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = "Branches",
-                style = MaterialTheme.typography.titleLarge,
-                color = colors.primary
-            )
+    ScreenTemplate(
+        title = "Branches",
+        modifier = modifier,
+        actions = {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 IconButton(
-                    onClick = { viewModel.refreshWorkspace() },
+                    onClick = { branchesViewModel.loadBranches() },
                     modifier = Modifier
                         .size(36.dp)
                         .background(colors.primaryContainer.copy(alpha = 0.3f), CircleShape)
@@ -171,16 +146,11 @@ fun BranchesModule(
                 }
             }
         }
-
-        BranchStatsCard(
-            stats = branchStats,
-            modifier = Modifier.fillMaxWidth()
-        )
-
+    ) {
         ElevatedCard(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(400.dp)
+                .height(500.dp)
                 .border(1.dp, uiColors.cardBorder, RoundedCornerShape(24.dp)),
             shape = RoundedCornerShape(24.dp),
             colors = CardDefaults.elevatedCardColors(containerColor = uiColors.cardContainer),
@@ -193,7 +163,7 @@ fun BranchesModule(
                     localBranches = local,
                     remoteBranches = remote,
                     currentBranch = currentBranch,
-                    viewModel = viewModel,
+                    branchesViewModel = branchesViewModel,
                     modifier = Modifier.fillMaxSize()
                 )
             }
@@ -204,135 +174,9 @@ fun BranchesModule(
         CreateBranchDialog(
             onDismiss = { showCreateDialog = false },
             onCreate = { name ->
-                viewModel.createBranch(name)
+                branchesViewModel.createBranch(name)
                 showCreateDialog = false
             }
-        )
-    }
-}
-
-@Composable
-private fun BranchStatsCard(
-    stats: BranchStats,
-    modifier: Modifier = Modifier
-) {
-    val colors = MaterialTheme.colorScheme
-    val uiColors = ObsiGitThemeExtras.colors
-
-    ElevatedCard(
-        modifier = modifier.border(1.dp, uiColors.cardBorder, RoundedCornerShape(20.dp)),
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.elevatedCardColors(containerColor = uiColors.cardContainer),
-        elevation = CardDefaults.elevatedCardElevation(0.dp)
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            Text(
-                text = "Branch Overview",
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.Bold
-            )
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                BranchStatItem(
-                    icon = Icons.Outlined.Source,
-                    label = "Total",
-                    value = stats.totalBranches.toString(),
-                    color = Color(0xFFE91E63),
-                    modifier = Modifier.weight(1f)
-                )
-                BranchStatItem(
-                    icon = Icons.Outlined.AccountTree,
-                    label = "Local",
-                    value = stats.localBranches.toString(),
-                    color = Color(0xFF4CAF50),
-                    modifier = Modifier.weight(1f)
-                )
-                BranchStatItem(
-                    icon = Icons.Default.Cloud,
-                    label = "Remote",
-                    value = stats.remoteBranches.toString(),
-                    color = Color(0xFF2196F3),
-                    modifier = Modifier.weight(1f)
-                )
-            }
-
-            stats.currentBranch?.let { branch ->
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(Color(0xFF4CAF50).copy(alpha = 0.1f))
-                        .padding(horizontal = 12.dp, vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Icon(
-                        Icons.Default.CheckCircle,
-                        contentDescription = null,
-                        tint = Color(0xFF4CAF50),
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Text(
-                        text = "Current:",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = colors.onSurfaceVariant
-                    )
-                    Text(
-                        text = branch,
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFF4CAF50),
-                        fontFamily = FontFamily.Monospace,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f)
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun BranchStatItem(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    label: String,
-    value: String,
-    color: Color,
-    modifier: Modifier = Modifier
-) {
-    val colors = MaterialTheme.colorScheme
-
-    Column(
-        modifier = modifier
-            .clip(RoundedCornerShape(12.dp))
-            .background(color.copy(alpha = 0.08f))
-            .padding(horizontal = 12.dp, vertical = 10.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(4.dp)
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = color,
-            modifier = Modifier.size(20.dp)
-        )
-        Text(
-            text = value,
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
-            color = color
-        )
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelSmall,
-            color = colors.onSurfaceVariant
         )
     }
 }
@@ -374,7 +218,7 @@ private fun BranchListContent(
     localBranches: List<GitBranch>,
     remoteBranches: List<GitBranch>,
     currentBranch: String?,
-    viewModel: AppViewModel,
+    branchesViewModel: BranchesViewModel,
     modifier: Modifier = Modifier
 ) {
     val colors = MaterialTheme.colorScheme
@@ -401,9 +245,9 @@ private fun BranchListContent(
                 BranchItem(
                     branch = branch,
                     isCurrent = branch.name == currentBranch,
-                    onCheckout = { viewModel.checkoutBranch(branch.name) },
-                    onMerge = { viewModel.mergeBranch(branch.name) },
-                    onDelete = { viewModel.deleteBranch(branch.name) }
+                    onCheckout = { branchesViewModel.checkoutBranch(branch.name) },
+                    onMerge = { branchesViewModel.mergeBranch(branch.name) },
+                    onDelete = { branchesViewModel.deleteBranch(branch.name) }
                 )
             }
         }
@@ -432,8 +276,8 @@ private fun BranchListContent(
                 BranchItem(
                     branch = branch,
                     isCurrent = branch.name == currentBranch,
-                    onCheckout = { viewModel.checkoutBranch(branch.name) },
-                    onMerge = { viewModel.mergeBranch(branch.name) },
+                    onCheckout = { branchesViewModel.checkoutBranch(branch.name) },
+                    onMerge = { branchesViewModel.mergeBranch(branch.name) },
                     onDelete = { },
                     isRemote = true
                 )

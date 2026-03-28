@@ -1,11 +1,19 @@
 package jamgmilk.obsigit.domain.usecase.git
 
-import jamgmilk.obsigit.domain.repository.GitRepository
+import jamgmilk.obsigit.data.source.JGitDataSource
+import java.io.File
 
-class PushChangesUseCase(
-    private val gitRepository: GitRepository
-) {
+class PushChangesUseCase {
+    
     suspend operator fun invoke(repoPath: String): Result<String> {
-        return gitRepository.push(repoPath)
+        return try {
+            val dir = File(repoPath)
+            val result = JGitDataSource.withGitLock { 
+                JGitDataSource.push(dir) 
+            }
+            Result.success(result)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
     }
 }
