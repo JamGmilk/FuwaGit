@@ -37,7 +37,7 @@ class SecureCredentialStore(private val context: Context) {
     
     private var cachedMasterKey: WeakReference<SecretKey>? = null
     private var lastUnlockTime: Long = 0
-    private val sessionTimeout: Long = 5 * 60 * 1000 // 5 minutes
+    private val sessionTimeout: Long = 5 * 60 * 1000
     
     fun loadPublicData(): PublicCredentialData {
         return try {
@@ -129,33 +129,28 @@ class SecureCredentialStore(private val context: Context) {
         }
     }
     
-    // HTTPS Credential Operations
     suspend fun addHttpsCredential(
         host: String,
         username: String,
-        password: String? = null,
-        pat: String? = null,
+        password: String,
         masterKey: SecretKey
     ): String {
-        val id = java.util.UUID.randomUUID().toString()
+        val uuid = java.util.UUID.randomUUID().toString()
         val now = System.currentTimeMillis()
         
         val publicData = loadPublicData()
         val publicCred = PublicHttpsCredential(
-            id = id,
+            uuid = uuid,
             host = host,
             username = username,
             created_at = now,
-            updated_at = now,
-            has_password = password != null,
-            has_pat = pat != null
+            updated_at = now
         )
         
         val privateData = loadPrivateData(masterKey)
         val privateCred = PrivateHttpsCredential(
-            id = id,
-            password = password,
-            pat = pat
+            uuid = uuid,
+            password = password
         )
         
         savePublicData(publicData.copy(
@@ -166,63 +161,58 @@ class SecureCredentialStore(private val context: Context) {
             https_credentials = privateData.https_credentials + privateCred
         ), masterKey)
         
-        return id
+        return uuid
     }
     
     suspend fun updateHttpsCredential(
-        id: String,
+        uuid: String,
         host: String? = null,
         username: String? = null,
         password: String? = null,
-        pat: String? = null,
         masterKey: SecretKey
     ) {
         val now = System.currentTimeMillis()
         
         val publicData = loadPublicData()
-        val existingPublicCred = publicData.https_credentials.find { it.id == id } ?: return
+        val existingPublicCred = publicData.https_credentials.find { it.uuid == uuid } ?: return
         val publicCred = existingPublicCred.copy(
             host = host ?: existingPublicCred.host,
             username = username ?: existingPublicCred.username,
-            updated_at = now,
-            has_password = password != null || existingPublicCred.has_password,
-            has_pat = pat != null || existingPublicCred.has_pat
+            updated_at = now
         )
         
         val privateData = loadPrivateData(masterKey)
-        val existingPrivateCred = privateData.https_credentials.find { it.id == id } ?: return
+        val existingPrivateCred = privateData.https_credentials.find { it.uuid == uuid } ?: return
         val privateCred = existingPrivateCred.copy(
-            password = password ?: existingPrivateCred.password,
-            pat = pat ?: existingPrivateCred.pat
+            password = password ?: existingPrivateCred.password
         )
         
         savePublicData(publicData.copy(
             https_credentials = publicData.https_credentials.map { 
-                if (it.id == id) publicCred else it 
+                if (it.uuid == uuid) publicCred else it 
             }
         ))
         
         savePrivateData(privateData.copy(
             https_credentials = privateData.https_credentials.map { 
-                if (it.id == id) privateCred else it 
+                if (it.uuid == uuid) privateCred else it 
             }
         ), masterKey)
     }
     
-    suspend fun deleteHttpsCredential(id: String, masterKey: SecretKey) {
+    suspend fun deleteHttpsCredential(uuid: String, masterKey: SecretKey) {
         val publicData = loadPublicData()
         val privateData = loadPrivateData(masterKey)
         
         savePublicData(publicData.copy(
-            https_credentials = publicData.https_credentials.filter { it.id != id }
+            https_credentials = publicData.https_credentials.filter { it.uuid != uuid }
         ))
         
         savePrivateData(privateData.copy(
-            https_credentials = privateData.https_credentials.filter { it.id != id }
+            https_credentials = privateData.https_credentials.filter { it.uuid != uuid }
         ), masterKey)
     }
     
-    // SSH Key Operations
     suspend fun addSshKey(
         name: String,
         type: String,
@@ -233,12 +223,12 @@ class SecureCredentialStore(private val context: Context) {
         comment: String = "",
         masterKey: SecretKey
     ): String {
-        val id = java.util.UUID.randomUUID().toString()
+        val uuid = java.util.UUID.randomUUID().toString()
         val now = System.currentTimeMillis()
         
         val publicData = loadPublicData()
         val newPublicKey = PublicSshKey(
-            id = id,
+            uuid = uuid,
             name = name,
             type = type,
             public_key = publicKey,
@@ -251,7 +241,7 @@ class SecureCredentialStore(private val context: Context) {
         
         val privateData = loadPrivateData(masterKey)
         val newPrivateKey = PrivateSshKey(
-            id = id,
+            uuid = uuid,
             private_key = privateKey,
             passphrase = passphrase
         )
@@ -264,40 +254,35 @@ class SecureCredentialStore(private val context: Context) {
             ssh_keys = privateData.ssh_keys + newPrivateKey
         ), masterKey)
         
-        return id
+        return uuid
     }
     
-    suspend fun deleteSshKey(id: String, masterKey: SecretKey) {
+    suspend fun deleteSshKey(uuid: String, masterKey: SecretKey) {
         val publicData = loadPublicData()
         val privateData = loadPrivateData(masterKey)
         
         savePublicData(publicData.copy(
-            ssh_keys = publicData.ssh_keys.filter { it.id != id }
+            ssh_keys = publicData.ssh_keys.filter { it.uuid != uuid }
         ))
         
         savePrivateData(privateData.copy(
-            ssh_keys = privateData.ssh_keys.filter { it.id != id }
+            ssh_keys = privateData.ssh_keys.filter { it.uuid != uuid }
         ), masterKey)
     }
     
-    suspend fun getHttpsPassword(id: String, masterKey: SecretKey): String? {
+    suspend fun getHttpsPassword(uuid: String, masterKey: SecretKey): String? {
         val privateData = loadPrivateData(masterKey)
-        return privateData.https_credentials.find { it.id == id }?.password
+        return privateData.https_credentials.find { it.uuid == uuid }?.password
     }
     
-    suspend fun getHttpsPat(id: String, masterKey: SecretKey): String? {
+    suspend fun getSshPrivateKey(uuid: String, masterKey: SecretKey): String? {
         val privateData = loadPrivateData(masterKey)
-        return privateData.https_credentials.find { it.id == id }?.pat
+        return privateData.ssh_keys.find { it.uuid == uuid }?.private_key
     }
     
-    suspend fun getSshPrivateKey(id: String, masterKey: SecretKey): String? {
+    suspend fun getSshPassphrase(uuid: String, masterKey: SecretKey): String? {
         val privateData = loadPrivateData(masterKey)
-        return privateData.ssh_keys.find { it.id == id }?.private_key
-    }
-    
-    suspend fun getSshPassphrase(id: String, masterKey: SecretKey): String? {
-        val privateData = loadPrivateData(masterKey)
-        return privateData.ssh_keys.find { it.id == id }?.passphrase
+        return privateData.ssh_keys.find { it.uuid == uuid }?.passphrase
     }
     
     private fun encrypt(data: ByteArray, key: SecretKey): ByteArray {

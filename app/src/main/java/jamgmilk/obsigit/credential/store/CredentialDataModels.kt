@@ -13,18 +13,16 @@ data class PublicCredentialData(
 
 @Serializable
 data class PublicHttpsCredential(
-    val id: String,
+    val uuid: String,
     val host: String,
     val username: String,
     val created_at: Long = System.currentTimeMillis(),
-    val updated_at: Long = System.currentTimeMillis(),
-    val has_password: Boolean = false,
-    val has_pat: Boolean = false
+    val updated_at: Long = System.currentTimeMillis()
 )
 
 @Serializable
 data class PublicSshKey(
-    val id: String,
+    val uuid: String,
     val name: String,
     val type: String,
     val public_key: String,
@@ -45,15 +43,13 @@ data class PrivateCredentialData(
 
 @Serializable
 data class PrivateHttpsCredential(
-    val id: String,
-    val password: String? = null,
-    val pat: String? = null,
-    val pat_scopes: List<String> = emptyList()
+    val uuid: String,
+    val password: String
 )
 
 @Serializable
 data class PrivateSshKey(
-    val id: String,
+    val uuid: String,
     val private_key: String,
     val passphrase: String? = null
 )

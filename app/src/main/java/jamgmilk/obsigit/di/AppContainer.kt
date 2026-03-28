@@ -1,13 +1,7 @@
 package jamgmilk.obsigit.di
 
-import android.content.Context
-import jamgmilk.obsigit.data.repository.CredentialRepositoryImpl
 import jamgmilk.obsigit.data.repository.GitRepositoryImpl
-import jamgmilk.obsigit.domain.repository.CredentialRepository
 import jamgmilk.obsigit.domain.repository.GitRepository
-import jamgmilk.obsigit.domain.usecase.credential.GetCredentialsUseCase
-import jamgmilk.obsigit.domain.usecase.credential.ManageSshKeysUseCase
-import jamgmilk.obsigit.domain.usecase.credential.SaveCredentialUseCase
 import jamgmilk.obsigit.domain.usecase.git.CommitChangesUseCase
 import jamgmilk.obsigit.domain.usecase.git.CreateBranchUseCase
 import jamgmilk.obsigit.domain.usecase.git.GetBranchesUseCase
@@ -21,26 +15,15 @@ import jamgmilk.obsigit.domain.usecase.git.UnstageAllUseCase
 import jamgmilk.obsigit.domain.usecase.git.UnstageFileUseCase
 import jamgmilk.obsigit.ui.screen.branches.BranchesViewModel
 import jamgmilk.obsigit.ui.screen.credentials.CredentialsStoreViewModel
-import jamgmilk.obsigit.ui.screen.credentials.CredentialsViewModel
 import jamgmilk.obsigit.ui.screen.history.HistoryViewModel
 import jamgmilk.obsigit.ui.screen.status.StatusViewModel
 
 object AppContainer {
     
     private var _gitRepository: GitRepository? = null
-    private var _credentialRepository: CredentialRepository? = null
     
     val gitRepository: GitRepository
         get() = _gitRepository ?: GitRepositoryImpl().also { _gitRepository = it }
-    
-    fun initCredentialRepository(context: Context) {
-        if (_credentialRepository == null) {
-            _credentialRepository = CredentialRepositoryImpl(context.applicationContext)
-        }
-    }
-    
-    val credentialRepository: CredentialRepository
-        get() = _credentialRepository ?: throw IllegalStateException("CredentialRepository not initialized. Call initCredentialRepository first.")
     
     // Git UseCases - all inject gitRepository
     private val getWorkspaceStatusUseCase: GetWorkspaceStatusUseCase
@@ -76,25 +59,7 @@ object AppContainer {
     private val createBranchUseCase: CreateBranchUseCase
         get() = CreateBranchUseCase(gitRepository)
     
-    // Credential UseCases
-    private val saveCredentialUseCase: SaveCredentialUseCase
-        get() = SaveCredentialUseCase(credentialRepository)
-    
-    private val getCredentialsUseCase: GetCredentialsUseCase
-        get() = GetCredentialsUseCase(credentialRepository)
-    
-    private val manageSshKeysUseCase: ManageSshKeysUseCase
-        get() = ManageSshKeysUseCase(credentialRepository)
-    
     // ViewModels
-    fun createCredentialsViewModel(): CredentialsViewModel {
-        return CredentialsViewModel(
-            saveCredentialUseCase = saveCredentialUseCase,
-            getCredentialsUseCase = getCredentialsUseCase,
-            manageSshKeysUseCase = manageSshKeysUseCase
-        )
-    }
-    
     fun createCredentialsStoreViewModel(): CredentialsStoreViewModel {
         return CredentialsStoreViewModel()
     }
