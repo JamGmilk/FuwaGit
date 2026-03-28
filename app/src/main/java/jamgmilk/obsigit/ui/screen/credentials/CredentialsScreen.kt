@@ -228,7 +228,7 @@ fun CredentialsScreen(
             AddHttpsCredentialDialog(
                 onDismiss = { dialogState = CredentialDialogState.None },
                 onAdd = { host, username, password ->
-                    viewModel.addHttpsCredential(host, username, password, null)
+                    viewModel.addHttpsCredential(host, username, password)
                     dialogState = CredentialDialogState.None
                 }
             )
@@ -275,7 +275,7 @@ fun CredentialsScreen(
                 snackbarHostState = snackbarHostState,
                 onDismiss = { dialogState = CredentialDialogState.None },
                 onDelete = {
-                    viewModel.deleteHttpsCredential(state.credential.id)
+                    viewModel.deleteHttpsCredential(state.credential.uuid)
                     dialogState = CredentialDialogState.None
                 }
             )
@@ -287,7 +287,7 @@ fun CredentialsScreen(
                 snackbarHostState = snackbarHostState,
                 onDismiss = { dialogState = CredentialDialogState.None },
                 onDelete = {
-                    viewModel.deleteSshKey(state.key.id)
+                    viewModel.deleteSshKey(state.key.uuid)
                     dialogState = CredentialDialogState.None
                 }
             )
@@ -669,36 +669,6 @@ private fun HttpsCredentialItem(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
-                if (credential.has_password) {
-                    Text(
-                        text = "•",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = colors.onSurfaceVariant
-                    )
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier
-                            .background(
-                                Color(0xFF4CAF50).copy(alpha = 0.1f),
-                                RoundedCornerShape(4.dp)
-                            )
-                            .padding(horizontal = 6.dp, vertical = 2.dp)
-                    ) {
-                        Icon(
-                            Icons.Default.Password,
-                            contentDescription = null,
-                            tint = Color(0xFF4CAF50),
-                            modifier = Modifier.size(10.dp)
-                        )
-                        Spacer(Modifier.width(2.dp))
-                        Text(
-                            text = "Password",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = Color(0xFF4CAF50),
-                            fontSize = 10.sp
-                        )
-                    }
-                }
             }
         }
 
@@ -974,14 +944,11 @@ private fun HttpsCredentialInfoDialog(
     val context = LocalContext.current
 
     var passwordValue by remember { mutableStateOf<String?>(null) }
-    var patValue by remember { mutableStateOf<String?>(null) }
     var showPassword by remember { mutableStateOf(false) }
-    var showPat by remember { mutableStateOf(false) }
     var showDeleteConfirm by remember { mutableStateOf(false) }
 
-    LaunchedEffect(credential.id) {
-        passwordValue = viewModel.getHttpsPassword(credential.id)
-        patValue = viewModel.getHttpsPat(credential.id)
+    LaunchedEffect(credential.uuid) {
+        passwordValue = viewModel.getHttpsPassword(credential.uuid)
     }
 
     if (showDeleteConfirm) {
@@ -1038,38 +1005,20 @@ private fun HttpsCredentialInfoDialog(
                     }
                 )
                 HorizontalDivider(color = colors.outline.copy(alpha = 0.2f))
-                if (credential.has_password && passwordValue != null) {
-                    SensitiveInfoRow(
-                        label = "Password",
-                        value = passwordValue ?: "",
-                        isSensitive = true,
-                        isRevealed = showPassword,
-                        onToggleReveal = { showPassword = !showPassword },
-                        onCopy = {
-                            clipboardManager.setText(AnnotatedString(passwordValue ?: ""))
-                            scope.launch {
-                                snackbarHostState.showSnackbar(message = "Password copied", duration = SnackbarDuration.Short)
-                            }
+                SensitiveInfoRow(
+                    label = "Password",
+                    value = passwordValue ?: "",
+                    isSensitive = true,
+                    isRevealed = showPassword,
+                    onToggleReveal = { showPassword = !showPassword },
+                    onCopy = {
+                        clipboardManager.setText(AnnotatedString(passwordValue ?: ""))
+                        scope.launch {
+                            snackbarHostState.showSnackbar(message = "Password copied", duration = SnackbarDuration.Short)
                         }
-                    )
-                    HorizontalDivider(color = colors.outline.copy(alpha = 0.2f))
-                }
-                if (credential.has_pat && patValue != null) {
-                    SensitiveInfoRow(
-                        label = "PAT",
-                        value = patValue ?: "",
-                        isSensitive = true,
-                        isRevealed = showPat,
-                        onToggleReveal = { showPat = !showPat },
-                        onCopy = {
-                            clipboardManager.setText(AnnotatedString(patValue ?: ""))
-                            scope.launch {
-                                snackbarHostState.showSnackbar(message = "PAT copied", duration = SnackbarDuration.Short)
-                            }
-                        }
-                    )
-                    HorizontalDivider(color = colors.outline.copy(alpha = 0.2f))
-                }
+                    }
+                )
+                HorizontalDivider(color = colors.outline.copy(alpha = 0.2f))
                 InfoRow(label = "Created", value = formatTimestamp(credential.created_at))
                 HorizontalDivider(color = colors.outline.copy(alpha = 0.2f))
                 InfoRow(label = "Updated", value = formatTimestamp(credential.updated_at))
@@ -1112,8 +1061,8 @@ private fun SshKeyInfoDialog(
     var showPrivateKey by remember { mutableStateOf(false) }
     var showDeleteConfirm by remember { mutableStateOf(false) }
 
-    LaunchedEffect(key.id) {
-        privateKeyValue = viewModel.getSshPrivateKey(key.id)
+    LaunchedEffect(key.uuid) {
+        privateKeyValue = viewModel.getSshPrivateKey(key.uuid)
     }
 
     if (showDeleteConfirm) {
@@ -1846,36 +1795,117 @@ private fun ImportSshKeyDialog(
 
 private fun generateSshKeyPair(type: String): Pair<String, String> {
     return try {
-        val keyPairGenerator = when (type) {
-            "RSA" -> java.security.KeyPairGenerator.getInstance("RSA").apply { initialize(4096) }
-            else -> java.security.KeyPairGenerator.getInstance("Ed25519")
+        when (type) {
+            "RSA" -> generateRsaKeyPair()
+            else -> generateEd25519KeyPair()
         }
-        val keyPair = keyPairGenerator.generateKeyPair()
-
-        val publicKey = when (type) {
-            "RSA" -> {
-                val rsaPublicKey = keyPair.public as java.security.interfaces.RSAPublicKey
-                "ssh-rsa ${java.util.Base64.getEncoder().encodeToString(rsaPublicKey.encoded)}"
-            }
-            else -> {
-                "ssh-ed25519 ${java.util.Base64.getEncoder().encodeToString(keyPair.public.encoded)}"
-            }
-        }
-
-        val privateKey = java.util.Base64.getEncoder().encodeToString(keyPair.private.encoded)
-
-        Pair(publicKey, privateKey)
     } catch (e: Exception) {
         Pair("", "")
     }
 }
 
+private fun generateRsaKeyPair(): Pair<String, String> {
+    val keyPairGenerator = java.security.KeyPairGenerator.getInstance("RSA")
+    keyPairGenerator.initialize(4096)
+    val keyPair = keyPairGenerator.generateKeyPair()
+    
+    val publicKey = keyPair.public as java.security.interfaces.RSAPublicKey
+    val publicKeyEncoded = encodeRsaPublicKey(publicKey)
+    
+    val privateKey = encodeRsaPrivateKey(keyPair.private as java.security.interfaces.RSAPrivateKey)
+    
+    return Pair(publicKeyEncoded, privateKey)
+}
+
+private fun encodeRsaPublicKey(publicKey: java.security.interfaces.RSAPublicKey): String {
+    val byteStream = java.io.ByteArrayOutputStream()
+    val dos = java.io.DataOutputStream(byteStream)
+    
+    dos.writeInt(7)
+    dos.write("ssh-rsa".toByteArray())
+    
+    val exponent = publicKey.publicExponent
+    val modulus = publicKey.modulus
+    
+    dos.writeInt(exponent.toByteArray().size)
+    dos.write(exponent.toByteArray())
+    
+    dos.writeInt(modulus.toByteArray().size)
+    dos.write(modulus.toByteArray())
+    
+    return "ssh-rsa ${java.util.Base64.getEncoder().encodeToString(byteStream.toByteArray())}"
+}
+
+private fun encodeRsaPrivateKey(privateKey: java.security.interfaces.RSAPrivateKey): String {
+    val pkcs8Encoded = privateKey.encoded
+    val base64 = java.util.Base64.getMimeEncoder(64, "\n".toByteArray())
+    val keyContent = base64.encodeToString(pkcs8Encoded)
+    return "-----BEGIN PRIVATE KEY-----\n$keyContent\n-----END PRIVATE KEY-----"
+}
+
+private fun generateEd25519KeyPair(): Pair<String, String> {
+    val keyPairGenerator = java.security.KeyPairGenerator.getInstance("Ed25519")
+    val keyPair = keyPairGenerator.generateKeyPair()
+    
+    val publicKey = keyPair.public
+    val privateKey = keyPair.private
+    
+    val publicKeyEncoded = encodeEd25519PublicKey(publicKey)
+    val privateKeyEncoded = encodeEd25519PrivateKey(privateKey)
+    
+    return Pair(publicKeyEncoded, privateKeyEncoded)
+}
+
+private fun encodeEd25519PublicKey(publicKey: java.security.PublicKey): String {
+    val byteStream = java.io.ByteArrayOutputStream()
+    val dos = java.io.DataOutputStream(byteStream)
+    
+    dos.writeInt(11)
+    dos.write("ssh-ed25519".toByteArray())
+    
+    val encoded = publicKey.encoded
+    val keyBytes = extractEd25519PublicKeyBytes(encoded)
+    
+    dos.writeInt(keyBytes.size)
+    dos.write(keyBytes)
+    
+    return "ssh-ed25519 ${java.util.Base64.getEncoder().encodeToString(byteStream.toByteArray())}"
+}
+
+private fun extractEd25519PublicKeyBytes(encoded: ByteArray): ByteArray {
+    var idx = 0
+    if (encoded[idx++].toInt() and 0xFF != 0x30) throw IllegalArgumentException("Invalid Ed25519 public key")
+    idx++
+    
+    if (encoded[idx++].toInt() and 0xFF != 0x30) throw IllegalArgumentException("Invalid Ed25519 public key")
+    idx++
+    
+    if (encoded[idx++].toInt() and 0xFF != 0x06) throw IllegalArgumentException("Invalid Ed25519 public key")
+    val oidLen = encoded[idx++].toInt() and 0xFF
+    idx += oidLen
+    
+    if (encoded[idx++].toInt() and 0xFF != 0x03) throw IllegalArgumentException("Invalid Ed25519 public key")
+    idx++
+    
+    if (encoded[idx++].toInt() and 0xFF != 0x00) throw IllegalArgumentException("Invalid Ed25519 public key")
+    
+    return encoded.copyOfRange(idx, encoded.size)
+}
+
+private fun encodeEd25519PrivateKey(privateKey: java.security.PrivateKey): String {
+    val pkcs8Encoded = privateKey.encoded
+    val base64 = java.util.Base64.getMimeEncoder(64, "\n".toByteArray())
+    val keyContent = base64.encodeToString(pkcs8Encoded)
+    return "-----BEGIN PRIVATE KEY-----\n$keyContent\n-----END PRIVATE KEY-----"
+}
+
 private fun calculateFingerprint(publicKey: String): String {
     return try {
-        val keyBytes = publicKey.toByteArray()
+        val keyPart = publicKey.substringAfter(" ").substringBefore(" ")
+        val keyBytes = java.util.Base64.getDecoder().decode(keyPart)
         val md = java.security.MessageDigest.getInstance("SHA-256")
         val digest = md.digest(keyBytes)
-        digest.joinToString(":") { "%02x".format(it) }
+        "SHA256:${java.util.Base64.getEncoder().withoutPadding().encodeToString(digest)}"
     } catch (e: Exception) {
         "unknown"
     }
