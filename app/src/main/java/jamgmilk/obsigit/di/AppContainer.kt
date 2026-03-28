@@ -9,12 +9,23 @@ import jamgmilk.obsigit.domain.usecase.credential.GetCredentialsUseCase
 import jamgmilk.obsigit.domain.usecase.credential.ManageSshKeysUseCase
 import jamgmilk.obsigit.domain.usecase.credential.SaveCredentialUseCase
 import jamgmilk.obsigit.domain.usecase.git.CommitChangesUseCase
+import jamgmilk.obsigit.domain.usecase.git.GetBranchesUseCase
 import jamgmilk.obsigit.domain.usecase.git.GetCommitHistoryUseCase
 import jamgmilk.obsigit.domain.usecase.git.GetRepoStatusUseCase
+import jamgmilk.obsigit.domain.usecase.git.GetWorkspaceStatusUseCase
 import jamgmilk.obsigit.domain.usecase.git.ManageBranchesUseCase
 import jamgmilk.obsigit.domain.usecase.git.PullChangesUseCase
+import jamgmilk.obsigit.domain.usecase.git.PullUseCase
 import jamgmilk.obsigit.domain.usecase.git.PushChangesUseCase
+import jamgmilk.obsigit.domain.usecase.git.PushUseCase
+import jamgmilk.obsigit.domain.usecase.git.StageAllUseCase
+import jamgmilk.obsigit.domain.usecase.git.StageFileUseCase
+import jamgmilk.obsigit.domain.usecase.git.UnstageAllUseCase
+import jamgmilk.obsigit.domain.usecase.git.UnstageFileUseCase
+import jamgmilk.obsigit.ui.screen.branches.BranchesViewModel
 import jamgmilk.obsigit.ui.screen.credentials.CredentialsViewModel
+import jamgmilk.obsigit.ui.screen.history.HistoryViewModel
+import jamgmilk.obsigit.ui.screen.status.StatusViewModel
 
 object AppContainer {
     
@@ -35,22 +46,46 @@ object AppContainer {
     
     // Git UseCases
     val getRepoStatusUseCase: GetRepoStatusUseCase
-        get() = GetRepoStatusUseCase(gitRepository)
+        get() = GetRepoStatusUseCase()
     
     val getCommitHistoryUseCase: GetCommitHistoryUseCase
-        get() = GetCommitHistoryUseCase(gitRepository)
+        get() = GetCommitHistoryUseCase()
     
     val commitChangesUseCase: CommitChangesUseCase
-        get() = CommitChangesUseCase(gitRepository)
+        get() = CommitChangesUseCase()
     
     val pullChangesUseCase: PullChangesUseCase
-        get() = PullChangesUseCase(gitRepository)
+        get() = PullChangesUseCase()
     
     val pushChangesUseCase: PushChangesUseCase
-        get() = PushChangesUseCase(gitRepository)
+        get() = PushChangesUseCase()
     
     val manageBranchesUseCase: ManageBranchesUseCase
-        get() = ManageBranchesUseCase(gitRepository)
+        get() = ManageBranchesUseCase()
+    
+    val getWorkspaceStatusUseCase: GetWorkspaceStatusUseCase
+        get() = GetWorkspaceStatusUseCase()
+    
+    val getBranchesUseCase: GetBranchesUseCase
+        get() = GetBranchesUseCase()
+    
+    val stageAllUseCase: StageAllUseCase
+        get() = StageAllUseCase()
+    
+    val unstageAllUseCase: UnstageAllUseCase
+        get() = UnstageAllUseCase()
+    
+    val stageFileUseCase: StageFileUseCase
+        get() = StageFileUseCase()
+    
+    val unstageFileUseCase: UnstageFileUseCase
+        get() = UnstageFileUseCase()
+    
+    val pullUseCase: PullUseCase
+        get() = PullUseCase()
+    
+    val pushUseCase: PushUseCase
+        get() = PushUseCase()
     
     // Credential UseCases
     val saveCredentialUseCase: SaveCredentialUseCase
@@ -69,5 +104,27 @@ object AppContainer {
             getCredentialsUseCase = getCredentialsUseCase,
             manageSshKeysUseCase = manageSshKeysUseCase
         )
+    }
+    
+    fun createStatusViewModel(): StatusViewModel {
+        return StatusViewModel(
+            getWorkspaceStatusUseCase = getWorkspaceStatusUseCase,
+            getBranchesUseCase = getBranchesUseCase,
+            stageAllUseCase = stageAllUseCase,
+            unstageAllUseCase = unstageAllUseCase,
+            stageFileUseCase = stageFileUseCase,
+            unstageFileUseCase = unstageFileUseCase,
+            commitChangesUseCase = commitChangesUseCase,
+            pullUseCase = pullUseCase,
+            pushUseCase = pushUseCase
+        )
+    }
+    
+    fun createHistoryViewModel(): HistoryViewModel {
+        return HistoryViewModel()
+    }
+    
+    fun createBranchesViewModel(): BranchesViewModel {
+        return BranchesViewModel()
     }
 }

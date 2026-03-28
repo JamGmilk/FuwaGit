@@ -1,5 +1,9 @@
-package jamgmilk.obsigit.ui
+package jamgmilk.obsigit.data.source
 
+import jamgmilk.obsigit.domain.model.GitBranch
+import jamgmilk.obsigit.domain.model.GitChangeType
+import jamgmilk.obsigit.domain.model.GitCommit
+import jamgmilk.obsigit.domain.model.GitFileStatus
 import org.eclipse.jgit.api.Git
 import org.eclipse.jgit.api.ListBranchCommand
 import org.eclipse.jgit.api.errors.JGitInternalException
@@ -10,12 +14,12 @@ import java.io.File
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
-internal data class GitRepoStatus(
+data class GitRepoStatus(
     val isGitRepo: Boolean,
     val message: String
 )
 
-internal object AppGitOps {
+object JGitDataSource {
     private val gitMutex = Mutex()
 
     suspend fun <T> withGitLock(block: suspend () -> T): T = gitMutex.withLock {
@@ -32,7 +36,6 @@ internal object AppGitOps {
                 if (lockFile != null && lockFile.exists()) {
                     lockFile.delete()
                 }
-                // Retry once
                 Git.open(dir).use { git -> block(git) }
             } else {
                 throw e
@@ -50,8 +53,7 @@ internal object AppGitOps {
                 val status = git.status().call()
                 GitRepoStatus(
                     isGitRepo = true,
-
-                    message = "Path: ${AppRepoOps.shortDisplayPath(dir)}\n" +
+                    message = "Path: ${RepoPathUtils.shortDisplayPath(dir)}\n" +
                         "Branch: ${git.repository.branch}\n" +
                         "Uncommitted: ${status.hasUncommittedChanges()}\n" +
                         "Untracked: ${status.untracked.size}"
@@ -60,12 +62,12 @@ internal object AppGitOps {
         } catch (_: RepositoryNotFoundException) {
             GitRepoStatus(
                 isGitRepo = false,
-                message = "Path: ${AppRepoOps.shortDisplayPath(dir)}\nNot a Git repository"
+                message = "Path: ${RepoPathUtils.shortDisplayPath(dir)}\nNot a Git repository"
             )
         } catch (_: Exception) {
             GitRepoStatus(
                 isGitRepo = false,
-                message = "Path: ${AppRepoOps.shortDisplayPath(dir)}\nError reading status"
+                message = "Path: ${RepoPathUtils.shortDisplayPath(dir)}\nError reading status"
             )
         }
     }
@@ -76,17 +78,14 @@ internal object AppGitOps {
             runGit(dir) { git ->
                 val status = git.status().call()
 
-                // Staged
                 status.added.forEach { result.add(GitFileStatus(it, File(it).name, true, GitChangeType.Added)) }
                 status.changed.forEach { result.add(GitFileStatus(it, File(it).name, true, GitChangeType.Modified)) }
                 status.removed.forEach { result.add(GitFileStatus(it, File(it).name, true, GitChangeType.Removed)) }
 
-                // Unstaged
                 status.modified.forEach { result.add(GitFileStatus(it, File(it).name, false, GitChangeType.Modified)) }
                 status.untracked.forEach { result.add(GitFileStatus(it, File(it).name, false, GitChangeType.Untracked)) }
                 status.missing.forEach { result.add(GitFileStatus(it, File(it).name, false, GitChangeType.Removed)) }
                 
-                // Conflicting
                 status.conflicting.forEach { result.add(GitFileStatus(it, File(it).name, false, GitChangeType.Conflicting)) }
             }
         } catch (_: Exception) {}
@@ -120,13 +119,11 @@ internal object AppGitOps {
                 val repo = git.repository
                 val currentBranch = try { repo.branch } catch(_: Exception) { null }
 
-                // Local branches
                 git.branchList().call().forEach { ref ->
                     val name = Repository.shortenRefName(ref.name)
                     result.add(GitBranch(name, ref.name, false, name == currentBranch))
                 }
 
-                // Remote branches
                 git.branchList().setListMode(ListBranchCommand.ListMode.REMOTE).call().forEach { ref ->
                     val name = Repository.shortenRefName(ref.name)
                     result.add(GitBranch(name, ref.name, true, false))
@@ -155,7 +152,7 @@ internal object AppGitOps {
             dir.mkdirs()
         }
         Git.init().setDirectory(dir).call().use { }
-        return "Initialized repository in ${AppRepoOps.shortDisplayPath(dir)}"
+        return "Initialized repository in ${RepoPathUtils.shortDisplayPath(dir)}"
     }
 
     fun stageAll(dir: File): String {

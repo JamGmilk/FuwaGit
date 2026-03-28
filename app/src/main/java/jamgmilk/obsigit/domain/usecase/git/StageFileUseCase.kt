@@ -3,15 +3,15 @@ package jamgmilk.obsigit.domain.usecase.git
 import jamgmilk.obsigit.data.source.JGitDataSource
 import java.io.File
 
-class PullChangesUseCase {
+class StageFileUseCase {
     
-    suspend operator fun invoke(repoPath: String): Result<String> {
+    suspend operator fun invoke(repoPath: String, filePath: String): Result<Unit> {
         return try {
             val dir = File(repoPath)
-            val result = JGitDataSource.withGitLock { 
-                JGitDataSource.pull(dir) 
+            JGitDataSource.withGitLock { 
+                JGitDataSource.stageFile(dir, filePath) 
             }
-            Result.success(result)
+            Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)
         }

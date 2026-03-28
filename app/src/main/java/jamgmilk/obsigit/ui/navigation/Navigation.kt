@@ -6,13 +6,20 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import jamgmilk.obsigit.di.AppContainer
 import jamgmilk.obsigit.ui.AppViewModel
-import jamgmilk.obsigit.ui.StatusModule
+import jamgmilk.obsigit.ui.screen.status.StatusModule
+import jamgmilk.obsigit.ui.screen.status.StatusViewModel
 import jamgmilk.obsigit.ui.screen.branches.BranchesModule
+import jamgmilk.obsigit.ui.screen.branches.BranchesViewModel
 import jamgmilk.obsigit.ui.screen.history.HistoryModule
+import jamgmilk.obsigit.ui.screen.history.HistoryViewModel
 import jamgmilk.obsigit.ui.screen.repo.RepoScreen
 import jamgmilk.obsigit.ui.screen.settings.SettingsScreen
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -44,6 +51,17 @@ fun ObsiGitNavHost(
         initialPage = currentScreen.index,
         pageCount = { screens.size }
     )
+
+    val statusViewModel = remember { AppContainer.createStatusViewModel() }
+    val historyViewModel = remember { AppContainer.createHistoryViewModel() }
+    val branchesViewModel = remember { AppContainer.createBranchesViewModel() }
+    val targetPath by viewModel.targetPath.collectAsState()
+    
+    LaunchedEffect(targetPath) {
+        statusViewModel.setRepoPath(targetPath)
+        historyViewModel.setRepoPath(targetPath)
+        branchesViewModel.setRepoPath(targetPath)
+    }
 
     LaunchedEffect(pagerState) {
         snapshotFlow { pagerState.settledPage }
@@ -79,15 +97,15 @@ fun ObsiGitNavHost(
         
         when (screen) {
             Screen.Status -> StatusModule(
-                viewModel = viewModel,
+                statusViewModel = statusViewModel,
                 modifier = Modifier.fillMaxSize()
             )
             Screen.History -> HistoryModule(
-                viewModel = viewModel,
+                historyViewModel = historyViewModel,
                 modifier = Modifier.fillMaxSize()
             )
             Screen.Branches -> BranchesModule(
-                viewModel = viewModel,
+                branchesViewModel = branchesViewModel,
                 modifier = Modifier.fillMaxSize()
             )
             Screen.Repo -> RepoScreen(
@@ -96,10 +114,6 @@ fun ObsiGitNavHost(
                 onNavigateToStatus = { onScreenChange(Screen.Status) }
             )
             Screen.Settings -> SettingsScreen(
-                viewModel = viewModel,
-                modifier = Modifier.fillMaxSize()
-            )
-            else -> StatusModule(
                 viewModel = viewModel,
                 modifier = Modifier.fillMaxSize()
             )
