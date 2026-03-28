@@ -160,4 +160,18 @@ class GitRepositoryImpl : GitRepository {
     override suspend fun hasGitDir(path: String?): Boolean = withContext(Dispatchers.IO) {
         JGitDataSource.hasGitDir(path)
     }
+    
+    override suspend fun getRepoInfo(localPath: String): Map<String, String> = withContext(Dispatchers.IO) {
+        JGitDataSource.getRepoInfo(File(localPath))
+    }
+    
+    override suspend fun getRemoteUrl(localPath: String, name: String): String? = withContext(Dispatchers.IO) {
+        JGitDataSource.getRemoteUrl(File(localPath), name)
+    }
+    
+    override suspend fun configureRemote(localPath: String, name: String, url: String): Result<String> = withContext(Dispatchers.IO) {
+        runCatching {
+            JGitDataSource.configureRemote(File(localPath), name, url)
+        }
+    }
 }

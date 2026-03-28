@@ -89,6 +89,13 @@ class CredentialRepositoryImpl(context: Context) : CredentialRepository {
         }
     }
 
+    override suspend fun updateHttpsCredential(uuid: String, host: String?, username: String?, password: String?): AppResult<Unit> {
+        return AppResult.catching {
+            val key = getMasterKey()
+            secureStore.updateHttpsCredential(uuid, host, username, password, key)
+        }
+    }
+
     override suspend fun deleteHttpsCredential(uuid: String): AppResult<Unit> {
         return AppResult.catching {
             secureStore.deleteHttpsCredential(uuid)

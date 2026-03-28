@@ -45,4 +45,10 @@ interface GitRepository {
     suspend fun deleteBranch(repoPath: String, branchName: String, force: Boolean): Result<Unit>
     
     suspend fun hasGitDir(path: String?): Boolean
+    
+    suspend fun getRepoInfo(localPath: String): Map<String, String>
+    
+    suspend fun getRemoteUrl(localPath: String, name: String = "origin"): String?
+    
+    suspend fun configureRemote(localPath: String, name: String, url: String): Result<String>
 }

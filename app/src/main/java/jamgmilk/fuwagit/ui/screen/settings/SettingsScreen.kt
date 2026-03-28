@@ -1,5 +1,6 @@
 package jamgmilk.fuwagit.ui.screen.settings
 
+import android.content.Intent
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.tween
@@ -55,21 +56,25 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.core.net.toUri
 import jamgmilk.fuwagit.di.AppContainer
 import jamgmilk.fuwagit.ui.AppViewModel
 import jamgmilk.fuwagit.ui.components.ScreenTemplate
 import jamgmilk.fuwagit.ui.navigation.Screen
 import jamgmilk.fuwagit.ui.screen.credentials.CredentialsScreen
 import jamgmilk.fuwagit.ui.screen.permissions.PermissionsScreen
+import jamgmilk.fuwagit.ui.screen.repo.RepoViewModel
 import jamgmilk.fuwagit.ui.theme.FuwaGitThemeExtras
 
 @Composable
 fun SettingsScreen(
     viewModel: AppViewModel,
+    repoViewModel: RepoViewModel,
     modifier: Modifier = Modifier
 ) {
     val colors = MaterialTheme.colorScheme
@@ -123,7 +128,7 @@ fun SettingsScreen(
             "permissions" -> {
                 BackHandler { showPermissions = false }
                 PermissionsScreen(
-                    viewModel = viewModel,
+                    repoViewModel = repoViewModel,
                     onBack = { showPermissions = false },
                     modifier = modifier
                 )
@@ -338,6 +343,7 @@ private fun AboutCard(
 ) {
     val colors = MaterialTheme.colorScheme
     val uiColors = FuwaGitThemeExtras.colors
+    val context = LocalContext.current
 
     ElevatedCard(
         modifier = modifier.border(1.dp, uiColors.cardBorder, RoundedCornerShape(24.dp)),
@@ -368,8 +374,12 @@ private fun AboutCard(
 
             SettingsLinkItem(
                 title = "Source Code",
-                subtitle = "github.com/jamgmilk/fuwagit",
-                icon = Icons.Default.Code
+                subtitle = "JamGmilk/FuwaGit",
+                icon = Icons.Default.Code,
+                onClick = {
+                    val intent = Intent(Intent.ACTION_VIEW, "https://github.com/JamGmilk/FuwaGit".toUri())
+                    context.startActivity(intent)
+                }
             )
 
             HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
@@ -571,14 +581,15 @@ private fun SettingsInfoItem(
 private fun SettingsLinkItem(
     title: String,
     subtitle: String,
-    icon: ImageVector
+    icon: ImageVector,
+    onClick: () -> Unit = {}
 ) {
     val colors = MaterialTheme.colorScheme
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { }
+            .clickable { onClick() }
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {

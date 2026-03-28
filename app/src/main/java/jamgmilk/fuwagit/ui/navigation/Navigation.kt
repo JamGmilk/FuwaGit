@@ -19,6 +19,7 @@ import jamgmilk.fuwagit.ui.AppViewModel
 import jamgmilk.fuwagit.ui.screen.branches.BranchesScreen
 import jamgmilk.fuwagit.ui.screen.history.HistoryScreen
 import jamgmilk.fuwagit.ui.screen.repo.RepoScreen
+import jamgmilk.fuwagit.ui.screen.repo.RepoViewModel
 import jamgmilk.fuwagit.ui.screen.settings.SettingsScreen
 import jamgmilk.fuwagit.ui.screen.status.StatusScreen
 import kotlinx.coroutines.FlowPreview
@@ -58,14 +59,17 @@ fun FuwaGitNavHost(
     val statusViewModel = remember { AppContainer.createStatusViewModel() }
     val historyViewModel = remember { AppContainer.createHistoryViewModel() }
     val branchesViewModel = remember { AppContainer.createBranchesViewModel() }
-    val targetPath by viewModel.targetPath.collectAsState()
+    val repoViewModel = remember { AppContainer.createRepoViewModel() }
+    
     val currentScreenState by viewModel.currentScreenFlow.collectAsState()
     val swipeEnabled by viewModel.swipeEnabledFlow.collectAsState()
     
-    LaunchedEffect(targetPath) {
+    LaunchedEffect(repoViewModel.uiState.collectAsState().value.targetPath) {
+        val targetPath = repoViewModel.uiState.value.targetPath
         statusViewModel.setRepoPath(targetPath)
         historyViewModel.setRepoPath(targetPath)
         branchesViewModel.setRepoPath(targetPath)
+        viewModel.updateTargetPath(targetPath)
     }
 
     LaunchedEffect(pagerState) {
@@ -118,12 +122,14 @@ fun FuwaGitNavHost(
                 modifier = Modifier.fillMaxSize()
             )
             Screen.Repo -> RepoScreen(
-                viewModel = viewModel,
+                repoViewModel = repoViewModel,
+                appViewModel = viewModel,
                 modifier = Modifier.fillMaxSize(),
                 onNavigateToStatus = { onScreenChange(Screen.Status) }
             )
             Screen.Settings -> SettingsScreen(
                 viewModel = viewModel,
+                repoViewModel = repoViewModel,
                 modifier = Modifier.fillMaxSize()
             )
         }

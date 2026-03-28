@@ -10,6 +10,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
@@ -26,16 +27,29 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccountTree
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.CallSplit
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.CloudDownload
+import androidx.compose.material.icons.filled.Commit
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Link
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Source
+import androidx.compose.material.icons.filled.Sync
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.outlined.FolderOpen
 import androidx.compose.material3.AlertDialog
@@ -48,6 +62,7 @@ import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
@@ -68,6 +83,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
@@ -78,7 +94,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import jamgmilk.fuwagit.ui.AppViewModel
-import jamgmilk.fuwagit.ui.RepoFolderItem
 import jamgmilk.fuwagit.ui.theme.FuwaGitThemeExtras
 import jamgmilk.fuwagit.ui.theme.Sakura80
 import jamgmilk.fuwagit.ui.components.ScreenTemplate
@@ -90,15 +105,18 @@ import java.util.Locale
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RepoScreen(
-    viewModel: AppViewModel,
+    repoViewModel: RepoViewModel,
+    appViewModel: AppViewModel,
     modifier: Modifier = Modifier,
     onNavigateToStatus: () -> Unit = {}
 ) {
     val colors = MaterialTheme.colorScheme
     val uiColors = FuwaGitThemeExtras.colors
     val context = LocalContext.current
-    val folders by viewModel.repoItems.collectAsState()
-    val selectedTarget by viewModel.targetPath.collectAsState()
+    val uiState by repoViewModel.uiState.collectAsState()
+    val folders = uiState.repoItems
+    val selectedTarget = uiState.targetPath
+    val scope = rememberCoroutineScope()
 
     var showCloneDialog by remember { mutableStateOf(false) }
     var cloneUrl by remember { mutableStateOf("") }
@@ -107,19 +125,22 @@ fun RepoScreen(
     var showRemoteDialog by remember { mutableStateOf<RepoFolderItem?>(null) }
     var showInfoDialog by remember { mutableStateOf<RepoFolderItem?>(null) }
     val sheetState = rememberModalBottomSheetState()
-    val scope = rememberCoroutineScope()
+
+    var remoteUrlState by remember { mutableStateOf("") }
+    var repoInfoState by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
 
     val folderPicker = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.StartActivityForResult(),
+        contract = ActivityResultContracts.StartActivityForResult()
     ) { result ->
         result.data?.data?.let { uri ->
-            viewModel.addGrantedTreeUri(context, uri)
+            repoViewModel.addGrantedTreeUri(context, uri)
         }
     }
 
     LaunchedEffect(Unit) {
-        viewModel.refreshPersistedUris(context)
-        viewModel.refreshRepoItems(context)
+        repoViewModel.initializeStorage(context)
+        repoViewModel.refreshPersistedUris(context)
+        repoViewModel.refreshRepoItems(context)
     }
 
     Box(modifier = modifier.fillMaxSize()) {
@@ -143,7 +164,7 @@ fun RepoScreen(
                         folders = folders,
                         selectedTarget = selectedTarget,
                         onSetTarget = { path ->
-                            viewModel.setTargetPath(context, path)
+                            repoViewModel.setTargetPath(context, path)
                             onNavigateToStatus()
                         },
                         onItemLongClick = { selectedItemForSheet = it }
@@ -190,7 +211,7 @@ fun RepoScreen(
             onDismiss = { selectedItemForSheet = null },
             onRemove = {
                 scope.launch { sheetState.hide() }.invokeOnCompletion {
-                    viewModel.removeRepo(context, item)
+                    repoViewModel.removeRepo(context, item)
                     selectedItemForSheet = null
                 }
             },
@@ -210,86 +231,42 @@ fun RepoScreen(
     }
 
     showRemoteDialog?.let { item ->
-        val currentRemoteUrl = remember(item) {
-            item.localPath?.let { viewModel.getRemoteUrl(it) } ?: ""
+        LaunchedEffect(item) {
+            item.localPath?.let { path ->
+                remoteUrlState = repoViewModel.getRemoteUrl(path) ?: ""
+            }
         }
-        var remoteUrl by remember { mutableStateOf(currentRemoteUrl) }
 
-        AlertDialog(
-            onDismissRequest = { showRemoteDialog = null },
-            title = { Text("Configure Remote", fontWeight = FontWeight.Bold) },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text("Set the remote 'origin' URL for this repository.", style = MaterialTheme.typography.bodyMedium)
-                    OutlinedTextField(
-                        value = remoteUrl,
-                        onValueChange = { remoteUrl = it },
-                        label = { Text("Remote URL") },
-                        placeholder = { Text("https://github.com/user/repo.git") },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp)
-                    )
-                }
+        ConfigureRemoteDialog(
+            repoName = item.name,
+            currentUrl = remoteUrlState,
+            onDismiss = { 
+                showRemoteDialog = null
+                remoteUrlState = ""
             },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        item.localPath?.let { viewModel.configureRemote(it, "origin", remoteUrl) }
-                        showRemoteDialog = null
-                    },
-                    enabled = remoteUrl.isNotBlank(),
-                    colors = ButtonDefaults.buttonColors(containerColor = Sakura80)
-                ) {
-                    Text("Save")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showRemoteDialog = null }) {
-                    Text("Cancel")
-                }
+            onSave = { newUrl ->
+                item.localPath?.let { repoViewModel.configureRemote(it, "origin", newUrl) }
+                showRemoteDialog = null
+                remoteUrlState = ""
             }
         )
     }
 
     showInfoDialog?.let { item ->
-        val info = remember(item) { 
-            if (item.localPath != null) viewModel.getRepoInfo(item.localPath) else emptyMap()
+        LaunchedEffect(item) {
+            item.localPath?.let { path ->
+                repoInfoState = repoViewModel.getRepoInfo(path)
+            }
         }
         
-        AlertDialog(
-            onDismissRequest = { showInfoDialog = null },
-            title = { Text("Repository Info", fontWeight = FontWeight.Bold) },
-            text = {
-                LazyColumn(
-                    modifier = Modifier.fillMaxWidth().height(300.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    items(info.toList()) { (key, value) ->
-                        Column {
-                            Text(
-                                text = key,
-                                style = MaterialTheme.typography.labelMedium,
-                                color = Sakura80,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Text(
-                                text = value,
-                                style = MaterialTheme.typography.bodySmall,
-                                fontFamily = FontFamily.Monospace
-                            )
-                            HorizontalDivider(modifier = Modifier.padding(top = 4.dp), thickness = 1.dp, color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
-                        }
-                    }
-                }
-            },
-            confirmButton = {
-                Button(
-                    onClick = { showInfoDialog = null },
-                    colors = ButtonDefaults.buttonColors(containerColor = Sakura80)
-                ) {
-                    Text("Close")
-                }
+        RepoInfoDialog(
+            repoName = item.name,
+            repoPath = item.path,
+            isGitRepo = item.isGitRepo,
+            repoInfo = repoInfoState,
+            onDismiss = { 
+                showInfoDialog = null
+                repoInfoState = emptyMap()
             }
         )
     }
@@ -297,7 +274,7 @@ fun RepoScreen(
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun RepoListContent(
+fun RepoListContent(
     folders: List<RepoFolderItem>,
     selectedTarget: String?,
     onSetTarget: (String) -> Unit,
@@ -345,7 +322,7 @@ private fun RepoListContent(
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun RepoItemCard(
+fun RepoItemCard(
     item: RepoFolderItem,
     isSelected: Boolean,
     onClick: () -> Unit,
@@ -480,9 +457,7 @@ private fun RepoItemCard(
 }
 
 @Composable
-private fun EmptyReposState(
-    modifier: Modifier = Modifier
-) {
+fun EmptyReposState(modifier: Modifier = Modifier) {
     val colors = MaterialTheme.colorScheme
 
     Box(
@@ -527,7 +502,7 @@ private fun EmptyReposState(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun RepoOptionsSheet(
+fun RepoOptionsSheet(
     item: RepoFolderItem,
     sheetState: androidx.compose.material3.SheetState,
     onDismiss: () -> Unit,
@@ -549,133 +524,500 @@ private fun RepoOptionsSheet(
                 .fillMaxWidth()
                 .padding(bottom = 32.dp)
         ) {
-            Surface(
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
-                shape = RoundedCornerShape(12.dp),
-                color = Sakura80.copy(alpha = 0.1f)
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                Sakura80.copy(alpha = 0.15f),
+                                Sakura80.copy(alpha = 0.05f)
+                            )
+                        )
+                    )
+                    .padding(horizontal = 20.dp, vertical = 16.dp)
             ) {
-                Row(
-                    modifier = Modifier.padding(12.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
                     Surface(
-                        shape = RoundedCornerShape(10.dp),
+                        shape = RoundedCornerShape(14.dp),
                         color = Sakura80,
-                        modifier = Modifier.size(44.dp)
+                        modifier = Modifier.size(56.dp)
                     ) {
                         Box(contentAlignment = Alignment.Center) {
                             Icon(
                                 Icons.Default.Folder,
                                 contentDescription = null,
                                 tint = Color.White,
-                                modifier = Modifier.size(22.dp)
+                                modifier = Modifier.size(28.dp)
                             )
                         }
                     }
 
-                    Spacer(Modifier.width(14.dp))
+                    Spacer(Modifier.width(16.dp))
 
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
                             text = item.name,
-                            style = MaterialTheme.typography.titleMedium,
+                            style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold
                         )
-                        Text(
-                            text = item.path,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = colors.onSurfaceVariant,
-                            fontFamily = FontFamily.Monospace,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
+                        Spacer(Modifier.height(4.dp))
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                if (item.isGitRepo) Icons.Default.CheckCircle else Icons.Default.Warning,
+                                contentDescription = null,
+                                tint = if (item.isGitRepo) Color(0xFF4CAF50) else Color(0xFFFF9800),
+                                modifier = Modifier.size(14.dp)
+                            )
+                            Spacer(Modifier.width(4.dp))
+                            Text(
+                                text = if (item.isGitRepo) "Git Repository" else "Not a Git Repository",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = if (item.isGitRepo) Color(0xFF4CAF50) else Color(0xFFFF9800)
+                            )
+                        }
                     }
                 }
             }
 
-            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+            Spacer(Modifier.height(8.dp))
 
-            SheetOptionItem(
-                icon = Icons.Default.Delete,
-                title = "Remove from list",
-                subtitle = "Remove this repository from the list",
-                tint = colors.error,
-                onClick = onRemove
-            )
+            Column(
+                modifier = Modifier.padding(horizontal = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                RepoOptionItem(
+                    icon = Icons.Default.Link,
+                    title = "Configure Remote",
+                    subtitle = "Set or update the remote origin URL",
+                    accentColor = Color(0xFF2196F3),
+                    onClick = onConfigureRemote
+                )
 
-            SheetOptionItem(
-                icon = Icons.Default.Settings,
-                title = "Configure Remote",
-                subtitle = "Set up remote origin URL",
-                onClick = onConfigureRemote
-            )
+                RepoOptionItem(
+                    icon = Icons.Default.Info,
+                    title = "Repository Info",
+                    subtitle = "View branch, commit, and remote details",
+                    accentColor = Color(0xFF9C27B0),
+                    onClick = onShowInfo
+                )
 
-            SheetOptionItem(
-                icon = Icons.Default.Info,
-                title = "Repository Info",
-                subtitle = "View detailed information",
-                onClick = onShowInfo
-            )
-        }
-    }
-}
+                HorizontalDivider(
+                    modifier = Modifier.padding(vertical = 8.dp),
+                    color = colors.outline.copy(alpha = 0.2f)
+                )
 
-@Composable
-private fun SheetOptionItem(
-    icon: ImageVector,
-    title: String,
-    subtitle: String,
-    tint: Color? = null,
-    onClick: () -> Unit
-) {
-    val colors = MaterialTheme.colorScheme
-    val accentColor = tint ?: Sakura80
-
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
-            .clickable { onClick() }
-            .padding(horizontal = 16.dp, vertical = 14.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Surface(
-            shape = RoundedCornerShape(10.dp),
-            color = accentColor.copy(alpha = 0.12f),
-            modifier = Modifier.size(42.dp)
-        ) {
-            Box(contentAlignment = Alignment.Center) {
-                Icon(
-                    icon,
-                    contentDescription = null,
-                    tint = accentColor,
-                    modifier = Modifier.size(20.dp)
+                RepoOptionItem(
+                    icon = Icons.Default.Delete,
+                    title = "Remove from List",
+                    subtitle = "Remove this repository from the list",
+                    accentColor = colors.error,
+                    onClick = onRemove
                 )
             }
         }
+    }
+}
 
-        Spacer(Modifier.width(14.dp))
+@Composable
+fun RepoOptionItem(
+    icon: ImageVector,
+    title: String,
+    subtitle: String,
+    accentColor: Color,
+    onClick: () -> Unit
+) {
+    val colors = MaterialTheme.colorScheme
 
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Medium,
-                color = if (tint != null) tint else colors.onSurface
-            )
-            Text(
-                text = subtitle,
-                style = MaterialTheme.typography.bodySmall,
-                color = colors.onSurfaceVariant
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .clickable { onClick() },
+        color = Color.Transparent,
+        shape = RoundedCornerShape(16.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Surface(
+                shape = RoundedCornerShape(12.dp),
+                color = accentColor.copy(alpha = 0.12f),
+                modifier = Modifier.size(48.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        icon,
+                        contentDescription = null,
+                        tint = accentColor,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+            }
+
+            Spacer(Modifier.width(14.dp))
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    color = accentColor
+                )
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = colors.onSurfaceVariant
+                )
+            }
+
+            Icon(
+                Icons.Default.MoreVert,
+                contentDescription = null,
+                tint = colors.onSurfaceVariant.copy(alpha = 0.5f),
+                modifier = Modifier.size(20.dp)
             )
         }
     }
 }
 
 @Composable
-private fun CloneRepoDialog(
+fun ConfigureRemoteDialog(
+    repoName: String,
+    currentUrl: String,
+    onDismiss: () -> Unit,
+    onSave: (String) -> Unit
+) {
+    var url by remember { mutableStateOf(currentUrl) }
+    var showUrl by remember { mutableStateOf(false) }
+    val colors = MaterialTheme.colorScheme
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        icon = {
+            Box(
+                modifier = Modifier
+                    .size(56.dp)
+                    .background(Color(0xFF2196F3).copy(alpha = 0.15f), CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    Icons.Default.Link,
+                    contentDescription = null,
+                    tint = Color(0xFF2196F3),
+                    modifier = Modifier.size(28.dp)
+                )
+            }
+        },
+        title = {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(
+                    text = "Configure Remote",
+                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.titleLarge
+                )
+                Text(
+                    text = repoName,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = colors.onSurfaceVariant
+                )
+            }
+        },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = colors.surfaceVariant.copy(alpha = 0.5f)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            Icons.Default.Info,
+                            contentDescription = null,
+                            tint = colors.onSurfaceVariant,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            text = "Set the remote 'origin' URL for pushing and pulling code.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = colors.onSurfaceVariant
+                        )
+                    }
+                }
+
+                OutlinedTextField(
+                    value = url,
+                    onValueChange = { url = it },
+                    label = { Text("Remote URL") },
+                    placeholder = { Text("https://github.com/user/repo.git") },
+                    leadingIcon = {
+                        Icon(
+                            Icons.Default.Source,
+                            contentDescription = null,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    },
+                    trailingIcon = {
+                        if (url.isNotBlank()) {
+                            IconButton(onClick = { showUrl = !showUrl }) {
+                                Icon(
+                                    if (showUrl) Icons.Default.Visibility else Icons.Default.Visibility,
+                                    contentDescription = if (showUrl) "Hide" else "Show"
+                                )
+                            }
+                        }
+                    },
+                    singleLine = true,
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Color(0xFF2196F3),
+                        focusedLabelColor = Color(0xFF2196F3),
+                        cursorColor = Color(0xFF2196F3)
+                    )
+                )
+
+                if (currentUrl.isNotBlank()) {
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = Color(0xFF4CAF50).copy(alpha = 0.1f)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(10.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                Icons.Default.Check,
+                                contentDescription = null,
+                                tint = Color(0xFF4CAF50),
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(Modifier.width(8.dp))
+                            Text(
+                                text = "Current remote is configured",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = Color(0xFF4CAF50)
+                            )
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = { onSave(url) },
+                enabled = url.isNotBlank(),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2196F3)),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Icon(
+                    Icons.Default.Check,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(Modifier.width(6.dp))
+                Text("Save")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        },
+        shape = RoundedCornerShape(24.dp)
+    )
+}
+
+@Composable
+fun RepoInfoDialog(
+    repoName: String,
+    repoPath: String,
+    isGitRepo: Boolean,
+    repoInfo: Map<String, String>,
+    onDismiss: () -> Unit
+) {
+    val colors = MaterialTheme.colorScheme
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        icon = {
+            Box(
+                modifier = Modifier
+                    .size(56.dp)
+                    .background(Color(0xFF9C27B0).copy(alpha = 0.15f), CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    Icons.Default.Info,
+                    contentDescription = null,
+                    tint = Color(0xFF9C27B0),
+                    modifier = Modifier.size(28.dp)
+                )
+            }
+        },
+        title = {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(
+                    text = "Repository Info",
+                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.titleLarge
+                )
+                Text(
+                    text = repoName,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = colors.onSurfaceVariant
+                )
+            }
+        },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(380.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                if (!isGitRepo) {
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = Color(0xFFFF9800).copy(alpha = 0.15f)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                Icons.Default.Warning,
+                                contentDescription = null,
+                                tint = Color(0xFFFF9800),
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(Modifier.width(8.dp))
+                            Text(
+                                text = "This directory is not a Git repository",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = Color(0xFFFF9800)
+                            )
+                        }
+                    }
+                }
+
+                LazyColumn(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(repoInfo.toList()) { (key, value) ->
+                        RepoInfoItem(
+                            icon = getInfoIcon(key),
+                            label = key,
+                            value = value,
+                            accentColor = getInfoColor(key)
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = onDismiss,
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF9C27B0)),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Text("Close")
+            }
+        },
+        shape = RoundedCornerShape(24.dp)
+    )
+}
+
+@Composable
+private fun RepoInfoItem(
+    icon: ImageVector,
+    label: String,
+    value: String,
+    accentColor: Color
+) {
+    Surface(
+        shape = RoundedCornerShape(12.dp),
+        color = accentColor.copy(alpha = 0.08f)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Surface(
+                shape = RoundedCornerShape(8.dp),
+                color = accentColor.copy(alpha = 0.15f),
+                modifier = Modifier.size(36.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        icon,
+                        contentDescription = null,
+                        tint = accentColor,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+            }
+
+            Spacer(Modifier.width(12.dp))
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = accentColor,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Text(
+                    text = value,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    fontFamily = FontFamily.Monospace,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+        }
+    }
+}
+
+private fun getInfoIcon(key: String): ImageVector {
+    return when {
+        key.contains("Branch", ignoreCase = true) -> Icons.Default.AccountTree
+        key.contains("Commit", ignoreCase = true) -> Icons.Default.Commit
+        key.contains("Remote", ignoreCase = true) -> Icons.Default.Sync
+        key.contains("Date", ignoreCase = true) -> Icons.Default.Schedule
+        key.contains("Path", ignoreCase = true) -> Icons.Default.Folder
+        key.contains("Status", ignoreCase = true) -> Icons.Default.CheckCircle
+        key.contains("Hash", ignoreCase = true) -> Icons.Default.Source
+        else -> Icons.Default.Info
+    }
+}
+
+private fun getInfoColor(key: String): Color {
+    return when {
+        key.contains("Branch", ignoreCase = true) -> Color(0xFF2196F3)
+        key.contains("Commit", ignoreCase = true) -> Color(0xFF4CAF50)
+        key.contains("Remote", ignoreCase = true) -> Color(0xFFFF5722)
+        key.contains("Date", ignoreCase = true) -> Color(0xFF9C27B0)
+        key.contains("Path", ignoreCase = true) -> Color(0xFF607D8B)
+        key.contains("Status", ignoreCase = true) -> Color(0xFF4CAF50)
+        key.contains("Hash", ignoreCase = true) -> Color(0xFF795548)
+        key.contains("Error", ignoreCase = true) -> Color(0xFFE53935)
+        else -> Sakura80
+    }
+}
+
+@Composable
+fun CloneRepoDialog(
     cloneUrl: String,
     onCloneUrlChange: (String) -> Unit,
     onDismiss: () -> Unit,
@@ -752,7 +1094,6 @@ fun RepoSpeedDial(
     onAddLocal: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val colors = MaterialTheme.colorScheme
     val rotation by animateFloatAsState(if (expanded) 45f else 0f, label = "fab_rotation")
 
     Column(
@@ -805,7 +1146,7 @@ fun RepoSpeedDial(
 }
 
 @Composable
-private fun SpeedDialAction(
+fun SpeedDialAction(
     icon: ImageVector,
     label: String,
     color: Color,

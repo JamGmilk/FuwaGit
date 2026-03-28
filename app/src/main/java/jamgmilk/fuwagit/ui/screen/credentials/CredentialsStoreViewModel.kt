@@ -16,6 +16,7 @@ import jamgmilk.fuwagit.domain.usecase.credential.GetSshKeysUseCase
 import jamgmilk.fuwagit.domain.usecase.credential.GetSshPrivateKeyUseCase
 import jamgmilk.fuwagit.domain.usecase.credential.SetupMasterPasswordUseCase
 import jamgmilk.fuwagit.domain.usecase.credential.UnlockWithPasswordUseCase
+import jamgmilk.fuwagit.domain.usecase.credential.UpdateHttpsCredentialUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -39,6 +40,7 @@ class CredentialsStoreViewModel(
     private val unlockWithPasswordUseCase: UnlockWithPasswordUseCase,
     private val getHttpsCredentialsUseCase: GetHttpsCredentialsUseCase,
     private val addHttpsCredentialUseCase: AddHttpsCredentialUseCase,
+    private val updateHttpsCredentialUseCase: UpdateHttpsCredentialUseCase,
     private val deleteHttpsCredentialUseCase: DeleteHttpsCredentialUseCase,
     private val getHttpsPasswordUseCase: GetHttpsPasswordUseCase,
     private val getSshKeysUseCase: GetSshKeysUseCase,
@@ -139,6 +141,24 @@ class CredentialsStoreViewModel(
             _uiState.value = _uiState.value.copy(isLoading = true)
 
             addHttpsCredentialUseCase(host, username, password)
+                .onSuccess {
+                    loadCredentials()
+                    _uiState.value = _uiState.value.copy(isLoading = false)
+                }
+                .onError { exception ->
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        error = exception.message
+                    )
+                }
+        }
+    }
+
+    fun updateHttpsCredential(uuid: String, host: String? = null, username: String? = null, password: String? = null) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true)
+
+            updateHttpsCredentialUseCase(uuid, host, username, password)
                 .onSuccess {
                     loadCredentials()
                     _uiState.value = _uiState.value.copy(isLoading = false)

@@ -40,6 +40,7 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import jamgmilk.fuwagit.di.AppContainer
 import jamgmilk.fuwagit.ui.AppViewModel
 import jamgmilk.fuwagit.ui.navigation.FuwaGitNavHost
 import jamgmilk.fuwagit.ui.navigation.Screen
@@ -54,6 +55,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        AppContainer.initialize(applicationContext)
         enableEdgeToEdge()
         setContent {
             FuwaGitTheme {
@@ -80,10 +82,6 @@ fun AppRoot(viewModel: AppViewModel, modifier: Modifier = Modifier) {
         Screen.Repo,
         Screen.Settings
     )
-
-    LaunchedEffect(Unit) {
-        viewModel.initializeStorage(context)
-    }
 
     Row(
         modifier = Modifier

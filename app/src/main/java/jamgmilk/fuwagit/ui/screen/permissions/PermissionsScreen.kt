@@ -52,8 +52,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
-import jamgmilk.fuwagit.ui.AppViewModel
-import jamgmilk.fuwagit.ui.RootStatus
+import jamgmilk.fuwagit.ui.screen.repo.RepoViewModel
 import jamgmilk.fuwagit.ui.components.SubSettingsTemplate
 import jamgmilk.fuwagit.ui.theme.FuwaGitThemeExtras
 import jamgmilk.fuwagit.ui.theme.Sakura50
@@ -62,15 +61,14 @@ import jamgmilk.fuwagit.ui.theme.Sakura90
 
 @Composable
 fun PermissionsScreen(
-    viewModel: AppViewModel,
+    repoViewModel: RepoViewModel,
     onBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
     val colors = MaterialTheme.colorScheme
     val uiColors = FuwaGitThemeExtras.colors
-    val rootStatus by viewModel.rootStatus.collectAsState()
-    val grantedFolders by viewModel.grantedTreeUris.collectAsState()
+    val uiState by repoViewModel.uiState.collectAsState()
 
     val requestPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission(),
@@ -83,7 +81,6 @@ fun PermissionsScreen(
         modifier = modifier
     ) {
         SystemPermissionsCard(
-            rootStatus = rootStatus,
             onRequestAllFilesAccess = {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                     context.startActivity(Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION).apply {
@@ -92,21 +89,18 @@ fun PermissionsScreen(
                 } else {
                     requestPermissionLauncher.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE)
                 }
-            },
-            onCheckRoot = { viewModel.checkRoot() }
+            }
         )
 
         ScopedStorageCard(
-            grantedFoldersCount = grantedFolders.size
+            grantedFoldersCount = uiState.grantedTreeUris.size
         )
     }
 }
 
 @Composable
 private fun SystemPermissionsCard(
-    rootStatus: RootStatus,
     onRequestAllFilesAccess: () -> Unit,
-    onCheckRoot: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val colors = MaterialTheme.colorScheme
@@ -173,32 +167,6 @@ private fun SystemPermissionsCard(
                     onAction = onRequestAllFilesAccess,
                     actionEnabled = allFilesStatus != PermissionStatus.Granted,
                     accentColor = Sakura80
-                )
-
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(1.dp)
-                        .background(uiColors.cardBorder)
-                )
-
-                PermissionItem(
-                    icon = Icons.Default.Security,
-                    title = "Root Access",
-                    description = "Optional: Required for system-level Git operations",
-                    status = when (rootStatus) {
-                        RootStatus.Idle -> PermissionStatus.Unknown
-                        RootStatus.Checking -> PermissionStatus.Unknown
-                        RootStatus.Granted -> PermissionStatus.Granted
-                        RootStatus.Denied -> PermissionStatus.Denied
-                    },
-                    actionLabel = when (rootStatus) {
-                        RootStatus.Checking -> "Checking..."
-                        else -> "Check"
-                    },
-                    onAction = onCheckRoot,
-                    actionEnabled = rootStatus != RootStatus.Checking,
-                    accentColor = Sakura90
                 )
             }
         }
