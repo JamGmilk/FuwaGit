@@ -36,6 +36,8 @@ interface GitRepository {
     
     suspend fun checkoutBranch(repoPath: String, branchName: String): Result<Unit>
     
+    suspend fun createBranch(repoPath: String, branchName: String): Result<Unit>
+    
     suspend fun mergeBranch(repoPath: String, branchName: String): Result<Unit>
     
     suspend fun rebaseBranch(repoPath: String, branchName: String): Result<Unit>

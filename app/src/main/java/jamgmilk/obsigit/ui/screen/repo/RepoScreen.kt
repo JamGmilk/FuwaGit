@@ -57,7 +57,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -128,28 +127,10 @@ fun RepoScreen(
         viewModel.refreshRepoItems(context)
     }
 
-    Scaffold(
-        modifier = modifier.fillMaxSize(),
-        containerColor = Color.Transparent,
-        floatingActionButton = {
-            RepoSpeedDial(
-                expanded = expandedFab,
-                onExpandedChange = { expandedFab = it },
-                onCloneRemote = { showCloneDialog = true },
-                onAddLocal = {
-                    val intent = Intent(Intent.ACTION_OPEN_DOCUMENT_TREE).apply {
-                        putExtra(Intent.EXTRA_LOCAL_ONLY, true)
-                    }
-                    folderPicker.launch(intent)
-                }
-            )
-        }
-    ) { innerPadding ->
+    Box(modifier = modifier.fillMaxSize()) {
         ScreenTemplate(
             title = "Repositories",
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
+            modifier = Modifier.fillMaxSize()
         ) {
             ElevatedCard(
                 modifier = Modifier
@@ -175,6 +156,21 @@ fun RepoScreen(
                 }
             }
         }
+
+        RepoSpeedDial(
+            expanded = expandedFab,
+            onExpandedChange = { expandedFab = it },
+            onCloneRemote = { showCloneDialog = true },
+            onAddLocal = {
+                val intent = Intent(Intent.ACTION_OPEN_DOCUMENT_TREE).apply {
+                    putExtra(Intent.EXTRA_LOCAL_ONLY, true)
+                }
+                folderPicker.launch(intent)
+            },
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(16.dp)
+        )
     }
 
     if (showCloneDialog) {
@@ -665,12 +661,16 @@ fun RepoSpeedDial(
     expanded: Boolean,
     onExpandedChange: (Boolean) -> Unit,
     onCloneRemote: () -> Unit,
-    onAddLocal: () -> Unit
+    onAddLocal: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     val colors = MaterialTheme.colorScheme
     val rotation by animateFloatAsState(if (expanded) 45f else 0f, label = "fab_rotation")
 
-    Column(horizontalAlignment = Alignment.End) {
+    Column(
+        horizontalAlignment = Alignment.End,
+        modifier = modifier
+    ) {
         AnimatedVisibility(
             visible = expanded,
             enter = fadeIn() + expandVertically(),

@@ -133,6 +133,12 @@ class GitRepositoryImpl : GitRepository {
         }
     }
     
+    override suspend fun createBranch(repoPath: String, branchName: String): Result<Unit> = withContext(Dispatchers.IO) {
+        runCatching {
+            JGitDataSource.createBranch(File(repoPath), branchName)
+        }
+    }
+    
     override suspend fun mergeBranch(repoPath: String, branchName: String): Result<Unit> = withContext(Dispatchers.IO) {
         runCatching {
             JGitDataSource.mergeBranch(File(repoPath), branchName)

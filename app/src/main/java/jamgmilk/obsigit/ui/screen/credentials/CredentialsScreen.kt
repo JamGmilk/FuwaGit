@@ -1,6 +1,5 @@
 package jamgmilk.obsigit.ui.screen.credentials
 
-import android.widget.Toast
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.tween
@@ -54,6 +53,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -62,6 +64,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -88,6 +91,7 @@ import jamgmilk.obsigit.ui.theme.Sakura50
 import jamgmilk.obsigit.ui.theme.Sakura80
 import jamgmilk.obsigit.ui.theme.Sakura90
 import jamgmilk.obsigit.ui.components.SubSettingsTemplate
+import kotlinx.coroutines.launch
 
 sealed class CredentialsTab {
     data object Https : CredentialsTab()
@@ -111,6 +115,8 @@ fun CredentialsScreen(
 ) {
     val context = LocalContext.current
     val colors = MaterialTheme.colorScheme
+    val scope = rememberCoroutineScope()
+    val snackbarHostState = remember { SnackbarHostState() }
 
     val uiState by viewModel.uiState.collectAsState()
 
@@ -123,7 +129,8 @@ fun CredentialsScreen(
     SubSettingsTemplate(
         title = "Credentials",
         onBack = onBack,
-        modifier = modifier
+        modifier = modifier,
+        snackbarHostState = snackbarHostState
     ) {
         CredentialsTabSelector(
             selectedTab = selectedTab,
@@ -147,7 +154,12 @@ fun CredentialsScreen(
                         onDelete = { showDeleteConfirm = it.id to false },
                         onCopyPassword = {
                             clipboardManager.setText(AnnotatedString(it))
-                            Toast.makeText(context, "Password copied", Toast.LENGTH_SHORT).show()
+                            scope.launch {
+                                snackbarHostState.showSnackbar(
+                                    message = "Password copied",
+                                    duration = SnackbarDuration.Short
+                                )
+                            }
                         }
                     )
                 }
@@ -160,7 +172,12 @@ fun CredentialsScreen(
                         onDelete = { showDeleteConfirm = it.id to true },
                         onCopyPublicKey = {
                             clipboardManager.setText(AnnotatedString(it))
-                            Toast.makeText(context, "Public key copied", Toast.LENGTH_SHORT).show()
+                            scope.launch {
+                                snackbarHostState.showSnackbar(
+                                    message = "Public key copied",
+                                    duration = SnackbarDuration.Short
+                                )
+                            }
                         }
                     )
                 }
@@ -229,7 +246,12 @@ fun CredentialsScreen(
                 onDismiss = { dialogState = CredentialDialogState.None },
                 onExportPublicKey = {
                     viewModel.exportSshPublicKey(state.key.id)
-                    Toast.makeText(context, "Public key exported", Toast.LENGTH_SHORT).show()
+                    scope.launch {
+                        snackbarHostState.showSnackbar(
+                            message = "Public key exported",
+                            duration = SnackbarDuration.Short
+                        )
+                    }
                 }
             )
         }
