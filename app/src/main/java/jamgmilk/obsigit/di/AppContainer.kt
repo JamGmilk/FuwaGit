@@ -11,12 +11,8 @@ import jamgmilk.obsigit.domain.usecase.credential.SaveCredentialUseCase
 import jamgmilk.obsigit.domain.usecase.git.CommitChangesUseCase
 import jamgmilk.obsigit.domain.usecase.git.GetBranchesUseCase
 import jamgmilk.obsigit.domain.usecase.git.GetCommitHistoryUseCase
-import jamgmilk.obsigit.domain.usecase.git.GetRepoStatusUseCase
 import jamgmilk.obsigit.domain.usecase.git.GetWorkspaceStatusUseCase
-import jamgmilk.obsigit.domain.usecase.git.ManageBranchesUseCase
-import jamgmilk.obsigit.domain.usecase.git.PullChangesUseCase
 import jamgmilk.obsigit.domain.usecase.git.PullUseCase
-import jamgmilk.obsigit.domain.usecase.git.PushChangesUseCase
 import jamgmilk.obsigit.domain.usecase.git.PushUseCase
 import jamgmilk.obsigit.domain.usecase.git.StageAllUseCase
 import jamgmilk.obsigit.domain.usecase.git.StageFileUseCase
@@ -44,57 +40,45 @@ object AppContainer {
     val credentialRepository: CredentialRepository
         get() = _credentialRepository ?: throw IllegalStateException("CredentialRepository not initialized. Call initCredentialRepository first.")
     
-    // Git UseCases
-    val getRepoStatusUseCase: GetRepoStatusUseCase
-        get() = GetRepoStatusUseCase()
+    // Git UseCases - all inject gitRepository
+    private val getWorkspaceStatusUseCase: GetWorkspaceStatusUseCase
+        get() = GetWorkspaceStatusUseCase(gitRepository)
     
-    val getCommitHistoryUseCase: GetCommitHistoryUseCase
-        get() = GetCommitHistoryUseCase()
+    private val getBranchesUseCase: GetBranchesUseCase
+        get() = GetBranchesUseCase(gitRepository)
     
-    val commitChangesUseCase: CommitChangesUseCase
-        get() = CommitChangesUseCase()
+    private val getCommitHistoryUseCase: GetCommitHistoryUseCase
+        get() = GetCommitHistoryUseCase(gitRepository)
     
-    val pullChangesUseCase: PullChangesUseCase
-        get() = PullChangesUseCase()
+    private val stageAllUseCase: StageAllUseCase
+        get() = StageAllUseCase(gitRepository)
     
-    val pushChangesUseCase: PushChangesUseCase
-        get() = PushChangesUseCase()
+    private val unstageAllUseCase: UnstageAllUseCase
+        get() = UnstageAllUseCase(gitRepository)
     
-    val manageBranchesUseCase: ManageBranchesUseCase
-        get() = ManageBranchesUseCase()
+    private val stageFileUseCase: StageFileUseCase
+        get() = StageFileUseCase(gitRepository)
     
-    val getWorkspaceStatusUseCase: GetWorkspaceStatusUseCase
-        get() = GetWorkspaceStatusUseCase()
+    private val unstageFileUseCase: UnstageFileUseCase
+        get() = UnstageFileUseCase(gitRepository)
     
-    val getBranchesUseCase: GetBranchesUseCase
-        get() = GetBranchesUseCase()
+    private val commitChangesUseCase: CommitChangesUseCase
+        get() = CommitChangesUseCase(gitRepository)
     
-    val stageAllUseCase: StageAllUseCase
-        get() = StageAllUseCase()
+    private val pullUseCase: PullUseCase
+        get() = PullUseCase(gitRepository)
     
-    val unstageAllUseCase: UnstageAllUseCase
-        get() = UnstageAllUseCase()
-    
-    val stageFileUseCase: StageFileUseCase
-        get() = StageFileUseCase()
-    
-    val unstageFileUseCase: UnstageFileUseCase
-        get() = UnstageFileUseCase()
-    
-    val pullUseCase: PullUseCase
-        get() = PullUseCase()
-    
-    val pushUseCase: PushUseCase
-        get() = PushUseCase()
+    private val pushUseCase: PushUseCase
+        get() = PushUseCase(gitRepository)
     
     // Credential UseCases
-    val saveCredentialUseCase: SaveCredentialUseCase
+    private val saveCredentialUseCase: SaveCredentialUseCase
         get() = SaveCredentialUseCase(credentialRepository)
     
-    val getCredentialsUseCase: GetCredentialsUseCase
+    private val getCredentialsUseCase: GetCredentialsUseCase
         get() = GetCredentialsUseCase(credentialRepository)
     
-    val manageSshKeysUseCase: ManageSshKeysUseCase
+    private val manageSshKeysUseCase: ManageSshKeysUseCase
         get() = ManageSshKeysUseCase(credentialRepository)
     
     // ViewModels
@@ -116,15 +100,21 @@ object AppContainer {
             unstageFileUseCase = unstageFileUseCase,
             commitChangesUseCase = commitChangesUseCase,
             pullUseCase = pullUseCase,
-            pushUseCase = pushUseCase
+            pushUseCase = pushUseCase,
+            gitRepository = gitRepository
         )
     }
     
     fun createHistoryViewModel(): HistoryViewModel {
-        return HistoryViewModel()
+        return HistoryViewModel(
+            getCommitHistoryUseCase = getCommitHistoryUseCase
+        )
     }
     
     fun createBranchesViewModel(): BranchesViewModel {
-        return BranchesViewModel()
+        return BranchesViewModel(
+            getBranchesUseCase = getBranchesUseCase,
+            gitRepository = gitRepository
+        )
     }
 }

@@ -1,19 +1,12 @@
 package jamgmilk.obsigit.domain.usecase.git
 
-import jamgmilk.obsigit.data.source.JGitDataSource
-import java.io.File
+import jamgmilk.obsigit.domain.repository.GitRepository
 
-class UnstageFileUseCase {
+class UnstageFileUseCase(
+    private val gitRepository: GitRepository
+) {
     
     suspend operator fun invoke(repoPath: String, filePath: String): Result<Unit> {
-        return try {
-            val dir = File(repoPath)
-            JGitDataSource.withGitLock { 
-                JGitDataSource.unstageFile(dir, filePath) 
-            }
-            Result.success(Unit)
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
+        return gitRepository.unstageFile(repoPath, filePath)
     }
 }

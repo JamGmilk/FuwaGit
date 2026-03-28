@@ -2,7 +2,6 @@ package jamgmilk.obsigit.ui.screen.status
 
 import android.annotation.SuppressLint
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -25,43 +24,25 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.CloudDownload
-import androidx.compose.material.icons.filled.CloudUpload
 import androidx.compose.material.icons.automirrored.filled.Undo
-import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.CloudDownload
 import androidx.compose.material.icons.filled.CloudUpload
 import androidx.compose.material.icons.filled.Code
-import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.Pending
-import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Sync
-import androidx.compose.material.icons.filled.Upload
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedCard
-import androidx.compose.material3.FilledIconButton
-import androidx.compose.material3.FilledTonalButton
-import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -87,13 +68,13 @@ import androidx.compose.ui.unit.sp
 import jamgmilk.obsigit.domain.model.GitBranch
 import jamgmilk.obsigit.domain.model.GitChangeType
 import jamgmilk.obsigit.domain.model.GitFileStatus
+import jamgmilk.obsigit.ui.components.RefreshAction
+import jamgmilk.obsigit.ui.components.ScreenTemplate
 import jamgmilk.obsigit.ui.theme.ObsiGitTheme
 import jamgmilk.obsigit.ui.theme.ObsiGitThemeExtras
 import jamgmilk.obsigit.ui.theme.Sakura50
 import jamgmilk.obsigit.ui.theme.Sakura80
 import jamgmilk.obsigit.ui.theme.Sakura90
-import jamgmilk.obsigit.ui.components.ScreenTemplate
-import jamgmilk.obsigit.ui.components.RefreshAction
 
 data class StatusStats(
     val totalChanges: Int,
@@ -106,7 +87,7 @@ data class StatusStats(
 )
 
 @Composable
-fun StatusModule(
+fun StatusScreen(
     statusViewModel: StatusViewModel,
     modifier: Modifier = Modifier
 ) {
@@ -1027,16 +1008,6 @@ private fun TerminalLogsCard(
 @Composable
 fun StatusModulePreview() {
     ObsiGitTheme {
-        StatusModule(statusViewModel = StatusViewModel(
-            getWorkspaceStatusUseCase = jamgmilk.obsigit.domain.usecase.git.GetWorkspaceStatusUseCase(),
-            getBranchesUseCase = jamgmilk.obsigit.domain.usecase.git.GetBranchesUseCase(),
-            stageAllUseCase = jamgmilk.obsigit.domain.usecase.git.StageAllUseCase(),
-            unstageAllUseCase = jamgmilk.obsigit.domain.usecase.git.UnstageAllUseCase(),
-            stageFileUseCase = jamgmilk.obsigit.domain.usecase.git.StageFileUseCase(),
-            unstageFileUseCase = jamgmilk.obsigit.domain.usecase.git.UnstageFileUseCase(),
-            commitChangesUseCase = jamgmilk.obsigit.domain.usecase.git.CommitChangesUseCase(),
-            pullUseCase = jamgmilk.obsigit.domain.usecase.git.PullUseCase(),
-            pushUseCase = jamgmilk.obsigit.domain.usecase.git.PushUseCase()
-        ))
+        StatusScreen(statusViewModel = jamgmilk.obsigit.di.AppContainer.createStatusViewModel())
     }
 }

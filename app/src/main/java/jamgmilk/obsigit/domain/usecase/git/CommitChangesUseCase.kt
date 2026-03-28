@@ -1,23 +1,15 @@
 package jamgmilk.obsigit.domain.usecase.git
 
-import jamgmilk.obsigit.data.source.JGitDataSource
-import java.io.File
+import jamgmilk.obsigit.domain.repository.GitRepository
 
-class CommitChangesUseCase {
+class CommitChangesUseCase(
+    private val gitRepository: GitRepository
+) {
     
     suspend operator fun invoke(repoPath: String, message: String): Result<String> {
         if (message.isBlank()) {
             return Result.failure(IllegalArgumentException("Commit message cannot be empty"))
         }
-        
-        return try {
-            val dir = File(repoPath)
-            val result = JGitDataSource.withGitLock { 
-                JGitDataSource.commit(dir, message.trim()) 
-            }
-            Result.success(result)
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
+        return gitRepository.commit(repoPath, message.trim())
     }
 }

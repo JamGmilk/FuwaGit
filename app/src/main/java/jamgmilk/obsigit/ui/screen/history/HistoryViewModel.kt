@@ -2,17 +2,15 @@ package jamgmilk.obsigit.ui.screen.history
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import jamgmilk.obsigit.data.source.JGitDataSource
 import jamgmilk.obsigit.domain.model.CommitStats
 import jamgmilk.obsigit.domain.model.GitCommit
+import jamgmilk.obsigit.domain.usecase.git.GetCommitHistoryUseCase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import java.io.File
 import java.util.Calendar
 
 data class HistoryUiState(
@@ -25,7 +23,9 @@ data class HistoryUiState(
     val commitStats: CommitStats = CommitStats(0, 0, 0, 0, 0)
 )
 
-class HistoryViewModel : ViewModel() {
+class HistoryViewModel(
+    private val getCommitHistoryUseCase: GetCommitHistoryUseCase
+) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HistoryUiState())
     val uiState: StateFlow<HistoryUiState> = _uiState.asStateFlow()
@@ -51,25 +51,26 @@ class HistoryViewModel : ViewModel() {
 
         viewModelScope.launch(Dispatchers.IO) {
             _uiState.update { it.copy(isLoading = true) }
-            try {
-                val dir = File(path)
-                val commits = JGitDataSource.withGitLock { JGitDataSource.getLog(dir) }
-                val stats = calculateStats(commits)
-                _uiState.update { 
-                    it.copy(
-                        commits = commits,
-                        commitStats = stats,
-                        isLoading = false
-                    )
+            getCommitHistoryUseCase(path)
+                .onSuccess { commits ->
+                    val stats = calculateStats(commits)
+                    _uiState.update { 
+                        it.copy(
+                            commits = commits,
+                            commitStats = stats,
+                            isLoading = false,
+                            error = null
+                        )
+                    }
                 }
-            } catch (e: Exception) {
-                _uiState.update { 
-                    it.copy(
-                        error = e.message,
-                        isLoading = false
-                    )
+                .onFailure { e ->
+                    _uiState.update { 
+                        it.copy(
+                            error = e.message,
+                            isLoading = false
+                        )
+                    }
                 }
-            }
         }
     }
 
