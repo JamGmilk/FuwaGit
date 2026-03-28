@@ -9,6 +9,7 @@ import jamgmilk.obsigit.domain.usecase.credential.GetCredentialsUseCase
 import jamgmilk.obsigit.domain.usecase.credential.ManageSshKeysUseCase
 import jamgmilk.obsigit.domain.usecase.credential.SaveCredentialUseCase
 import jamgmilk.obsigit.domain.usecase.git.CommitChangesUseCase
+import jamgmilk.obsigit.domain.usecase.git.CreateBranchUseCase
 import jamgmilk.obsigit.domain.usecase.git.GetBranchesUseCase
 import jamgmilk.obsigit.domain.usecase.git.GetCommitHistoryUseCase
 import jamgmilk.obsigit.domain.usecase.git.GetWorkspaceStatusUseCase
@@ -70,6 +71,9 @@ object AppContainer {
     
     private val pushUseCase: PushUseCase
         get() = PushUseCase(gitRepository)
+    
+    private val createBranchUseCase: CreateBranchUseCase
+        get() = CreateBranchUseCase(gitRepository)
     
     // Credential UseCases
     private val saveCredentialUseCase: SaveCredentialUseCase

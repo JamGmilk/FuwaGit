@@ -106,7 +106,7 @@ class BranchesViewModel(
         val path = currentRepoPath ?: return
 
         viewModelScope.launch(Dispatchers.IO) {
-            gitRepository.checkoutBranch(path, name)
+            gitRepository.createBranch(path, name)
                 .onSuccess {
                     loadBranches()
                 }

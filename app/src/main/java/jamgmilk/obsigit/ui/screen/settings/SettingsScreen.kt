@@ -118,10 +118,6 @@ fun SettingsScreen(
             title = "Settings",
             modifier = modifier
         ) {
-            AppInfoCard(
-                modifier = Modifier.fillMaxWidth()
-            )
-
             StorageSettingsCard(
                 onPermissionsClick = { showPermissions = true },
                 showHiddenFiles = showHiddenFiles,
@@ -153,79 +149,6 @@ fun SettingsScreen(
             AboutCard(
                 modifier = Modifier.fillMaxWidth()
             )
-        }
-    }
-}
-
-@Composable
-private fun AppInfoCard(
-    modifier: Modifier = Modifier
-) {
-    val colors = MaterialTheme.colorScheme
-    val uiColors = ObsiGitThemeExtras.colors
-
-    ElevatedCard(
-        modifier = modifier.border(1.dp, uiColors.cardBorder, RoundedCornerShape(24.dp)),
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.elevatedCardColors(containerColor = uiColors.cardContainer),
-        elevation = CardDefaults.elevatedCardElevation(0.dp)
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(20.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(56.dp)
-                    .clip(CircleShape)
-                    .background(colors.primary),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    Icons.Default.Code,
-                    contentDescription = null,
-                    tint = colors.onPrimary,
-                    modifier = Modifier.size(28.dp)
-                )
-            }
-
-            Spacer(Modifier.width(16.dp))
-
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(
-                    text = "ObsiGit",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = colors.primary
-                )
-                Text(
-                    text = "Git Client for Obsidian",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = colors.onSurfaceVariant
-                )
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Text(
-                        text = "v1.0.0",
-                        style = MaterialTheme.typography.labelMedium,
-                        fontFamily = FontFamily.Monospace,
-                        color = colors.secondary
-                    )
-                    Text(
-                        text = "•",
-                        color = colors.onSurfaceVariant.copy(alpha = 0.5f)
-                    )
-                    Text(
-                        text = "Build 1",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = colors.onSurfaceVariant
-                    )
-                }
-            }
         }
     }
 }
