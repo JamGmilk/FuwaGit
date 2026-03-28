@@ -20,6 +20,7 @@ import jamgmilk.obsigit.domain.usecase.git.StageFileUseCase
 import jamgmilk.obsigit.domain.usecase.git.UnstageAllUseCase
 import jamgmilk.obsigit.domain.usecase.git.UnstageFileUseCase
 import jamgmilk.obsigit.ui.screen.branches.BranchesViewModel
+import jamgmilk.obsigit.ui.screen.credentials.CredentialsStoreViewModel
 import jamgmilk.obsigit.ui.screen.credentials.CredentialsViewModel
 import jamgmilk.obsigit.ui.screen.history.HistoryViewModel
 import jamgmilk.obsigit.ui.screen.status.StatusViewModel
@@ -92,6 +93,10 @@ object AppContainer {
             getCredentialsUseCase = getCredentialsUseCase,
             manageSshKeysUseCase = manageSshKeysUseCase
         )
+    }
+    
+    fun createCredentialsStoreViewModel(): CredentialsStoreViewModel {
+        return CredentialsStoreViewModel()
     }
     
     fun createStatusViewModel(): StatusViewModel {

@@ -95,9 +95,9 @@ fun SettingsScreen(
         when (screen) {
             "credentials" -> {
                 BackHandler { showCredentials = false }
-                val credentialsViewModel = remember { AppContainer.createCredentialsViewModel() }
+                val credentialsStoreViewModel = remember { AppContainer.createCredentialsStoreViewModel() }
                 CredentialsScreen(
-                    viewModel = credentialsViewModel,
+                    viewModel = credentialsStoreViewModel,
                     onBack = { showCredentials = false },
                     modifier = modifier
                 )
