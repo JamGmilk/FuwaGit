@@ -1,5 +1,7 @@
 package jamgmilk.fuwagit.ui.screen.history
 
+import jamgmilk.fuwagit.ui.screen.repo.RepoViewModel
+
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.tween
@@ -72,17 +74,17 @@ import kotlin.math.abs
 @Composable
 fun HistoryScreen(
     historyViewModel: HistoryViewModel,
+    repoViewModel: RepoViewModel,
     modifier: Modifier = Modifier
 ) {
     val uiState by historyViewModel.uiState.collectAsState()
+    val repoUiState by repoViewModel.uiState.collectAsState()
     val history = uiState.commits
     val colors = MaterialTheme.colorScheme
     val uiColors = FuwaGitThemeExtras.colors
 
-    LaunchedEffect(uiState.repoPath) {
-        if (uiState.repoPath != null) {
-            historyViewModel.loadCommitHistory()
-        }
+    LaunchedEffect(repoUiState.targetPath) {
+        historyViewModel.setRepoPath(repoUiState.targetPath)
     }
 
     ScreenTemplate(

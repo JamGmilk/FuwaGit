@@ -17,6 +17,10 @@ import jamgmilk.fuwagit.domain.usecase.credential.GetHttpsCredentialsUseCase
 import jamgmilk.fuwagit.domain.usecase.credential.GetHttpsPasswordUseCase
 import jamgmilk.fuwagit.domain.usecase.credential.GetSshKeysUseCase
 import jamgmilk.fuwagit.domain.usecase.credential.GetSshPrivateKeyUseCase
+import jamgmilk.fuwagit.domain.usecase.git.CheckoutBranchUseCase
+import jamgmilk.fuwagit.domain.usecase.git.CheckRepoStatusUseCase
+import jamgmilk.fuwagit.domain.usecase.git.CherryPickUseCase
+import jamgmilk.fuwagit.domain.usecase.git.CleanUseCase
 import jamgmilk.fuwagit.domain.usecase.git.CloneUseCase
 import jamgmilk.fuwagit.domain.usecase.repo.GetRemoteUrlUseCase
 import jamgmilk.fuwagit.domain.usecase.repo.GetRepoInfoUseCase
@@ -45,18 +49,16 @@ data class RepoFolderItem(
     val isGitRepo: Boolean,
     val isDirectory: Boolean = true,
     val localPath: String? = null,
-    val source: String = "Folder picker grant",
-    val permissionHint: String = "Granted",
+    val source: String = "Saved",
+    val permissionHint: String = "Saved",
     val isActive: Boolean,
     val isRemovable: Boolean = true,
-    val uriText: String? = null,
     val lastModified: Long = 0L,
 )
 
 data class RepoUiState(
     val repoItems: List<RepoFolderItem> = emptyList(),
     val targetPath: String? = null,
-    val grantedTreeUris: List<String> = emptyList(),
     val isLoading: Boolean = false,
     val error: String? = null
 )
@@ -80,8 +82,8 @@ class RepoViewModel @Inject constructor(
     private val getRepoInfoUseCase: GetRepoInfoUseCase,
     private val getRemoteUrlUseCase: GetRemoteUrlUseCase,
     private val configureRemoteUseCase: ConfigureRemoteUseCase,
-    private val hasGitDirUseCase: HasGitDirUseCase,
     private val cloneUseCase: CloneUseCase,
+    private val cleanUseCase: CleanUseCase,
     private val getHttpsCredentialsUseCase: GetHttpsCredentialsUseCase,
     private val getHttpsPasswordUseCase: GetHttpsPasswordUseCase,
     private val getSshKeysUseCase: GetSshKeysUseCase,
@@ -151,31 +153,11 @@ class RepoViewModel @Inject constructor(
         loadSavedRepos()
     }
 
-    fun setTargetPath(context: Context, path: String?) {
-        _targetPath.value = path
-        _uiState.value = _uiState.value.copy(targetPath = path)
-        saveTargetPath(context, path)
-    }
-
-    fun addGrantedTreeUri(context: Context, uri: Uri) {
-        runCatching {
-            context.contentResolver.takePersistableUriPermission(
-                uri,
-                Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION,
-            )
-        }
-        rebuildGrantedFolders(context)
-    }
-
     fun removeRepo(context: Context, item: RepoFolderItem) {
-        val uriText = item.uriText ?: return
-        runCatching {
-            context.contentResolver.releasePersistableUriPermission(
-                uriText.toUri(),
-                Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
-            )
+        viewModelScope.launch {
+            repoDataStore.removeRepo(item.path)
+            loadSavedRepos()
         }
-        rebuildGrantedFolders(context)
     }
 
     fun initializeStorage(context: Context) {
@@ -187,6 +169,7 @@ class RepoViewModel @Inject constructor(
             if (currentRepoPath != null) {
                 _targetPath.value = currentRepoPath
                 _uiState.value = _uiState.value.copy(targetPath = currentRepoPath)
+                currentScreen = Screen.Status
             }
             loadSavedRepos()
         }
@@ -201,71 +184,14 @@ class RepoViewModel @Inject constructor(
         }
     }
 
-    fun refreshPersistedUris(context: Context) {
-        _uiState.value = _uiState.value.copy(
-            grantedTreeUris = context.contentResolver.persistedUriPermissions.asSequence()
-                .filter { it.isReadPermission || it.isWritePermission }
-                .map { it.uri.toString() }
-                .distinct()
-                .toList()
-        )
-    }
-
     fun refreshRepoItems(context: Context) {
-        rebuildGrantedFolders(context)
-    }
-
-    private fun rebuildGrantedFolders(context: Context) {
-        refreshPersistedUris(context)
-        val grantedUrisSnapshot = _uiState.value.grantedTreeUris
-
-        viewModelScope.launch(Dispatchers.IO) {
-            val repoFolders = buildGrantedRepoFolders(grantedUrisSnapshot)
-            _uiState.value = _uiState.value.copy(repoItems = repoFolders)
-
-            val targetCandidates = repoFolders
-                .mapNotNull { it.localPath }
-                .filter { File(it).exists() && File(it).isDirectory }
-                .distinct()
-                .sorted()
-
-            val selectedPath = _targetPath.value
-            if (selectedPath != null && (selectedPath !in targetCandidates)) {
-                _targetPath.value = null
-                saveTargetPath(context, null)
-            }
+        viewModelScope.launch {
+            loadSavedRepos()
         }
     }
 
-    private suspend fun buildGrantedRepoFolders(grantedUris: List<String>): List<RepoFolderItem> = coroutineScope {
-        val uniqueByPath = linkedMapOf<String, String>()
-
-        grantedUris.forEach { uriText ->
-            val readablePath = RepoPathUtils.readablePathFromUri(uriText.toUri())
-            val normalizedPath = RepoPathUtils.normalizeLocalPath(readablePath)
-            if (normalizedPath.startsWith("/") && (normalizedPath !in uniqueByPath)) {
-                uniqueByPath[normalizedPath] = uriText
-            }
-        }
-
-        uniqueByPath.entries.map { (normalizedPath, uriText) ->
-            async {
-                val path = RepoPathUtils.ensureTrailingSlash(normalizedPath)
-                val localPath = normalizedPath
-                val dir = File(localPath)
-                val isGitRepo = hasGitDirUseCase(localPath)
-                RepoFolderItem(
-                    id = "grant:$uriText",
-                    uriText = uriText,
-                    name = File(normalizedPath).name.ifBlank { "Picked Folder" },
-                    path = path,
-                    localPath = localPath,
-                    isGitRepo = isGitRepo,
-                    isActive = dir.exists() && dir.isDirectory,
-                    lastModified = if (dir.exists()) dir.lastModified() else 0L,
-                )
-            }
-        }.awaitAll().sortedBy { it.name.lowercase() }
+    suspend fun cleanRepo(path: String, dryRun: Boolean = false): Result<String> {
+        return cleanUseCase(path, dryRun)
     }
 
     suspend fun getRepoInfo(localPath: String): Map<String, String> {
@@ -304,7 +230,7 @@ class RepoViewModel @Inject constructor(
                 .onSuccess { result ->
                     appendTerminalLog("git clone $uri", result)
                     _uiState.value = _uiState.value.copy(isLoading = false)
-                    addGrantedTreeUri(context, android.net.Uri.parse("file://$localPath"))
+                    addRepo(localPath, null)
                     onResult(Result.success(result))
                 }
                 .onFailure { e ->
@@ -393,7 +319,7 @@ class RepoViewModel @Inject constructor(
                 .onSuccess { result ->
                     appendTerminalLog("git clone $uri", result)
                     _uiState.value = _uiState.value.copy(isLoading = false)
-                    addGrantedTreeUri(context, android.net.Uri.parse("file://$localPath"))
+                    addRepo(localPath, null)
                     onResult(Result.success(result))
                 }
                 .onFailure { e ->
@@ -409,15 +335,5 @@ class RepoViewModel @Inject constructor(
         val time = SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date())
         val line = "[$time] > $command\n$result"
         _terminalOutput.value += line
-    }
-
-    private fun saveTargetPath(context: Context, path: String?) {
-        val prefs = context.getSharedPreferences("fuwagit_prefs", Context.MODE_PRIVATE)
-        prefs.edit { putString("target_path", path) }
-    }
-
-    private fun loadTargetPath(context: Context): String? {
-        val prefs = context.getSharedPreferences("fuwagit_prefs", Context.MODE_PRIVATE)
-        return prefs.getString("target_path", null)
     }
 }

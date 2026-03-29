@@ -1,5 +1,7 @@
 package jamgmilk.fuwagit.ui.screen.status
 
+import jamgmilk.fuwagit.ui.screen.repo.RepoViewModel
+
 import android.annotation.SuppressLint
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
@@ -86,6 +88,7 @@ import jamgmilk.fuwagit.domain.model.GitFileStatus
 import jamgmilk.fuwagit.domain.model.GitRemote
 import jamgmilk.fuwagit.domain.model.GitStash
 import jamgmilk.fuwagit.domain.model.GitTag
+import jamgmilk.fuwagit.ui.components.CleanDialog
 import jamgmilk.fuwagit.ui.components.RefreshAction
 import jamgmilk.fuwagit.ui.components.ScreenTemplate
 import jamgmilk.fuwagit.ui.theme.FuwaGitTheme
@@ -108,9 +111,11 @@ data class StatusStats(
 @Composable
 fun StatusScreen(
     statusViewModel: StatusViewModel,
+    repoViewModel: RepoViewModel,
     modifier: Modifier = Modifier
 ) {
     val uiState by statusViewModel.uiState.collectAsState()
+    val repoUiState by repoViewModel.uiState.collectAsState()
     val files = uiState.workspaceFiles
     val staged = remember(files) { files.filter { it.isStaged } }
     val workspace = remember(files) { files.filter { !it.isStaged } }
@@ -126,6 +131,10 @@ fun StatusScreen(
     val stashList = uiState.stashList
     val tagList = uiState.tagList
     val remoteList = uiState.remoteList
+
+    LaunchedEffect(repoUiState.targetPath) {
+        statusViewModel.setRepoPath(repoUiState.targetPath)
+    }
 
     var showStashDialog by remember { mutableStateOf(false) }
     var showStashListDialog by remember { mutableStateOf(false) }
@@ -1281,101 +1290,6 @@ fun StashDialog(
                 )
                 Spacer(Modifier.width(6.dp))
                 Text("Stash")
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancel")
-            }
-        },
-        shape = RoundedCornerShape(24.dp)
-    )
-}
-
-@Composable
-fun CleanDialog(
-    onDismiss: () -> Unit,
-    onClean: (Boolean) -> Unit
-) {
-    var dryRun by remember { mutableStateOf(true) }
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        icon = {
-            Box(
-                modifier = Modifier
-                    .size(56.dp)
-                    .background(Color(0xFFF44336).copy(alpha = 0.15f), CircleShape),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    Icons.Default.Delete,
-                    contentDescription = null,
-                    tint = Color(0xFFF44336),
-                    modifier = Modifier.size(28.dp)
-                )
-            }
-        },
-        title = {
-            Text(
-                text = "Clean Repository",
-                fontWeight = FontWeight.Bold,
-                style = MaterialTheme.typography.titleLarge
-            )
-        },
-        text = {
-            Column(
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                Text(
-                    text = "Remove untracked files from the working directory. This action cannot be undone.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "Dry run (preview only)",
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                    Switch(
-                        checked = dryRun,
-                        onCheckedChange = { dryRun = it }
-                    )
-                }
-
-                if (dryRun) {
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = Color(0xFFFFF3E0)
-                    ) {
-                        Text(
-                            text = "Preview mode: No files will be deleted",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = Color(0xFFE65100),
-                            modifier = Modifier.padding(12.dp)
-                        )
-                    }
-                }
-            }
-        },
-        confirmButton = {
-            Button(
-                onClick = { onClean(dryRun) },
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF44336)),
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Icon(
-                    Icons.Default.Delete,
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp)
-                )
-                Spacer(Modifier.width(6.dp))
-                Text(if (dryRun) "Preview" else "Clean")
             }
         },
         dismissButton = {
