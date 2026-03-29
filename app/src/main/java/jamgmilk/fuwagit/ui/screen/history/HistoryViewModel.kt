@@ -2,6 +2,7 @@ package jamgmilk.fuwagit.ui.screen.history
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import dagger.hilt.android.lifecycle.HiltViewModel
 import jamgmilk.fuwagit.domain.model.CommitStats
 import jamgmilk.fuwagit.domain.model.GitCommit
 import jamgmilk.fuwagit.domain.usecase.git.GetCommitHistoryUseCase
@@ -12,6 +13,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.util.Calendar
+import javax.inject.Inject
 
 data class HistoryUiState(
     val isLoading: Boolean = false,
@@ -23,7 +25,8 @@ data class HistoryUiState(
     val commitStats: CommitStats = CommitStats(0, 0, 0, 0, 0)
 )
 
-class HistoryViewModel(
+@HiltViewModel
+class HistoryViewModel @Inject constructor(
     private val getCommitHistoryUseCase: GetCommitHistoryUseCase
 ) : ViewModel() {
 

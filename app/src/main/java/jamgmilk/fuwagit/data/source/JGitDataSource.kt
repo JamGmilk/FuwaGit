@@ -1,5 +1,6 @@
 package jamgmilk.fuwagit.data.source
 
+import android.util.Log
 import jamgmilk.fuwagit.domain.model.GitBranch
 import jamgmilk.fuwagit.domain.model.GitChangeType
 import jamgmilk.fuwagit.domain.model.GitCommit
@@ -11,6 +12,8 @@ import org.eclipse.jgit.errors.LockFailedException
 import org.eclipse.jgit.errors.RepositoryNotFoundException
 import org.eclipse.jgit.lib.Repository
 import java.io.File
+import javax.inject.Inject
+import javax.inject.Singleton
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
@@ -19,8 +22,14 @@ data class GitRepoStatus(
     val message: String
 )
 
-object JGitDataSource {
+@Singleton
+class JGitDataSource @Inject constructor() {
+    
     private val gitMutex = Mutex()
+    
+    companion object {
+        private const val TAG = "JGitDataSource"
+    }
 
     suspend fun <T> withGitLock(block: suspend () -> T): T = gitMutex.withLock {
         block()
@@ -34,12 +43,20 @@ object JGitDataSource {
             if (cause is LockFailedException) {
                 val lockFile = cause.file
                 if (lockFile != null && lockFile.exists()) {
+                    Log.w(TAG, "Removing stale lock file: ${lockFile.absolutePath}")
                     lockFile.delete()
                 }
                 Git.open(dir).use { git -> block(git) }
             } else {
+                Log.e(TAG, "JGitInternalException during git operation", e)
                 throw e
             }
+        } catch (e: RepositoryNotFoundException) {
+            Log.w(TAG, "Repository not found at ${dir.absolutePath}")
+            throw e
+        } catch (e: Exception) {
+            Log.e(TAG, "Unexpected error during git operation", e)
+            throw e
         }
     }
 
@@ -59,15 +76,16 @@ object JGitDataSource {
                         "Untracked: ${status.untracked.size}"
                 )
             }
-        } catch (_: RepositoryNotFoundException) {
+        } catch (e: RepositoryNotFoundException) {
             GitRepoStatus(
                 isGitRepo = false,
                 message = "Path: ${RepoPathUtils.shortDisplayPath(dir)}\nNot a Git repository"
             )
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            Log.e(TAG, "Error reading repository status at ${dir.absolutePath}", e)
             GitRepoStatus(
                 isGitRepo = false,
-                message = "Path: ${RepoPathUtils.shortDisplayPath(dir)}\nError reading status"
+                message = "Path: ${RepoPathUtils.shortDisplayPath(dir)}\nError reading status: ${e.message}"
             )
         }
     }
@@ -88,13 +106,16 @@ object JGitDataSource {
                 
                 status.conflicting.forEach { result.add(GitFileStatus(it, File(it).name, false, GitChangeType.Conflicting)) }
             }
-        } catch (_: Exception) {}
+        } catch (e: Exception) {
+            Log.e(TAG, "Error getting detailed status at ${dir.absolutePath}", e)
+            return emptyList()
+        }
         return result.distinctBy { it.path + it.isStaged }.sortedBy { it.path.lowercase() }
     }
 
     fun getLog(dir: File, maxCount: Int = 100): List<GitCommit> {
-        try {
-            return runGit(dir) { git ->
+        return try {
+            runGit(dir) { git ->
                 git.log().setMaxCount(maxCount).call().map { rev ->
                     GitCommit(
                         hash = rev.name,
@@ -107,7 +128,8 @@ object JGitDataSource {
                     )
                 }
             }
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            Log.e(TAG, "Error getting log at ${dir.absolutePath}", e)
             return emptyList()
         }
     }
@@ -129,7 +151,10 @@ object JGitDataSource {
                     result.add(GitBranch(name, ref.name, true, false))
                 }
             }
-        } catch (_: Exception) {}
+        } catch (e: Exception) {
+            Log.e(TAG, "Error getting branches at ${dir.absolutePath}", e)
+            return emptyList()
+        }
         return result
     }
 
@@ -143,6 +168,7 @@ object JGitDataSource {
                     "Untracked: ${status.untracked.size}"
             }
         } catch (e: Exception) {
+            Log.e(TAG, "Error getting terminal status at ${dir.absolutePath}", e)
             "Error: ${e.message}"
         }
     }
@@ -266,6 +292,7 @@ object JGitDataSource {
                 info["Local Path"] = dir.absolutePath
             }
         } catch (e: Exception) {
+            Log.e(TAG, "Error getting repo info at ${dir.absolutePath}", e)
             info["Error"] = e.message ?: "Unknown error"
         }
         return info
@@ -277,6 +304,7 @@ object JGitDataSource {
                 git.repository.config.getString("remote", name, "url")
             }
         } catch (e: Exception) {
+            Log.w(TAG, "Error getting remote URL at ${dir.absolutePath}", e)
             null
         }
     }
@@ -291,6 +319,7 @@ object JGitDataSource {
                 "Remote '$name' configured with URL: $url"
             }
         } catch (e: Exception) {
+            Log.e(TAG, "Error configuring remote at ${dir.absolutePath}", e)
             "Error: ${e.message}"
         }
     }

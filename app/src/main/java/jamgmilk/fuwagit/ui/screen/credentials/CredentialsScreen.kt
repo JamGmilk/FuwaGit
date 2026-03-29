@@ -1,5 +1,6 @@
 package jamgmilk.fuwagit.ui.screen.credentials
 
+import android.util.Log
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -19,6 +20,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -82,6 +85,7 @@ import androidx.compose.ui.unit.sp
 import androidx.fragment.app.FragmentActivity
 import jamgmilk.fuwagit.credential.store.HttpsCredential
 import jamgmilk.fuwagit.credential.store.SshKey
+import jamgmilk.fuwagit.credential.store.extractCommentFromPublicKey
 import jamgmilk.fuwagit.ui.components.SubSettingsTemplate
 import jamgmilk.fuwagit.ui.theme.FuwaGitThemeExtras
 import jamgmilk.fuwagit.ui.theme.Sakura80
@@ -248,16 +252,28 @@ fun CredentialsScreen(
             GenerateSshKeyDialog(
                 onDismiss = { dialogState = CredentialDialogState.None },
                 onGenerate = { name, type, comment ->
-                    val keyPair = generateSshKeyPair(type)
-                    viewModel.addSshKey(
-                        name = name,
-                        type = type,
-                        publicKey = keyPair.first,
-                        privateKey = keyPair.second,
-                        passphrase = null,
-                        fingerprint = calculateFingerprint(keyPair.first),
-                        comment = comment
-                    )
+                    try {
+                        val keyPair = generateSshKeyPair(type, comment)
+                        if (keyPair.first.isNotBlank() && keyPair.second.isNotBlank()) {
+                            val fingerprint = calculateFingerprint(keyPair.first)
+                            viewModel.addSshKey(
+                                name = name,
+                                type = type,
+                                publicKey = keyPair.first,
+                                privateKey = keyPair.second,
+                                passphrase = null,
+                                fingerprint = fingerprint.ifBlank { "unknown" }
+                            )
+                        } else {
+                            scope.launch {
+                                snackbarHostState.showSnackbar("Failed to generate SSH key pair")
+                            }
+                        }
+                    } catch (e: Exception) {
+                        scope.launch {
+                            snackbarHostState.showSnackbar("Error generating SSH key: ${e.message}")
+                        }
+                    }
                     dialogState = CredentialDialogState.None
                 }
             )
@@ -266,15 +282,23 @@ fun CredentialsScreen(
             ImportSshKeyDialog(
                 onDismiss = { dialogState = CredentialDialogState.None },
                 onImport = { name, privateKey, publicKey, passphrase ->
-                    viewModel.addSshKey(
-                        name = name,
-                        type = detectSshKeyType(privateKey),
-                        publicKey = publicKey ?: "",
-                        privateKey = privateKey,
-                        passphrase = passphrase,
-                        fingerprint = calculateFingerprint(publicKey ?: ""),
-                        comment = ""
-                    )
+                    if (privateKey.isNotBlank()) {
+                        try {
+                            val fingerprint = calculateFingerprint(publicKey ?: "")
+                            viewModel.addSshKey(
+                                name = name,
+                                type = detectSshKeyType(privateKey),
+                                publicKey = publicKey ?: "",
+                                privateKey = privateKey,
+                                passphrase = passphrase,
+                                fingerprint = fingerprint.ifBlank { "unknown" }
+                            )
+                        } catch (e: Exception) {
+                            scope.launch {
+                                snackbarHostState.showSnackbar("Error importing SSH key: ${e.message}")
+                            }
+                        }
+                    }
                     dialogState = CredentialDialogState.None
                 }
             )
@@ -997,6 +1021,9 @@ private fun HttpsCredentialInfoDialog(
         },
         text = {
             Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 SensitiveInfoRow(
@@ -1142,6 +1169,9 @@ private fun SshKeyInfoDialog(
         },
         text = {
             Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 SensitiveInfoRow(
@@ -1179,12 +1209,26 @@ private fun SshKeyInfoDialog(
                     }
                 )
                 HorizontalDivider(color = colors.outline.copy(alpha = 0.2f))
+                if (key.comment.isNotBlank()) {
+                    SensitiveInfoRow(
+                        label = "Comment",
+                        value = key.comment,
+                        onCopy = {
+                            clipboardManager.setText(AnnotatedString(key.comment))
+                            scope.launch {
+                                snackbarHostState.showSnackbar(message = "Comment copied", duration = SnackbarDuration.Short)
+                            }
+                        }
+                    )
+                    HorizontalDivider(color = colors.outline.copy(alpha = 0.2f))
+                }
                 SensitiveInfoRow(
                     label = "Public Key",
                     value = key.public_key,
                     isMonospace = true,
-                    isSensitive = true,
+                    isSensitive = false,
                     isRevealed = true,
+                    showToggle = false,
                     onCopy = {
                         clipboardManager.setText(AnnotatedString(key.public_key))
                         scope.launch {
@@ -1273,6 +1317,7 @@ private fun SensitiveInfoRow(
     isMonospace: Boolean = false,
     isSensitive: Boolean = false,
     isRevealed: Boolean = false,
+    showToggle: Boolean = true,
     onToggleReveal: () -> Unit = {},
     onCopy: () -> Unit = {}
 ) {
@@ -1304,12 +1349,12 @@ private fun SensitiveInfoRow(
                 style = MaterialTheme.typography.bodyMedium,
                 color = valueColor,
                 fontFamily = if (isMonospace) FontFamily.Monospace else FontFamily.Default,
-                maxLines = if (isSensitive && !isRevealed) 1 else 3,
+                maxLines = if (isSensitive && !isRevealed) 1 else Int.MAX_VALUE,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f)
             )
 
-            if (isSensitive) {
+            if (isSensitive && showToggle) {
                 IconButton(
                     onClick = onToggleReveal,
                     modifier = Modifier.size(32.dp)
@@ -1683,7 +1728,7 @@ private fun SshTypeChip(
 
     Surface(
         modifier = modifier
-            .height(64.dp)
+            .height(52.dp)
             .clip(RoundedCornerShape(12.dp))
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(12.dp),
@@ -1697,13 +1742,13 @@ private fun SshTypeChip(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 10.dp),
+                .padding(vertical = 6.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
             Text(
                 text = label,
-                style = MaterialTheme.typography.labelLarge,
+                style = MaterialTheme.typography.labelMedium,
                 fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
                 color = if (selected) Sakura90 else colors.onSurface
             )
@@ -1711,7 +1756,7 @@ private fun SshTypeChip(
                 text = description,
                 style = MaterialTheme.typography.labelSmall,
                 color = if (selected) Sakura90.copy(alpha = 0.7f) else colors.onSurfaceVariant,
-                fontSize = 10.sp
+                fontSize = 9.sp
             )
         }
     }
@@ -1865,31 +1910,52 @@ private fun ImportSshKeyDialog(
     )
 }
 
-private fun generateSshKeyPair(type: String): Pair<String, String> {
+private fun generateSshKeyPair(type: String, comment: String = ""): Pair<String, String> {
+    Log.d("SSH_KEY", "Starting SSH key generation, type: $type, comment: $comment")
     return try {
         when (type) {
-            "RSA" -> generateRsaKeyPair()
-            else -> generateEd25519KeyPair()
+            "RSA" -> {
+                Log.d("SSH_KEY", "Generating RSA key pair...")
+                generateRsaKeyPair(comment)
+            }
+            else -> {
+                Log.d("SSH_KEY", "Generating Ed25519 key pair...")
+                generateEd25519KeyPair(comment)
+            }
+        }.also { result ->
+            Log.d("SSH_KEY", "Key generation successful. PublicKey length: ${result.first.length}, PrivateKey length: ${result.second.length}")
         }
     } catch (e: Exception) {
+        Log.e("SSH_KEY", "Key generation failed: ${e.javaClass.simpleName}: ${e.message}", e)
         Pair("", "")
     }
 }
 
-private fun generateRsaKeyPair(): Pair<String, String> {
-    val keyPairGenerator = java.security.KeyPairGenerator.getInstance("RSA")
-    keyPairGenerator.initialize(4096)
-    val keyPair = keyPairGenerator.generateKeyPair()
-    
-    val publicKey = keyPair.public as java.security.interfaces.RSAPublicKey
-    val publicKeyEncoded = encodeRsaPublicKey(publicKey)
-    
-    val privateKey = encodeRsaPrivateKey(keyPair.private as java.security.interfaces.RSAPrivateKey)
-    
-    return Pair(publicKeyEncoded, privateKey)
+private fun generateRsaKeyPair(comment: String = ""): Pair<String, String> {
+    Log.d("SSH_KEY", "generateRsaKeyPair: Starting RSA key generation, comment: $comment")
+    return try {
+        val keyPairGenerator = java.security.KeyPairGenerator.getInstance("RSA")
+        Log.d("SSH_KEY", "generateRsaKeyPair: Initializing RSA 4096-bit key pair generator")
+        keyPairGenerator.initialize(4096)
+        Log.d("SSH_KEY", "generateRsaKeyPair: Generating RSA key pair...")
+        val keyPair = keyPairGenerator.generateKeyPair()
+        Log.d("SSH_KEY", "generateRsaKeyPair: RSA key pair generated")
+
+        val publicKey = keyPair.public as java.security.interfaces.RSAPublicKey
+        val publicKeyEncoded = encodeRsaPublicKey(publicKey, comment)
+        Log.d("SSH_KEY", "generateRsaKeyPair: Public key encoded: ${publicKeyEncoded.take(50)}...")
+
+        val privateKey = encodeRsaPrivateKey(keyPair.private as java.security.interfaces.RSAPrivateKey, comment)
+        Log.d("SSH_KEY", "generateRsaKeyPair: Private key encoded, length: ${privateKey.length}")
+
+        return Pair(publicKeyEncoded, privateKey)
+    } catch (e: Exception) {
+        Log.e("SSH_KEY", "generateRsaKeyPair: Failed - ${e.javaClass.simpleName}: ${e.message}", e)
+        throw e
+    }
 }
 
-private fun encodeRsaPublicKey(publicKey: java.security.interfaces.RSAPublicKey): String {
+private fun encodeRsaPublicKey(publicKey: java.security.interfaces.RSAPublicKey, comment: String = ""): String {
     val byteStream = java.io.ByteArrayOutputStream()
     val dos = java.io.DataOutputStream(byteStream)
 
@@ -1915,63 +1981,145 @@ private fun encodeRsaPublicKey(publicKey: java.security.interfaces.RSAPublicKey)
     dos.writeInt(modulusBytes.size)
     dos.write(modulusBytes)
 
-    return "ssh-rsa ${java.util.Base64.getEncoder().encodeToString(byteStream.toByteArray())}"
+    val base64Key = java.util.Base64.getEncoder().encodeToString(byteStream.toByteArray())
+    return if (comment.isNotBlank()) "ssh-rsa $base64Key $comment" else "ssh-rsa $base64Key"
 }
 
-private fun encodeRsaPrivateKey(privateKey: java.security.interfaces.RSAPrivateKey): String {
+private fun encodeRsaPrivateKey(privateKey: java.security.interfaces.RSAPrivateKey, comment: String = ""): String {
     val pkcs8Encoded = privateKey.encoded
     val base64 = java.util.Base64.getMimeEncoder(64, "\n".toByteArray())
     val keyContent = base64.encodeToString(pkcs8Encoded)
     return "-----BEGIN PRIVATE KEY-----\n$keyContent\n-----END PRIVATE KEY-----"
 }
 
-private fun generateEd25519KeyPair(): Pair<String, String> {
-    val keyPairGenerator = java.security.KeyPairGenerator.getInstance("Ed25519")
-    val keyPair = keyPairGenerator.generateKeyPair()
-    
-    val publicKey = keyPair.public
-    val privateKey = keyPair.private
-    
-    val publicKeyEncoded = encodeEd25519PublicKey(publicKey)
-    val privateKeyEncoded = encodeEd25519PrivateKey(privateKey)
-    
-    return Pair(publicKeyEncoded, privateKeyEncoded)
+private fun generateEd25519KeyPair(comment: String = ""): Pair<String, String> {
+    Log.d("SSH_KEY", "generateEd25519KeyPair: Starting Ed25519 key generation with BouncyCastle, comment: $comment")
+    return try {
+        java.security.Security.addProvider(org.bouncycastle.jce.provider.BouncyCastleProvider())
+        Log.d("SSH_KEY", "generateEd25519KeyPair: BC provider registered")
+
+        val secureRandom = java.security.SecureRandom()
+
+        val keyGen = org.bouncycastle.crypto.generators.Ed25519KeyPairGenerator()
+        keyGen.init(org.bouncycastle.crypto.params.Ed25519KeyGenerationParameters(secureRandom))
+        Log.d("SSH_KEY", "generateEd25519KeyPair: KeyPairGenerator initialized")
+
+        val keyPair = keyGen.generateKeyPair()
+        Log.d("SSH_KEY", "generateEd25519KeyPair: Key pair generated")
+
+        val publicKeyParams = keyPair.public as org.bouncycastle.crypto.params.Ed25519PublicKeyParameters
+        val privateKeyParams = keyPair.private as org.bouncycastle.crypto.params.Ed25519PrivateKeyParameters
+
+        val publicKeyEncoded = encodeEd25519PublicKeyBC(publicKeyParams, comment)
+        Log.d("SSH_KEY", "generateEd25519KeyPair: Public key encoded: ${publicKeyEncoded.take(50)}...")
+
+        val privateKeyEncoded = encodeEd25519PrivateKeyBC(privateKeyParams, comment)
+        Log.d("SSH_KEY", "generateEd25519KeyPair: Private key encoded, length: ${privateKeyEncoded.length}")
+
+        Pair(publicKeyEncoded, privateKeyEncoded)
+    } catch (e: Exception) {
+        Log.e("SSH_KEY", "generateEd25519KeyPair: Failed - ${e.javaClass.simpleName}: ${e.message}", e)
+        throw e
+    }
+}
+
+private fun encodeEd25519PublicKeyBC(publicKey: org.bouncycastle.crypto.params.Ed25519PublicKeyParameters, comment: String = ""): String {
+    val byteStream = java.io.ByteArrayOutputStream()
+    val dos = java.io.DataOutputStream(byteStream)
+
+    dos.writeInt(11)
+    dos.write("ssh-ed25519".toByteArray())
+
+    val keyBytes = publicKey.encoded
+    dos.writeInt(keyBytes.size)
+    dos.write(keyBytes)
+
+    val base64Key = java.util.Base64.getEncoder().encodeToString(byteStream.toByteArray())
+    return if (comment.isNotBlank()) "ssh-ed25519 $base64Key $comment" else "ssh-ed25519 $base64Key"
+}
+
+private fun encodeEd25519PrivateKeyBC(privateKey: org.bouncycastle.crypto.params.Ed25519PrivateKeyParameters, comment: String = ""): String {
+    val byteStream = java.io.ByteArrayOutputStream()
+    val dos = java.io.DataOutputStream(byteStream)
+
+    val privateKeyBytes = privateKey.encoded
+    dos.writeInt(32)
+    dos.write(privateKeyBytes.copyOfRange(0, 32))
+
+    val publicKey = privateKey.generatePublicKey() as org.bouncycastle.crypto.params.Ed25519PublicKeyParameters
+    val publicKeyBytes = publicKey.encoded
+    dos.writeInt(32)
+    dos.write(publicKeyBytes)
+
+    val base64 = java.util.Base64.getMimeEncoder(64, "\n".toByteArray())
+    val keyContent = base64.encodeToString(byteStream.toByteArray())
+    return "-----BEGIN OPENSSH PRIVATE KEY-----\n$keyContent\n-----END OPENSSH PRIVATE KEY-----"
 }
 
 private fun encodeEd25519PublicKey(publicKey: java.security.PublicKey): String {
-    val byteStream = java.io.ByteArrayOutputStream()
-    val dos = java.io.DataOutputStream(byteStream)
-    
-    dos.writeInt(11)
-    dos.write("ssh-ed25519".toByteArray())
-    
-    val encoded = publicKey.encoded
-    val keyBytes = extractEd25519PublicKeyBytes(encoded)
-    
-    dos.writeInt(keyBytes.size)
-    dos.write(keyBytes)
-    
-    return "ssh-ed25519 ${java.util.Base64.getEncoder().encodeToString(byteStream.toByteArray())}"
+    Log.d("SSH_KEY", "encodeEd25519PublicKey: Starting encoding, key class: ${publicKey.javaClass.name}")
+    return try {
+        val byteStream = java.io.ByteArrayOutputStream()
+        val dos = java.io.DataOutputStream(byteStream)
+        
+        Log.d("SSH_KEY", "encodeEd25519PublicKey: Writing ssh-ed25519 header")
+        dos.writeInt(11)
+        dos.write("ssh-ed25519".toByteArray())
+        
+        val encoded = publicKey.encoded
+        Log.d("SSH_KEY", "encodeEd25519PublicKey: Public key encoded length: ${encoded.size}")
+        val keyBytes = extractEd25519PublicKeyBytes(encoded)
+        Log.d("SSH_KEY", "encodeEd25519PublicKey: Extracted key bytes length: ${keyBytes.size}")
+        
+        dos.writeInt(keyBytes.size)
+        dos.write(keyBytes)
+        
+        val result = "ssh-ed25519 ${java.util.Base64.getEncoder().encodeToString(byteStream.toByteArray())}"
+        Log.d("SSH_KEY", "encodeEd25519PublicKey: Final result length: ${result.length}")
+        result
+    } catch (e: Exception) {
+        Log.e("SSH_KEY", "encodeEd25519PublicKey: Failed - ${e.javaClass.simpleName}: ${e.message}", e)
+        throw e
+    }
 }
 
 private fun extractEd25519PublicKeyBytes(encoded: ByteArray): ByteArray {
+    Log.d("SSH_KEY", "extractEd25519PublicKeyBytes: Input length: ${encoded.size}")
     var idx = 0
-    if (encoded[idx++].toInt() and 0xFF != 0x30) throw IllegalArgumentException("Invalid Ed25519 public key")
+    if (encoded[idx++].toInt() and 0xFF != 0x30) {
+        Log.e("SSH_KEY", "extractEd25519PublicKeyBytes: Invalid key - expected 0x30 at index 0")
+        throw IllegalArgumentException("Invalid Ed25519 public key")
+    }
     idx++
     
-    if (encoded[idx++].toInt() and 0xFF != 0x30) throw IllegalArgumentException("Invalid Ed25519 public key")
+    if (encoded[idx++].toInt() and 0xFF != 0x30) {
+        Log.e("SSH_KEY", "extractEd25519PublicKeyBytes: Invalid key - expected 0x30 at index 2")
+        throw IllegalArgumentException("Invalid Ed25519 public key")
+    }
     idx++
     
-    if (encoded[idx++].toInt() and 0xFF != 0x06) throw IllegalArgumentException("Invalid Ed25519 public key")
+    if (encoded[idx++].toInt() and 0xFF != 0x06) {
+        Log.e("SSH_KEY", "extractEd25519PublicKeyBytes: Invalid key - expected 0x06 at index 4")
+        throw IllegalArgumentException("Invalid Ed25519 public key")
+    }
     val oidLen = encoded[idx++].toInt() and 0xFF
+    Log.d("SSH_KEY", "extractEd25519PublicKeyBytes: OID length: $oidLen")
     idx += oidLen
     
-    if (encoded[idx++].toInt() and 0xFF != 0x03) throw IllegalArgumentException("Invalid Ed25519 public key")
+    if (encoded[idx++].toInt() and 0xFF != 0x03) {
+        Log.e("SSH_KEY", "extractEd25519PublicKeyBytes: Invalid key - expected 0x03 at index ${idx-1}")
+        throw IllegalArgumentException("Invalid Ed25519 public key")
+    }
     idx++
     
-    if (encoded[idx++].toInt() and 0xFF != 0x00) throw IllegalArgumentException("Invalid Ed25519 public key")
+    if (encoded[idx++].toInt() and 0xFF != 0x00) {
+        Log.e("SSH_KEY", "extractEd25519PublicKeyBytes: Invalid key - expected 0x00 at index ${idx-1}")
+        throw IllegalArgumentException("Invalid Ed25519 public key")
+    }
     
-    return encoded.copyOfRange(idx, encoded.size)
+    val result = encoded.copyOfRange(idx, encoded.size)
+    Log.d("SSH_KEY", "extractEd25519PublicKeyBytes: Extracted ${result.size} bytes")
+    return result
 }
 
 private fun encodeEd25519PrivateKey(privateKey: java.security.PrivateKey): String {
@@ -1982,13 +2130,18 @@ private fun encodeEd25519PrivateKey(privateKey: java.security.PrivateKey): Strin
 }
 
 private fun calculateFingerprint(publicKey: String): String {
+    Log.d("SSH_KEY", "Calculating fingerprint for publicKey: ${publicKey.take(50)}...")
     return try {
         val keyPart = publicKey.substringAfter(" ").substringBefore(" ")
+        Log.d("SSH_KEY", "Key part for fingerprint: ${keyPart.take(20)}...")
         val keyBytes = java.util.Base64.getDecoder().decode(keyPart)
         val md = java.security.MessageDigest.getInstance("SHA-256")
         val digest = md.digest(keyBytes)
-        "SHA256:${java.util.Base64.getEncoder().withoutPadding().encodeToString(digest)}"
+        val fingerprint = "SHA256:${java.util.Base64.getEncoder().withoutPadding().encodeToString(digest)}"
+        Log.d("SSH_KEY", "Fingerprint calculated: $fingerprint")
+        fingerprint
     } catch (e: Exception) {
+        Log.e("SSH_KEY", "Fingerprint calculation failed: ${e.javaClass.simpleName}: ${e.message}", e)
         "unknown"
     }
 }

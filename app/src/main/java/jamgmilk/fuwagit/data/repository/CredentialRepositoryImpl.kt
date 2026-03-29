@@ -32,21 +32,20 @@ class CredentialRepositoryImpl(context: Context) : CredentialRepository {
         }
     }
 
-    override suspend fun unlockWithPassword(password: String): AppResult<SecretKey> {
+    override suspend fun unlockWithPassword(password: String): AppResult<Unit> {
         return AppResult.catching {
             val result = masterKeyManager.unlockWithPassword(password)
             if (result.isSuccess) {
                 val key = result.getOrThrow()
                 cachedMasterKey = key
                 secureStore.cacheMasterKey(key)
-                key
             } else {
                 throw AppException.InvalidPassword()
             }
         }
     }
 
-    override suspend fun unlockWithBiometric(): AppResult<SecretKey> {
+    override suspend fun unlockWithBiometric(): AppResult<Unit> {
         return AppResult.Error(AppException.BiometricNotEnabled())
     }
 
@@ -122,8 +121,7 @@ class CredentialRepositoryImpl(context: Context) : CredentialRepository {
         publicKey: String,
         privateKey: String,
         passphrase: String?,
-        fingerprint: String,
-        comment: String
+        fingerprint: String
     ): AppResult<String> {
         return AppResult.catching {
             val key = getMasterKey()
@@ -134,7 +132,6 @@ class CredentialRepositoryImpl(context: Context) : CredentialRepository {
                 privateKey = privateKey,
                 passphrase = passphrase,
                 fingerprint = fingerprint,
-                comment = comment,
                 masterKey = key
             )
         }

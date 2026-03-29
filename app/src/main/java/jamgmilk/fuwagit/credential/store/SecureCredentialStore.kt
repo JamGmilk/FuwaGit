@@ -184,7 +184,6 @@ class SecureCredentialStore(private val context: Context) {
         privateKey: String,
         passphrase: String? = null,
         fingerprint: String,
-        comment: String = "",
         masterKey: SecretKey
     ): String {
         val uuid = java.util.UUID.randomUUID().toString()
@@ -202,7 +201,6 @@ class SecureCredentialStore(private val context: Context) {
             private_key = encryptedPrivateKey,
             passphrase = encryptedPassphrase,
             fingerprint = fingerprint,
-            comment = comment,
             created_at = now
         )
 

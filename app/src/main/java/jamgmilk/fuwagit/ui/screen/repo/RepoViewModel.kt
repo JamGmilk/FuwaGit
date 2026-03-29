@@ -7,6 +7,7 @@ import androidx.core.content.edit
 import androidx.core.net.toUri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import dagger.hilt.android.lifecycle.HiltViewModel
 import jamgmilk.fuwagit.data.source.RepoPathUtils
 import jamgmilk.fuwagit.domain.usecase.repo.GetRemoteUrlUseCase
 import jamgmilk.fuwagit.domain.usecase.repo.GetRepoInfoUseCase
@@ -26,6 +27,7 @@ import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import javax.inject.Inject
 
 data class RepoFolderItem(
     val id: String,
@@ -50,7 +52,8 @@ data class RepoUiState(
     val error: String? = null
 )
 
-class RepoViewModel(
+@HiltViewModel
+class RepoViewModel @Inject constructor(
     private val getRepoInfoUseCase: GetRepoInfoUseCase,
     private val getRemoteUrlUseCase: GetRemoteUrlUseCase,
     private val configureRemoteUseCase: ConfigureRemoteUseCase,
@@ -84,6 +87,7 @@ class RepoViewModel(
 
     fun setTargetPath(context: Context, path: String?) {
         _targetPath.value = path
+        _uiState.value = _uiState.value.copy(targetPath = path)
         saveTargetPath(context, path)
     }
 
@@ -113,6 +117,7 @@ class RepoViewModel(
         storageInitialized = true
         val path = loadTargetPath(context)
         _targetPath.value = path
+        _uiState.value = _uiState.value.copy(targetPath = path)
         rebuildGrantedFolders(context)
     }
 

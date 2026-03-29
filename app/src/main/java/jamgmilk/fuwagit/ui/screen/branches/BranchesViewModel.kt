@@ -2,8 +2,8 @@ package jamgmilk.fuwagit.ui.screen.branches
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import dagger.hilt.android.lifecycle.HiltViewModel
 import jamgmilk.fuwagit.domain.model.GitBranch
-import jamgmilk.fuwagit.domain.repository.GitRepository
 import jamgmilk.fuwagit.domain.usecase.git.CheckoutBranchUseCase
 import jamgmilk.fuwagit.domain.usecase.git.CreateBranchUseCase
 import jamgmilk.fuwagit.domain.usecase.git.DeleteBranchUseCase
@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 data class BranchesUiState(
     val isLoading: Boolean = false,
@@ -29,14 +30,14 @@ data class BranchesUiState(
     val selectedBranch: GitBranch? = null
 )
 
-class BranchesViewModel(
+@HiltViewModel
+class BranchesViewModel @Inject constructor(
     private val getBranchesUseCase: GetBranchesUseCase,
     private val checkoutBranchUseCase: CheckoutBranchUseCase,
     private val createBranchUseCase: CreateBranchUseCase,
     private val mergeBranchUseCase: MergeBranchUseCase,
     private val rebaseBranchUseCase: RebaseBranchUseCase,
-    private val deleteBranchUseCase: DeleteBranchUseCase,
-    private val gitRepository: GitRepository
+    private val deleteBranchUseCase: DeleteBranchUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(BranchesUiState())

@@ -3,6 +3,7 @@ package jamgmilk.fuwagit.ui.screen.credentials
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import dagger.hilt.android.lifecycle.HiltViewModel
 import jamgmilk.fuwagit.credential.store.HttpsCredential
 import jamgmilk.fuwagit.credential.store.SshKey
 import jamgmilk.fuwagit.domain.repository.CredentialRepository
@@ -21,6 +22,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 data class CredentialsStoreUiState(
     val isMasterPasswordSet: Boolean = false,
@@ -34,7 +36,8 @@ data class CredentialsStoreUiState(
     val error: String? = null
 )
 
-class CredentialsStoreViewModel(
+@HiltViewModel
+class CredentialsStoreViewModel @Inject constructor(
     private val credentialRepository: CredentialRepository,
     private val setupMasterPasswordUseCase: SetupMasterPasswordUseCase,
     private val unlockWithPasswordUseCase: UnlockWithPasswordUseCase,
@@ -197,11 +200,10 @@ class CredentialsStoreViewModel(
         publicKey: String,
         privateKey: String,
         passphrase: String?,
-        fingerprint: String,
-        comment: String
+        fingerprint: String
     ) {
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true)
+            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
 
             addSshKeyUseCase(
                 name = name,
@@ -209,15 +211,14 @@ class CredentialsStoreViewModel(
                 publicKey = publicKey,
                 privateKey = privateKey,
                 passphrase = passphrase,
-                fingerprint = fingerprint,
-                comment = comment
-            ).onSuccess {
+                fingerprint = fingerprint
+            ).onSuccess { uuid ->
                 loadCredentials()
                 _uiState.value = _uiState.value.copy(isLoading = false)
             }.onError { exception ->
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
-                    error = exception.message
+                    error = "Failed to add SSH key: ${exception.message}"
                 )
             }
         }

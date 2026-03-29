@@ -1,8 +1,14 @@
 package jamgmilk.fuwagit.di
 
 import android.content.Context
+import dagger.Module
+import dagger.Provides
+import dagger.hilt.InstallIn
+import dagger.hilt.android.qualifiers.ApplicationContext
+import dagger.hilt.components.SingletonComponent
 import jamgmilk.fuwagit.data.repository.CredentialRepositoryImpl
 import jamgmilk.fuwagit.data.repository.GitRepositoryImpl
+import jamgmilk.fuwagit.data.source.JGitDataSource
 import jamgmilk.fuwagit.domain.repository.CredentialRepository
 import jamgmilk.fuwagit.domain.repository.GitRepository
 import jamgmilk.fuwagit.domain.usecase.credential.AddHttpsCredentialUseCase
@@ -17,6 +23,7 @@ import jamgmilk.fuwagit.domain.usecase.credential.SetupMasterPasswordUseCase
 import jamgmilk.fuwagit.domain.usecase.credential.UnlockWithPasswordUseCase
 import jamgmilk.fuwagit.domain.usecase.credential.UpdateHttpsCredentialUseCase
 import jamgmilk.fuwagit.domain.usecase.git.CheckoutBranchUseCase
+import jamgmilk.fuwagit.domain.usecase.git.CheckRepoStatusUseCase
 import jamgmilk.fuwagit.domain.usecase.git.CommitChangesUseCase
 import jamgmilk.fuwagit.domain.usecase.git.CreateBranchUseCase
 import jamgmilk.fuwagit.domain.usecase.git.DeleteBranchUseCase
@@ -37,190 +44,193 @@ import jamgmilk.fuwagit.domain.usecase.repo.ConfigureRemoteUseCase
 import jamgmilk.fuwagit.domain.usecase.repo.GetRemoteUrlUseCase
 import jamgmilk.fuwagit.domain.usecase.repo.GetRepoInfoUseCase
 import jamgmilk.fuwagit.domain.usecase.repo.HasGitDirUseCase
-import jamgmilk.fuwagit.ui.screen.branches.BranchesViewModel
-import jamgmilk.fuwagit.ui.screen.credentials.CredentialsStoreViewModel
-import jamgmilk.fuwagit.ui.screen.history.HistoryViewModel
-import jamgmilk.fuwagit.ui.screen.repo.RepoViewModel
-import jamgmilk.fuwagit.ui.screen.status.StatusViewModel
+import javax.inject.Singleton
 
-object AppContainer {
-    
-    private var _context: Context? = null
-    
-    fun initialize(context: Context) {
-        _context = context.applicationContext
-    }
-    
-    private val context: Context
-        get() = _context ?: throw IllegalStateException("AppContainer not initialized")
-    
-    private var _gitRepository: GitRepository? = null
-    private var _credentialRepository: CredentialRepository? = null
-    
-    val gitRepository: GitRepository
-        get() = _gitRepository ?: GitRepositoryImpl().also { _gitRepository = it }
-    
-    val credentialRepository: CredentialRepository
-        get() = _credentialRepository ?: CredentialRepositoryImpl(context).also { _credentialRepository = it }
-    
-    // Git UseCases
-    private val getWorkspaceStatusUseCase: GetWorkspaceStatusUseCase
-        get() = GetWorkspaceStatusUseCase(gitRepository)
-    
-    private val getBranchesUseCase: GetBranchesUseCase
-        get() = GetBranchesUseCase(gitRepository)
-    
-    private val getCommitHistoryUseCase: GetCommitHistoryUseCase
-        get() = GetCommitHistoryUseCase(gitRepository)
-    
-    private val stageAllUseCase: StageAllUseCase
-        get() = StageAllUseCase(gitRepository)
-    
-    private val unstageAllUseCase: UnstageAllUseCase
-        get() = UnstageAllUseCase(gitRepository)
-    
-    private val stageFileUseCase: StageFileUseCase
-        get() = StageFileUseCase(gitRepository)
-    
-    private val unstageFileUseCase: UnstageFileUseCase
-        get() = UnstageFileUseCase(gitRepository)
-    
-    private val commitChangesUseCase: CommitChangesUseCase
-        get() = CommitChangesUseCase(gitRepository)
-    
-    private val pullUseCase: PullUseCase
-        get() = PullUseCase(gitRepository)
-    
-    private val pushUseCase: PushUseCase
-        get() = PushUseCase(gitRepository)
-    
-    private val createBranchUseCase: CreateBranchUseCase
-        get() = CreateBranchUseCase(gitRepository)
-    
-    private val initRepoUseCase: InitRepoUseCase
-        get() = InitRepoUseCase(gitRepository)
-    
-    private val checkoutBranchUseCase: CheckoutBranchUseCase
-        get() = CheckoutBranchUseCase(gitRepository)
-    
-    private val mergeBranchUseCase: MergeBranchUseCase
-        get() = MergeBranchUseCase(gitRepository)
-    
-    private val rebaseBranchUseCase: RebaseBranchUseCase
-        get() = RebaseBranchUseCase(gitRepository)
-    
-    private val deleteBranchUseCase: DeleteBranchUseCase
-        get() = DeleteBranchUseCase(gitRepository)
-    
-    private val discardChangesUseCase: DiscardChangesUseCase
-        get() = DiscardChangesUseCase(gitRepository)
-    
-    // Repo UseCases
-    private val getRepoInfoUseCase: GetRepoInfoUseCase
-        get() = GetRepoInfoUseCase(gitRepository)
-    
-    private val getRemoteUrlUseCase: GetRemoteUrlUseCase
-        get() = GetRemoteUrlUseCase(gitRepository)
-    
-    private val configureRemoteUseCase: ConfigureRemoteUseCase
-        get() = ConfigureRemoteUseCase(gitRepository)
-    
-    private val hasGitDirUseCase: HasGitDirUseCase
-        get() = HasGitDirUseCase(gitRepository)
-    
-    // Credential UseCases
-    private val setupMasterPasswordUseCase: SetupMasterPasswordUseCase
-        get() = SetupMasterPasswordUseCase(credentialRepository)
-    
-    private val unlockWithPasswordUseCase: UnlockWithPasswordUseCase
-        get() = UnlockWithPasswordUseCase(credentialRepository)
-    
-    private val getHttpsCredentialsUseCase: GetHttpsCredentialsUseCase
-        get() = GetHttpsCredentialsUseCase(credentialRepository)
-    
-    private val addHttpsCredentialUseCase: AddHttpsCredentialUseCase
-        get() = AddHttpsCredentialUseCase(credentialRepository)
-    
-    private val deleteHttpsCredentialUseCase: DeleteHttpsCredentialUseCase
-        get() = DeleteHttpsCredentialUseCase(credentialRepository)
-    
-    private val updateHttpsCredentialUseCase: UpdateHttpsCredentialUseCase
-        get() = UpdateHttpsCredentialUseCase(credentialRepository)
-    
-    private val getHttpsPasswordUseCase: GetHttpsPasswordUseCase
-        get() = GetHttpsPasswordUseCase(credentialRepository)
-    
-    private val getSshKeysUseCase: GetSshKeysUseCase
-        get() = GetSshKeysUseCase(credentialRepository)
-    
-    private val addSshKeyUseCase: AddSshKeyUseCase
-        get() = AddSshKeyUseCase(credentialRepository)
-    
-    private val deleteSshKeyUseCase: DeleteSshKeyUseCase
-        get() = DeleteSshKeyUseCase(credentialRepository)
-    
-    private val getSshPrivateKeyUseCase: GetSshPrivateKeyUseCase
-        get() = GetSshPrivateKeyUseCase(credentialRepository)
-    
-    // ViewModels
-    fun createCredentialsStoreViewModel(): CredentialsStoreViewModel {
-        return CredentialsStoreViewModel(
-            credentialRepository = credentialRepository,
-            setupMasterPasswordUseCase = setupMasterPasswordUseCase,
-            unlockWithPasswordUseCase = unlockWithPasswordUseCase,
-            getHttpsCredentialsUseCase = getHttpsCredentialsUseCase,
-            addHttpsCredentialUseCase = addHttpsCredentialUseCase,
-            updateHttpsCredentialUseCase = updateHttpsCredentialUseCase,
-            deleteHttpsCredentialUseCase = deleteHttpsCredentialUseCase,
-            getHttpsPasswordUseCase = getHttpsPasswordUseCase,
-            getSshKeysUseCase = getSshKeysUseCase,
-            addSshKeyUseCase = addSshKeyUseCase,
-            deleteSshKeyUseCase = deleteSshKeyUseCase,
-            getSshPrivateKeyUseCase = getSshPrivateKeyUseCase
-        )
-    }
-    
-    fun createStatusViewModel(): StatusViewModel {
-        return StatusViewModel(
-            getWorkspaceStatusUseCase = getWorkspaceStatusUseCase,
-            getBranchesUseCase = getBranchesUseCase,
-            stageAllUseCase = stageAllUseCase,
-            unstageAllUseCase = unstageAllUseCase,
-            stageFileUseCase = stageFileUseCase,
-            unstageFileUseCase = unstageFileUseCase,
-            commitChangesUseCase = commitChangesUseCase,
-            pullUseCase = pullUseCase,
-            pushUseCase = pushUseCase,
-            initRepoUseCase = initRepoUseCase,
-            discardChangesUseCase = discardChangesUseCase,
-            gitRepository = gitRepository
-        )
-    }
-    
-    fun createHistoryViewModel(): HistoryViewModel {
-        return HistoryViewModel(
-            getCommitHistoryUseCase = getCommitHistoryUseCase
-        )
-    }
-    
-    fun createBranchesViewModel(): BranchesViewModel {
-        return BranchesViewModel(
-            getBranchesUseCase = getBranchesUseCase,
-            checkoutBranchUseCase = checkoutBranchUseCase,
-            createBranchUseCase = createBranchUseCase,
-            mergeBranchUseCase = mergeBranchUseCase,
-            rebaseBranchUseCase = rebaseBranchUseCase,
-            deleteBranchUseCase = deleteBranchUseCase,
-            gitRepository = gitRepository
-        )
-    }
-    
-    fun createRepoViewModel(): RepoViewModel {
-        return RepoViewModel(
-            getRepoInfoUseCase = getRepoInfoUseCase,
-            getRemoteUrlUseCase = getRemoteUrlUseCase,
-            configureRemoteUseCase = configureRemoteUseCase,
-            hasGitDirUseCase = hasGitDirUseCase
-        )
-    }
+@Module
+@InstallIn(SingletonComponent::class)
+object RepositoryModule {
+
+    @Provides
+    @Singleton
+    fun provideJGitDataSource(): JGitDataSource = JGitDataSource()
+
+    @Provides
+    @Singleton
+    fun provideGitRepository(jGitDataSource: JGitDataSource): GitRepository = GitRepositoryImpl(jGitDataSource)
+
+    @Provides
+    @Singleton
+    fun provideCredentialRepository(
+        @ApplicationContext context: Context
+    ): CredentialRepository = CredentialRepositoryImpl(context)
+}
+
+@Module
+@InstallIn(SingletonComponent::class)
+object UseCaseModule {
+
+    @Provides
+    @Singleton
+    fun provideSetupMasterPasswordUseCase(repository: CredentialRepository) =
+        SetupMasterPasswordUseCase(repository)
+
+    @Provides
+    @Singleton
+    fun provideUnlockWithPasswordUseCase(repository: CredentialRepository) =
+        UnlockWithPasswordUseCase(repository)
+
+    @Provides
+    @Singleton
+    fun provideGetHttpsCredentialsUseCase(repository: CredentialRepository) =
+        GetHttpsCredentialsUseCase(repository)
+
+    @Provides
+    @Singleton
+    fun provideAddHttpsCredentialUseCase(repository: CredentialRepository) =
+        AddHttpsCredentialUseCase(repository)
+
+    @Provides
+    @Singleton
+    fun provideUpdateHttpsCredentialUseCase(repository: CredentialRepository) =
+        UpdateHttpsCredentialUseCase(repository)
+
+    @Provides
+    @Singleton
+    fun provideDeleteHttpsCredentialUseCase(repository: CredentialRepository) =
+        DeleteHttpsCredentialUseCase(repository)
+
+    @Provides
+    @Singleton
+    fun provideGetHttpsPasswordUseCase(repository: CredentialRepository) =
+        GetHttpsPasswordUseCase(repository)
+
+    @Provides
+    @Singleton
+    fun provideGetSshKeysUseCase(repository: CredentialRepository) =
+        GetSshKeysUseCase(repository)
+
+    @Provides
+    @Singleton
+    fun provideAddSshKeyUseCase(repository: CredentialRepository) =
+        AddSshKeyUseCase(repository)
+
+    @Provides
+    @Singleton
+    fun provideDeleteSshKeyUseCase(repository: CredentialRepository) =
+        DeleteSshKeyUseCase(repository)
+
+    @Provides
+    @Singleton
+    fun provideGetSshPrivateKeyUseCase(repository: CredentialRepository) =
+        GetSshPrivateKeyUseCase(repository)
+
+    @Provides
+    @Singleton
+    fun provideGetWorkspaceStatusUseCase(repository: GitRepository) =
+        GetWorkspaceStatusUseCase(repository)
+
+    @Provides
+    @Singleton
+    fun provideGetBranchesUseCase(repository: GitRepository) =
+        GetBranchesUseCase(repository)
+
+    @Provides
+    @Singleton
+    fun provideGetCommitHistoryUseCase(repository: GitRepository) =
+        GetCommitHistoryUseCase(repository)
+
+    @Provides
+    @Singleton
+    fun provideStageAllUseCase(repository: GitRepository) =
+        StageAllUseCase(repository)
+
+    @Provides
+    @Singleton
+    fun provideUnstageAllUseCase(repository: GitRepository) =
+        UnstageAllUseCase(repository)
+
+    @Provides
+    @Singleton
+    fun provideStageFileUseCase(repository: GitRepository) =
+        StageFileUseCase(repository)
+
+    @Provides
+    @Singleton
+    fun provideUnstageFileUseCase(repository: GitRepository) =
+        UnstageFileUseCase(repository)
+
+    @Provides
+    @Singleton
+    fun provideCommitChangesUseCase(repository: GitRepository) =
+        CommitChangesUseCase(repository)
+
+    @Provides
+    @Singleton
+    fun providePullUseCase(repository: GitRepository) =
+        PullUseCase(repository)
+
+    @Provides
+    @Singleton
+    fun providePushUseCase(repository: GitRepository) =
+        PushUseCase(repository)
+
+    @Provides
+    @Singleton
+    fun provideCreateBranchUseCase(repository: GitRepository) =
+        CreateBranchUseCase(repository)
+
+    @Provides
+    @Singleton
+    fun provideInitRepoUseCase(repository: GitRepository) =
+        InitRepoUseCase(repository)
+
+    @Provides
+    @Singleton
+    fun provideCheckoutBranchUseCase(repository: GitRepository) =
+        CheckoutBranchUseCase(repository)
+
+    @Provides
+    @Singleton
+    fun provideMergeBranchUseCase(repository: GitRepository) =
+        MergeBranchUseCase(repository)
+
+    @Provides
+    @Singleton
+    fun provideRebaseBranchUseCase(repository: GitRepository) =
+        RebaseBranchUseCase(repository)
+
+    @Provides
+    @Singleton
+    fun provideDeleteBranchUseCase(repository: GitRepository) =
+        DeleteBranchUseCase(repository)
+
+    @Provides
+    @Singleton
+    fun provideDiscardChangesUseCase(repository: GitRepository) =
+        DiscardChangesUseCase(repository)
+
+    @Provides
+    @Singleton
+    fun provideGetRepoInfoUseCase(repository: GitRepository) =
+        GetRepoInfoUseCase(repository)
+
+    @Provides
+    @Singleton
+    fun provideGetRemoteUrlUseCase(repository: GitRepository) =
+        GetRemoteUrlUseCase(repository)
+
+    @Provides
+    @Singleton
+    fun provideConfigureRemoteUseCase(repository: GitRepository) =
+        ConfigureRemoteUseCase(repository)
+
+    @Provides
+    @Singleton
+    fun provideHasGitDirUseCase(repository: GitRepository) =
+        HasGitDirUseCase(repository)
+
+    @Provides
+    @Singleton
+    fun provideCheckRepoStatusUseCase(repository: GitRepository) =
+        CheckRepoStatusUseCase(repository)
 }
