@@ -24,25 +24,39 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Undo
+import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.Cloud
 import androidx.compose.material.icons.filled.CloudDownload
 import androidx.compose.material.icons.filled.CloudUpload
 import androidx.compose.material.icons.filled.Code
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.Pending
+import androidx.compose.material.icons.filled.LocalOffer
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -69,9 +83,13 @@ import androidx.compose.ui.unit.sp
 import jamgmilk.fuwagit.domain.model.GitBranch
 import jamgmilk.fuwagit.domain.model.GitChangeType
 import jamgmilk.fuwagit.domain.model.GitFileStatus
+import jamgmilk.fuwagit.domain.model.GitRemote
+import jamgmilk.fuwagit.domain.model.GitStash
+import jamgmilk.fuwagit.domain.model.GitTag
 import jamgmilk.fuwagit.ui.components.RefreshAction
 import jamgmilk.fuwagit.ui.components.ScreenTemplate
 import jamgmilk.fuwagit.ui.theme.FuwaGitTheme
+import jamgmilk.fuwagit.ui.theme.AppColors
 import jamgmilk.fuwagit.ui.theme.FuwaGitThemeExtras
 import jamgmilk.fuwagit.ui.theme.Sakura50
 import jamgmilk.fuwagit.ui.theme.Sakura80
@@ -105,11 +123,37 @@ fun StatusScreen(
     val terminalLogs = uiState.terminalOutput
     val targetPath = uiState.repoPath
     val currentBranch = uiState.currentBranch
+    val stashList = uiState.stashList
+    val tagList = uiState.tagList
+    val remoteList = uiState.remoteList
+
+    var showStashDialog by remember { mutableStateOf(false) }
+    var showStashListDialog by remember { mutableStateOf(false) }
+    var selectedStash by remember { mutableStateOf<GitStash?>(null) }
+    var showApplyStashDialog by remember { mutableStateOf(false) }
+    var showDropStashDialog by remember { mutableStateOf(false) }
+
+    var showTagDialog by remember { mutableStateOf(false) }
+    var showTagListDialog by remember { mutableStateOf(false) }
+    var showRemoteListDialog by remember { mutableStateOf(false) }
+    var showRenameBranchDialog by remember { mutableStateOf(false) }
+    var showCleanDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         kotlinx.coroutines.delay(100)
         if (uiState.repoPath != null) {
             statusViewModel.refreshAll()
+            statusViewModel.refreshStashList()
+            statusViewModel.refreshTagList()
+            statusViewModel.refreshRemoteList()
+        }
+    }
+
+    LaunchedEffect(uiState.repoPath) {
+        if (uiState.repoPath != null) {
+            statusViewModel.refreshStashList()
+            statusViewModel.refreshTagList()
+            statusViewModel.refreshRemoteList()
         }
     }
 
@@ -152,7 +196,14 @@ fun StatusScreen(
                     onUnstageAll = { statusViewModel.unstageAll() },
                     onPull = { statusViewModel.pullRepo() },
                     onPush = { statusViewModel.pushRepo() },
-                    onFetch = { },
+                    onStash = { showStashDialog = true },
+                    onShowStashList = { showStashListDialog = true },
+                    onFetch = { statusViewModel.fetchRepo() },
+                    onTag = { showTagDialog = true },
+                    onShowTagList = { showTagListDialog = true },
+                    onShowRemoteList = { showRemoteListDialog = true },
+                    onRenameBranch = { showRenameBranchDialog = true },
+                    onClean = { showCleanDialog = true },
                     modifier = Modifier.fillMaxWidth()
                 )
 
@@ -195,7 +246,7 @@ fun StatusScreen(
                     subtitle = "Ready to commit",
                     files = staged,
                     modifier = Modifier.weight(1f),
-                    accentColor = Color(0xFF4CAF50),
+                    accentColor = AppColors.GitGreen,
                     onFileAction = { file -> statusViewModel.unstageFile(file.path) },
                     emptyMessage = "Nothing to commit"
                 )
@@ -228,6 +279,81 @@ fun StatusScreen(
                 .height(160.dp)
         )
     }
+
+    if (showStashDialog) {
+        StashDialog(
+            onDismiss = { showStashDialog = false },
+            onStash = { message ->
+                statusViewModel.stashChanges(message)
+                showStashDialog = false
+            }
+        )
+    }
+
+    if (showStashListDialog) {
+        StashListDialog(
+            stashList = stashList,
+            onDismiss = { showStashListDialog = false },
+            onApplyStash = { stash ->
+                statusViewModel.applyStash(stash.index)
+                showStashListDialog = false
+            },
+            onDropStash = { stash ->
+                statusViewModel.dropStash(stash.index)
+            }
+        )
+    }
+
+    if (showTagDialog) {
+        TagDialog(
+            onDismiss = { showTagDialog = false },
+            onCreateTag = { tagName, message ->
+                statusViewModel.createTag(tagName, message)
+                showTagDialog = false
+            }
+        )
+    }
+
+    if (showTagListDialog) {
+        TagListDialog(
+            tagList = tagList,
+            onDismiss = { showTagListDialog = false },
+            onDeleteTag = { tag ->
+                statusViewModel.deleteTag(tag.name)
+            }
+        )
+    }
+
+    if (showRemoteListDialog) {
+        RemoteListDialog(
+            remoteList = remoteList,
+            onDismiss = { showRemoteListDialog = false },
+            onDeleteRemote = { remote ->
+                statusViewModel.deleteRemote(remote.name)
+            }
+        )
+    }
+
+    if (showRenameBranchDialog) {
+        RenameBranchDialog(
+            currentBranch = currentBranch?.name ?: "",
+            onDismiss = { showRenameBranchDialog = false },
+            onRename = { oldName, newName ->
+                statusViewModel.renameBranch(oldName, newName)
+                showRenameBranchDialog = false
+            }
+        )
+    }
+
+    if (showCleanDialog) {
+        CleanDialog(
+            onDismiss = { showCleanDialog = false },
+            onClean = { dryRun ->
+                statusViewModel.cleanRepo(dryRun)
+                showCleanDialog = false
+            }
+        )
+    }
 }
 
 @Composable
@@ -237,7 +363,14 @@ private fun ActionToolbar(
     onUnstageAll: () -> Unit,
     onPull: () -> Unit,
     onPush: () -> Unit,
+    onStash: () -> Unit,
+    onShowStashList: () -> Unit,
     onFetch: () -> Unit,
+    onTag: () -> Unit,
+    onShowTagList: () -> Unit,
+    onShowRemoteList: () -> Unit,
+    onRenameBranch: () -> Unit,
+    onClean: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val uiColors = FuwaGitThemeExtras.colors
@@ -259,7 +392,7 @@ private fun ActionToolbar(
                 ActionButton(
                     icon = Icons.Default.CloudDownload,
                     label = "Pull",
-                    color = Color(0xFF1E88E5),
+                    color = AppColors.GitBlue,
                     enabled = true,
                     onClick = onPull,
                     modifier = Modifier.weight(1f)
@@ -267,7 +400,7 @@ private fun ActionToolbar(
                 ActionButton(
                     icon = Icons.Default.CloudUpload,
                     label = "Push",
-                    color = Color(0xFF43A047),
+                    color = AppColors.GitGreen,
                     enabled = true,
                     onClick = onPush,
                     modifier = Modifier.weight(1f)
@@ -275,7 +408,7 @@ private fun ActionToolbar(
                 ActionButton(
                     icon = Icons.Default.CloudDownload,
                     label = "Fetch",
-                    color = Color(0xFF7B1FA2),
+                    color = AppColors.GitPurple,
                     enabled = true,
                     onClick = onFetch,
                     modifier = Modifier.weight(1f)
@@ -289,7 +422,7 @@ private fun ActionToolbar(
                 ActionButton(
                     icon = Icons.Default.Check,
                     label = "Stage All",
-                    color = Color(0xFF4CAF50),
+                    color = AppColors.GitGreen,
                     enabled = stats.unstaged + stats.untracked > 0,
                     onClick = onStageAll,
                     modifier = Modifier.weight(1f)
@@ -297,9 +430,83 @@ private fun ActionToolbar(
                 ActionButton(
                     icon = Icons.AutoMirrored.Filled.Undo,
                     label = "Unstage",
-                    color = Color(0xFFFF9800),
+                    color = AppColors.GitOrange,
                     enabled = stats.staged > 0,
                     onClick = onUnstageAll,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                ActionButton(
+                    icon = Icons.Default.Archive,
+                    label = "Stash",
+                    color = AppColors.GitBrown,
+                    enabled = stats.unstaged + stats.untracked > 0 || stats.staged > 0,
+                    onClick = onStash,
+                    modifier = Modifier.weight(1f)
+                )
+                ActionButton(
+                    icon = Icons.Default.Archive,
+                    label = "Stash List",
+                    color = AppColors.GitGrey,
+                    enabled = true,
+                    onClick = onShowStashList,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                ActionButton(
+                    icon = Icons.Default.LocalOffer,
+                    label = "Tag",
+                    color = AppColors.GitPink,
+                    enabled = true,
+                    onClick = onTag,
+                    modifier = Modifier.weight(1f)
+                )
+                ActionButton(
+                    icon = Icons.Default.LocalOffer,
+                    label = "Tag List",
+                    color = AppColors.GitPurple,
+                    enabled = true,
+                    onClick = onShowTagList,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                ActionButton(
+                    icon = Icons.Default.Cloud,
+                    label = "Remotes",
+                    color = AppColors.GitCyan,
+                    enabled = true,
+                    onClick = onShowRemoteList,
+                    modifier = Modifier.weight(1f)
+                )
+                ActionButton(
+                    icon = Icons.Default.Edit,
+                    label = "Rename",
+                    color = AppColors.GitDeepOrange,
+                    enabled = true,
+                    onClick = onRenameBranch,
+                    modifier = Modifier.weight(1f)
+                )
+                ActionButton(
+                    icon = Icons.Default.Delete,
+                    label = "Clean",
+                    color = AppColors.GitRed,
+                    enabled = stats.untracked > 0,
+                    onClick = onClean,
                     modifier = Modifier.weight(1f)
                 )
             }
@@ -378,7 +585,7 @@ private fun RepositoryStatusCard(
                     modifier = Modifier
                         .size(48.dp)
                         .background(
-                            if (isRepo) Color(0xFF4CAF50).copy(alpha = 0.15f)
+                            if (isRepo) AppColors.GitGreen.copy(alpha = 0.15f)
                             else colors.error.copy(alpha = 0.15f),
                             RoundedCornerShape(14.dp)
                         ),
@@ -387,7 +594,7 @@ private fun RepositoryStatusCard(
                     Icon(
                         imageVector = if (isRepo) Icons.Default.CheckCircle else Icons.Default.Error,
                         contentDescription = null,
-                        tint = if (isRepo) Color(0xFF4CAF50) else colors.error,
+                        tint = if (isRepo) AppColors.GitGreen else colors.error,
                         modifier = Modifier.size(26.dp)
                     )
                 }
@@ -518,25 +725,25 @@ private fun StatChipsRow(stats: StatusStats) {
         StatChip(
             label = "Staged",
             count = stats.staged,
-            color = Color(0xFF4CAF50),
+            color = AppColors.GitGreen,
             modifier = Modifier.weight(1f)
         )
         StatChip(
             label = "Modified",
             count = stats.modified,
-            color = Color(0xFF1E88E5),
+            color = AppColors.GitBlue,
             modifier = Modifier.weight(1f)
         )
         StatChip(
             label = "Added",
             count = stats.added,
-            color = Color(0xFF43A047),
+            color = AppColors.GitGreen,
             modifier = Modifier.weight(1f)
         )
         StatChip(
             label = "Removed",
             count = stats.removed,
-            color = Color(0xFFE53935),
+            color = AppColors.GitRed,
             modifier = Modifier.weight(1f)
         )
     }
@@ -587,10 +794,10 @@ private fun ChangeTypeBarChart(
         val gap = 2.dp.toPx()
 
         val segments = listOf(
-            addedRatio to Color(0xFF43A047),
-            modifiedRatio to Color(0xFF1E88E5),
-            removedRatio to Color(0xFFE53935),
-            untrackedRatio to Color(0xFF78909C)
+            addedRatio to AppColors.GitGreen,
+            modifiedRatio to AppColors.GitBlue,
+            removedRatio to AppColors.GitRed,
+            untrackedRatio to AppColors.GitBlueGrey
         )
 
         segments.forEach { (ratio, color) ->
@@ -724,12 +931,12 @@ private fun FileStatusItem(
     val colors = MaterialTheme.colorScheme
 
     val (changeColor, changeLabel) = when (file.changeType) {
-        GitChangeType.Added -> Color(0xFF43A047) to "A"
-        GitChangeType.Modified -> Color(0xFF1E88E5) to "M"
-        GitChangeType.Removed -> Color(0xFFE53935) to "D"
-        GitChangeType.Untracked -> Color(0xFF78909C) to "?"
-        GitChangeType.Renamed -> Color(0xFFFFA000) to "R"
-        GitChangeType.Conflicting -> Color(0xFFD81B60) to "!"
+        GitChangeType.Added -> AppColors.GitGreen to "A"
+        GitChangeType.Modified -> AppColors.GitBlue to "M"
+        GitChangeType.Removed -> AppColors.GitRed to "D"
+        GitChangeType.Untracked -> AppColors.GitBlueGrey to "?"
+        GitChangeType.Renamed -> AppColors.GitAmber to "R"
+        GitChangeType.Conflicting -> AppColors.GitDarkPink to "!"
     }
 
     Surface(
@@ -842,7 +1049,7 @@ private fun CommitCard(
                 if (stagedCount > 0) {
                     Surface(
                         shape = RoundedCornerShape(8.dp),
-                        color = Color(0xFF4CAF50).copy(alpha = 0.15f)
+                        color = AppColors.GitGreen.copy(alpha = 0.15f)
                     ) {
                         Row(
                             modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
@@ -851,14 +1058,14 @@ private fun CommitCard(
                             Icon(
                                 Icons.Default.Pending,
                                 contentDescription = null,
-                                tint = Color(0xFF4CAF50),
+                                tint = AppColors.GitGreen,
                                 modifier = Modifier.size(14.dp)
                             )
                             Spacer(Modifier.width(4.dp))
                             Text(
                                 text = "$stagedCount staged",
                                 style = MaterialTheme.typography.labelSmall,
-                                color = Color(0xFF4CAF50)
+                                color = AppColors.GitGreen
                             )
                         }
                     }
@@ -1003,4 +1210,818 @@ private fun TerminalLogsCard(
             }
         }
     }
+}
+
+@Composable
+fun StashDialog(
+    onDismiss: () -> Unit,
+    onStash: (String?) -> Unit
+) {
+    var message by remember { mutableStateOf("") }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        icon = {
+            Box(
+                modifier = Modifier
+                    .size(56.dp)
+                    .background(AppColors.GitBrown.copy(alpha = 0.15f), CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    Icons.Default.Archive,
+                    contentDescription = null,
+                    tint = AppColors.GitBrown,
+                    modifier = Modifier.size(28.dp)
+                )
+            }
+        },
+        title = {
+            Text(
+                text = "Stash Changes",
+                fontWeight = FontWeight.Bold,
+                style = MaterialTheme.typography.titleLarge
+            )
+        },
+        text = {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Text(
+                    text = "Stash your current changes to apply them later.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                OutlinedTextField(
+                    value = message,
+                    onValueChange = { message = it },
+                    label = { Text("Message (optional)") },
+                    placeholder = { Text("Enter stash message...") },
+                    singleLine = true,
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Color(0xFF795548),
+                        focusedLabelColor = Color(0xFF795548)
+                    )
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = { onStash(message.ifBlank { null }) },
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF795548)),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Icon(
+                    Icons.Default.Archive,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(Modifier.width(6.dp))
+                Text("Stash")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        },
+        shape = RoundedCornerShape(24.dp)
+    )
+}
+
+@Composable
+fun CleanDialog(
+    onDismiss: () -> Unit,
+    onClean: (Boolean) -> Unit
+) {
+    var dryRun by remember { mutableStateOf(true) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        icon = {
+            Box(
+                modifier = Modifier
+                    .size(56.dp)
+                    .background(Color(0xFFF44336).copy(alpha = 0.15f), CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    Icons.Default.Delete,
+                    contentDescription = null,
+                    tint = Color(0xFFF44336),
+                    modifier = Modifier.size(28.dp)
+                )
+            }
+        },
+        title = {
+            Text(
+                text = "Clean Repository",
+                fontWeight = FontWeight.Bold,
+                style = MaterialTheme.typography.titleLarge
+            )
+        },
+        text = {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Text(
+                    text = "Remove untracked files from the working directory. This action cannot be undone.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Dry run (preview only)",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Switch(
+                        checked = dryRun,
+                        onCheckedChange = { dryRun = it }
+                    )
+                }
+
+                if (dryRun) {
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = Color(0xFFFFF3E0)
+                    ) {
+                        Text(
+                            text = "Preview mode: No files will be deleted",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color(0xFFE65100),
+                            modifier = Modifier.padding(12.dp)
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = { onClean(dryRun) },
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF44336)),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Icon(
+                    Icons.Default.Delete,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(Modifier.width(6.dp))
+                Text(if (dryRun) "Preview" else "Clean")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        },
+        shape = RoundedCornerShape(24.dp)
+    )
+}
+
+@Composable
+fun StashListDialog(
+    stashList: List<GitStash>,
+    onDismiss: () -> Unit,
+    onApplyStash: (GitStash) -> Unit,
+    onDropStash: (GitStash) -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        icon = {
+            Box(
+                modifier = Modifier
+                    .size(56.dp)
+                    .background(Color(0xFF607D8B).copy(alpha = 0.15f), CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    Icons.Default.Archive,
+                    contentDescription = null,
+                    tint = Color(0xFF607D8B),
+                    modifier = Modifier.size(28.dp)
+                )
+            }
+        },
+        title = {
+            Text(
+                text = "Stash List",
+                fontWeight = FontWeight.Bold,
+                style = MaterialTheme.typography.titleLarge
+            )
+        },
+        text = {
+            if (stashList.isEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(150.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.Archive,
+                            contentDescription = null,
+                            tint = Color(0xFF607D8B).copy(alpha = 0.4f),
+                            modifier = Modifier.size(48.dp)
+                        )
+                        Text(
+                            text = "No stashes",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(300.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(stashList) { stash ->
+                        StashItemCard(
+                            stash = stash,
+                            onApply = { onApplyStash(stash) },
+                            onDrop = { onDropStash(stash) }
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Close")
+            }
+        },
+        shape = RoundedCornerShape(24.dp)
+    )
+}
+
+@Composable
+private fun StashItemCard(
+    stash: GitStash,
+    onApply: () -> Unit,
+    onDrop: () -> Unit
+) {
+    val colors = MaterialTheme.colorScheme
+
+    ElevatedCard(
+        modifier = Modifier
+            .fillMaxWidth()
+            .border(1.dp, colors.outline.copy(alpha = 0.2f), RoundedCornerShape(12.dp)),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.elevatedCardColors(containerColor = colors.surface),
+        elevation = CardDefaults.elevatedCardElevation(0.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(12.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Surface(
+                    shape = RoundedCornerShape(6.dp),
+                    color = Color(0xFF607D8B).copy(alpha = 0.15f)
+                ) {
+                    Text(
+                        text = "stash@{${stash.index}}",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = Color(0xFF607D8B),
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                    )
+                }
+
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    IconButton(
+                        onClick = onApply,
+                        modifier = Modifier.size(32.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.Refresh,
+                            contentDescription = "Apply",
+                            tint = Color(0xFF4CAF50),
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                    IconButton(
+                        onClick = onDrop,
+                        modifier = Modifier.size(32.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.Delete,
+                            contentDescription = "Drop",
+                            tint = Color(0xFFE53935),
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(8.dp))
+
+            Text(
+                text = stash.message,
+                style = MaterialTheme.typography.bodySmall,
+                color = colors.onSurface,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+    }
+}
+
+@Composable
+fun TagDialog(
+    onDismiss: () -> Unit,
+    onCreateTag: (String, String?) -> Unit
+) {
+    var tagName by remember { mutableStateOf("") }
+    var message by remember { mutableStateOf("") }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        icon = {
+            Box(
+                modifier = Modifier
+                    .size(56.dp)
+                    .background(Color(0xFFE91E63).copy(alpha = 0.15f), CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    Icons.Default.LocalOffer,
+                    contentDescription = null,
+                    tint = Color(0xFFE91E63),
+                    modifier = Modifier.size(28.dp)
+                )
+            }
+        },
+        title = {
+            Text(
+                text = "Create Tag",
+                fontWeight = FontWeight.Bold,
+                style = MaterialTheme.typography.titleLarge
+            )
+        },
+        text = {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Text(
+                    text = "Create a new tag at the current commit.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                OutlinedTextField(
+                    value = tagName,
+                    onValueChange = { tagName = it },
+                    label = { Text("Tag name") },
+                    placeholder = { Text("e.g., v1.0.0") },
+                    singleLine = true,
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Color(0xFFE91E63),
+                        focusedLabelColor = Color(0xFFE91E63)
+                    )
+                )
+
+                OutlinedTextField(
+                    value = message,
+                    onValueChange = { message = it },
+                    label = { Text("Message (optional)") },
+                    placeholder = { Text("Enter tag message...") },
+                    singleLine = true,
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Color(0xFFE91E63),
+                        focusedLabelColor = Color(0xFFE91E63)
+                    )
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = { onCreateTag(tagName, message.ifBlank { null }) },
+                enabled = tagName.isNotBlank(),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE91E63)),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Icon(
+                    Icons.Default.LocalOffer,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(Modifier.width(6.dp))
+                Text("Create")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        },
+        shape = RoundedCornerShape(24.dp)
+    )
+}
+
+@Composable
+fun TagListDialog(
+    tagList: List<GitTag>,
+    onDismiss: () -> Unit,
+    onDeleteTag: (GitTag) -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        icon = {
+            Box(
+                modifier = Modifier
+                    .size(56.dp)
+                    .background(Color(0xFF9C27B0).copy(alpha = 0.15f), CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    Icons.Default.LocalOffer,
+                    contentDescription = null,
+                    tint = Color(0xFF9C27B0),
+                    modifier = Modifier.size(28.dp)
+                )
+            }
+        },
+        title = {
+            Text(
+                text = "Tags",
+                fontWeight = FontWeight.Bold,
+                style = MaterialTheme.typography.titleLarge
+            )
+        },
+        text = {
+            if (tagList.isEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(150.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.LocalOffer,
+                            contentDescription = null,
+                            tint = Color(0xFF9C27B0).copy(alpha = 0.4f),
+                            modifier = Modifier.size(48.dp)
+                        )
+                        Text(
+                            text = "No tags",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(300.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(tagList) { tag ->
+                        TagItemCard(
+                            tag = tag,
+                            onDelete = { onDeleteTag(tag) }
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Close")
+            }
+        },
+        shape = RoundedCornerShape(24.dp)
+    )
+}
+
+@Composable
+private fun TagItemCard(
+    tag: GitTag,
+    onDelete: () -> Unit
+) {
+    val colors = MaterialTheme.colorScheme
+
+    ElevatedCard(
+        modifier = Modifier
+            .fillMaxWidth()
+            .border(1.dp, colors.outline.copy(alpha = 0.2f), RoundedCornerShape(12.dp)),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.elevatedCardColors(containerColor = colors.surface),
+        elevation = CardDefaults.elevatedCardElevation(0.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(12.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Surface(
+                    shape = RoundedCornerShape(6.dp),
+                    color = Color(0xFF9C27B0).copy(alpha = 0.15f)
+                ) {
+                    Text(
+                        text = tag.name,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = Color(0xFF9C27B0),
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                    )
+                }
+
+                IconButton(
+                    onClick = onDelete,
+                    modifier = Modifier.size(32.dp)
+                ) {
+                    Icon(
+                        Icons.Default.Delete,
+                        contentDescription = "Delete",
+                        tint = Color(0xFFE53935),
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(8.dp))
+
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Text(
+                    text = tag.commitHash,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = colors.onSurfaceVariant,
+                    fontFamily = FontFamily.Monospace
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun RemoteListDialog(
+    remoteList: List<GitRemote>,
+    onDismiss: () -> Unit,
+    onDeleteRemote: (GitRemote) -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        icon = {
+            Box(
+                modifier = Modifier
+                    .size(56.dp)
+                    .background(Color(0xFF00BCD4).copy(alpha = 0.15f), CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    Icons.Default.Cloud,
+                    contentDescription = null,
+                    tint = Color(0xFF00BCD4),
+                    modifier = Modifier.size(28.dp)
+                )
+            }
+        },
+        title = {
+            Text(
+                text = "Remotes",
+                fontWeight = FontWeight.Bold,
+                style = MaterialTheme.typography.titleLarge
+            )
+        },
+        text = {
+            if (remoteList.isEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(150.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.Cloud,
+                            contentDescription = null,
+                            tint = Color(0xFF00BCD4).copy(alpha = 0.4f),
+                            modifier = Modifier.size(48.dp)
+                        )
+                        Text(
+                            text = "No remotes",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(300.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(remoteList) { remote ->
+                        RemoteItemCard(
+                            remote = remote,
+                            onDelete = { onDeleteRemote(remote) }
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Close")
+            }
+        },
+        shape = RoundedCornerShape(24.dp)
+    )
+}
+
+@Composable
+private fun RemoteItemCard(
+    remote: GitRemote,
+    onDelete: () -> Unit
+) {
+    val colors = MaterialTheme.colorScheme
+
+    ElevatedCard(
+        modifier = Modifier
+            .fillMaxWidth()
+            .border(1.dp, colors.outline.copy(alpha = 0.2f), RoundedCornerShape(12.dp)),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.elevatedCardColors(containerColor = colors.surface),
+        elevation = CardDefaults.elevatedCardElevation(0.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(12.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Surface(
+                    shape = RoundedCornerShape(6.dp),
+                    color = Color(0xFF00BCD4).copy(alpha = 0.15f)
+                ) {
+                    Text(
+                        text = remote.name,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = Color(0xFF00BCD4),
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                    )
+                }
+
+                IconButton(
+                    onClick = onDelete,
+                    modifier = Modifier.size(32.dp)
+                ) {
+                    Icon(
+                        Icons.Default.Delete,
+                        contentDescription = "Delete",
+                        tint = Color(0xFFE53935),
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(8.dp))
+
+            Text(
+                text = "Fetch: ${remote.fetchUrl}",
+                style = MaterialTheme.typography.bodySmall,
+                color = colors.onSurfaceVariant,
+                fontFamily = FontFamily.Monospace,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+
+            remote.pushUrl?.let { pushUrl ->
+                if (pushUrl.isNotBlank()) {
+                    Text(
+                        text = "Push: $pushUrl",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = colors.onSurfaceVariant,
+                        fontFamily = FontFamily.Monospace,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun RenameBranchDialog(
+    currentBranch: String,
+    onDismiss: () -> Unit,
+    onRename: (String, String) -> Unit
+) {
+    var newName by remember { mutableStateOf(currentBranch) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        icon = {
+            Box(
+                modifier = Modifier
+                    .size(56.dp)
+                    .background(Color(0xFFFF5722).copy(alpha = 0.15f), CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    Icons.Default.Edit,
+                    contentDescription = null,
+                    tint = Color(0xFFFF5722),
+                    modifier = Modifier.size(28.dp)
+                )
+            }
+        },
+        title = {
+            Text(
+                text = "Rename Branch",
+                fontWeight = FontWeight.Bold,
+                style = MaterialTheme.typography.titleLarge
+            )
+        },
+        text = {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Text(
+                    text = "Rename branch \"$currentBranch\" to a new name.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                OutlinedTextField(
+                    value = newName,
+                    onValueChange = { newName = it },
+                    label = { Text("New branch name") },
+                    placeholder = { Text("Enter new name") },
+                    singleLine = true,
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Color(0xFFFF5722),
+                        focusedLabelColor = Color(0xFFFF5722)
+                    )
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = { onRename(currentBranch, newName) },
+                enabled = newName.isNotBlank() && newName != currentBranch,
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF5722)),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Icon(
+                    Icons.Default.Edit,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(Modifier.width(6.dp))
+                Text("Rename")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        },
+        shape = RoundedCornerShape(24.dp)
+    )
 }

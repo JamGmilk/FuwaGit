@@ -8,6 +8,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import jamgmilk.fuwagit.data.repository.CredentialRepositoryImpl
 import jamgmilk.fuwagit.data.repository.GitRepositoryImpl
+import jamgmilk.fuwagit.data.local.RepoDataStore
 import jamgmilk.fuwagit.data.source.JGitDataSource
 import jamgmilk.fuwagit.domain.repository.CredentialRepository
 import jamgmilk.fuwagit.domain.repository.GitRepository
@@ -24,20 +25,35 @@ import jamgmilk.fuwagit.domain.usecase.credential.UnlockWithPasswordUseCase
 import jamgmilk.fuwagit.domain.usecase.credential.UpdateHttpsCredentialUseCase
 import jamgmilk.fuwagit.domain.usecase.git.CheckoutBranchUseCase
 import jamgmilk.fuwagit.domain.usecase.git.CheckRepoStatusUseCase
+import jamgmilk.fuwagit.domain.usecase.git.CherryPickUseCase
+import jamgmilk.fuwagit.domain.usecase.git.CleanUseCase
+import jamgmilk.fuwagit.domain.usecase.git.CloneUseCase
 import jamgmilk.fuwagit.domain.usecase.git.CommitChangesUseCase
 import jamgmilk.fuwagit.domain.usecase.git.CreateBranchUseCase
+import jamgmilk.fuwagit.domain.usecase.git.CreateTagUseCase
 import jamgmilk.fuwagit.domain.usecase.git.DeleteBranchUseCase
+import jamgmilk.fuwagit.domain.usecase.git.DeleteRemoteUseCase
+import jamgmilk.fuwagit.domain.usecase.git.DeleteTagUseCase
 import jamgmilk.fuwagit.domain.usecase.git.DiscardChangesUseCase
+import jamgmilk.fuwagit.domain.usecase.git.DropStashUseCase
+import jamgmilk.fuwagit.domain.usecase.git.FetchUseCase
 import jamgmilk.fuwagit.domain.usecase.git.GetBranchesUseCase
 import jamgmilk.fuwagit.domain.usecase.git.GetCommitHistoryUseCase
+import jamgmilk.fuwagit.domain.usecase.git.GetRemotesUseCase
+import jamgmilk.fuwagit.domain.usecase.git.GetTagsUseCase
 import jamgmilk.fuwagit.domain.usecase.git.GetWorkspaceStatusUseCase
 import jamgmilk.fuwagit.domain.usecase.git.InitRepoUseCase
 import jamgmilk.fuwagit.domain.usecase.git.MergeBranchUseCase
+import jamgmilk.fuwagit.domain.usecase.git.ApplyStashUseCase
 import jamgmilk.fuwagit.domain.usecase.git.PullUseCase
 import jamgmilk.fuwagit.domain.usecase.git.PushUseCase
 import jamgmilk.fuwagit.domain.usecase.git.RebaseBranchUseCase
+import jamgmilk.fuwagit.domain.usecase.git.RenameBranchUseCase
+import jamgmilk.fuwagit.domain.usecase.git.RevertCommitUseCase
 import jamgmilk.fuwagit.domain.usecase.git.StageAllUseCase
 import jamgmilk.fuwagit.domain.usecase.git.StageFileUseCase
+import jamgmilk.fuwagit.domain.usecase.git.StashChangesUseCase
+import jamgmilk.fuwagit.domain.usecase.git.StashListUseCase
 import jamgmilk.fuwagit.domain.usecase.git.UnstageAllUseCase
 import jamgmilk.fuwagit.domain.usecase.git.UnstageFileUseCase
 import jamgmilk.fuwagit.domain.usecase.repo.ConfigureRemoteUseCase
@@ -63,6 +79,12 @@ object RepositoryModule {
     fun provideCredentialRepository(
         @ApplicationContext context: Context
     ): CredentialRepository = CredentialRepositoryImpl(context)
+
+    @Provides
+    @Singleton
+    fun provideRepoDataStore(
+        @ApplicationContext context: Context
+    ): RepoDataStore = RepoDataStore(context)
 }
 
 @Module
@@ -233,4 +255,79 @@ object UseCaseModule {
     @Singleton
     fun provideCheckRepoStatusUseCase(repository: GitRepository) =
         CheckRepoStatusUseCase(repository)
+
+    @Provides
+    @Singleton
+    fun provideFetchUseCase(repository: GitRepository) =
+        FetchUseCase(repository)
+
+    @Provides
+    @Singleton
+    fun provideGetRemotesUseCase(repository: GitRepository) =
+        GetRemotesUseCase(repository)
+
+    @Provides
+    @Singleton
+    fun provideDeleteRemoteUseCase(repository: GitRepository) =
+        DeleteRemoteUseCase(repository)
+
+    @Provides
+    @Singleton
+    fun provideGetTagsUseCase(repository: GitRepository) =
+        GetTagsUseCase(repository)
+
+    @Provides
+    @Singleton
+    fun provideCreateTagUseCase(repository: GitRepository) =
+        CreateTagUseCase(repository)
+
+    @Provides
+    @Singleton
+    fun provideDeleteTagUseCase(repository: GitRepository) =
+        DeleteTagUseCase(repository)
+
+    @Provides
+    @Singleton
+    fun provideStashListUseCase(repository: GitRepository) =
+        StashListUseCase(repository)
+
+    @Provides
+    @Singleton
+    fun provideStashChangesUseCase(repository: GitRepository) =
+        StashChangesUseCase(repository)
+
+    @Provides
+    @Singleton
+    fun provideApplyStashUseCase(repository: GitRepository) =
+        ApplyStashUseCase(repository)
+
+    @Provides
+    @Singleton
+    fun provideDropStashUseCase(repository: GitRepository) =
+        DropStashUseCase(repository)
+
+    @Provides
+    @Singleton
+    fun provideRenameBranchUseCase(repository: GitRepository) =
+        RenameBranchUseCase(repository)
+
+    @Provides
+    @Singleton
+    fun provideCleanUseCase(repository: GitRepository) =
+        CleanUseCase(repository)
+
+    @Provides
+    @Singleton
+    fun provideRevertCommitUseCase(repository: GitRepository) =
+        RevertCommitUseCase(repository)
+
+    @Provides
+    @Singleton
+    fun provideCherryPickUseCase(repository: GitRepository) =
+        CherryPickUseCase(repository)
+
+    @Provides
+    @Singleton
+    fun provideCloneUseCase(repository: GitRepository) =
+        CloneUseCase(repository)
 }

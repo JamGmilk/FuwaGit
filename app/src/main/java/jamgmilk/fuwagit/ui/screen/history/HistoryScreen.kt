@@ -32,7 +32,7 @@ import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
-import androidx.compose.material.icons.filled.MergeType
+import androidx.compose.material.icons.automirrored.filled.MergeType
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.outlined.Commit
@@ -56,11 +56,13 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import jamgmilk.fuwagit.domain.model.GitCommit
 import jamgmilk.fuwagit.ui.components.ScreenTemplate
+import jamgmilk.fuwagit.ui.theme.AppColors
 import jamgmilk.fuwagit.ui.theme.FuwaGitThemeExtras
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -108,6 +110,8 @@ fun HistoryScreen(
             } else {
                 CommitTimelineList(
                     commits = history,
+                    onRevert = { commit -> historyViewModel.revertCommit(commit.hash) },
+                    onCherrypick = { commit -> historyViewModel.cherryPick(commit.hash) },
                     modifier = Modifier.fillMaxSize()
                 )
             }
@@ -150,6 +154,8 @@ private fun EmptyHistoryState() {
 @Composable
 private fun CommitTimelineList(
     commits: List<GitCommit>,
+    onRevert: (GitCommit) -> Unit,
+    onCherrypick: (GitCommit) -> Unit,
     modifier: Modifier = Modifier
 ) {
     LazyColumn(
@@ -159,7 +165,9 @@ private fun CommitTimelineList(
         items(commits, key = { it.hash }) { commit ->
             CommitTimelineItem(
                 commit = commit,
-                isLast = commit == commits.last()
+                isLast = commit == commits.last(),
+                onRevert = { onRevert(commit) },
+                onCherrypick = { onCherrypick(commit) }
             )
         }
     }
@@ -168,7 +176,9 @@ private fun CommitTimelineList(
 @Composable
 private fun CommitTimelineItem(
     commit: GitCommit,
-    isLast: Boolean
+    isLast: Boolean,
+    onRevert: () -> Unit,
+    onCherrypick: () -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
     val colors = MaterialTheme.colorScheme
@@ -179,11 +189,11 @@ private fun CommitTimelineItem(
 
     val branchColors = remember {
         listOf(
-            Color(0xFF00BCD4),
-            Color(0xFF4CAF50),
-            Color(0xFFFF9800),
-            Color(0xFFE91E63),
-            Color(0xFF7C4DFF)
+            AppColors.GitCyan,
+            AppColors.GitGreen,
+            AppColors.GitOrange,
+            AppColors.GitPink,
+            AppColors.GitPurple
         )
     }
     val lane = abs(commit.hash.hashCode()) % branchColors.size
@@ -280,6 +290,8 @@ private fun CommitTimelineItem(
                 CommitDetails(
                     commit = commit,
                     timeFmt = timeFmt,
+                    onRevert = onRevert,
+                    onCherrypick = onCherrypick,
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 8.dp)
@@ -320,14 +332,14 @@ private fun TimelineIndicator(
                 .padding(top = 14.dp)
                 .size(16.dp)
                 .background(
-                    if (isMerge) Color(0xFF9C27B0) else color,
+                    if (isMerge) AppColors.GitPurple else color,
                     CircleShape
                 ),
             contentAlignment = Alignment.Center
         ) {
             if (isMerge) {
                 Icon(
-                    Icons.Default.MergeType,
+                    Icons.AutoMirrored.Filled.MergeType,
                     contentDescription = "Merge",
                     tint = Color.White,
                     modifier = Modifier.size(10.dp)
@@ -342,7 +354,7 @@ private fun MergeBadge() {
     Box(
         modifier = Modifier
             .background(
-                Color(0xFF9C27B0).copy(alpha = 0.15f),
+                AppColors.GitPurple.copy(alpha = 0.15f),
                 RoundedCornerShape(4.dp)
             )
             .padding(horizontal = 6.dp, vertical = 2.dp)
@@ -352,16 +364,16 @@ private fun MergeBadge() {
             horizontalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             Icon(
-                Icons.Default.MergeType,
+                Icons.AutoMirrored.Filled.MergeType,
                 contentDescription = null,
-                tint = Color(0xFF9C27B0),
+                tint = AppColors.GitPurple,
                 modifier = Modifier.size(12.dp)
             )
             Text(
                 text = "MERGE",
                 style = MaterialTheme.typography.labelSmall,
                 fontWeight = FontWeight.Bold,
-                color = Color(0xFF9C27B0),
+                color = AppColors.GitPurple,
                 fontSize = 10.sp
             )
         }
@@ -398,6 +410,8 @@ private fun CommitMetaItem(
 private fun CommitDetails(
     commit: GitCommit,
     timeFmt: SimpleDateFormat,
+    onRevert: () -> Unit,
+    onCherrypick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val colors = MaterialTheme.colorScheme
@@ -443,6 +457,52 @@ private fun CommitDetails(
                 value = commit.parentHashes.map { it.take(7) }.joinToString(", ")
             )
         }
+
+        Spacer(Modifier.height(8.dp))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            ActionChip(
+                text = "Revert",
+                color = AppColors.GitOrange,
+                onClick = onRevert,
+                modifier = Modifier.weight(1f)
+            )
+            ActionChip(
+                text = "Cherry-pick",
+                color = AppColors.GitPurple,
+                onClick = onCherrypick,
+                modifier = Modifier.weight(1f)
+            )
+        }
+    }
+}
+
+@Composable
+private fun ActionChip(
+    text: String,
+    color: Color,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    ElevatedCard(
+        onClick = onClick,
+        modifier = modifier,
+        shape = RoundedCornerShape(8.dp),
+        colors = CardDefaults.elevatedCardColors(containerColor = color.copy(alpha = 0.15f))
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.labelMedium,
+            color = color,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier
+                .padding(horizontal = 12.dp, vertical = 8.dp)
+                .fillMaxWidth(),
+            textAlign = TextAlign.Center
+        )
     }
 }
 

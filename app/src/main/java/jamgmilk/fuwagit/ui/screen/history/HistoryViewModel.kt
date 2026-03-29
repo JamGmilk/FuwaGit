@@ -5,14 +5,19 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import jamgmilk.fuwagit.domain.model.CommitStats
 import jamgmilk.fuwagit.domain.model.GitCommit
+import jamgmilk.fuwagit.domain.usecase.git.CherryPickUseCase
 import jamgmilk.fuwagit.domain.usecase.git.GetCommitHistoryUseCase
+import jamgmilk.fuwagit.domain.usecase.git.RevertCommitUseCase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.text.SimpleDateFormat
 import java.util.Calendar
+import java.util.Locale
 import javax.inject.Inject
 
 data class HistoryUiState(
@@ -22,12 +27,15 @@ data class HistoryUiState(
     val commits: List<GitCommit> = emptyList(),
     val selectedCommit: GitCommit? = null,
     val searchQuery: String = "",
-    val commitStats: CommitStats = CommitStats(0, 0, 0, 0, 0)
+    val commitStats: CommitStats = CommitStats(0, 0, 0, 0, 0),
+    val terminalOutput: List<String> = emptyList()
 )
 
 @HiltViewModel
 class HistoryViewModel @Inject constructor(
-    private val getCommitHistoryUseCase: GetCommitHistoryUseCase
+    private val getCommitHistoryUseCase: GetCommitHistoryUseCase,
+    private val revertCommitUseCase: RevertCommitUseCase,
+    private val cherryPickUseCase: CherryPickUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HistoryUiState())
@@ -129,5 +137,59 @@ class HistoryViewModel @Inject constructor(
             commitsThisWeek = commitsThisWeek,
             commitsThisMonth = commitsThisMonth
         )
+    }
+
+    fun revertCommit(commitHash: String) {
+        val path = currentRepoPath ?: return
+
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true) }
+            withContext(Dispatchers.IO) {
+                revertCommitUseCase(path, commitHash)
+            }.fold(
+                onSuccess = { result ->
+                    appendTerminalLog("git revert", result)
+                    loadCommitHistory()
+                },
+                onFailure = { e ->
+                    appendTerminalLog("git revert", "Error: ${e.message}")
+                    _uiState.update { it.copy(error = "Revert failed: ${e.message}") }
+                }
+            )
+            _uiState.update { it.copy(isLoading = false) }
+        }
+    }
+
+    fun cherryPick(commitHash: String) {
+        val path = currentRepoPath ?: return
+
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true) }
+            withContext(Dispatchers.IO) {
+                cherryPickUseCase(path, commitHash)
+            }.fold(
+                onSuccess = { result ->
+                    appendTerminalLog("git cherry-pick", result)
+                    loadCommitHistory()
+                },
+                onFailure = { e ->
+                    appendTerminalLog("git cherry-pick", "Error: ${e.message}")
+                    _uiState.update { it.copy(error = "Cherry-pick failed: ${e.message}") }
+                }
+            )
+            _uiState.update { it.copy(isLoading = false) }
+        }
+    }
+
+    private fun appendTerminalLog(command: String, message: String) {
+        val timestamp = SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(System.currentTimeMillis())
+        _uiState.update { state ->
+            val newOutput = (state.terminalOutput + "[$timestamp] $command: $message").takeLast(100)
+            state.copy(terminalOutput = newOutput)
+        }
+    }
+
+    fun clearError() {
+        _uiState.update { it.copy(error = null) }
     }
 }

@@ -1,10 +1,14 @@
 package jamgmilk.fuwagit.data.source
 
 import android.util.Log
+import jamgmilk.fuwagit.domain.model.CloneCredential
 import jamgmilk.fuwagit.domain.model.GitBranch
 import jamgmilk.fuwagit.domain.model.GitChangeType
 import jamgmilk.fuwagit.domain.model.GitCommit
 import jamgmilk.fuwagit.domain.model.GitFileStatus
+import jamgmilk.fuwagit.domain.model.GitRemote
+import jamgmilk.fuwagit.domain.model.GitStash
+import jamgmilk.fuwagit.domain.model.GitTag
 import org.eclipse.jgit.api.Git
 import org.eclipse.jgit.api.ListBranchCommand
 import org.eclipse.jgit.api.errors.JGitInternalException
@@ -264,6 +268,13 @@ class JGitDataSource @Inject constructor() {
         return "Push command executed"
     }
 
+    fun fetch(dir: File): String {
+        runGit(dir) { git ->
+            git.fetch().call()
+        }
+        return "Fetch completed successfully"
+    }
+
     fun getRepoInfo(dir: File): Map<String, String> {
         val info = mutableMapOf<String, String>()
         try {
@@ -327,5 +338,257 @@ class JGitDataSource @Inject constructor() {
     fun hasGitDir(path: String?): Boolean {
         if (path == null) return false
         return File(path, ".git").exists()
+    }
+
+    fun cloneRepository(
+        uri: String,
+        localPath: File,
+        branch: String? = null,
+        credentials: CloneCredential? = null
+    ): String {
+        if (localPath.exists() && localPath.listFiles()?.isNotEmpty() == true) {
+            throw IllegalStateException("Target directory is not empty")
+        }
+        if (!localPath.exists()) {
+            localPath.mkdirs()
+        }
+
+        return try {
+            val cloneCommand = Git.cloneRepository()
+                .setURI(uri)
+                .setDirectory(localPath)
+                .setCloneAllBranches(false)
+                .setDepth(50)
+
+            branch?.let {
+                cloneCommand.setBranch(it)
+            }
+
+            credentials?.let { cred ->
+                when (cred) {
+                    is CloneCredential.Https -> {
+                        cloneCommand.setCredentialsProvider(
+                            org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider(
+                                cred.username,
+                                cred.password
+                            )
+                        )
+                    }
+                    is CloneCredential.Ssh -> {
+                        // SSH cloning uses the system's SSH configuration
+                        // Private key authentication is handled by JSch
+                    }
+                }
+            }
+
+            cloneCommand.call().use { git ->
+                "Cloned repository to ${RepoPathUtils.shortDisplayPath(localPath)}"
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error cloning repository from $uri to ${localPath.absolutePath}", e)
+            if (localPath.exists() && localPath.listFiles()?.isEmpty() == true) {
+                localPath.delete()
+            }
+            throw e
+        }
+    }
+
+    fun getStashList(repoPath: File): List<GitStash> {
+        return try {
+            runGit(repoPath) { git ->
+                val stashList = git.stashList().call()
+                stashList.mapIndexed { index, ref ->
+                    GitStash(
+                        index = index,
+                        message = ref.name,
+                        branch = "",
+                        timestamp = 0L
+                    )
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error getting stash list at ${repoPath.absolutePath}", e)
+            emptyList()
+        }
+    }
+
+    fun stashChanges(repoPath: File, message: String?): String {
+        return try {
+            runGit(repoPath) { git ->
+                val ref = git.stashCreate().call()
+                "Stashed changes: ${ref.name}"
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error stashing changes at ${repoPath.absolutePath}", e)
+            throw e
+        }
+    }
+
+    fun applyStash(repoPath: File, stashIndex: Int, dropAfterApply: Boolean): String {
+        return try {
+            runGit(repoPath) { git ->
+                val stashRef = "refs/stash/$stashIndex"
+                if (dropAfterApply) {
+                    git.stashApply().setStashRef(stashRef).call()
+                    git.stashDrop().setStashRef(stashIndex).call()
+                    "Applied and dropped stash $stashIndex"
+                } else {
+                    git.stashApply().setStashRef(stashRef).call()
+                    "Applied stash $stashIndex"
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error applying stash $stashIndex at ${repoPath.absolutePath}", e)
+            throw e
+        }
+    }
+
+    fun dropStash(repoPath: File, stashIndex: Int): String {
+        return try {
+            runGit(repoPath) { git ->
+                git.stashDrop().setStashRef(stashIndex).call()
+                "Dropped stash $stashIndex"
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error dropping stash $stashIndex at ${repoPath.absolutePath}", e)
+            throw e
+        }
+    }
+
+    fun getTags(repoPath: File): List<GitTag> {
+        return try {
+            runGit(repoPath) { git ->
+                val tagList = git.tagList().call()
+                tagList.map { ref ->
+                    val peel = ref.peeledObjectId
+                    val commitId = peel?.name ?: ref.objectId?.name ?: ""
+                    GitTag(
+                        name = ref.name.removePrefix("refs/tags/"),
+                        commitHash = commitId.take(7),
+                        message = null,
+                        tagger = null,
+                        timestamp = 0L
+                    )
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error getting tags at ${repoPath.absolutePath}", e)
+            emptyList()
+        }
+    }
+
+    fun createTag(repoPath: File, tagName: String, message: String?, commitHash: String?): String {
+        return try {
+            runGit(repoPath) { git ->
+                val repo = git.repository
+                val refUpdate = repo.updateRef("refs/tags/$tagName")
+                refUpdate.setNewObjectId(repo.resolve(commitHash ?: "HEAD"))
+                refUpdate.setRefLogMessage("Tag created by FuwaGit", true)
+                refUpdate.update()
+                "Tag '$tagName' created"
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error creating tag '$tagName' at ${repoPath.absolutePath}", e)
+            throw e
+        }
+    }
+
+    fun deleteTag(repoPath: File, tagName: String): String {
+        return try {
+            runGit(repoPath) { git ->
+                git.tagDelete().setTags(tagName).call()
+                "Tag '$tagName' deleted"
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error deleting tag '$tagName' at ${repoPath.absolutePath}", e)
+            throw e
+        }
+    }
+
+    fun getRemotes(repoPath: File): List<GitRemote> {
+        return try {
+            runGit(repoPath) { git ->
+                val config = git.repository.config
+                val remoteNames = config.getSubsections("remote")
+                remoteNames.map { name ->
+                    val fetchUrl = config.getString("remote", name, "url") ?: ""
+                    val pushUrl = config.getString("remote", name, "pushurl")
+                    GitRemote(
+                        name = name,
+                        fetchUrl = fetchUrl,
+                        pushUrl = pushUrl
+                    )
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error getting remotes at ${repoPath.absolutePath}", e)
+            emptyList()
+        }
+    }
+
+    fun deleteRemote(repoPath: File, remoteName: String): String {
+        return try {
+            runGit(repoPath) { git ->
+                git.remoteRemove().setRemoteName(remoteName).call()
+                "Remote '$remoteName' deleted"
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error deleting remote '$remoteName' at ${repoPath.absolutePath}", e)
+            throw e
+        }
+    }
+
+    fun renameBranch(repoPath: File, oldName: String, newName: String): String {
+        return try {
+            runGit(repoPath) { git ->
+                git.branchRename().setOldName(oldName).setNewName(newName).call()
+                "Branch renamed from '$oldName' to '$newName'"
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error renaming branch from '$oldName' to '$newName' at ${repoPath.absolutePath}", e)
+            throw e
+        }
+    }
+
+    fun revertCommit(repoPath: File, commitHash: String): String {
+        return try {
+            runGit(repoPath) { git ->
+                val objectId = git.repository.resolve(commitHash)
+                git.revert().include(objectId).call()
+                "Reverted commit $commitHash"
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error reverting commit $commitHash at ${repoPath.absolutePath}", e)
+            throw e
+        }
+    }
+
+    fun cherryPick(repoPath: File, commitHash: String): String {
+        return try {
+            runGit(repoPath) { git ->
+                val objectId = git.repository.resolve(commitHash)
+                git.cherryPick().include(objectId).call()
+                "Cherry-picked commit $commitHash"
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error cherry-picking commit $commitHash at ${repoPath.absolutePath}", e)
+            throw e
+        }
+    }
+
+    fun clean(repoPath: File, dryRun: Boolean): String {
+        return try {
+            runGit(repoPath) { git ->
+                val result = git.clean().setDryRun(dryRun).call()
+                if (dryRun) {
+                    "Would clean: ${result.size} items"
+                } else {
+                    "Cleaned: ${result.size} items"
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error cleaning at ${repoPath.absolutePath}", e)
+            throw e
+        }
     }
 }

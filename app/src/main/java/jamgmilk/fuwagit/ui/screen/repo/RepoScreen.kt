@@ -1,6 +1,8 @@
 package jamgmilk.fuwagit.ui.screen.repo
 
 import android.content.Intent
+import android.net.Uri
+import androidx.core.content.ContextCompat
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
@@ -27,6 +29,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -36,12 +42,13 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.CloudDownload
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.filled.FolderShared
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Link
-import androidx.compose.material.icons.filled.OpenInNew
+import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Source
 import androidx.compose.material.icons.filled.Sync
@@ -53,6 +60,10 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.HorizontalDivider
@@ -73,6 +84,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -91,14 +103,42 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import jamgmilk.fuwagit.domain.model.CloneCredential
 import jamgmilk.fuwagit.ui.AppViewModel
+import jamgmilk.fuwagit.ui.screen.repo.HttpsCredentialItem
+import jamgmilk.fuwagit.ui.screen.repo.SshKeyItem
 import jamgmilk.fuwagit.ui.theme.FuwaGitThemeExtras
 import jamgmilk.fuwagit.ui.theme.Sakura80
 import jamgmilk.fuwagit.ui.components.ScreenTemplate
+import jamgmilk.fuwagit.ui.components.FilePickerDialog
+import jamgmilk.fuwagit.ui.components.RepoListDialog
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import android.os.Environment
+
+private val externalStorageDirPrefix: String = Environment.getExternalStorageDirectory().absolutePath
+
+private fun getPathFromTreeUri(uri: Uri): String {
+    return try {
+        val docId = android.provider.DocumentsContract.getTreeDocumentId(uri)
+        if (docId.startsWith("primary:")) {
+            "$externalStorageDirPrefix/${docId.removePrefix("primary:")}"
+        } else if (docId.contains(":")) {
+            val parts = docId.split(":")
+            if (parts.size >= 2) {
+                "/storage/${parts[0]}/${parts[1]}"
+            } else {
+                docId
+            }
+        } else {
+            docId
+        }
+    } catch (e: Exception) {
+        ""
+    }
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -112,16 +152,36 @@ fun RepoScreen(
     val uiColors = FuwaGitThemeExtras.colors
     val context = LocalContext.current
     val uiState by repoViewModel.uiState.collectAsState()
-    val folders = uiState.repoItems
+    val savedRepos by repoViewModel.savedRepos.collectAsState()
+    val folders = savedRepos.map { repo ->
+        RepoFolderItem(
+            id = repo.path,
+            name = repo.displayName,
+            path = repo.path,
+            isGitRepo = true,
+            isDirectory = true,
+            localPath = repo.path,
+            source = "Saved",
+            permissionHint = if (repo.isFavorite) "Favorite" else "Saved",
+            isActive = false,
+            isRemovable = true
+        )
+    }
     val selectedTarget = uiState.targetPath
     val scope = rememberCoroutineScope()
 
     var showCloneDialog by remember { mutableStateOf(false) }
+    var showFilePicker by remember { mutableStateOf(false) }
+    var showSavedReposDialog by remember { mutableStateOf(false) }
     var cloneUrl by remember { mutableStateOf("") }
+    var cloneLocalPath by remember { mutableStateOf("") }
+    var cloneBranch by remember { mutableStateOf<String?>(null) }
     var expandedFab by remember { mutableStateOf(false) }
     var selectedItemForSheet by remember { mutableStateOf<RepoFolderItem?>(null) }
     var showRemoteDialog by remember { mutableStateOf<RepoFolderItem?>(null) }
     var showInfoDialog by remember { mutableStateOf<RepoFolderItem?>(null) }
+    var cloneError by remember { mutableStateOf<String?>(null) }
+
     val sheetState = rememberModalBottomSheetState()
 
     var remoteUrlState by remember { mutableStateOf("") }
@@ -135,10 +195,31 @@ fun RepoScreen(
         }
     }
 
+    val cloneFolderPicker = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocumentTree()
+    ) { uri ->
+        uri?.let { selectedUri ->
+            try {
+                context.contentResolver.takePersistableUriPermission(
+                    selectedUri,
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+                )
+                val path = getPathFromTreeUri(selectedUri)
+                cloneLocalPath = path
+                if (path.isBlank()) {
+                    cloneError = "Could not access folder path"
+                }
+            } catch (e: Exception) {
+                cloneError = "Failed to access folder: ${e.message}"
+            }
+        }
+    }
+
     LaunchedEffect(Unit) {
         repoViewModel.initializeStorage(context)
         repoViewModel.refreshPersistedUris(context)
         repoViewModel.refreshRepoItems(context)
+        repoViewModel.loadSavedRepos()
     }
 
     Box(modifier = modifier.fillMaxSize()) {
@@ -175,29 +256,132 @@ fun RepoScreen(
             expanded = expandedFab,
             onExpandedChange = { expandedFab = it },
             onCloneRemote = { showCloneDialog = true },
-            onAddLocal = {
-                val intent = Intent(Intent.ACTION_OPEN_DOCUMENT_TREE).apply {
-                    putExtra(Intent.EXTRA_LOCAL_ONLY, true)
-                }
-                folderPicker.launch(intent)
-            },
+            onAddLocal = { showFilePicker = true },
+            onShowSaved = { showSavedReposDialog = true },
             modifier = Modifier
                 .align(Alignment.BottomEnd)
                 .padding(16.dp)
         )
+
+        if (showFilePicker) {
+            FilePickerDialog(
+                title = "Add Local Repository",
+                existingRepos = savedRepos,
+                onDismiss = { showFilePicker = false },
+                onSelect = { path ->
+                    kotlinx.coroutines.runBlocking {
+                        repoViewModel.addRepo(path, null)
+                        repoViewModel.setCurrentRepo(path)
+                    }
+                    showFilePicker = false
+                    onNavigateToStatus()
+                },
+                onCreateRepo = { path, alias ->
+                    kotlinx.coroutines.runBlocking {
+                        repoViewModel.addRepo(path, alias)
+                    }
+                }
+            )
+        }
+
+        if (showSavedReposDialog) {
+            RepoListDialog(
+                repos = savedRepos,
+                onDismiss = { showSavedReposDialog = false },
+                onSelect = { repo ->
+                    kotlinx.coroutines.runBlocking {
+                        repoViewModel.setCurrentRepo(repo.path)
+                    }
+                    showSavedReposDialog = false
+                    onNavigateToStatus()
+                },
+                onRemove = { repo ->
+                    kotlinx.coroutines.runBlocking {
+                        if (repo.path == repoViewModel.targetPath.value) {
+                            repoViewModel.setCurrentRepo(null)
+                        }
+                        repoViewModel.removeRepo(repo)
+                    }
+                }
+            )
+        }
     }
 
     if (showCloneDialog) {
+        val httpsCredentials = remember { mutableStateListOf<HttpsCredentialItem>() }
+        val sshKeys = remember { mutableStateListOf<SshKeyItem>() }
+        var selectedHttpsUuid by remember { mutableStateOf<String?>(null) }
+        var selectedSshUuid by remember { mutableStateOf<String?>(null) }
+        var useCredential by remember { mutableStateOf(false) }
+
+        LaunchedEffect(showCloneDialog) {
+            if (showCloneDialog) {
+                httpsCredentials.clear()
+                sshKeys.clear()
+                httpsCredentials.addAll(repoViewModel.getHttpsCredentials())
+                sshKeys.addAll(repoViewModel.getSshKeys())
+            }
+        }
+
         CloneRepoDialog(
             cloneUrl = cloneUrl,
             onCloneUrlChange = { cloneUrl = it },
+            localPath = cloneLocalPath,
+            onLocalPathChange = { cloneLocalPath = it },
+            onPickFolder = {
+                cloneFolderPicker.launch(null)
+            },
+            isDirectoryEmpty = cloneLocalPath.isBlank() || repoViewModel.isDirectoryEmpty(cloneLocalPath),
+            error = cloneError,
+            httpsCredentials = httpsCredentials.toList(),
+            sshKeys = sshKeys.toList(),
+            selectedHttpsUuid = selectedHttpsUuid,
+            selectedSshUuid = selectedSshUuid,
+            useCredential = useCredential,
+            onHttpsSelected = { selectedHttpsUuid = it },
+            onSshSelected = { selectedSshUuid = it },
+            onUseCredentialChange = { useCredential = it },
             onDismiss = {
                 showCloneDialog = false
                 cloneUrl = ""
+                cloneLocalPath = ""
+                cloneError = null
+                useCredential = false
+                selectedHttpsUuid = null
+                selectedSshUuid = null
             },
             onClone = {
-                showCloneDialog = false
-                cloneUrl = ""
+                val repoName = cloneUrl.substringAfterLast("/").substringBefore(".git").ifBlank { "repo" }
+                val targetPath = if (cloneLocalPath.endsWith("/")) cloneLocalPath else "$cloneLocalPath/"
+                val fullPath = "${targetPath}$repoName"
+
+                cloneError = null
+
+                val isHttps = cloneUrl.startsWith("http://") || cloneUrl.startsWith("https://")
+
+                val httpsUuid = if (isHttps && useCredential && selectedHttpsUuid != null) selectedHttpsUuid else null
+                val sshUuid = if (!isHttps && useCredential && selectedSshUuid != null) selectedSshUuid else null
+
+                repoViewModel.cloneWithCredentials(
+                    context = context,
+                    uri = cloneUrl,
+                    localPath = fullPath,
+                    branch = cloneBranch,
+                    httpsCredentialUuid = httpsUuid,
+                    sshKeyUuid = sshUuid
+                ) { result ->
+                    result.onSuccess {
+                        showCloneDialog = false
+                        cloneUrl = ""
+                        cloneLocalPath = ""
+                        useCredential = false
+                        selectedHttpsUuid = null
+                        selectedSshUuid = null
+                        repoViewModel.refreshRepoItems(context)
+                    }.onFailure { e ->
+                        cloneError = e.message
+                    }
+                }
             }
         )
     }
@@ -801,7 +985,7 @@ fun RepoOptionItem(
             }
 
             Icon(
-                Icons.Default.OpenInNew,
+                Icons.AutoMirrored.Filled.OpenInNew,
                 contentDescription = null,
                 tint = colors.onSurfaceVariant.copy(alpha = 0.4f),
                 modifier = Modifier.size(18.dp)
@@ -1146,14 +1330,32 @@ private fun getInfoColor(key: String): Color {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CloneRepoDialog(
     cloneUrl: String,
     onCloneUrlChange: (String) -> Unit,
+    localPath: String,
+    onLocalPathChange: (String) -> Unit,
+    onPickFolder: () -> Unit,
+    isDirectoryEmpty: Boolean,
+    error: String?,
+    httpsCredentials: List<HttpsCredentialItem>,
+    sshKeys: List<SshKeyItem>,
+    selectedHttpsUuid: String?,
+    selectedSshUuid: String?,
+    useCredential: Boolean,
+    onHttpsSelected: (String?) -> Unit,
+    onSshSelected: (String?) -> Unit,
+    onUseCredentialChange: (Boolean) -> Unit,
     onDismiss: () -> Unit,
     onClone: () -> Unit
 ) {
     val colors = MaterialTheme.colorScheme
+
+    val isHttps = cloneUrl.startsWith("http://") || cloneUrl.startsWith("https://")
+    val isSsh = cloneUrl.startsWith("git@") || cloneUrl.startsWith("ssh://")
+    val showCredentials = useCredential && ((isHttps && httpsCredentials.isNotEmpty()) || (isSsh && sshKeys.isNotEmpty()))
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -1180,20 +1382,213 @@ fun CloneRepoDialog(
             )
         },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
                 OutlinedTextField(
                     value = cloneUrl,
                     onValueChange = onCloneUrlChange,
                     label = { Text("Repository URL") },
                     placeholder = { Text("https://github.com/user/repo.git") },
+                    leadingIcon = {
+                        Icon(
+                            Icons.Default.Link,
+                            contentDescription = null,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    },
+                    trailingIcon = {
+                        if (isHttps || isSsh) {
+                            Surface(
+                                shape = RoundedCornerShape(6.dp),
+                                color = if (isHttps) Color(0xFF4CAF50).copy(alpha = 0.15f) else Color(0xFF2196F3).copy(alpha = 0.15f)
+                            ) {
+                                Text(
+                                    text = if (isHttps) "HTTPS" else "SSH",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = if (isHttps) Color(0xFF4CAF50) else Color(0xFF2196F3),
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                )
+                            }
+                        }
+                    },
                     singleLine = true,
                     shape = RoundedCornerShape(12.dp),
                     modifier = Modifier.fillMaxWidth(),
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = Sakura80,
-                        focusedLabelColor = Sakura80
+                        focusedLabelColor = Sakura80,
+                        cursorColor = Sakura80
                     )
                 )
+
+                if ((isHttps && httpsCredentials.isNotEmpty()) || (isSsh && sshKeys.isNotEmpty())) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Checkbox(
+                            checked = useCredential,
+                            onCheckedChange = onUseCredentialChange,
+                            colors = CheckboxDefaults.colors(checkedColor = Sakura80)
+                        )
+                        Text(
+                            text = "Use saved credentials",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+
+                    if (showCredentials) {
+                        if (isHttps && httpsCredentials.isNotEmpty()) {
+                            CredentialDropdown(
+                                label = "HTTPS Credential",
+                                items = httpsCredentials.map { it.uuid to it.displayName },
+                                selectedUuid = selectedHttpsUuid,
+                                onSelected = onHttpsSelected,
+                                accentColor = Color(0xFF4CAF50)
+                            )
+                        }
+
+                        if (isSsh && sshKeys.isNotEmpty()) {
+                            CredentialDropdown(
+                                label = "SSH Key",
+                                items = sshKeys.map { it.uuid to it.displayName },
+                                selectedUuid = selectedSshUuid,
+                                onSelected = onSshSelected,
+                                accentColor = Color(0xFF2196F3)
+                            )
+                        }
+                    }
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Surface(
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(12.dp),
+                        color = if (localPath.isBlank()) colors.surfaceVariant.copy(alpha = 0.5f)
+                        else if (isDirectoryEmpty) Color(0xFF4CAF50).copy(alpha = 0.1f)
+                        else Color(0xFFE53935).copy(alpha = 0.1f)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                if (localPath.isBlank()) Icons.Default.FolderOpen
+                                else if (isDirectoryEmpty) Icons.Default.CheckCircle
+                                else Icons.Default.Warning,
+                                contentDescription = null,
+                                tint = if (localPath.isBlank()) colors.onSurfaceVariant
+                                else if (isDirectoryEmpty) Color(0xFF4CAF50)
+                                else Color(0xFFE53935),
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(Modifier.width(8.dp))
+                            Text(
+                                text = if (localPath.isBlank()) "Select target folder"
+                                       else if (isDirectoryEmpty) "Folder is empty"
+                                       else "Folder is not empty",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = if (localPath.isBlank()) colors.onSurfaceVariant
+                                else if (isDirectoryEmpty) Color(0xFF4CAF50)
+                                else Color(0xFFE53935)
+                            )
+                        }
+                    }
+
+                    IconButton(
+                        onClick = onPickFolder,
+                        modifier = Modifier
+                            .size(48.dp)
+                            .background(Sakura80.copy(alpha = 0.1f), CircleShape)
+                    ) {
+                        Icon(
+                            Icons.Default.FolderOpen,
+                            contentDescription = "Pick folder",
+                            tint = Sakura80,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+                }
+
+                if (localPath.isNotBlank()) {
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = colors.surfaceVariant.copy(alpha = 0.5f)
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(10.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                Icons.Default.Folder,
+                                contentDescription = null,
+                                tint = colors.onSurfaceVariant,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(Modifier.width(8.dp))
+                            Text(
+                                text = localPath,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = colors.onSurfaceVariant,
+                                fontFamily = FontFamily.Monospace,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    }
+                }
+
+                OutlinedTextField(
+                    value = localPath,
+                    onValueChange = onLocalPathChange,
+                    label = { Text("Or enter path manually") },
+                    placeholder = { Text("$externalStorageDirPrefix/Git") },
+                    singleLine = true,
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Sakura80,
+                        focusedLabelColor = Sakura80,
+                        cursorColor = Sakura80
+                    )
+                )
+
+                if (error != null) {
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = Color(0xFFE53935).copy(alpha = 0.1f)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(10.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                Icons.Default.Error,
+                                contentDescription = null,
+                                tint = Color(0xFFE53935),
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(Modifier.width(8.dp))
+                            Text(
+                                text = error,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = Color(0xFFE53935)
+                            )
+                        }
+                    }
+                }
 
                 Surface(
                     shape = RoundedCornerShape(10.dp),
@@ -1211,7 +1606,7 @@ fun CloneRepoDialog(
                         )
                         Spacer(Modifier.width(8.dp))
                         Text(
-                            text = "Clone to app's internal storage",
+                            text = "Repository will be cloned to the selected folder with its name",
                             style = MaterialTheme.typography.bodySmall,
                             color = colors.onSurfaceVariant
                         )
@@ -1222,7 +1617,7 @@ fun CloneRepoDialog(
         confirmButton = {
             Button(
                 onClick = onClone,
-                enabled = cloneUrl.isNotBlank(),
+                enabled = cloneUrl.isNotBlank() && localPath.isNotBlank() && isDirectoryEmpty,
                 colors = ButtonDefaults.buttonColors(containerColor = Sakura80),
                 shape = RoundedCornerShape(12.dp)
             ) {
@@ -1244,12 +1639,63 @@ fun CloneRepoDialog(
     )
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun CredentialDropdown(
+    label: String,
+    items: List<Pair<String, String>>,
+    selectedUuid: String?,
+    onSelected: (String?) -> Unit,
+    accentColor: Color
+) {
+    var expanded by remember { mutableStateOf(false) }
+    val selectedItem = items.find { it.first == selectedUuid }
+
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = { expanded = !expanded }
+    ) {
+        OutlinedTextField(
+            value = selectedItem?.second ?: "Select...",
+            onValueChange = {},
+            readOnly = true,
+            label = { Text(label) },
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+            modifier = Modifier
+                .fillMaxWidth()
+                .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
+            shape = RoundedCornerShape(12.dp),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = accentColor,
+                focusedLabelColor = accentColor
+            )
+        )
+
+        ExposedDropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false }
+        ) {
+            items.forEach { (uuid, name) ->
+                DropdownMenuItem(
+                    text = { Text(name) },
+                    onClick = {
+                        onSelected(uuid)
+                        expanded = false
+                    },
+                    contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding
+                )
+            }
+        }
+    }
+}
+
 @Composable
 fun RepoSpeedDial(
     expanded: Boolean,
     onExpandedChange: (Boolean) -> Unit,
     onCloneRemote: () -> Unit,
     onAddLocal: () -> Unit,
+    onShowSaved: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val rotation by animateFloatAsState(if (expanded) 45f else 0f, label = "fab_rotation")
@@ -1268,6 +1714,15 @@ fun RepoSpeedDial(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
                 modifier = Modifier.padding(bottom = 12.dp)
             ) {
+                SpeedDialAction(
+                    icon = Icons.Default.FolderOpen,
+                    label = "Saved Repos",
+                    color = Color(0xFF9C27B0),
+                    onClick = {
+                        onShowSaved()
+                        onExpandedChange(false)
+                    }
+                )
                 SpeedDialAction(
                     icon = Icons.Default.CloudDownload,
                     label = "Clone Remote",
