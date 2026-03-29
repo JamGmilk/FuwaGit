@@ -44,6 +44,7 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -105,7 +106,8 @@ fun StatusScreen(
     val targetPath = uiState.repoPath
     val currentBranch = uiState.currentBranch
 
-    LaunchedEffect(uiState.repoPath) {
+    LaunchedEffect(Unit) {
+        kotlinx.coroutines.delay(100)
         if (uiState.repoPath != null) {
             statusViewModel.refreshAll()
         }
@@ -1000,14 +1002,5 @@ private fun TerminalLogsCard(
                 }
             }
         }
-    }
-}
-
-@SuppressLint("ViewModelConstructorInComposable")
-@Preview(showBackground = true)
-@Composable
-fun StatusModulePreview() {
-    FuwaGitTheme {
-        StatusScreen(statusViewModel = jamgmilk.fuwagit.di.AppContainer.createStatusViewModel())
     }
 }

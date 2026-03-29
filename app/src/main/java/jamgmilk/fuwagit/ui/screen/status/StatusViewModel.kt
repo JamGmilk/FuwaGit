@@ -2,10 +2,11 @@ package jamgmilk.fuwagit.ui.screen.status
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import dagger.hilt.android.lifecycle.HiltViewModel
 import jamgmilk.fuwagit.data.source.RepoPathUtils
 import jamgmilk.fuwagit.domain.model.GitBranch
 import jamgmilk.fuwagit.domain.model.GitFileStatus
-import jamgmilk.fuwagit.domain.repository.GitRepository
+import jamgmilk.fuwagit.domain.usecase.git.CheckRepoStatusUseCase
 import jamgmilk.fuwagit.domain.usecase.git.CommitChangesUseCase
 import jamgmilk.fuwagit.domain.usecase.git.DiscardChangesUseCase
 import jamgmilk.fuwagit.domain.usecase.git.GetBranchesUseCase
@@ -23,9 +24,11 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import javax.inject.Inject
 
 data class StatusUiState(
     val isLoading: Boolean = false,
@@ -42,7 +45,8 @@ data class StatusUiState(
     val terminalOutput: List<String> = emptyList()
 )
 
-class StatusViewModel(
+@HiltViewModel
+class StatusViewModel @Inject constructor(
     private val getWorkspaceStatusUseCase: GetWorkspaceStatusUseCase,
     private val getBranchesUseCase: GetBranchesUseCase,
     private val stageAllUseCase: StageAllUseCase,
@@ -54,7 +58,7 @@ class StatusViewModel(
     private val pushUseCase: PushUseCase,
     private val initRepoUseCase: InitRepoUseCase,
     private val discardChangesUseCase: DiscardChangesUseCase,
-    private val gitRepository: GitRepository
+    private val checkRepoStatusUseCase: CheckRepoStatusUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(StatusUiState())
@@ -96,17 +100,19 @@ class StatusViewModel(
             return
         }
 
-        viewModelScope.launch(Dispatchers.IO) {
-            gitRepository.getStatus(path)
-                .onSuccess { status ->
+        viewModelScope.launch {
+            withContext(Dispatchers.IO) {
+                checkRepoStatusUseCase(path)
+            }.fold(
+                onSuccess = { status ->
                     _uiState.update { 
                         it.copy(
                             isGitRepo = status.isGitRepo,
                             statusMessage = status.message
                         )
                     }
-                }
-                .onFailure { e ->
+                },
+                onFailure = { e ->
                     _uiState.update { 
                         it.copy(
                             isGitRepo = false,
@@ -114,6 +120,7 @@ class StatusViewModel(
                         )
                     }
                 }
+            )
         }
     }
 
@@ -123,8 +130,8 @@ class StatusViewModel(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
             
-            val filesResult = getWorkspaceStatusUseCase(path)
-            val branchesResult = getBranchesUseCase(path)
+            val filesResult = withContext(Dispatchers.IO) { getWorkspaceStatusUseCase(path) }
+            val branchesResult = withContext(Dispatchers.IO) { getBranchesUseCase(path) }
             
             filesResult.fold(
                 onSuccess = { files ->

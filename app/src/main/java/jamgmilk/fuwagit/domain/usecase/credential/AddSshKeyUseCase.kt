@@ -13,8 +13,7 @@ class AddSshKeyUseCase(
         publicKey: String,
         privateKey: String,
         passphrase: String?,
-        fingerprint: String,
-        comment: String = ""
+        fingerprint: String
     ): AppResult<String> {
         if (name.isBlank()) {
             return AppResult.Error(AppException.Unknown("Name cannot be empty"))
@@ -28,6 +27,6 @@ class AddSshKeyUseCase(
         if (fingerprint.isBlank()) {
             return AppResult.Error(AppException.Unknown("Fingerprint cannot be empty"))
         }
-        return repository.addSshKey(name, type, publicKey, privateKey, passphrase, fingerprint, comment)
+        return repository.addSshKey(name, type, publicKey, privateKey, passphrase, fingerprint)
     }
 }

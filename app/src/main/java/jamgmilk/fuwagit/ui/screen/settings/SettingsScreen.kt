@@ -30,6 +30,7 @@ import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.CreditCard
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.Key
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Shield
@@ -61,12 +62,14 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.core.content.pm.PackageInfoCompat
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.core.net.toUri
-import jamgmilk.fuwagit.di.AppContainer
 import jamgmilk.fuwagit.ui.AppViewModel
 import jamgmilk.fuwagit.ui.components.ScreenTemplate
 import jamgmilk.fuwagit.ui.navigation.Screen
 import jamgmilk.fuwagit.ui.screen.credentials.CredentialsScreen
+import jamgmilk.fuwagit.ui.screen.credentials.CredentialsStoreViewModel
 import jamgmilk.fuwagit.ui.screen.permissions.PermissionsScreen
 import jamgmilk.fuwagit.ui.screen.repo.RepoViewModel
 import jamgmilk.fuwagit.ui.theme.FuwaGitThemeExtras
@@ -102,6 +105,7 @@ fun SettingsScreen(
     var backupBeforeSync by rememberSaveable { mutableStateOf(true) }
     var showHiddenFiles by rememberSaveable { mutableStateOf(false) }
     var verboseLogging by rememberSaveable { mutableStateOf(false) }
+    var biometricEnabled by rememberSaveable { mutableStateOf(false) }
 
     AnimatedContent(
         targetState = when {
@@ -117,7 +121,7 @@ fun SettingsScreen(
         when (screen) {
             "credentials" -> {
                 BackHandler { showCredentials = false }
-                val credentialsStoreViewModel = remember { AppContainer.createCredentialsStoreViewModel() }
+                val credentialsStoreViewModel: CredentialsStoreViewModel = hiltViewModel()
                 CredentialsScreen(
                     viewModel = credentialsStoreViewModel,
                     onBack = { showCredentials = false },
@@ -149,6 +153,13 @@ fun SettingsScreen(
 
             CredentialsSettingsCard(
                 onCredentialsClick = { showCredentials = true },
+                biometricEnabled = biometricEnabled,
+                onBiometricEnabledChange = { enabled ->
+                    biometricEnabled = enabled
+                    if (!enabled) {
+                        // Disable biometric
+                    }
+                },
                 modifier = Modifier.fillMaxWidth()
             )
 
@@ -221,6 +232,8 @@ private fun StorageSettingsCard(
 @Composable
 private fun CredentialsSettingsCard(
     onCredentialsClick: () -> Unit,
+    biometricEnabled: Boolean = false,
+    onBiometricEnabledChange: ((Boolean) -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val uiColors = FuwaGitThemeExtras.colors
@@ -244,6 +257,18 @@ private fun CredentialsSettingsCard(
                 icon = Icons.Default.CreditCard,
                 onClick = onCredentialsClick
             )
+
+            if (onBiometricEnabledChange != null) {
+                HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+
+                SettingsSwitchItem(
+                    title = "Biometric Unlock",
+                    subtitle = if (biometricEnabled) "Enabled" else "Use fingerprint to unlock",
+                    icon = Icons.Default.Lock,
+                    checked = biometricEnabled,
+                    onCheckedChange = onBiometricEnabledChange
+                )
+            }
         }
     }
 }
@@ -345,6 +370,19 @@ private fun AboutCard(
     val uiColors = FuwaGitThemeExtras.colors
     val context = LocalContext.current
 
+    val packageInfo = remember(context) {
+        try {
+            context.packageManager.getPackageInfo(context.packageName, 0)
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    val versionName = packageInfo?.versionName ?: "Unknown"
+    val versionCode = packageInfo?.let {
+        PackageInfoCompat.getLongVersionCode(it).toString()
+    } ?: "Unknown"
+
     ElevatedCard(
         modifier = modifier.border(1.dp, uiColors.cardBorder, RoundedCornerShape(24.dp)),
         shape = RoundedCornerShape(24.dp),
@@ -360,14 +398,14 @@ private fun AboutCard(
 
             SettingsInfoItem(
                 title = "Version",
-                value = "1.0.0"
+                value = versionName
             )
 
             HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
 
             SettingsInfoItem(
                 title = "Build",
-                value = "1"
+                value = versionCode
             )
 
             HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
@@ -387,7 +425,11 @@ private fun AboutCard(
             SettingsLinkItem(
                 title = "Report Issue",
                 subtitle = "Submit bug reports or feature requests",
-                icon = Icons.Default.BugReport
+                icon = Icons.Default.BugReport,
+                onClick = {
+                    val intent = Intent(Intent.ACTION_VIEW, "https://github.com/JamGmilk/FuwaGit/issues/new".toUri())
+                    context.startActivity(intent)
+                }
             )
         }
     }

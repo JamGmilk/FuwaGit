@@ -8,20 +8,22 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.unit.dp
-import jamgmilk.fuwagit.di.AppContainer
+import androidx.hilt.navigation.compose.hiltViewModel
 import jamgmilk.fuwagit.ui.AppViewModel
 import jamgmilk.fuwagit.ui.screen.branches.BranchesScreen
+import jamgmilk.fuwagit.ui.screen.branches.BranchesViewModel
 import jamgmilk.fuwagit.ui.screen.history.HistoryScreen
+import jamgmilk.fuwagit.ui.screen.history.HistoryViewModel
 import jamgmilk.fuwagit.ui.screen.repo.RepoScreen
 import jamgmilk.fuwagit.ui.screen.repo.RepoViewModel
 import jamgmilk.fuwagit.ui.screen.settings.SettingsScreen
 import jamgmilk.fuwagit.ui.screen.status.StatusScreen
+import jamgmilk.fuwagit.ui.screen.status.StatusViewModel
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
@@ -56,21 +58,13 @@ fun FuwaGitNavHost(
         pageCount = { screens.size }
     )
 
-    val statusViewModel = remember { AppContainer.createStatusViewModel() }
-    val historyViewModel = remember { AppContainer.createHistoryViewModel() }
-    val branchesViewModel = remember { AppContainer.createBranchesViewModel() }
-    val repoViewModel = remember { AppContainer.createRepoViewModel() }
+    val statusViewModel: StatusViewModel = hiltViewModel()
+    val historyViewModel: HistoryViewModel = hiltViewModel()
+    val branchesViewModel: BranchesViewModel = hiltViewModel()
+    val repoViewModel: RepoViewModel = hiltViewModel()
     
     val currentScreenState by viewModel.currentScreenFlow.collectAsState()
     val swipeEnabled by viewModel.swipeEnabledFlow.collectAsState()
-    
-    LaunchedEffect(repoViewModel.uiState.collectAsState().value.targetPath) {
-        val targetPath = repoViewModel.uiState.value.targetPath
-        statusViewModel.setRepoPath(targetPath)
-        historyViewModel.setRepoPath(targetPath)
-        branchesViewModel.setRepoPath(targetPath)
-        viewModel.updateTargetPath(targetPath)
-    }
 
     LaunchedEffect(pagerState) {
         snapshotFlow { pagerState.settledPage }
@@ -84,6 +78,16 @@ fun FuwaGitNavHost(
                     }
                 }
             }
+    }
+
+    LaunchedEffect(repoViewModel) {
+        repoViewModel.uiState.collect { state ->
+            val targetPath = state.targetPath
+            statusViewModel.setRepoPath(targetPath)
+            historyViewModel.setRepoPath(targetPath)
+            branchesViewModel.setRepoPath(targetPath)
+            viewModel.updateTargetPath(targetPath)
+        }
     }
 
     LaunchedEffect(currentScreenState) {

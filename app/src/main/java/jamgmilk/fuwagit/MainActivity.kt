@@ -32,15 +32,13 @@ import androidx.compose.material3.NavigationRailItem
 import androidx.compose.material3.Text
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import jamgmilk.fuwagit.di.AppContainer
+import androidx.compose.ui.tooling.preview.Preview
+import dagger.hilt.android.AndroidEntryPoint
 import jamgmilk.fuwagit.ui.AppViewModel
 import jamgmilk.fuwagit.ui.navigation.FuwaGitNavHost
 import jamgmilk.fuwagit.ui.navigation.Screen
@@ -49,13 +47,13 @@ import jamgmilk.fuwagit.ui.theme.FuwaGitTheme
 import jamgmilk.fuwagit.ui.theme.FuwaGitThemeExtras
 import jamgmilk.fuwagit.ui.theme.appBackgroundBrush
 
+@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
 
     private val appViewModel by viewModels<AppViewModel>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        AppContainer.initialize(applicationContext)
         enableEdgeToEdge()
         setContent {
             FuwaGitTheme {
@@ -67,7 +65,6 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun AppRoot(viewModel: AppViewModel, modifier: Modifier = Modifier) {
-    val context = LocalContext.current
     val darkTheme = isSystemInDarkTheme()
     val uiColors = FuwaGitThemeExtras.colors
 
@@ -220,9 +217,9 @@ private fun LandscapeLayout(
 }
 
 @SuppressLint("ViewModelConstructorInComposable")
-@Preview(showBackground = true)
+@Preview(showBackground = true, device = "spec:parent=pixel_5,orientation=landscape")
 @Composable
-fun AppRootPreview() {
+fun AppRootLandscapeLayoutPreview() {
     FuwaGitTheme {
         AppRoot(viewModel = AppViewModel())
     }
