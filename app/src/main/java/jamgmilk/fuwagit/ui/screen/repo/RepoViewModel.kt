@@ -8,7 +8,16 @@ import androidx.core.net.toUri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import jamgmilk.fuwagit.data.local.RepoDataStore
 import jamgmilk.fuwagit.data.source.RepoPathUtils
+import jamgmilk.fuwagit.domain.model.CloneCredential
+import jamgmilk.fuwagit.domain.model.GitBranch
+import jamgmilk.fuwagit.domain.model.RepoData
+import jamgmilk.fuwagit.domain.usecase.credential.GetHttpsCredentialsUseCase
+import jamgmilk.fuwagit.domain.usecase.credential.GetHttpsPasswordUseCase
+import jamgmilk.fuwagit.domain.usecase.credential.GetSshKeysUseCase
+import jamgmilk.fuwagit.domain.usecase.credential.GetSshPrivateKeyUseCase
+import jamgmilk.fuwagit.domain.usecase.git.CloneUseCase
 import jamgmilk.fuwagit.domain.usecase.repo.GetRemoteUrlUseCase
 import jamgmilk.fuwagit.domain.usecase.repo.GetRepoInfoUseCase
 import jamgmilk.fuwagit.domain.usecase.repo.ConfigureRemoteUseCase
@@ -52,16 +61,39 @@ data class RepoUiState(
     val error: String? = null
 )
 
+data class HttpsCredentialItem(
+    val uuid: String,
+    val host: String,
+    val username: String,
+    val displayName: String
+)
+
+data class SshKeyItem(
+    val uuid: String,
+    val name: String,
+    val fingerprint: String,
+    val displayName: String
+)
+
 @HiltViewModel
 class RepoViewModel @Inject constructor(
     private val getRepoInfoUseCase: GetRepoInfoUseCase,
     private val getRemoteUrlUseCase: GetRemoteUrlUseCase,
     private val configureRemoteUseCase: ConfigureRemoteUseCase,
-    private val hasGitDirUseCase: HasGitDirUseCase
+    private val hasGitDirUseCase: HasGitDirUseCase,
+    private val cloneUseCase: CloneUseCase,
+    private val getHttpsCredentialsUseCase: GetHttpsCredentialsUseCase,
+    private val getHttpsPasswordUseCase: GetHttpsPasswordUseCase,
+    private val getSshKeysUseCase: GetSshKeysUseCase,
+    private val getSshPrivateKeyUseCase: GetSshPrivateKeyUseCase,
+    private val repoDataStore: RepoDataStore
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(RepoUiState())
     val uiState: StateFlow<RepoUiState> = _uiState.asStateFlow()
+
+    private val _savedRepos = MutableStateFlow<List<RepoData>>(emptyList())
+    val savedRepos: StateFlow<List<RepoData>> = _savedRepos.asStateFlow()
 
     private val _currentScreen = MutableStateFlow<Screen>(Screen.Repo)
     val currentScreenFlow: StateFlow<Screen> = _currentScreen.asStateFlow()
@@ -84,6 +116,40 @@ class RepoViewModel @Inject constructor(
     val terminalOutput: StateFlow<List<String>> = _terminalOutput.asStateFlow()
 
     private var storageInitialized = false
+
+    fun loadSavedRepos() {
+        viewModelScope.launch {
+            val repos = repoDataStore.getAllRepos()
+            _savedRepos.value = repos
+        }
+    }
+
+    suspend fun addRepo(path: String, alias: String? = null): Boolean {
+        val repo = RepoData(path = path, alias = alias)
+        val result = repoDataStore.addRepo(repo)
+        if (result) {
+            loadSavedRepos()
+        }
+        return result
+    }
+
+    suspend fun removeRepo(repo: RepoData): Boolean {
+        val result = repoDataStore.removeRepo(repo.path)
+        if (result) {
+            loadSavedRepos()
+        }
+        return result
+    }
+
+    suspend fun updateRepoAlias(path: String, alias: String?) {
+        repoDataStore.updateRepo(path) { it.copy(alias = alias) }
+        loadSavedRepos()
+    }
+
+    suspend fun toggleFavorite(path: String) {
+        repoDataStore.toggleFavorite(path)
+        loadSavedRepos()
+    }
 
     fun setTargetPath(context: Context, path: String?) {
         _targetPath.value = path
@@ -115,10 +181,24 @@ class RepoViewModel @Inject constructor(
     fun initializeStorage(context: Context) {
         if (storageInitialized) return
         storageInitialized = true
-        val path = loadTargetPath(context)
-        _targetPath.value = path
-        _uiState.value = _uiState.value.copy(targetPath = path)
-        rebuildGrantedFolders(context)
+
+        viewModelScope.launch {
+            val currentRepoPath = repoDataStore.getCurrentRepoPath()
+            if (currentRepoPath != null) {
+                _targetPath.value = currentRepoPath
+                _uiState.value = _uiState.value.copy(targetPath = currentRepoPath)
+            }
+            loadSavedRepos()
+        }
+    }
+
+    suspend fun setCurrentRepo(path: String?) {
+        repoDataStore.setCurrentRepo(path)
+        if (path != null) {
+            _targetPath.value = path
+            _uiState.value = _uiState.value.copy(targetPath = path)
+            repoDataStore.updateLastAccessed(path)
+        }
     }
 
     fun refreshPersistedUris(context: Context) {
@@ -204,6 +284,123 @@ class RepoViewModel @Inject constructor(
                 }
                 .onFailure { e ->
                     appendTerminalLog("git remote add $name $url", "Error: ${e.message}")
+                }
+        }
+    }
+
+    fun cloneRepository(
+        context: Context,
+        uri: String,
+        localPath: String,
+        branch: String? = null,
+        credentials: CloneCredential? = null,
+        onResult: (Result<String>) -> Unit
+    ) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true)
+            appendTerminalLog("git clone $uri", "Cloning...")
+
+            cloneUseCase(uri, localPath, branch, credentials)
+                .onSuccess { result ->
+                    appendTerminalLog("git clone $uri", result)
+                    _uiState.value = _uiState.value.copy(isLoading = false)
+                    addGrantedTreeUri(context, android.net.Uri.parse("file://$localPath"))
+                    onResult(Result.success(result))
+                }
+                .onFailure { e ->
+                    val errorMsg = "Error: ${e.message}"
+                    appendTerminalLog("git clone $uri", errorMsg)
+                    _uiState.value = _uiState.value.copy(isLoading = false, error = errorMsg)
+                    onResult(Result.failure(e))
+                }
+        }
+    }
+
+    fun isDirectoryEmpty(path: String): Boolean {
+        val dir = File(path)
+        return !dir.exists() || dir.listFiles()?.isEmpty() != false
+    }
+
+    suspend fun getHttpsCredentials(): List<HttpsCredentialItem> {
+        return getHttpsCredentialsUseCase()
+            .map { credentials ->
+                credentials.map { cred ->
+                    HttpsCredentialItem(
+                        uuid = cred.uuid,
+                        host = cred.host,
+                        username = cred.username,
+                        displayName = "${cred.username}@${cred.host}"
+                    )
+                }
+            }
+            .getOrNull() ?: emptyList()
+    }
+
+    suspend fun getHttpsPassword(uuid: String): String? {
+        return getHttpsPasswordUseCase(uuid).getOrNull()
+    }
+
+    suspend fun getSshKeys(): List<SshKeyItem> {
+        return getSshKeysUseCase()
+            .map { keys ->
+                keys.map { key ->
+                    SshKeyItem(
+                        uuid = key.uuid,
+                        name = key.name,
+                        fingerprint = key.fingerprint,
+                        displayName = key.name
+                    )
+                }
+            }
+            .getOrNull() ?: emptyList()
+    }
+
+    suspend fun getSshPrivateKey(uuid: String): String? {
+        return getSshPrivateKeyUseCase(uuid).getOrNull()
+    }
+
+    fun cloneWithCredentials(
+        context: Context,
+        uri: String,
+        localPath: String,
+        branch: String? = null,
+        httpsCredentialUuid: String? = null,
+        sshKeyUuid: String? = null,
+        onResult: (Result<String>) -> Unit
+    ) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true)
+            appendTerminalLog("git clone $uri", "Cloning...")
+
+            val credentials: CloneCredential? = when {
+                httpsCredentialUuid != null -> {
+                    val httpsCred = getHttpsCredentials().find { it.uuid == httpsCredentialUuid }
+                    val password = getHttpsPassword(httpsCredentialUuid)
+                    if (httpsCred != null && password != null) {
+                        CloneCredential.Https(httpsCred.username, password)
+                    } else null
+                }
+                sshKeyUuid != null -> {
+                    val privateKey = getSshPrivateKey(sshKeyUuid)
+                    if (privateKey != null) {
+                        CloneCredential.Ssh(privateKey, null)
+                    } else null
+                }
+                else -> null
+            }
+
+            cloneUseCase(uri, localPath, branch, credentials)
+                .onSuccess { result ->
+                    appendTerminalLog("git clone $uri", result)
+                    _uiState.value = _uiState.value.copy(isLoading = false)
+                    addGrantedTreeUri(context, android.net.Uri.parse("file://$localPath"))
+                    onResult(Result.success(result))
+                }
+                .onFailure { e ->
+                    val errorMsg = "Error: ${e.message}"
+                    appendTerminalLog("git clone $uri", errorMsg)
+                    _uiState.value = _uiState.value.copy(isLoading = false, error = errorMsg)
+                    onResult(Result.failure(e))
                 }
         }
     }

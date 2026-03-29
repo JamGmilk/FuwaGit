@@ -27,7 +27,9 @@ private val DarkColorScheme = darkColorScheme(
     onSurface = Sakura20,
     surfaceVariant = ColorTokens.surfaceVariantDark,
     onSurfaceVariant = Sakura30,
-    outline = Sakura70
+    outline = Sakura70,
+    error = AppColors.GitRed,
+    onError = CatCream
 )
 
 private val LightColorScheme = lightColorScheme(
@@ -47,7 +49,9 @@ private val LightColorScheme = lightColorScheme(
     onSurface = Sakura95,
     surfaceVariant = ColorTokens.surfaceVariant,
     onSurfaceVariant = Sakura90,
-    outline = Sakura50
+    outline = Sakura50,
+    error = AppColors.GitRed,
+    onError = CatCream
 )
 
 private object ColorTokens {
