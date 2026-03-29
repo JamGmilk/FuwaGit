@@ -15,7 +15,7 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class RepoDataStore @param:Inject constructor(
+class RepoDataStore @Inject constructor(
     @ApplicationContext private val context: Context
 ) {
 

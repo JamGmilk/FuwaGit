@@ -1,5 +1,8 @@
 package jamgmilk.fuwagit.ui.screen.branches
 
+import jamgmilk.fuwagit.ui.screen.repo.RepoViewModel
+import jamgmilk.fuwagit.ui.screen.status.RenameBranchDialog
+
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -26,6 +29,8 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Cloud
 import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.ImportExport
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.outlined.AccountTree
@@ -64,9 +69,11 @@ import jamgmilk.fuwagit.ui.theme.FuwaGitThemeExtras
 @Composable
 fun BranchesScreen(
     branchesViewModel: BranchesViewModel,
+    repoViewModel: RepoViewModel,
     modifier: Modifier = Modifier
 ) {
     val uiState by branchesViewModel.uiState.collectAsState()
+    val repoUiState by repoViewModel.uiState.collectAsState()
     val branches = uiState.branches
     val local = uiState.localBranches
     val remote = uiState.remoteBranches
@@ -75,11 +82,11 @@ fun BranchesScreen(
     val uiColors = FuwaGitThemeExtras.colors
 
     var showCreateDialog by remember { mutableStateOf(false) }
+    var showRenameDialog by remember { mutableStateOf(false) }
+    var branchToRename by remember { mutableStateOf<String?>(null) }
 
-    LaunchedEffect(uiState.repoPath) {
-        if (uiState.repoPath != null) {
-            branchesViewModel.loadBranches()
-        }
+    LaunchedEffect(repoUiState.targetPath) {
+        branchesViewModel.setRepoPath(repoUiState.targetPath)
     }
 
     ScreenTemplate(
@@ -133,6 +140,12 @@ fun BranchesScreen(
                     remoteBranches = remote,
                     currentBranch = currentBranch,
                     branchesViewModel = branchesViewModel,
+                    showRenameDialog = showRenameDialog,
+                    branchToRename = branchToRename,
+                    onRenameRequest = { name ->
+                        branchToRename = name
+                        showRenameDialog = true
+                    },
                     modifier = Modifier.fillMaxSize()
                 )
             }
@@ -145,6 +158,21 @@ fun BranchesScreen(
             onCreate = { name ->
                 branchesViewModel.createBranch(name)
                 showCreateDialog = false
+            }
+        )
+    }
+
+    if (showRenameDialog && branchToRename != null) {
+        RenameBranchDialog(
+            currentBranch = branchToRename!!,
+            onDismiss = {
+                showRenameDialog = false
+                branchToRename = null
+            },
+            onRename = { oldName, newName ->
+                branchesViewModel.renameBranch(oldName, newName)
+                showRenameDialog = false
+                branchToRename = null
             }
         )
     }
@@ -188,6 +216,9 @@ private fun BranchListContent(
     remoteBranches: List<GitBranch>,
     currentBranch: String?,
     branchesViewModel: BranchesViewModel,
+    showRenameDialog: Boolean,
+    branchToRename: String?,
+    onRenameRequest: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val colors = MaterialTheme.colorScheme
@@ -216,6 +247,10 @@ private fun BranchListContent(
                     isCurrent = branch.name == currentBranch,
                     onCheckout = { branchesViewModel.checkoutBranch(branch.name) },
                     onMerge = { branchesViewModel.mergeBranch(branch.name) },
+                    onRebase = { branchesViewModel.rebaseBranch(branch.name) },
+                    onRename = {
+                        onRenameRequest(branch.name)
+                    },
                     onDelete = { branchesViewModel.deleteBranch(branch.name) }
                 )
             }
@@ -247,6 +282,8 @@ private fun BranchListContent(
                     isCurrent = branch.name == currentBranch,
                     onCheckout = { branchesViewModel.checkoutBranch(branch.name) },
                     onMerge = { branchesViewModel.mergeBranch(branch.name) },
+                    onRebase = { },
+                    onRename = { },
                     onDelete = { },
                     isRemote = true
                 )
@@ -313,6 +350,8 @@ private fun BranchItem(
     isCurrent: Boolean,
     onCheckout: () -> Unit,
     onMerge: () -> Unit,
+    onRebase: () -> Unit,
+    onRename: () -> Unit,
     onDelete: () -> Unit,
     isRemote: Boolean = false
 ) {
@@ -417,6 +456,16 @@ private fun BranchItem(
                             Icon(Icons.AutoMirrored.Filled.MergeType, contentDescription = null, modifier = Modifier.size(18.dp))
                         }
                     )
+                    DropdownMenuItem(
+                        text = { Text("Rebase onto current") },
+                        onClick = {
+                            onRebase()
+                            showMenu = false
+                        },
+                        leadingIcon = {
+                            Icon(Icons.Default.ImportExport, contentDescription = null, modifier = Modifier.size(18.dp))
+                        }
+                    )
                 }
                 if (!isCurrent && !isRemote) {
                     DropdownMenuItem(
@@ -427,6 +476,16 @@ private fun BranchItem(
                         },
                         leadingIcon = {
                             Icon(Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(18.dp))
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Rename") },
+                        onClick = {
+                            onRename()
+                            showMenu = false
+                        },
+                        leadingIcon = {
+                            Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(18.dp))
                         }
                     )
                 }

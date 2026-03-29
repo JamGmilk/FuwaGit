@@ -3,8 +3,6 @@ package jamgmilk.fuwagit.ui.screen.repo
 import android.content.Intent
 import android.net.Uri
 import androidx.core.content.ContextCompat
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.expandVertically
@@ -39,6 +37,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountTree
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.CleaningServices
 import androidx.compose.material.icons.filled.CloudDownload
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
@@ -110,35 +109,14 @@ import jamgmilk.fuwagit.ui.screen.repo.SshKeyItem
 import jamgmilk.fuwagit.ui.theme.FuwaGitThemeExtras
 import jamgmilk.fuwagit.ui.theme.Sakura80
 import jamgmilk.fuwagit.ui.components.ScreenTemplate
+import jamgmilk.fuwagit.ui.components.CleanDialog
 import jamgmilk.fuwagit.ui.components.FilePickerDialog
 import jamgmilk.fuwagit.ui.components.RepoListDialog
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-import android.os.Environment
-
-private val externalStorageDirPrefix: String = Environment.getExternalStorageDirectory().absolutePath
-
-private fun getPathFromTreeUri(uri: Uri): String {
-    return try {
-        val docId = android.provider.DocumentsContract.getTreeDocumentId(uri)
-        if (docId.startsWith("primary:")) {
-            "$externalStorageDirPrefix/${docId.removePrefix("primary:")}"
-        } else if (docId.contains(":")) {
-            val parts = docId.split(":")
-            if (parts.size >= 2) {
-                "/storage/${parts[0]}/${parts[1]}"
-            } else {
-                docId
-            }
-        } else {
-            docId
-        }
-    } catch (e: Exception) {
-        ""
-    }
-}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -173,6 +151,8 @@ fun RepoScreen(
     var showCloneDialog by remember { mutableStateOf(false) }
     var showFilePicker by remember { mutableStateOf(false) }
     var showSavedReposDialog by remember { mutableStateOf(false) }
+    var showCloneFolderPicker by remember { mutableStateOf(false) }
+    var showCleanDialog by remember { mutableStateOf(false) }
     var cloneUrl by remember { mutableStateOf("") }
     var cloneLocalPath by remember { mutableStateOf("") }
     var cloneBranch by remember { mutableStateOf<String?>(null) }
@@ -187,39 +167,16 @@ fun RepoScreen(
     var remoteUrlState by remember { mutableStateOf("") }
     var repoInfoState by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
 
-    val folderPicker = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.StartActivityForResult()
-    ) { result ->
-        result.data?.data?.let { uri ->
-            repoViewModel.addGrantedTreeUri(context, uri)
-        }
-    }
-
-    val cloneFolderPicker = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.OpenDocumentTree()
-    ) { uri ->
-        uri?.let { selectedUri ->
-            try {
-                context.contentResolver.takePersistableUriPermission(
-                    selectedUri,
-                    Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
-                )
-                val path = getPathFromTreeUri(selectedUri)
-                cloneLocalPath = path
-                if (path.isBlank()) {
-                    cloneError = "Could not access folder path"
-                }
-            } catch (e: Exception) {
-                cloneError = "Failed to access folder: ${e.message}"
-            }
-        }
-    }
-
     LaunchedEffect(Unit) {
         repoViewModel.initializeStorage(context)
-        repoViewModel.refreshPersistedUris(context)
         repoViewModel.refreshRepoItems(context)
         repoViewModel.loadSavedRepos()
+
+        delay(200)
+        val targetPath = repoViewModel.targetPath.value
+        if (targetPath != null && targetPath.isNotBlank()) {
+            onNavigateToStatus()
+        }
     }
 
     Box(modifier = modifier.fillMaxSize()) {
@@ -243,7 +200,9 @@ fun RepoScreen(
                         folders = folders,
                         selectedTarget = selectedTarget,
                         onSetTarget = { path ->
-                            repoViewModel.setTargetPath(context, path)
+                            kotlinx.coroutines.runBlocking {
+                                repoViewModel.setCurrentRepo(path)
+                            }
                             onNavigateToStatus()
                         },
                         onItemLongClick = { selectedItemForSheet = it }
@@ -281,6 +240,19 @@ fun RepoScreen(
                         repoViewModel.addRepo(path, alias)
                     }
                 }
+            )
+        }
+
+        if (showCloneFolderPicker) {
+            FilePickerDialog(
+                title = "Select Clone Destination",
+                existingRepos = emptyList(),
+                onDismiss = { showCloneFolderPicker = false },
+                onSelect = { path ->
+                    cloneLocalPath = path
+                    showCloneFolderPicker = false
+                },
+                onCreateRepo = null
             )
         }
 
@@ -329,7 +301,7 @@ fun RepoScreen(
             localPath = cloneLocalPath,
             onLocalPathChange = { cloneLocalPath = it },
             onPickFolder = {
-                cloneFolderPicker.launch(null)
+                showCloneFolderPicker = true
             },
             isDirectoryEmpty = cloneLocalPath.isBlank() || repoViewModel.isDirectoryEmpty(cloneLocalPath),
             error = cloneError,
@@ -404,6 +376,15 @@ fun RepoScreen(
                     selectedItemForSheet = null
                 }
             },
+            onClean = {
+                scope.launch { sheetState.hide() }.invokeOnCompletion {
+                    scope.launch {
+                        repoViewModel.setCurrentRepo(item.path)
+                    }
+                    selectedItemForSheet = null
+                    showCleanDialog = true
+                }
+            },
             onShowInfo = {
                 scope.launch { sheetState.hide() }.invokeOnCompletion {
                     showInfoDialog = item
@@ -450,6 +431,20 @@ fun RepoScreen(
             onDismiss = {
                 showInfoDialog = null
                 repoInfoState = emptyMap()
+            }
+        )
+    }
+
+    if (showCleanDialog) {
+        CleanDialog(
+            onDismiss = { showCleanDialog = false },
+            onClean = { dryRun ->
+                kotlinx.coroutines.runBlocking {
+                    uiState.targetPath?.let { path ->
+                        repoViewModel.cleanRepo(path, dryRun)
+                    }
+                }
+                showCleanDialog = false
             }
         )
     }
@@ -692,6 +687,7 @@ fun RepoOptionsSheet(
     onDismiss: () -> Unit,
     onRemove: () -> Unit,
     onConfigureRemote: () -> Unit,
+    onClean: () -> Unit,
     onShowInfo: () -> Unit
 ) {
     val colors = MaterialTheme.colorScheme
@@ -755,6 +751,14 @@ fun RepoOptionsSheet(
                     subtitle = "Set push/pull remote URL",
                     accentColor = Color(0xFF2196F3),
                     onClick = onConfigureRemote
+                )
+
+                RepoOptionItem(
+                    icon = Icons.Default.CleaningServices,
+                    title = "Clean Repository",
+                    subtitle = "Remove untracked files",
+                    accentColor = Color(0xFFE91E63),
+                    onClick = onClean
                 )
 
                 RepoOptionItem(
@@ -1554,7 +1558,7 @@ fun CloneRepoDialog(
                     value = localPath,
                     onValueChange = onLocalPathChange,
                     label = { Text("Or enter path manually") },
-                    placeholder = { Text("$externalStorageDirPrefix/Git") },
+                    placeholder = { Text("/storage/emulated/0/Git") },
                     singleLine = true,
                     shape = RoundedCornerShape(12.dp),
                     modifier = Modifier.fillMaxWidth(),

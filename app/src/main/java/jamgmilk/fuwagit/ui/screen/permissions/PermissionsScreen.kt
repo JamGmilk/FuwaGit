@@ -93,7 +93,7 @@ fun PermissionsScreen(
         )
 
         ScopedStorageCard(
-            grantedFoldersCount = uiState.grantedTreeUris.size
+            savedReposCount = repoViewModel.savedRepos.value.size
         )
     }
 }
@@ -175,7 +175,7 @@ private fun SystemPermissionsCard(
 
 @Composable
 private fun ScopedStorageCard(
-    grantedFoldersCount: Int,
+    savedReposCount: Int,
     modifier: Modifier = Modifier
 ) {
     val colors = MaterialTheme.colorScheme
@@ -251,12 +251,12 @@ private fun ScopedStorageCard(
 
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = "Folder Grants",
+                            text = "Saved Repositories",
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.Bold
                         )
                         Text(
-                            text = "$grantedFoldersCount folders with SAF access",
+                            text = "$savedReposCount repositories saved",
                             style = MaterialTheme.typography.bodySmall,
                             color = colors.onSurfaceVariant
                         )
@@ -264,13 +264,13 @@ private fun ScopedStorageCard(
 
                     Surface(
                         shape = RoundedCornerShape(8.dp),
-                        color = if (grantedFoldersCount > 0) Color(0xFF4CAF50).copy(alpha = 0.15f) else colors.surfaceVariant
+                        color = if (savedReposCount > 0) Color(0xFF4CAF50).copy(alpha = 0.15f) else colors.surfaceVariant
                     ) {
                         Text(
-                            text = grantedFoldersCount.toString(),
+                            text = savedReposCount.toString(),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
-                            color = if (grantedFoldersCount > 0) Color(0xFF4CAF50) else colors.onSurfaceVariant,
+                            color = if (savedReposCount > 0) Color(0xFF4CAF50) else colors.onSurfaceVariant,
                             modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
                         )
                     }

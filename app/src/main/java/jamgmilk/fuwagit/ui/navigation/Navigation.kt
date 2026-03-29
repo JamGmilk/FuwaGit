@@ -80,14 +80,10 @@ fun FuwaGitNavHost(
             }
     }
 
-    LaunchedEffect(repoViewModel) {
-        repoViewModel.uiState.collect { state ->
-            val targetPath = state.targetPath
-            statusViewModel.setRepoPath(targetPath)
-            historyViewModel.setRepoPath(targetPath)
-            branchesViewModel.setRepoPath(targetPath)
-            viewModel.updateTargetPath(targetPath)
-        }
+    val uiState by repoViewModel.uiState.collectAsState()
+
+    LaunchedEffect(uiState.targetPath) {
+        viewModel.updateTargetPath(uiState.targetPath)
     }
 
     LaunchedEffect(currentScreenState) {
@@ -115,14 +111,17 @@ fun FuwaGitNavHost(
         when (screen) {
             Screen.Status -> StatusScreen(
                 statusViewModel = statusViewModel,
+                repoViewModel = repoViewModel,
                 modifier = Modifier.fillMaxSize()
             )
             Screen.History -> HistoryScreen(
                 historyViewModel = historyViewModel,
+                repoViewModel = repoViewModel,
                 modifier = Modifier.fillMaxSize()
             )
             Screen.Branches -> BranchesScreen(
                 branchesViewModel = branchesViewModel,
+                repoViewModel = repoViewModel,
                 modifier = Modifier.fillMaxSize()
             )
             Screen.Repo -> RepoScreen(

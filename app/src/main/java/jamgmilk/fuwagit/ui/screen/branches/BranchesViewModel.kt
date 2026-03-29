@@ -10,6 +10,7 @@ import jamgmilk.fuwagit.domain.usecase.git.DeleteBranchUseCase
 import jamgmilk.fuwagit.domain.usecase.git.GetBranchesUseCase
 import jamgmilk.fuwagit.domain.usecase.git.MergeBranchUseCase
 import jamgmilk.fuwagit.domain.usecase.git.RebaseBranchUseCase
+import jamgmilk.fuwagit.domain.usecase.git.RenameBranchUseCase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -37,7 +38,8 @@ class BranchesViewModel @Inject constructor(
     private val createBranchUseCase: CreateBranchUseCase,
     private val mergeBranchUseCase: MergeBranchUseCase,
     private val rebaseBranchUseCase: RebaseBranchUseCase,
-    private val deleteBranchUseCase: DeleteBranchUseCase
+    private val deleteBranchUseCase: DeleteBranchUseCase,
+    private val renameBranchUseCase: RenameBranchUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(BranchesUiState())
@@ -160,6 +162,20 @@ class BranchesViewModel @Inject constructor(
 
         viewModelScope.launch {
             rebaseBranchUseCase(path, name)
+                .onSuccess {
+                    loadBranches()
+                }
+                .onFailure { e ->
+                    _uiState.update { it.copy(error = e.message) }
+                }
+        }
+    }
+
+    fun renameBranch(oldName: String, newName: String) {
+        val path = currentRepoPath ?: return
+
+        viewModelScope.launch {
+            renameBranchUseCase(path, oldName, newName)
                 .onSuccess {
                     loadBranches()
                 }
