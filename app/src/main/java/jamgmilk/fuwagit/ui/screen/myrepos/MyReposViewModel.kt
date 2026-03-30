@@ -8,7 +8,7 @@ import androidx.core.net.toUri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
-import jamgmilk.fuwagit.data.local.RepoDataStore
+import jamgmilk.fuwagit.data.local.prefs.RepoDataStore
 import jamgmilk.fuwagit.data.source.RepoPathUtils
 import jamgmilk.fuwagit.domain.model.credential.CloneCredential
 import jamgmilk.fuwagit.domain.model.git.GitBranch
@@ -39,16 +39,11 @@ import java.util.Locale
 import javax.inject.Inject
 
 data class RepoFolderItem(
-    val id: String,
-    val name: String,
     val path: String,
+    val alias: String, // 在添加或克隆时需要填入 alias，不填默认就为文件夹名
     val isGitRepo: Boolean,
-    val isDirectory: Boolean = true,
-    val localPath: String? = null,
-    val source: String = "Saved",
-    val permissionHint: String = "Saved",
+    val isRemote: Boolean,
     val isActive: Boolean,
-    val isRemovable: Boolean = true,
     val lastModified: Long = 0L,
 )
 
@@ -99,16 +94,11 @@ class MyReposViewModel @Inject constructor(
         RepoUiState(
             repoItems = repos.map { repo ->
                 RepoFolderItem(
-                    id = repo.path,
-                    name = repo.displayName,
                     path = repo.path,
-                    isGitRepo = true, 
-                    isDirectory = true,
-                    localPath = repo.path,
-                    source = "Saved",
-                    permissionHint = if (repo.isFavorite) "Favorite" else "Saved",
+                    alias = repo.displayName,
+                    isGitRepo = true,
+                    isRemote = false,
                     isActive = repo.path == currentRepo.repoPath,
-                    isRemovable = true,
                     lastModified = repo.lastAccessedAt
                 )
             },

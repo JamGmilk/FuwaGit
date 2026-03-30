@@ -212,8 +212,8 @@ class CredentialsStoreViewModel @Inject constructor(
 
     suspend fun getHttpsPassword(uuid: String): String? {
         return when (val result = credentialUseCases.getHttpsPassword(uuid)) {
-            is jamgmilk.fuwagit.domain.model.AppResult.Success -> result.data
-            is jamgmilk.fuwagit.domain.model.AppResult.Error -> null
+            is jamgmilk.fuwagit.core.result.AppResult.Success -> result.data
+            is jamgmilk.fuwagit.core.result.AppResult.Error -> null
         }
     }
 
@@ -261,8 +261,8 @@ class CredentialsStoreViewModel @Inject constructor(
 
     suspend fun getSshPrivateKey(uuid: String): String? {
         return when (val result = credentialUseCases.getSshPrivateKey(uuid)) {
-            is jamgmilk.fuwagit.domain.model.AppResult.Success -> result.data
-            is jamgmilk.fuwagit.domain.model.AppResult.Error -> null
+            is jamgmilk.fuwagit.core.result.AppResult.Success -> result.data
+            is jamgmilk.fuwagit.core.result.AppResult.Error -> null
         }
     }
 

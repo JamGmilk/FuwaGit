@@ -354,20 +354,18 @@ fun MyReposScreen(
 
     showRemoteDialog?.let { item ->
         LaunchedEffect(item) {
-            item.localPath?.let { path ->
-                remoteUrlState = myReposViewModel.getRemoteUrl(path) ?: ""
-            }
+            remoteUrlState = myReposViewModel.getRemoteUrl(item.path) ?: ""
         }
 
         ConfigureRemoteDialog(
-            repoName = item.name,
+            repoName = item.alias.ifBlank { item.path.substringAfterLast("/") },
             currentUrl = remoteUrlState,
             onDismiss = {
                 showRemoteDialog = null
                 remoteUrlState = ""
             },
             onSave = { newUrl ->
-                item.localPath?.let { myReposViewModel.configureRemote(it, "origin", newUrl) }
+                myReposViewModel.configureRemote(item.path, "origin", newUrl)
                 showRemoteDialog = null
                 remoteUrlState = ""
             }
@@ -376,13 +374,11 @@ fun MyReposScreen(
 
     showInfoDialog?.let { item ->
         LaunchedEffect(item) {
-            item.localPath?.let { path ->
-                repoInfoState = myReposViewModel.getRepoInfo(path)
-            }
+            repoInfoState = myReposViewModel.getRepoInfo(item.path)
         }
 
         RepoInfoDialog(
-            repoName = item.name,
+            repoName = item.alias.ifBlank { item.path.substringAfterLast("/") },
             repoPath = item.path,
             isGitRepo = item.isGitRepo,
             repoInfo = repoInfoState,
@@ -531,8 +527,8 @@ fun RepoListContent(
             items(folders, key = { it.path }) { item ->
                 RepoItemCard(
                     item = item,
-                    isSelected = item.localPath == selectedTarget,
-                    onClick = { item.localPath?.let { onSetTarget(it) } },
+                    isSelected = item.path == selectedTarget,
+                    onClick = { onSetTarget(item.path) },
                     onLongClick = { onItemLongClick(item) }
                 )
             }
@@ -608,7 +604,7 @@ fun RepoItemCard(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Text(
-                        text = item.name,
+                        text = item.alias.ifBlank { item.path.substringAfterLast("/") },
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
                         maxLines = 1,
@@ -907,7 +903,7 @@ private fun RepoHeader(
 
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = item.name,
+                text = item.alias.ifBlank { item.path.substringAfterLast("/") },
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
                 maxLines = 1,

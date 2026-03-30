@@ -2,11 +2,11 @@ package jamgmilk.fuwagit.data.repository
 
 import android.content.Context
 import jamgmilk.fuwagit.data.local.credential.HttpsCredential
-import jamgmilk.fuwagit.data.local.credential.MasterKeyManager
-import jamgmilk.fuwagit.data.local.credential.SecureCredentialStore
+import jamgmilk.fuwagit.data.local.security.MasterKeyManager
+import jamgmilk.fuwagit.data.local.security.SecureCredentialStore
 import jamgmilk.fuwagit.data.local.credential.SshKey
-import jamgmilk.fuwagit.domain.model.AppException
-import jamgmilk.fuwagit.domain.model.AppResult
+import jamgmilk.fuwagit.core.result.AppException
+import jamgmilk.fuwagit.core.result.AppResult
 import jamgmilk.fuwagit.domain.repository.CredentialRepository
 import javax.crypto.SecretKey
 

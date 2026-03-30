@@ -1,4 +1,4 @@
-package jamgmilk.fuwagit.domain.model
+package jamgmilk.fuwagit.core.result
 
 sealed class AppResult<out T> {
     data class Success<T>(val data: T) : AppResult<T>()
@@ -75,7 +75,7 @@ sealed class AppException : Exception() {
 
 fun <T> Result<T>.toAppResult(): AppResult<T> = fold(
     onSuccess = { AppResult.Success(it) },
-    onFailure = { 
+    onFailure = {
         AppResult.Error(
             when (it) {
                 is AppException -> it

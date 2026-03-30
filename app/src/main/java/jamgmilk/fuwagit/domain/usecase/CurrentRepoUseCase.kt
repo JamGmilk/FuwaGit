@@ -1,6 +1,6 @@
 package jamgmilk.fuwagit.domain.usecase
 
-import jamgmilk.fuwagit.data.local.RepoDataStore
+import jamgmilk.fuwagit.data.local.prefs.RepoDataStore
 import jamgmilk.fuwagit.domain.CurrentRepoInfo
 import jamgmilk.fuwagit.domain.CurrentRepoManager
 import jamgmilk.fuwagit.domain.CurrentRepoState
