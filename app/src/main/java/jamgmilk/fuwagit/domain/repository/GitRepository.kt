@@ -1,14 +1,14 @@
 package jamgmilk.fuwagit.domain.repository
 
-import jamgmilk.fuwagit.domain.model.CloneCredential
-import jamgmilk.fuwagit.domain.model.GitBranch
-import jamgmilk.fuwagit.domain.model.GitCommit
-import jamgmilk.fuwagit.domain.model.GitFileStatus
-import jamgmilk.fuwagit.domain.model.GitRemote
-import jamgmilk.fuwagit.domain.model.GitRepoStatus
-import jamgmilk.fuwagit.domain.model.GitStash
-import jamgmilk.fuwagit.domain.model.GitTag
-import jamgmilk.fuwagit.domain.model.PullResult
+import jamgmilk.fuwagit.domain.model.credential.CloneCredential
+import jamgmilk.fuwagit.domain.model.git.GitBranch
+import jamgmilk.fuwagit.domain.model.git.GitCommit
+import jamgmilk.fuwagit.domain.model.git.GitFileStatus
+import jamgmilk.fuwagit.domain.model.git.GitRemote
+import jamgmilk.fuwagit.domain.model.git.GitRepoStatus
+import jamgmilk.fuwagit.domain.model.git.GitStash
+import jamgmilk.fuwagit.domain.model.git.GitTag
+import jamgmilk.fuwagit.domain.model.git.PullResult
 
 interface GitRepository {
     

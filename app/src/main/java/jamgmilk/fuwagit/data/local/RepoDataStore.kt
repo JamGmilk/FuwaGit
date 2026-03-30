@@ -2,7 +2,7 @@ package jamgmilk.fuwagit.data.local
 
 import android.content.Context
 import dagger.hilt.android.qualifiers.ApplicationContext
-import jamgmilk.fuwagit.domain.model.RepoData
+import jamgmilk.fuwagit.domain.model.repo.RepoData
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock

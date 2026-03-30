@@ -1,6 +1,6 @@
 package jamgmilk.fuwagit.ui.screen.status
 
-import jamgmilk.fuwagit.ui.screen.repo.RepoViewModel
+import jamgmilk.fuwagit.ui.screen.myrepos.MyReposViewModel
 
 import android.annotation.SuppressLint
 import androidx.compose.animation.AnimatedVisibility
@@ -82,12 +82,12 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import jamgmilk.fuwagit.domain.model.GitBranch
-import jamgmilk.fuwagit.domain.model.GitChangeType
-import jamgmilk.fuwagit.domain.model.GitFileStatus
-import jamgmilk.fuwagit.domain.model.GitRemote
-import jamgmilk.fuwagit.domain.model.GitStash
-import jamgmilk.fuwagit.domain.model.GitTag
+import jamgmilk.fuwagit.domain.model.git.GitBranch
+import jamgmilk.fuwagit.domain.model.git.GitChangeType
+import jamgmilk.fuwagit.domain.model.git.GitFileStatus
+import jamgmilk.fuwagit.domain.model.git.GitRemote
+import jamgmilk.fuwagit.domain.model.git.GitStash
+import jamgmilk.fuwagit.domain.model.git.GitTag
 import jamgmilk.fuwagit.ui.components.CleanDialog
 import jamgmilk.fuwagit.ui.components.RefreshAction
 import jamgmilk.fuwagit.ui.components.ScreenTemplate
@@ -111,11 +111,11 @@ data class StatusStats(
 @Composable
 fun StatusScreen(
     statusViewModel: StatusViewModel,
-    repoViewModel: RepoViewModel,
+    myReposViewModel: MyReposViewModel,
     modifier: Modifier = Modifier
 ) {
     val uiState by statusViewModel.uiState.collectAsState()
-    val repoUiState by repoViewModel.uiState.collectAsState()
+    val repoUiState by myReposViewModel.uiState.collectAsState()
     val files = uiState.workspaceFiles
     val staged = remember(files) { files.filter { it.isStaged } }
     val workspace = remember(files) { files.filter { !it.isStaged } }

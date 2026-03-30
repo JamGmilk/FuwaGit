@@ -3,11 +3,10 @@ package jamgmilk.fuwagit.ui.screen.history
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
-import jamgmilk.fuwagit.domain.model.CommitStats
-import jamgmilk.fuwagit.domain.model.GitCommit
-import jamgmilk.fuwagit.domain.usecase.git.CherryPickUseCase
-import jamgmilk.fuwagit.domain.usecase.git.GetCommitHistoryUseCase
-import jamgmilk.fuwagit.domain.usecase.git.RevertCommitUseCase
+import jamgmilk.fuwagit.domain.model.git.CommitStats
+import jamgmilk.fuwagit.domain.model.git.GitCommit
+import jamgmilk.fuwagit.domain.usecase.GitOperationUseCases
+import jamgmilk.fuwagit.domain.usecase.GitQueryUseCases
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -33,9 +32,8 @@ data class HistoryUiState(
 
 @HiltViewModel
 class HistoryViewModel @Inject constructor(
-    private val getCommitHistoryUseCase: GetCommitHistoryUseCase,
-    private val revertCommitUseCase: RevertCommitUseCase,
-    private val cherryPickUseCase: CherryPickUseCase
+    private val gitQueryUseCases: GitQueryUseCases,
+    private val gitOperationUseCases: GitOperationUseCases
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HistoryUiState())
@@ -62,7 +60,7 @@ class HistoryViewModel @Inject constructor(
 
         viewModelScope.launch(Dispatchers.IO) {
             _uiState.update { it.copy(isLoading = true) }
-            getCommitHistoryUseCase(path)
+            gitQueryUseCases.getCommitHistory(path)
                 .onSuccess { commits ->
                     val stats = calculateStats(commits)
                     _uiState.update { 
@@ -145,7 +143,7 @@ class HistoryViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
             withContext(Dispatchers.IO) {
-                revertCommitUseCase(path, commitHash)
+                gitOperationUseCases.revertCommit(path, commitHash)
             }.fold(
                 onSuccess = { result ->
                     appendTerminalLog("git revert", result)
@@ -166,7 +164,7 @@ class HistoryViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
             withContext(Dispatchers.IO) {
-                cherryPickUseCase(path, commitHash)
+                gitOperationUseCases.cherryPick(path, commitHash)
             }.fold(
                 onSuccess = { result ->
                     appendTerminalLog("git cherry-pick", result)

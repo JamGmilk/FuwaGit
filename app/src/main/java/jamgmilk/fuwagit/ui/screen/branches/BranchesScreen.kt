@@ -1,6 +1,6 @@
 package jamgmilk.fuwagit.ui.screen.branches
 
-import jamgmilk.fuwagit.ui.screen.repo.RepoViewModel
+import jamgmilk.fuwagit.ui.screen.myrepos.MyReposViewModel
 import jamgmilk.fuwagit.ui.screen.status.RenameBranchDialog
 
 import androidx.compose.animation.animateContentSize
@@ -62,18 +62,18 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import jamgmilk.fuwagit.domain.model.GitBranch
+import jamgmilk.fuwagit.domain.model.git.GitBranch
 import jamgmilk.fuwagit.ui.components.ScreenTemplate
 import jamgmilk.fuwagit.ui.theme.FuwaGitThemeExtras
 
 @Composable
 fun BranchesScreen(
     branchesViewModel: BranchesViewModel,
-    repoViewModel: RepoViewModel,
+    myReposViewModel: MyReposViewModel,
     modifier: Modifier = Modifier
 ) {
     val uiState by branchesViewModel.uiState.collectAsState()
-    val repoUiState by repoViewModel.uiState.collectAsState()
+    val repoUiState by myReposViewModel.uiState.collectAsState()
     val branches = uiState.branches
     val local = uiState.localBranches
     val remote = uiState.remoteBranches
