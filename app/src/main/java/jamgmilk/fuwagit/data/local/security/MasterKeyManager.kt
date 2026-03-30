@@ -1,4 +1,4 @@
-package jamgmilk.fuwagit.data.local.credential
+package jamgmilk.fuwagit.data.local.security
 
 import android.content.Context
 import android.content.SharedPreferences
@@ -21,7 +21,7 @@ import javax.crypto.spec.SecretKeySpec
 import android.util.Base64
 
 class MasterKeyManager(private val context: Context) {
-    
+
     companion object {
         private const val KEYSTORE_ALIAS = "fuwagit_credential_key"
         private const val KEYSTORE_BIOMETRIC_ALIAS = "fuwagit_biometric_key"
@@ -37,23 +37,23 @@ class MasterKeyManager(private val context: Context) {
         private const val GCM_TAG_LENGTH = 128
         private const val GCM_IV_LENGTH = 12
     }
-    
+
     private val keyStore: KeyStore by lazy {
         KeyStore.getInstance("AndroidKeyStore").apply { load(null) }
     }
-    
+
     private val prefs: SharedPreferences by lazy {
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
     }
-    
+
     fun isMasterPasswordSet(): Boolean {
         return prefs.contains(KEY_ENCRYPTED_MASTER)
     }
-    
+
     fun isBiometricEnabled(): Boolean {
         return prefs.getBoolean(KEY_BIOMETRIC_ENABLED, false)
     }
-    
+
     suspend fun setupMasterPassword(password: String): Result<SecretKey> {
         return withContext(Dispatchers.IO) {
             runCatching {
@@ -61,19 +61,19 @@ class MasterKeyManager(private val context: Context) {
                 val derivedKey = deriveKey(password, salt)
                 val masterKey = generateRandomKey()
                 val encryptedMasterKey = encryptWithKey(masterKey.encoded, derivedKey)
-                
+
                 prefs.edit {
-                    putString(KEY_ENCRYPTED_MASTER, 
+                    putString(KEY_ENCRYPTED_MASTER,
                         Base64.encodeToString(encryptedMasterKey, Base64.NO_WRAP))
-                    putString(KEY_SALT, 
+                    putString(KEY_SALT,
                         Base64.encodeToString(salt, Base64.NO_WRAP))
                 }
-                
+
                 SecretKeySpec(masterKey.encoded, "AES")
             }
         }
     }
-    
+
     suspend fun unlockWithPassword(password: String): Result<SecretKey> {
         return withContext(Dispatchers.IO) {
             runCatching {
@@ -81,18 +81,18 @@ class MasterKeyManager(private val context: Context) {
                     ?: throw IllegalStateException("Salt not found")
                 val encryptedMasterBase64 = prefs.getString(KEY_ENCRYPTED_MASTER, null)
                     ?: throw IllegalStateException("Encrypted master key not found")
-                
+
                 val salt = Base64.decode(saltBase64, Base64.NO_WRAP)
                 val encryptedMasterKey = Base64.decode(encryptedMasterBase64, Base64.NO_WRAP)
-                
+
                 val derivedKey = deriveKey(password, salt)
                 val masterKeyBytes = decryptWithKey(encryptedMasterKey, derivedKey)
-                
+
                 SecretKeySpec(masterKeyBytes, "AES")
             }
         }
     }
-    
+
     suspend fun changeMasterPassword(
         oldPassword: String,
         newPassword: String
@@ -100,25 +100,25 @@ class MasterKeyManager(private val context: Context) {
         return withContext(Dispatchers.IO) {
             runCatching {
                 val masterKey = unlockWithPassword(oldPassword).getOrThrow()
-                
+
                 val newSalt = SecureRandom().generateSeed(32)
                 val newDerivedKey = deriveKey(newPassword, newSalt)
                 val encryptedMasterKey = encryptWithKey(masterKey.encoded, newDerivedKey)
-                
+
                 prefs.edit {
-                    putString(KEY_ENCRYPTED_MASTER, 
+                    putString(KEY_ENCRYPTED_MASTER,
                         Base64.encodeToString(encryptedMasterKey, Base64.NO_WRAP))
-                    putString(KEY_SALT, 
+                    putString(KEY_SALT,
                         Base64.encodeToString(newSalt, Base64.NO_WRAP))
                 }
-                
+
                 if (isBiometricEnabled()) {
                     disableBiometric()
                 }
             }
         }
     }
-    
+
     fun enableBiometric(
         activity: FragmentActivity,
         masterKey: SecretKey,
@@ -129,12 +129,12 @@ class MasterKeyManager(private val context: Context) {
             if (keyStore.containsAlias(KEYSTORE_BIOMETRIC_ALIAS)) {
                 keyStore.deleteEntry(KEYSTORE_BIOMETRIC_ALIAS)
             }
-            
+
             createBiometricKey()
-            
+
             val cipher = createBiometricCipher(Cipher.ENCRYPT_MODE)
             val iv = cipher.iv
-            
+
             val prompt = BiometricPrompt(
                 activity,
                 androidx.core.content.ContextCompat.getMainExecutor(context),
@@ -143,38 +143,38 @@ class MasterKeyManager(private val context: Context) {
                         result.cryptoObject?.cipher?.let { c ->
                             val encrypted = c.doFinal(masterKey.encoded)
                             prefs.edit {
-                                putString(KEY_BIOMETRIC_ENCRYPTED_MASTER, 
+                                putString(KEY_BIOMETRIC_ENCRYPTED_MASTER,
                                     Base64.encodeToString(encrypted, Base64.NO_WRAP))
-                                putString(KEY_BIOMETRIC_IV, 
+                                putString(KEY_BIOMETRIC_IV,
                                     Base64.encodeToString(iv, Base64.NO_WRAP))
                                 putBoolean(KEY_BIOMETRIC_ENABLED, true)
                             }
                             onSuccess()
                         } ?: onError("Cipher is null")
                     }
-                    
+
                     override fun onAuthenticationFailed() {
                         onError("Authentication failed")
                     }
-                    
+
                     override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
                         onError(errString.toString())
                     }
                 }
             )
-            
+
             val promptInfo = BiometricPrompt.PromptInfo.Builder()
                 .setTitle("Enable Biometric Unlock")
                 .setSubtitle("Use your fingerprint to quickly access credentials")
                 .setNegativeButtonText("Cancel")
                 .build()
-            
+
             prompt.authenticate(promptInfo, BiometricPrompt.CryptoObject(cipher))
         } catch (e: Exception) {
             onError(e.message ?: "Failed to enable biometric")
         }
     }
-    
+
     fun unlockWithBiometric(
         activity: FragmentActivity,
         onSuccess: (SecretKey) -> Unit,
@@ -186,10 +186,10 @@ class MasterKeyManager(private val context: Context) {
                 onError("Biometric not set up")
                 return
             }
-            
+
             val iv = Base64.decode(ivBase64, Base64.NO_WRAP)
             val cipher = createBiometricCipherForDecrypt(iv)
-            
+
             val prompt = BiometricPrompt(
                 activity,
                 androidx.core.content.ContextCompat.getMainExecutor(context),
@@ -206,29 +206,29 @@ class MasterKeyManager(private val context: Context) {
                             }
                         } ?: onError("Cipher is null")
                     }
-                    
+
                     override fun onAuthenticationFailed() {
                         onError("Authentication failed")
                     }
-                    
+
                     override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
                         onError(errString.toString())
                     }
                 }
             )
-            
+
             val promptInfo = BiometricPrompt.PromptInfo.Builder()
                 .setTitle("Unlock Credentials")
                 .setSubtitle("Use your fingerprint to access credentials")
                 .setNegativeButtonText("Use Password")
                 .build()
-            
+
             prompt.authenticate(promptInfo, BiometricPrompt.CryptoObject(cipher))
         } catch (e: Exception) {
             onError(e.message ?: "Failed to unlock with biometric")
         }
     }
-    
+
     fun disableBiometric() {
         prefs.edit {
             remove(KEY_BIOMETRIC_ENCRYPTED_MASTER)
@@ -241,15 +241,15 @@ class MasterKeyManager(private val context: Context) {
         } catch (e: Exception) {
         }
     }
-    
+
     fun setPasswordHint(hint: String) {
         prefs.edit { putString("password_hint", hint) }
     }
-    
+
     fun getPasswordHint(): String? {
         return prefs.getString("password_hint", null)
     }
-    
+
     private fun deriveKey(password: String, salt: ByteArray): SecretKey {
         val spec = PBEKeySpec(
             password.toCharArray(),
@@ -260,20 +260,20 @@ class MasterKeyManager(private val context: Context) {
         val factory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256")
         return SecretKeySpec(factory.generateSecret(spec).encoded, "AES")
     }
-    
+
     private fun generateRandomKey(): SecretKey {
         val keyGenerator = KeyGenerator.getInstance("AES")
         keyGenerator.init(KEY_LENGTH)
         return keyGenerator.generateKey()
     }
-    
+
     private fun encryptWithKey(data: ByteArray, key: SecretKey): ByteArray {
         val cipher = Cipher.getInstance("AES/GCM/NoPadding")
         cipher.init(Cipher.ENCRYPT_MODE, key)
         val encrypted = cipher.doFinal(data)
         return cipher.iv + encrypted
     }
-    
+
     private fun decryptWithKey(data: ByteArray, key: SecretKey): ByteArray {
         val iv = data.copyOfRange(0, GCM_IV_LENGTH)
         val encrypted = data.copyOfRange(GCM_IV_LENGTH, data.size)
@@ -281,13 +281,13 @@ class MasterKeyManager(private val context: Context) {
         cipher.init(Cipher.DECRYPT_MODE, key, GCMParameterSpec(GCM_TAG_LENGTH, iv))
         return cipher.doFinal(encrypted)
     }
-    
+
     private fun createBiometricKey() {
         val keyGenerator = KeyGenerator.getInstance(
             KeyProperties.KEY_ALGORITHM_AES,
             "AndroidKeyStore"
         )
-        
+
         val spec = KeyGenParameterSpec.Builder(
             KEYSTORE_BIOMETRIC_ALIAS,
             KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT
@@ -297,18 +297,18 @@ class MasterKeyManager(private val context: Context) {
             .setKeySize(KEY_LENGTH)
             .setUserAuthenticationRequired(true)
             .build()
-        
+
         keyGenerator.init(spec)
         keyGenerator.generateKey()
     }
-    
+
     private fun createBiometricCipher(mode: Int): Cipher {
         val secretKey = keyStore.getKey(KEYSTORE_BIOMETRIC_ALIAS, null) as SecretKey
         val cipher = Cipher.getInstance("AES/GCM/NoPadding")
         cipher.init(mode, secretKey)
         return cipher
     }
-    
+
     private fun createBiometricCipherForDecrypt(iv: ByteArray): Cipher {
         val secretKey = keyStore.getKey(KEYSTORE_BIOMETRIC_ALIAS, null) as SecretKey
         val cipher = Cipher.getInstance("AES/GCM/NoPadding")

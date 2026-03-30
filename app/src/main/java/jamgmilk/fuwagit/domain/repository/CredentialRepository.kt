@@ -2,7 +2,7 @@ package jamgmilk.fuwagit.domain.repository
 
 import jamgmilk.fuwagit.data.local.credential.HttpsCredential
 import jamgmilk.fuwagit.data.local.credential.SshKey
-import jamgmilk.fuwagit.domain.model.AppResult
+import jamgmilk.fuwagit.core.result.AppResult
 
 interface CredentialRepository {
 

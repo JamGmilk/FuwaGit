@@ -2,8 +2,8 @@ package jamgmilk.fuwagit.domain.usecase
 
 import jamgmilk.fuwagit.data.local.credential.HttpsCredential
 import jamgmilk.fuwagit.data.local.credential.SshKey
-import jamgmilk.fuwagit.domain.model.AppException
-import jamgmilk.fuwagit.domain.model.AppResult
+import jamgmilk.fuwagit.core.result.AppException
+import jamgmilk.fuwagit.core.result.AppResult
 import jamgmilk.fuwagit.domain.repository.CredentialRepository
 import javax.inject.Inject
 import javax.inject.Singleton
