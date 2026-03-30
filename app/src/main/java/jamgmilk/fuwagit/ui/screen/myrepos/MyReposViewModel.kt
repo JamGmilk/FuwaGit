@@ -16,14 +16,19 @@ import jamgmilk.fuwagit.domain.model.repo.RepoData
 import jamgmilk.fuwagit.domain.usecase.CredentialUseCases
 import jamgmilk.fuwagit.domain.usecase.GitOperationUseCases
 import jamgmilk.fuwagit.domain.usecase.GitQueryUseCases
-import jamgmilk.fuwagit.ui.navigation.Screen
+import jamgmilk.fuwagit.domain.CurrentRepoManager
+import jamgmilk.fuwagit.domain.CurrentRepoInfo
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -48,7 +53,6 @@ data class RepoFolderItem(
 
 data class RepoUiState(
     val repoItems: List<RepoFolderItem> = emptyList(),
-    val targetPath: String? = null,
     val isLoading: Boolean = false,
     val error: String? = null
 )
@@ -72,31 +76,48 @@ class MyReposViewModel @Inject constructor(
     private val gitQueryUseCases: GitQueryUseCases,
     private val gitOperationUseCases: GitOperationUseCases,
     private val credentialUseCases: CredentialUseCases,
-    private val repoDataStore: RepoDataStore
+    private val repoDataStore: RepoDataStore,
+    private val currentRepoManager: CurrentRepoManager
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(RepoUiState())
-    val uiState: StateFlow<RepoUiState> = _uiState.asStateFlow()
+    private val _isLoading = MutableStateFlow(false)
+    private val _error = MutableStateFlow<String?>(null)
+
+    val currentRepoInfo: StateFlow<CurrentRepoInfo> = currentRepoManager.currentRepoInfo
 
     private val _savedRepos = MutableStateFlow<List<RepoData>>(emptyList())
     val savedRepos: StateFlow<List<RepoData>> = _savedRepos.asStateFlow()
 
-    private val _currentScreen = MutableStateFlow<Screen>(Screen.MyRepos)
-    val currentScreenFlow: StateFlow<Screen> = _currentScreen.asStateFlow()
-
-    private val _swipeEnabled = MutableStateFlow(true)
-    val swipeEnabledFlow: StateFlow<Boolean> = _swipeEnabled.asStateFlow()
-
-    var swipeEnabled: Boolean
-        get() = _swipeEnabled.value
-        set(value) { _swipeEnabled.value = value }
-
-    var currentScreen: Screen
-        get() = _currentScreen.value
-        set(value) { _currentScreen.value = value }
-
-    private val _targetPath = MutableStateFlow<String?>(null)
-    val targetPath: StateFlow<String?> = _targetPath.asStateFlow()
+    val uiState: StateFlow<RepoUiState> = combine(
+        _savedRepos,
+        currentRepoInfo,
+        _isLoading,
+        _error
+    ) { repos, currentRepo, loading, error ->
+        RepoUiState(
+            repoItems = repos.map { repo ->
+                RepoFolderItem(
+                    id = repo.path,
+                    name = repo.displayName,
+                    path = repo.path,
+                    isGitRepo = true, 
+                    isDirectory = true,
+                    localPath = repo.path,
+                    source = "Saved",
+                    permissionHint = if (repo.isFavorite) "Favorite" else "Saved",
+                    isActive = repo.path == currentRepo.repoPath,
+                    isRemovable = true,
+                    lastModified = repo.lastAccessedAt
+                )
+            },
+            isLoading = loading,
+            error = error
+        )
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = RepoUiState()
+    )
 
     private val _terminalOutput = MutableStateFlow<List<String>>(emptyList())
     val terminalOutput: StateFlow<List<String>> = _terminalOutput.asStateFlow()
@@ -110,10 +131,19 @@ class MyReposViewModel @Inject constructor(
         }
     }
 
+    fun initializeStorage(context: Context) {
+        if (storageInitialized) return
+        storageInitialized = true
+        loadSavedRepos()
+    }
+
     suspend fun addRepo(path: String, alias: String? = null): Boolean {
         val repo = RepoData(path = path, alias = alias)
         val result = repoDataStore.addRepo(repo)
         if (result) {
+            if (currentRepoManager.getCurrentRepoPath() == null) {
+                currentRepoManager.setCurrentRepoPath(path)
+            }
             loadSavedRepos()
         }
         return result
@@ -140,32 +170,15 @@ class MyReposViewModel @Inject constructor(
     fun removeRepo(context: Context, item: RepoFolderItem) {
         viewModelScope.launch {
             repoDataStore.removeRepo(item.path)
-            loadSavedRepos()
-        }
-    }
-
-    fun initializeStorage(context: Context) {
-        if (storageInitialized) return
-        storageInitialized = true
-
-        viewModelScope.launch {
-            val currentRepoPath = repoDataStore.getCurrentRepoPath()
-            if (currentRepoPath != null) {
-                _targetPath.value = currentRepoPath
-                _uiState.value = _uiState.value.copy(targetPath = currentRepoPath)
-                currentScreen = Screen.Status
+            if (currentRepoManager.getCurrentRepoPath() == item.path) {
+                currentRepoManager.clearCurrentRepo()
             }
             loadSavedRepos()
         }
     }
 
     suspend fun setCurrentRepo(path: String?) {
-        repoDataStore.setCurrentRepo(path)
-        if (path != null) {
-            _targetPath.value = path
-            _uiState.value = _uiState.value.copy(targetPath = path)
-            repoDataStore.updateLastAccessed(path)
-        }
+        currentRepoManager.setCurrentRepoPath(path)
     }
 
     fun refreshRepoItems(context: Context) {
@@ -207,20 +220,21 @@ class MyReposViewModel @Inject constructor(
         onResult: (Result<String>) -> Unit
     ) {
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true)
+            _isLoading.value = true
             appendTerminalLog("git clone $uri", "Cloning...")
 
             gitOperationUseCases.cloneRepository(uri, localPath, branch, credentials)
                 .onSuccess { result ->
                     appendTerminalLog("git clone $uri", result)
-                    _uiState.value = _uiState.value.copy(isLoading = false)
+                    _isLoading.value = false
                     addRepo(localPath, null)
                     onResult(Result.success(result))
                 }
                 .onFailure { e ->
                     val errorMsg = "Error: ${e.message}"
                     appendTerminalLog("git clone $uri", errorMsg)
-                    _uiState.value = _uiState.value.copy(isLoading = false, error = errorMsg)
+                    _isLoading.value = false
+                    _error.value = errorMsg
                     onResult(Result.failure(e))
                 }
         }
@@ -279,7 +293,7 @@ class MyReposViewModel @Inject constructor(
         onResult: (Result<String>) -> Unit
     ) {
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true)
+            _isLoading.value = true
             appendTerminalLog("git clone $uri", "Cloning...")
 
             val credentials: CloneCredential? = when {
@@ -302,14 +316,15 @@ class MyReposViewModel @Inject constructor(
             gitOperationUseCases.cloneRepository(uri, localPath, branch, credentials)
                 .onSuccess { result ->
                     appendTerminalLog("git clone $uri", result)
-                    _uiState.value = _uiState.value.copy(isLoading = false)
+                    _isLoading.value = false
                     addRepo(localPath, null)
                     onResult(Result.success(result))
                 }
                 .onFailure { e ->
                     val errorMsg = "Error: ${e.message}"
                     appendTerminalLog("git clone $uri", errorMsg)
-                    _uiState.value = _uiState.value.copy(isLoading = false, error = errorMsg)
+                    _isLoading.value = false
+                    _error.value = errorMsg
                     onResult(Result.failure(e))
                 }
         }

@@ -3,18 +3,17 @@ package jamgmilk.fuwagit.ui.screen.status
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
-import jamgmilk.fuwagit.data.source.RepoPathUtils
 import jamgmilk.fuwagit.domain.model.git.GitBranch
 import jamgmilk.fuwagit.domain.model.git.GitFileStatus
-import jamgmilk.fuwagit.domain.model.git.GitRemote
-import jamgmilk.fuwagit.domain.model.git.GitStash
-import jamgmilk.fuwagit.domain.model.git.GitTag
 import jamgmilk.fuwagit.domain.usecase.GitOperationUseCases
 import jamgmilk.fuwagit.domain.usecase.GitQueryUseCases
 import kotlinx.coroutines.Dispatchers
+import jamgmilk.fuwagit.domain.CurrentRepoManager
+import jamgmilk.fuwagit.domain.CurrentRepoState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -27,6 +26,7 @@ data class StatusUiState(
     val isLoading: Boolean = false,
     val error: String? = null,
     val repoPath: String? = null,
+    val repoName: String? = null,
     val isGitRepo: Boolean = false,
     val statusMessage: String = "Select a target repo",
     val branch: String = "",
@@ -35,16 +35,14 @@ data class StatusUiState(
     val workspaceFiles: List<GitFileStatus> = emptyList(),
     val stagedFiles: List<GitFileStatus> = emptyList(),
     val unstagedFiles: List<GitFileStatus> = emptyList(),
-    val stashList: List<GitStash> = emptyList(),
-    val tagList: List<GitTag> = emptyList(),
-    val remoteList: List<GitRemote> = emptyList(),
     val terminalOutput: List<String> = emptyList()
 )
 
 @HiltViewModel
 class StatusViewModel @Inject constructor(
     private val gitQueryUseCases: GitQueryUseCases,
-    private val gitOperationUseCases: GitOperationUseCases
+    private val gitOperationUseCases: GitOperationUseCases,
+    private val currentRepoManager: CurrentRepoManager
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(StatusUiState())
@@ -52,19 +50,26 @@ class StatusViewModel @Inject constructor(
 
     private var currentRepoPath: String? = null
 
-    fun setRepoPath(path: String?) {
-        currentRepoPath = path
-        _uiState.update { it.copy(repoPath = path) }
-        if (path != null) {
-            refreshAll()
-        } else {
-            _uiState.update { 
-                it.copy(
-                    isGitRepo = false,
-                    statusMessage = "Select a target repo",
-                    workspaceFiles = emptyList(),
-                    branches = emptyList()
-                )
+    init {
+        viewModelScope.launch {
+            currentRepoManager.currentRepoInfo.collectLatest { info ->
+                currentRepoPath = info.repoPath
+                val repoName = info.repoPath?.substringAfterLast("/")
+                _uiState.update { it.copy(repoPath = info.repoPath, repoName = repoName) }
+                
+                if (info.state == CurrentRepoState.REPO_VALID && info.repoPath != null) {
+                    refreshAll()
+                } else if (info.state == CurrentRepoState.NO_REPO_SELECTED) {
+                    _uiState.update {
+                        it.copy(
+                            isGitRepo = false,
+                            statusMessage = "Select a target repo",
+                            workspaceFiles = emptyList(),
+                            branches = emptyList(),
+                            currentBranch = null
+                        )
+                    }
+                }
             }
         }
     }
@@ -77,7 +82,7 @@ class StatusViewModel @Inject constructor(
     private fun checkRepoStatus() {
         val path = currentRepoPath
         if (path == null) {
-            _uiState.update { 
+            _uiState.update {
                 it.copy(
                     isGitRepo = false,
                     statusMessage = "Select a target repo path"
@@ -89,7 +94,7 @@ class StatusViewModel @Inject constructor(
         viewModelScope.launch {
             gitQueryUseCases.hasGitDir(path)
             val isGitRepo = gitQueryUseCases.hasGitDir(path)
-            _uiState.update { 
+            _uiState.update {
                 it.copy(
                     isGitRepo = isGitRepo,
                     statusMessage = if (isGitRepo) "Git repository" else "Not a git repository"
@@ -103,10 +108,10 @@ class StatusViewModel @Inject constructor(
 
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
-            
+
             val filesResult = withContext(Dispatchers.IO) { gitQueryUseCases.getDetailedStatus(path) }
             val branchesResult = withContext(Dispatchers.IO) { gitQueryUseCases.getBranches(path) }
-            
+
             filesResult.fold(
                 onSuccess = { files ->
                     _uiState.update {
@@ -122,7 +127,7 @@ class StatusViewModel @Inject constructor(
                     _uiState.update { it.copy(error = e.message, isLoading = false) }
                 }
             )
-            
+
             branchesResult.fold(
                 onSuccess = { branches ->
                     val currentBranch = branches.find { it.isCurrent }
@@ -294,220 +299,5 @@ class StatusViewModel @Inject constructor(
 
     fun clearError() {
         _uiState.update { it.copy(error = null) }
-    }
-
-    fun refreshStashList() {
-        val path = currentRepoPath ?: return
-
-        viewModelScope.launch {
-            withContext(Dispatchers.IO) {
-                gitQueryUseCases.getStashList(path)
-            }.fold(
-                onSuccess = { stashes ->
-                    _uiState.update { it.copy(stashList = stashes) }
-                },
-                onFailure = { }
-            )
-        }
-    }
-
-    fun stashChanges(message: String? = null) {
-        val path = currentRepoPath ?: return
-
-        viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true) }
-            withContext(Dispatchers.IO) {
-                gitOperationUseCases.stashChanges(path, message)
-            }.fold(
-                onSuccess = { result ->
-                    appendTerminalLog("git stash", result)
-                    refreshWorkspace()
-                    refreshStashList()
-                },
-                onFailure = { e ->
-                    appendTerminalLog("git stash", "Error: ${e.message}")
-                    _uiState.update { it.copy(error = "Stash failed: ${e.message}") }
-                }
-            )
-            _uiState.update { it.copy(isLoading = false) }
-        }
-    }
-
-    fun applyStash(stashIndex: Int, dropAfterApply: Boolean = false) {
-        val path = currentRepoPath ?: return
-
-        viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true) }
-            withContext(Dispatchers.IO) {
-                gitOperationUseCases.applyStash(path, stashIndex, dropAfterApply)
-            }.fold(
-                onSuccess = { result ->
-                    appendTerminalLog("git stash pop", result)
-                    refreshWorkspace()
-                    refreshStashList()
-                },
-                onFailure = { e ->
-                    appendTerminalLog("git stash pop", "Error: ${e.message}")
-                    _uiState.update { it.copy(error = "Apply stash failed: ${e.message}") }
-                }
-            )
-            _uiState.update { it.copy(isLoading = false) }
-        }
-    }
-
-    fun dropStash(stashIndex: Int) {
-        val path = currentRepoPath ?: return
-
-        viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true) }
-            withContext(Dispatchers.IO) {
-                gitOperationUseCases.dropStash(path, stashIndex)
-            }.fold(
-                onSuccess = { result ->
-                    appendTerminalLog("git stash drop", result)
-                    refreshStashList()
-                },
-                onFailure = { e ->
-                    appendTerminalLog("git stash drop", "Error: ${e.message}")
-                    _uiState.update { it.copy(error = "Drop stash failed: ${e.message}") }
-                }
-            )
-            _uiState.update { it.copy(isLoading = false) }
-        }
-    }
-
-    fun refreshTagList() {
-        val path = currentRepoPath ?: return
-
-        viewModelScope.launch {
-            withContext(Dispatchers.IO) {
-                gitQueryUseCases.getTags(path)
-            }.fold(
-                onSuccess = { tags ->
-                    _uiState.update { it.copy(tagList = tags) }
-                },
-                onFailure = { }
-            )
-        }
-    }
-
-    fun createTag(tagName: String, message: String? = null) {
-        val path = currentRepoPath ?: return
-
-        viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true) }
-            withContext(Dispatchers.IO) {
-                gitOperationUseCases.createTag(path, tagName, message)
-            }.fold(
-                onSuccess = { result ->
-                    appendTerminalLog("git tag", result)
-                    refreshTagList()
-                },
-                onFailure = { e ->
-                    appendTerminalLog("git tag", "Error: ${e.message}")
-                    _uiState.update { it.copy(error = "Create tag failed: ${e.message}") }
-                }
-            )
-            _uiState.update { it.copy(isLoading = false) }
-        }
-    }
-
-    fun deleteTag(tagName: String) {
-        val path = currentRepoPath ?: return
-
-        viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true) }
-            withContext(Dispatchers.IO) {
-                gitOperationUseCases.deleteTag(path, tagName)
-            }.fold(
-                onSuccess = { result ->
-                    appendTerminalLog("git tag -d", result)
-                    refreshTagList()
-                },
-                onFailure = { e ->
-                    appendTerminalLog("git tag -d", "Error: ${e.message}")
-                    _uiState.update { it.copy(error = "Delete tag failed: ${e.message}") }
-                }
-            )
-            _uiState.update { it.copy(isLoading = false) }
-        }
-    }
-
-    fun refreshRemoteList() {
-        val path = currentRepoPath ?: return
-
-        viewModelScope.launch {
-            withContext(Dispatchers.IO) {
-                gitQueryUseCases.getRemotes(path)
-            }.fold(
-                onSuccess = { remotes ->
-                    _uiState.update { it.copy(remoteList = remotes) }
-                },
-                onFailure = { }
-            )
-        }
-    }
-
-    fun deleteRemote(remoteName: String) {
-        val path = currentRepoPath ?: return
-
-        viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true) }
-            withContext(Dispatchers.IO) {
-                gitOperationUseCases.deleteRemote(path, remoteName)
-            }.fold(
-                onSuccess = { result ->
-                    appendTerminalLog("git remote remove", result)
-                    refreshRemoteList()
-                },
-                onFailure = { e ->
-                    appendTerminalLog("git remote remove", "Error: ${e.message}")
-                    _uiState.update { it.copy(error = "Delete remote failed: ${e.message}") }
-                }
-            )
-            _uiState.update { it.copy(isLoading = false) }
-        }
-    }
-
-    fun renameBranch(oldName: String, newName: String) {
-        val path = currentRepoPath ?: return
-
-        viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true) }
-            withContext(Dispatchers.IO) {
-                gitOperationUseCases.renameBranch(path, oldName, newName)
-            }.fold(
-                onSuccess = { result ->
-                    appendTerminalLog("git branch -m", result)
-                    refreshWorkspace()
-                },
-                onFailure = { e ->
-                    appendTerminalLog("git branch -m", "Error: ${e.message}")
-                    _uiState.update { it.copy(error = "Rename branch failed: ${e.message}") }
-                }
-            )
-            _uiState.update { it.copy(isLoading = false) }
-        }
-    }
-
-    fun cleanRepo(dryRun: Boolean = false) {
-        val path = currentRepoPath ?: return
-
-        viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true) }
-            withContext(Dispatchers.IO) {
-                gitOperationUseCases.clean(path, dryRun)
-            }.fold(
-                onSuccess = { result ->
-                    appendTerminalLog("git clean", result)
-                    refreshWorkspace()
-                },
-                onFailure = { e ->
-                    appendTerminalLog("git clean", "Error: ${e.message}")
-                    _uiState.update { it.copy(error = "Clean failed: ${e.message}") }
-                }
-            )
-            _uiState.update { it.copy(isLoading = false) }
-        }
     }
 }

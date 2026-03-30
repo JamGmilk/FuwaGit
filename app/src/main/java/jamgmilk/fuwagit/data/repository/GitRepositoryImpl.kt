@@ -8,8 +8,6 @@ import jamgmilk.fuwagit.domain.model.git.GitCommit
 import jamgmilk.fuwagit.domain.model.git.GitFileStatus
 import jamgmilk.fuwagit.domain.model.git.GitRepoStatus
 import jamgmilk.fuwagit.domain.model.git.GitRemote
-import jamgmilk.fuwagit.domain.model.git.GitStash
-import jamgmilk.fuwagit.domain.model.git.GitTag
 import jamgmilk.fuwagit.domain.model.git.PullResult
 import jamgmilk.fuwagit.domain.repository.GitRepository
 import kotlinx.coroutines.Dispatchers
@@ -199,48 +197,6 @@ class GitRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun getStashList(repoPath: String): Result<List<GitStash>> = withContext(Dispatchers.IO) {
-        runCatching {
-            jGitDataSource.getStashList(File(repoPath))
-        }
-    }
-
-    override suspend fun stashChanges(repoPath: String, message: String?): Result<String> = withContext(Dispatchers.IO) {
-        runCatching {
-            jGitDataSource.stashChanges(File(repoPath), message)
-        }
-    }
-
-    override suspend fun applyStash(repoPath: String, stashIndex: Int, dropAfterApply: Boolean): Result<String> = withContext(Dispatchers.IO) {
-        runCatching {
-            jGitDataSource.applyStash(File(repoPath), stashIndex, dropAfterApply)
-        }
-    }
-
-    override suspend fun dropStash(repoPath: String, stashIndex: Int): Result<String> = withContext(Dispatchers.IO) {
-        runCatching {
-            jGitDataSource.dropStash(File(repoPath), stashIndex)
-        }
-    }
-
-    override suspend fun getTags(repoPath: String): Result<List<GitTag>> = withContext(Dispatchers.IO) {
-        runCatching {
-            jGitDataSource.getTags(File(repoPath))
-        }
-    }
-
-    override suspend fun createTag(repoPath: String, tagName: String, message: String?, commitHash: String?): Result<String> = withContext(Dispatchers.IO) {
-        runCatching {
-            jGitDataSource.createTag(File(repoPath), tagName, message, commitHash)
-        }
-    }
-
-    override suspend fun deleteTag(repoPath: String, tagName: String): Result<String> = withContext(Dispatchers.IO) {
-        runCatching {
-            jGitDataSource.deleteTag(File(repoPath), tagName)
-        }
-    }
-
     override suspend fun getRemotes(repoPath: String): Result<List<GitRemote>> = withContext(Dispatchers.IO) {
         runCatching {
             jGitDataSource.getRemotes(File(repoPath))
@@ -256,18 +212,6 @@ class GitRepositoryImpl @Inject constructor(
     override suspend fun renameBranch(repoPath: String, oldName: String, newName: String): Result<String> = withContext(Dispatchers.IO) {
         runCatching {
             jGitDataSource.renameBranch(File(repoPath), oldName, newName)
-        }
-    }
-
-    override suspend fun revertCommit(repoPath: String, commitHash: String): Result<String> = withContext(Dispatchers.IO) {
-        runCatching {
-            jGitDataSource.revertCommit(File(repoPath), commitHash)
-        }
-    }
-
-    override suspend fun cherryPick(repoPath: String, commitHash: String): Result<String> = withContext(Dispatchers.IO) {
-        runCatching {
-            jGitDataSource.cherryPick(File(repoPath), commitHash)
         }
     }
 

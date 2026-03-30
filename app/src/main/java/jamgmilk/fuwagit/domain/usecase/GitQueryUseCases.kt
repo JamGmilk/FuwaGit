@@ -5,8 +5,6 @@ import jamgmilk.fuwagit.domain.model.git.GitCommit
 import jamgmilk.fuwagit.domain.model.git.GitFileStatus
 import jamgmilk.fuwagit.domain.model.git.GitRemote
 import jamgmilk.fuwagit.domain.model.git.GitRepoStatus
-import jamgmilk.fuwagit.domain.model.git.GitStash
-import jamgmilk.fuwagit.domain.model.git.GitTag
 import jamgmilk.fuwagit.domain.repository.GitRepository
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -48,20 +46,6 @@ class GitQueryUseCases @Inject constructor(
             return Result.failure(IllegalArgumentException("Repository path cannot be empty"))
         }
         return repository.getRemotes(repoPath)
-    }
-
-    suspend fun getTags(repoPath: String): Result<List<GitTag>> {
-        if (repoPath.isBlank()) {
-            return Result.failure(IllegalArgumentException("Repository path cannot be empty"))
-        }
-        return repository.getTags(repoPath)
-    }
-
-    suspend fun getStashList(repoPath: String): Result<List<GitStash>> {
-        if (repoPath.isBlank()) {
-            return Result.failure(IllegalArgumentException("Repository path cannot be empty"))
-        }
-        return repository.getStashList(repoPath)
     }
 
     suspend fun getRepoInfo(localPath: String): Map<String, String> {

@@ -1,6 +1,5 @@
 package jamgmilk.fuwagit
 
-import android.annotation.SuppressLint
 import android.content.res.Configuration
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -65,13 +64,36 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun AppRoot(viewModel: AppViewModel, modifier: Modifier = Modifier) {
+    val currentScreen by viewModel.currentScreenFlow.collectAsState()
+
+    AppRootContent(
+        currentScreen = currentScreen,
+        onScreenChange = { viewModel.currentScreen = it },
+        navHost = { innerModifier ->
+            FuwaGitNavHost(
+                currentScreen = currentScreen,
+                onScreenChange = { viewModel.currentScreen = it },
+                viewModel = viewModel,
+                modifier = innerModifier
+            )
+        },
+        modifier = modifier
+    )
+}
+
+@Composable
+fun AppRootContent(
+    currentScreen: Screen,
+    onScreenChange: (Screen) -> Unit,
+    navHost: @Composable (Modifier) -> Unit,
+    modifier: Modifier = Modifier
+) {
     val darkTheme = isSystemInDarkTheme()
     val uiColors = FuwaGitThemeExtras.colors
 
     val configuration = LocalConfiguration.current
     val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
 
-    val currentScreen by viewModel.currentScreenFlow.collectAsState()
     val screens = listOf(
         Screen.Status,
         Screen.History,
@@ -81,7 +103,7 @@ fun AppRoot(viewModel: AppViewModel, modifier: Modifier = Modifier) {
     )
 
     Row(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxSize()
             .background(appBackgroundBrush(darkTheme = darkTheme))
     ) {
@@ -89,18 +111,15 @@ fun AppRoot(viewModel: AppViewModel, modifier: Modifier = Modifier) {
             LandscapeLayout(
                 currentScreen = currentScreen,
                 screens = screens,
-                onScreenChange = { viewModel.currentScreen = it },
+                onScreenChange = onScreenChange,
                 uiColors = uiColors
             )
         }
 
         Column(modifier = Modifier.weight(1f)) {
             Box(modifier = Modifier.weight(1f)) {
-                FuwaGitNavHost(
-                    currentScreen = currentScreen,
-                    onScreenChange = { viewModel.currentScreen = it },
-                    viewModel = viewModel,
-                    modifier = Modifier
+                navHost(
+                    Modifier
                         .fillMaxSize()
                         .statusBarsPadding()
                         .then(
@@ -113,7 +132,7 @@ fun AppRoot(viewModel: AppViewModel, modifier: Modifier = Modifier) {
                 PortraitLayout(
                     currentScreen = currentScreen,
                     screens = screens,
-                    onScreenChange = { viewModel.currentScreen = it },
+                    onScreenChange = onScreenChange,
                     uiColors = uiColors
                 )
             }
@@ -216,11 +235,24 @@ private fun LandscapeLayout(
     }
 }
 
-@SuppressLint("ViewModelConstructorInComposable")
 @Preview(showBackground = true, device = "spec:parent=pixel_5,orientation=landscape")
 @Composable
 fun AppRootLandscapeLayoutPreview() {
     FuwaGitTheme {
-        AppRoot(viewModel = AppViewModel())
+        AppRootContent(
+            currentScreen = Screen.Status,
+            onScreenChange = {},
+            navHost = { modifier ->
+                Box(
+                    modifier
+                        .background(androidx.compose.ui.graphics.Color.Gray.copy(alpha = 0.3f))
+                ) {
+                    Text(
+                        "Nav Host Placeholder",
+                        modifier = Modifier.align(androidx.compose.ui.Alignment.Center)
+                    )
+                }
+            }
+        )
     }
 }

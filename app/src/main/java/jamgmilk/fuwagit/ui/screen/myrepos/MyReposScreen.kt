@@ -74,6 +74,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.SheetState
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -109,7 +110,6 @@ import jamgmilk.fuwagit.ui.screen.myrepos.SshKeyItem
 import jamgmilk.fuwagit.ui.theme.FuwaGitThemeExtras
 import jamgmilk.fuwagit.ui.theme.Sakura80
 import jamgmilk.fuwagit.ui.components.ScreenTemplate
-import jamgmilk.fuwagit.ui.components.CleanDialog
 import jamgmilk.fuwagit.ui.components.FilePickerDialog
 import jamgmilk.fuwagit.ui.components.RepoListDialog
 import kotlinx.coroutines.delay
@@ -126,26 +126,14 @@ fun MyReposScreen(
     modifier: Modifier = Modifier,
     onNavigateToStatus: () -> Unit = {}
 ) {
-    val colors = MaterialTheme.colorScheme
     val uiColors = FuwaGitThemeExtras.colors
     val context = LocalContext.current
     val uiState by myReposViewModel.uiState.collectAsState()
     val savedRepos by myReposViewModel.savedRepos.collectAsState()
-    val folders = savedRepos.map { repo ->
-        RepoFolderItem(
-            id = repo.path,
-            name = repo.displayName,
-            path = repo.path,
-            isGitRepo = true,
-            isDirectory = true,
-            localPath = repo.path,
-            source = "Saved",
-            permissionHint = if (repo.isFavorite) "Favorite" else "Saved",
-            isActive = false,
-            isRemovable = true
-        )
-    }
-    val selectedTarget = uiState.targetPath
+    val currentRepoInfo by myReposViewModel.currentRepoInfo.collectAsState()
+
+    val folders = uiState.repoItems
+    val selectedTarget = currentRepoInfo.repoPath
     val scope = rememberCoroutineScope()
 
     var showCloneDialog by remember { mutableStateOf(false) }
@@ -168,12 +156,13 @@ fun MyReposScreen(
     var repoInfoState by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
 
     LaunchedEffect(Unit) {
+        appViewModel.initializeStorage()
         myReposViewModel.initializeStorage(context)
         myReposViewModel.refreshRepoItems(context)
         myReposViewModel.loadSavedRepos()
 
         delay(200)
-        val targetPath = myReposViewModel.targetPath.value
+        val targetPath = currentRepoInfo.repoPath
         if (targetPath != null && targetPath.isNotBlank()) {
             onNavigateToStatus()
         }
@@ -269,7 +258,7 @@ fun MyReposScreen(
                 },
                 onRemove = { repo ->
                     kotlinx.coroutines.runBlocking {
-                        if (repo.path == myReposViewModel.targetPath.value) {
+                        if (repo.path == currentRepoInfo.repoPath) {
                             myReposViewModel.setCurrentRepo(null)
                         }
                         myReposViewModel.removeRepo(repo)
@@ -436,16 +425,100 @@ fun MyReposScreen(
     }
 
     if (showCleanDialog) {
-        CleanDialog(
-            onDismiss = { showCleanDialog = false },
-            onClean = { dryRun ->
-                kotlinx.coroutines.runBlocking {
-                    uiState.targetPath?.let { path ->
-                        myReposViewModel.cleanRepo(path, dryRun)
+        var dryRun by remember { mutableStateOf(true) }
+
+        AlertDialog(
+            onDismissRequest = { showCleanDialog = false },
+            icon = {
+                Box(
+                    modifier = Modifier
+                        .size(56.dp)
+                        .background(Color(0xFFF44336).copy(alpha = 0.15f), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        Icons.Default.Delete,
+                        contentDescription = null,
+                        tint = Color(0xFFF44336),
+                        modifier = Modifier.size(28.dp)
+                    )
+                }
+            },
+            title = {
+                Text(
+                    text = "Clean Repository",
+                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.titleLarge
+                )
+            },
+            text = {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Text(
+                        text = "Remove untracked files from the working directory. This action cannot be undone.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Dry run (preview only)",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                        Switch(
+                            checked = dryRun,
+                            onCheckedChange = { dryRun = it }
+                        )
+                    }
+
+                    if (dryRun) {
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = Color(0xFFFFF3E0)
+                        ) {
+                            Text(
+                                text = "Preview mode: No files will be deleted",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = Color(0xFFE65100),
+                                modifier = Modifier.padding(12.dp)
+                            )
+                        }
                     }
                 }
-                showCleanDialog = false
-            }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        kotlinx.coroutines.runBlocking {
+                            currentRepoInfo.repoPath?.let { path ->
+                                myReposViewModel.cleanRepo(path, dryRun)
+                            }
+                        }
+                        showCleanDialog = false
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF44336)),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Icon(
+                        Icons.Default.Delete,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    Text(if (dryRun) "Preview" else "Clean")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showCleanDialog = false }) {
+                    Text("Cancel")
+                }
+            },
+            shape = RoundedCornerShape(24.dp)
         )
     }
 }

@@ -7,10 +7,12 @@ import jamgmilk.fuwagit.domain.model.git.CommitStats
 import jamgmilk.fuwagit.domain.model.git.GitCommit
 import jamgmilk.fuwagit.domain.usecase.GitOperationUseCases
 import jamgmilk.fuwagit.domain.usecase.GitQueryUseCases
+import jamgmilk.fuwagit.domain.CurrentRepoManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -33,7 +35,8 @@ data class HistoryUiState(
 @HiltViewModel
 class HistoryViewModel @Inject constructor(
     private val gitQueryUseCases: GitQueryUseCases,
-    private val gitOperationUseCases: GitOperationUseCases
+    private val gitOperationUseCases: GitOperationUseCases,
+    private val currentRepoManager: CurrentRepoManager
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HistoryUiState())
@@ -41,13 +44,17 @@ class HistoryViewModel @Inject constructor(
 
     private var currentRepoPath: String? = null
 
-    fun setRepoPath(path: String?) {
-        currentRepoPath = path
-        _uiState.update { it.copy(repoPath = path) }
-        if (path != null) {
-            loadCommitHistory()
-        } else {
-            _uiState.update { it.copy(commits = emptyList(), commitStats = CommitStats(0, 0, 0, 0, 0)) }
+    init {
+        viewModelScope.launch {
+            currentRepoManager.currentRepoInfo.collectLatest { info ->
+                currentRepoPath = info.repoPath
+                _uiState.update { it.copy(repoPath = info.repoPath) }
+                if (info.repoPath != null) {
+                    loadCommitHistory()
+                } else {
+                    _uiState.update { it.copy(commits = emptyList(), commitStats = CommitStats(0, 0, 0, 0, 0)) }
+                }
+            }
         }
     }
 
@@ -135,48 +142,6 @@ class HistoryViewModel @Inject constructor(
             commitsThisWeek = commitsThisWeek,
             commitsThisMonth = commitsThisMonth
         )
-    }
-
-    fun revertCommit(commitHash: String) {
-        val path = currentRepoPath ?: return
-
-        viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true) }
-            withContext(Dispatchers.IO) {
-                gitOperationUseCases.revertCommit(path, commitHash)
-            }.fold(
-                onSuccess = { result ->
-                    appendTerminalLog("git revert", result)
-                    loadCommitHistory()
-                },
-                onFailure = { e ->
-                    appendTerminalLog("git revert", "Error: ${e.message}")
-                    _uiState.update { it.copy(error = "Revert failed: ${e.message}") }
-                }
-            )
-            _uiState.update { it.copy(isLoading = false) }
-        }
-    }
-
-    fun cherryPick(commitHash: String) {
-        val path = currentRepoPath ?: return
-
-        viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true) }
-            withContext(Dispatchers.IO) {
-                gitOperationUseCases.cherryPick(path, commitHash)
-            }.fold(
-                onSuccess = { result ->
-                    appendTerminalLog("git cherry-pick", result)
-                    loadCommitHistory()
-                },
-                onFailure = { e ->
-                    appendTerminalLog("git cherry-pick", "Error: ${e.message}")
-                    _uiState.update { it.copy(error = "Cherry-pick failed: ${e.message}") }
-                }
-            )
-            _uiState.update { it.copy(isLoading = false) }
-        }
     }
 
     private fun appendTerminalLog(command: String, message: String) {

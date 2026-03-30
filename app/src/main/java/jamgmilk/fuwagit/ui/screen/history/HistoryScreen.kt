@@ -1,7 +1,5 @@
 package jamgmilk.fuwagit.ui.screen.history
 
-import jamgmilk.fuwagit.ui.screen.myrepos.MyReposViewModel
-
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.tween
@@ -74,18 +72,12 @@ import kotlin.math.abs
 @Composable
 fun HistoryScreen(
     historyViewModel: HistoryViewModel,
-    myReposViewModel: MyReposViewModel,
     modifier: Modifier = Modifier
 ) {
     val uiState by historyViewModel.uiState.collectAsState()
-    val repoUiState by myReposViewModel.uiState.collectAsState()
     val history = uiState.commits
     val colors = MaterialTheme.colorScheme
     val uiColors = FuwaGitThemeExtras.colors
-
-    LaunchedEffect(repoUiState.targetPath) {
-        historyViewModel.setRepoPath(repoUiState.targetPath)
-    }
 
     ScreenTemplate(
         title = "History",
@@ -112,8 +104,6 @@ fun HistoryScreen(
             } else {
                 CommitTimelineList(
                     commits = history,
-                    onRevert = { commit -> historyViewModel.revertCommit(commit.hash) },
-                    onCherrypick = { commit -> historyViewModel.cherryPick(commit.hash) },
                     modifier = Modifier.fillMaxSize()
                 )
             }
@@ -156,8 +146,6 @@ private fun EmptyHistoryState() {
 @Composable
 private fun CommitTimelineList(
     commits: List<GitCommit>,
-    onRevert: (GitCommit) -> Unit,
-    onCherrypick: (GitCommit) -> Unit,
     modifier: Modifier = Modifier
 ) {
     LazyColumn(
@@ -167,9 +155,7 @@ private fun CommitTimelineList(
         items(commits, key = { it.hash }) { commit ->
             CommitTimelineItem(
                 commit = commit,
-                isLast = commit == commits.last(),
-                onRevert = { onRevert(commit) },
-                onCherrypick = { onCherrypick(commit) }
+                isLast = commit == commits.last()
             )
         }
     }
@@ -178,9 +164,7 @@ private fun CommitTimelineList(
 @Composable
 private fun CommitTimelineItem(
     commit: GitCommit,
-    isLast: Boolean,
-    onRevert: () -> Unit,
-    onCherrypick: () -> Unit
+    isLast: Boolean
 ) {
     var expanded by remember { mutableStateOf(false) }
     val colors = MaterialTheme.colorScheme
@@ -292,8 +276,6 @@ private fun CommitTimelineItem(
                 CommitDetails(
                     commit = commit,
                     timeFmt = timeFmt,
-                    onRevert = onRevert,
-                    onCherrypick = onCherrypick,
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 8.dp)
@@ -412,8 +394,6 @@ private fun CommitMetaItem(
 private fun CommitDetails(
     commit: GitCommit,
     timeFmt: SimpleDateFormat,
-    onRevert: () -> Unit,
-    onCherrypick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val colors = MaterialTheme.colorScheme
@@ -459,52 +439,6 @@ private fun CommitDetails(
                 value = commit.parentHashes.map { it.take(7) }.joinToString(", ")
             )
         }
-
-        Spacer(Modifier.height(8.dp))
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            ActionChip(
-                text = "Revert",
-                color = AppColors.GitOrange,
-                onClick = onRevert,
-                modifier = Modifier.weight(1f)
-            )
-            ActionChip(
-                text = "Cherry-pick",
-                color = AppColors.GitPurple,
-                onClick = onCherrypick,
-                modifier = Modifier.weight(1f)
-            )
-        }
-    }
-}
-
-@Composable
-private fun ActionChip(
-    text: String,
-    color: Color,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    ElevatedCard(
-        onClick = onClick,
-        modifier = modifier,
-        shape = RoundedCornerShape(8.dp),
-        colors = CardDefaults.elevatedCardColors(containerColor = color.copy(alpha = 0.15f))
-    ) {
-        Text(
-            text = text,
-            style = MaterialTheme.typography.labelMedium,
-            color = color,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier
-                .padding(horizontal = 12.dp, vertical = 8.dp)
-                .fillMaxWidth(),
-            textAlign = TextAlign.Center
-        )
     }
 }
 
