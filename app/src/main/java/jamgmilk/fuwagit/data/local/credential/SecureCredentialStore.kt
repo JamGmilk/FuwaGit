@@ -106,7 +106,16 @@ class SecureCredentialStore(private val context: Context) {
         }
     }
 
-    suspend fun importAll(jsonString: String, masterKey: SecretKey): Result<Unit> {
+    suspend fun exportAllCredentials(masterKey: SecretKey): String {
+        return withContext(Dispatchers.IO) {
+            val data = loadCredentialData()
+            val dataWithDecryptedSecrets = decryptAllSecrets(data, masterKey)
+            val exportData = ExportData(dataWithDecryptedSecrets)
+            json.encodeToString(exportData)
+        }
+    }
+
+    suspend fun importAllCredentials(jsonString: String, masterKey: SecretKey): Result<Unit> {
         return withContext(Dispatchers.IO) {
             runCatching {
                 val exportData = json.decodeFromString<ExportData>(jsonString)

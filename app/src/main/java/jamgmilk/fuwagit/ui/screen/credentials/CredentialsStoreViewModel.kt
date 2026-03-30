@@ -10,6 +10,7 @@ import jamgmilk.fuwagit.domain.usecase.CredentialUseCases
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -22,7 +23,11 @@ data class CredentialsStoreUiState(
     val httpsCredentials: List<HttpsCredential> = emptyList(),
     val sshKeys: List<SshKey> = emptyList(),
     val isLoading: Boolean = false,
-    val error: String? = null
+    val error: String? = null,
+    val exportedData: String? = null,
+    val showExportDialog: Boolean = false,
+    val showImportDialog: Boolean = false,
+    val importSuccess: Boolean = false
 )
 
 @HiltViewModel
@@ -99,8 +104,48 @@ class CredentialsStoreViewModel @Inject constructor(
 
     fun unlockWithBiometric(activity: FragmentActivity) {
         _uiState.value = _uiState.value.copy(
-            error = "Biometric authentication not yet implemented"
+            error = "Biometric authentication requires additional setup"
         )
+    }
+
+    fun enableBiometric() {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+            
+            credentialUseCases.enableBiometric()
+                .onSuccess {
+                    _uiState.value = _uiState.value.copy(
+                        isBiometricEnabled = true,
+                        isLoading = false
+                    )
+                }
+                .onError { exception ->
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        error = exception.message
+                    )
+                }
+        }
+    }
+
+    fun disableBiometric() {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+            
+            credentialUseCases.disableBiometric()
+                .onSuccess {
+                    _uiState.value = _uiState.value.copy(
+                        isBiometricEnabled = false,
+                        isLoading = false
+                    )
+                }
+                .onError { exception ->
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        error = exception.message
+                    )
+                }
+        }
     }
 
     private fun loadCredentials() {
@@ -219,6 +264,69 @@ class CredentialsStoreViewModel @Inject constructor(
             is jamgmilk.fuwagit.domain.model.AppResult.Success -> result.data
             is jamgmilk.fuwagit.domain.model.AppResult.Error -> null
         }
+    }
+
+    fun exportCredentials() {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+            
+            credentialUseCases.exportCredentials()
+                .onSuccess { data ->
+                    _uiState.value = _uiState.value.copy(
+                        exportedData = data,
+                        showExportDialog = true,
+                        isLoading = false
+                    )
+                }
+                .onError { exception ->
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        error = "Export failed: ${exception.message}"
+                    )
+                }
+        }
+    }
+
+    fun importCredentials(jsonData: String) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+            
+            credentialUseCases.importCredentials(jsonData)
+                .onSuccess {
+                    loadCredentials()
+                    _uiState.value = _uiState.value.copy(
+                        showImportDialog = false,
+                        importSuccess = true,
+                        isLoading = false
+                    )
+                }
+                .onError { exception ->
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        error = "Import failed: ${exception.message}"
+                    )
+                }
+        }
+    }
+
+    fun showImportDialog() {
+        _uiState.value = _uiState.value.copy(showImportDialog = true, error = null)
+    }
+
+    fun hideImportDialog() {
+        _uiState.value = _uiState.value.copy(showImportDialog = false)
+    }
+
+    fun hideExportDialog() {
+        _uiState.value = _uiState.value.copy(showExportDialog = false, exportedData = null)
+    }
+
+    fun clearError() {
+        _uiState.value = _uiState.value.copy(error = null)
+    }
+
+    fun clearImportSuccess() {
+        _uiState.value = _uiState.value.copy(importSuccess = false)
     }
 
     fun isDecryptionUnlocked(): Boolean {

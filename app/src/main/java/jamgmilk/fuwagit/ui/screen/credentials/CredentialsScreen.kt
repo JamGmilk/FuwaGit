@@ -27,7 +27,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Fingerprint
 import androidx.compose.material.icons.filled.Info
@@ -37,6 +39,8 @@ import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.LockOpen
 import androidx.compose.material.icons.filled.Password
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Security
+import androidx.compose.material.icons.filled.Upload
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.AlertDialog
@@ -103,6 +107,8 @@ private sealed class CredentialDialogState {
     data object AddHttps : CredentialDialogState()
     data object GenerateSsh : CredentialDialogState()
     data object ImportSsh : CredentialDialogState()
+    data object ExportCredentials : CredentialDialogState()
+    data object ImportCredentials : CredentialDialogState()
     data class HttpsInfo(val credential: HttpsCredential) : CredentialDialogState()
     data class SshInfo(val key: SshKey) : CredentialDialogState()
 }
@@ -146,6 +152,35 @@ fun CredentialsScreen(
                 onTabSelected = { selectedTab = it },
                 httpsCount = uiState.httpsCredentials.size,
                 sshCount = uiState.sshKeys.size
+            )
+
+            SecuritySettingsSection(
+                isBiometricEnabled = uiState.isBiometricEnabled,
+                isDecryptionUnlocked = uiState.isDecryptionUnlocked,
+                onToggleBiometric = {
+                    if (!uiState.isDecryptionUnlocked) {
+                        viewModel.showUnlockDialog()
+                    } else if (uiState.isBiometricEnabled) {
+                        viewModel.disableBiometric()
+                    } else {
+                        viewModel.enableBiometric()
+                    }
+                },
+                onExport = {
+                    if (!uiState.isDecryptionUnlocked) {
+                        viewModel.showUnlockDialog()
+                    } else {
+                        dialogState = CredentialDialogState.ExportCredentials
+                    }
+                },
+                onImport = {
+                    if (!uiState.isDecryptionUnlocked) {
+                        viewModel.showUnlockDialog()
+                    } else {
+                        dialogState = CredentialDialogState.ImportCredentials
+                    }
+                },
+                onLock = { viewModel.lock() }
             )
 
             AnimatedContent(
@@ -327,6 +362,20 @@ fun CredentialsScreen(
                     viewModel.deleteSshKey(state.key.uuid)
                     dialogState = CredentialDialogState.None
                 }
+            )
+        }
+        is CredentialDialogState.ExportCredentials -> {
+            ExportCredentialsDialog(
+                viewModel = viewModel,
+                snackbarHostState = snackbarHostState,
+                onDismiss = { dialogState = CredentialDialogState.None }
+            )
+        }
+        is CredentialDialogState.ImportCredentials -> {
+            ImportCredentialsDialog(
+                viewModel = viewModel,
+                snackbarHostState = snackbarHostState,
+                onDismiss = { dialogState = CredentialDialogState.None }
             )
         }
         is CredentialDialogState.None -> {}
@@ -1897,6 +1946,392 @@ private fun ImportSshKeyDialog(
                     contentDescription = null,
                     modifier = Modifier.size(18.dp)
                 )
+                Spacer(Modifier.width(6.dp))
+                Text("Import")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        },
+        shape = RoundedCornerShape(24.dp)
+    )
+}
+
+@Composable
+private fun SecuritySettingsSection(
+    isBiometricEnabled: Boolean,
+    isDecryptionUnlocked: Boolean,
+    onToggleBiometric: () -> Unit,
+    onExport: () -> Unit,
+    onImport: () -> Unit,
+    onLock: () -> Unit
+) {
+    val colors = MaterialTheme.colorScheme
+    val uiColors = FuwaGitThemeExtras.colors
+
+    ElevatedCard(
+        modifier = Modifier
+            .fillMaxWidth()
+            .border(1.dp, uiColors.cardBorder, RoundedCornerShape(24.dp)),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.elevatedCardColors(containerColor = uiColors.cardContainer),
+        elevation = CardDefaults.elevatedCardElevation(0.dp)
+    ) {
+        Column(modifier = Modifier.fillMaxWidth()) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Color(0xFF2196F3).copy(alpha = 0.08f))
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .size(32.dp)
+                            .background(Color(0xFF2196F3).copy(alpha = 0.15f), RoundedCornerShape(10.dp)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            Icons.Default.Security,
+                            contentDescription = null,
+                            tint = Color(0xFF2196F3),
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                    Spacer(Modifier.width(10.dp))
+                    Text(
+                        text = "Security Settings",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF2196F3)
+                    )
+                }
+            }
+
+            Column(
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp))
+                        .clickable { onToggleBiometric() }
+                        .padding(12.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            Icons.Default.Fingerprint,
+                            contentDescription = null,
+                            tint = if (isBiometricEnabled) Color(0xFF4CAF50) else colors.onSurfaceVariant,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(Modifier.width(12.dp))
+                        Column {
+                            Text(
+                                text = "Biometric Unlock",
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Medium
+                            )
+                            Text(
+                                text = if (isBiometricEnabled) "Enabled" else "Use fingerprint to unlock",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = colors.onSurfaceVariant
+                            )
+                        }
+                    }
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = if (isBiometricEnabled) Color(0xFF4CAF50).copy(alpha = 0.15f) else colors.surfaceVariant
+                    ) {
+                        Text(
+                            text = if (isBiometricEnabled) "ON" else "OFF",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = if (isBiometricEnabled) Color(0xFF4CAF50) else colors.onSurfaceVariant,
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                        )
+                    }
+                }
+
+                HorizontalDivider(color = colors.outline.copy(alpha = 0.1f))
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    FilledTonalButton(
+                        onClick = onExport,
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.filledTonalButtonColors(
+                            containerColor = Color(0xFF4CAF50).copy(alpha = 0.15f),
+                            contentColor = Color(0xFF4CAF50)
+                        )
+                    ) {
+                        Icon(
+                            Icons.Default.Upload,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(Modifier.width(6.dp))
+                        Text("Export")
+                    }
+
+                    FilledTonalButton(
+                        onClick = onImport,
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.filledTonalButtonColors(
+                            containerColor = Color(0xFF2196F3).copy(alpha = 0.15f),
+                            contentColor = Color(0xFF2196F3)
+                        )
+                    ) {
+                        Icon(
+                            Icons.Default.Download,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(Modifier.width(6.dp))
+                        Text("Import")
+                    }
+                }
+
+                if (isDecryptionUnlocked) {
+                    HorizontalDivider(color = colors.outline.copy(alpha = 0.1f))
+                    
+                    Button(
+                        onClick = onLock,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = colors.error.copy(alpha = 0.1f),
+                            contentColor = colors.error
+                        )
+                    ) {
+                        Icon(
+                            Icons.Default.Lock,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(Modifier.width(6.dp))
+                        Text("Lock Vault")
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ExportCredentialsDialog(
+    viewModel: CredentialsStoreViewModel,
+    snackbarHostState: SnackbarHostState,
+    onDismiss: () -> Unit
+) {
+    val colors = MaterialTheme.colorScheme
+    val scope = rememberCoroutineScope()
+    val clipboardManager = LocalClipboardManager.current
+    val uiState by viewModel.uiState.collectAsState()
+    var isLoading by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        isLoading = true
+        viewModel.exportCredentials()
+        isLoading = false
+    }
+
+    val exportedData = uiState.exportedData
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        icon = {
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .background(Color(0xFF4CAF50).copy(alpha = 0.15f), CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    Icons.Default.Upload,
+                    contentDescription = null,
+                    tint = Color(0xFF4CAF50),
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+        },
+        title = {
+            Text(
+                text = "Export Credentials",
+                fontWeight = FontWeight.Bold
+            )
+        },
+        text = {
+            Column {
+                if (isLoading) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        androidx.compose.material3.CircularProgressIndicator(
+                            modifier = Modifier.size(24.dp),
+                            color = Color(0xFF4CAF50)
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Text("Exporting...")
+                    }
+                } else if (exportedData != null) {
+                    Text(
+                        text = "Your credentials have been exported. Copy the data below to save it securely:",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = colors.onSurfaceVariant
+                    )
+                    Spacer(Modifier.height(12.dp))
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = colors.surfaceVariant.copy(alpha = 0.5f),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(12.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "${exportedData.take(50)}...",
+                                style = MaterialTheme.typography.bodySmall,
+                                fontFamily = FontFamily.Monospace,
+                                modifier = Modifier.weight(1f),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            IconButton(
+                                onClick = {
+                                    clipboardManager.setText(AnnotatedString(exportedData))
+                                    scope.launch {
+                                        snackbarHostState.showSnackbar("Copied to clipboard!")
+                                    }
+                                }
+                            ) {
+                                Icon(
+                                    Icons.Default.ContentCopy,
+                                    contentDescription = "Copy",
+                                    tint = colors.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = onDismiss,
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50)),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Text("Done")
+            }
+        },
+        shape = RoundedCornerShape(24.dp)
+    )
+}
+
+@Composable
+private fun ImportCredentialsDialog(
+    viewModel: CredentialsStoreViewModel,
+    snackbarHostState: SnackbarHostState,
+    onDismiss: () -> Unit
+) {
+    val colors = MaterialTheme.colorScheme
+    val scope = rememberCoroutineScope()
+    var importData by remember { mutableStateOf("") }
+    var isLoading by remember { mutableStateOf(false) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        icon = {
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .background(Color(0xFF2196F3).copy(alpha = 0.15f), CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    Icons.Default.Download,
+                    contentDescription = null,
+                    tint = Color(0xFF2196F3),
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+        },
+        title = {
+            Text(
+                text = "Import Credentials",
+                fontWeight = FontWeight.Bold
+            )
+        },
+        text = {
+            Column {
+                Text(
+                    text = "Paste your exported credentials data below:",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = colors.onSurfaceVariant
+                )
+                Spacer(Modifier.height(12.dp))
+                OutlinedTextField(
+                    value = importData,
+                    onValueChange = { importData = it },
+                    label = { Text("Credentials Data") },
+                    placeholder = { Text("Paste JSON data here...") },
+                    minLines = 3,
+                    maxLines = 5,
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Color(0xFF2196F3),
+                        focusedLabelColor = Color(0xFF2196F3)
+                    )
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    isLoading = true
+                    viewModel.importCredentials(importData)
+                    scope.launch {
+                        snackbarHostState.showSnackbar("Credentials imported successfully!")
+                        onDismiss()
+                    }
+                },
+                enabled = importData.isNotBlank() && !isLoading,
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2196F3)),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                if (isLoading) {
+                    androidx.compose.material3.CircularProgressIndicator(
+                        modifier = Modifier.size(18.dp),
+                        color = Color.White,
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    Icon(
+                        Icons.Default.Check,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
                 Spacer(Modifier.width(6.dp))
                 Text("Import")
             }
