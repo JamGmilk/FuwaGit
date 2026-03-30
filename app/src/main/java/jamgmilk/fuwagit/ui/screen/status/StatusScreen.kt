@@ -13,8 +13,10 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -72,6 +74,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import jamgmilk.fuwagit.domain.model.git.GitBranch
@@ -490,6 +493,15 @@ private fun RepositoryStatusCard(
     }
 }
 
+@Preview(showBackground = true)
+@Composable
+private fun StatusScreenPreview() {
+    StatusScreen(
+        statusViewModel = hiltViewModel(),
+        modifier = Modifier.fillMaxSize()
+    )
+}
+
 @Composable
 private fun ChangesOverviewCard(
     stats: StatusStats,
@@ -548,34 +560,62 @@ private fun ChangesOverviewCard(
 @Composable
 private fun StatChipsRow(stats: StatusStats) {
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min),
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         StatChip(
             label = "Staged",
             count = stats.staged,
             color = AppColors.GitGreen,
-            modifier = Modifier.weight(1f)
+            modifier = Modifier.weight(1f).fillMaxHeight()
         )
-        StatChip(
-            label = "Modified",
-            count = stats.modified,
-            color = AppColors.GitBlue,
-            modifier = Modifier.weight(1f)
-        )
-        StatChip(
-            label = "Added",
-            count = stats.added,
-            color = AppColors.GitGreen,
-            modifier = Modifier.weight(1f)
-        )
-        StatChip(
-            label = "Removed",
-            count = stats.removed,
-            color = AppColors.GitRed,
-            modifier = Modifier.weight(1f)
-        )
+
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxHeight()
+                .clip(RoundedCornerShape(12.dp))
+                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
+                .padding(4.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+                MiniStatChip(
+                    label = "Modified",
+                    count = stats.modified,
+                    color = AppColors.GitBlue,
+                    modifier = Modifier.weight(1f).fillMaxWidth()
+                )
+                MiniStatChip(
+                    label = "Added",
+                    count = stats.added,
+                    color = AppColors.GitGreen,
+                    modifier = Modifier.weight(1f).fillMaxWidth()
+                )
+                MiniStatChip(
+                    label = "Removed",
+                    count = stats.removed,
+                    color = AppColors.GitRed,
+                    modifier = Modifier.weight(1f).fillMaxWidth()
+                )
+        }
     }
+}
+
+
+@Preview(showBackground = true)
+@Composable
+private fun StatChipsRowPreview() {
+    StatChipsRow(
+        stats = StatusStats(
+            totalChanges = 5,
+            staged = 2,
+            unstaged = 3,
+            untracked = 0,
+            modified = 1,
+            added = 1,
+            removed = 1
+        )
+    )
 }
 
 @Composable
@@ -590,6 +630,7 @@ private fun StatChip(
             .clip(RoundedCornerShape(12.dp))
             .background(color.copy(alpha = 0.1f))
             .padding(horizontal = 8.dp, vertical = 8.dp),
+        verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
@@ -598,6 +639,36 @@ private fun StatChip(
             fontWeight = FontWeight.Bold,
             color = color
         )
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = color.copy(alpha = 0.8f)
+        )
+    }
+}
+
+@Composable
+private fun MiniStatChip(
+    label: String,
+    count: Int,
+    color: Color,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier
+            .clip(RoundedCornerShape(8.dp))
+            .background(color.copy(alpha = 0.1f))
+            .padding(horizontal = 4.dp, vertical = 4.dp),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = count.toString(),
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = color
+        )
+        Spacer(Modifier.width(8.dp))
         Text(
             text = label,
             style = MaterialTheme.typography.labelSmall,

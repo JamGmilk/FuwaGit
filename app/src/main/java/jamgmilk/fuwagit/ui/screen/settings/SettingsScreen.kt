@@ -29,6 +29,7 @@ import androidx.compose.material.icons.filled.CloudSync
 import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.CreditCard
 import androidx.compose.material.icons.filled.Folder
+import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Schedule
@@ -37,6 +38,7 @@ import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material.icons.filled.Terminal
 import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.HorizontalDivider
@@ -45,6 +47,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -66,6 +69,7 @@ import androidx.core.content.pm.PackageInfoCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.core.net.toUri
 import jamgmilk.fuwagit.ui.screen.myrepos.MyReposViewModel
+import jamgmilk.fuwagit.ui.components.FilePickerDialog
 import jamgmilk.fuwagit.ui.components.ScreenTemplate
 import jamgmilk.fuwagit.ui.screen.credentials.CredentialsScreen
 import jamgmilk.fuwagit.ui.screen.credentials.CredentialsStoreViewModel
@@ -92,6 +96,7 @@ fun SettingsScreen(
 
     var showPermissions by rememberSaveable { mutableStateOf(false) }
     var showCredentials by rememberSaveable { mutableStateOf(false) }
+    var showFilePicker by rememberSaveable { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         myReposViewModel.loadSavedRepos()
@@ -168,6 +173,7 @@ fun SettingsScreen(
                     DeveloperOptionsCard(
                         verboseLogging = verboseLogging,
                         onVerboseLoggingChange = { verboseLogging = it },
+                        onTestFilePicker = { showFilePicker = true },
                         modifier = Modifier.fillMaxWidth()
                     )
 
@@ -177,6 +183,14 @@ fun SettingsScreen(
                 }
             }
         }
+    }
+
+    if (showFilePicker) {
+        FilePickerDialog(
+            title = "Test File Picker",
+            onDismiss = { showFilePicker = false },
+            onSelect = { showFilePicker = false }
+        )
     }
 }
 
@@ -327,6 +341,7 @@ private fun SyncSettingsCard(
 private fun DeveloperOptionsCard(
     verboseLogging: Boolean,
     onVerboseLoggingChange: (Boolean) -> Unit,
+    onTestFilePicker: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val colors = MaterialTheme.colorScheme
@@ -351,6 +366,15 @@ private fun DeveloperOptionsCard(
                 icon = Icons.Default.Terminal,
                 checked = verboseLogging,
                 onCheckedChange = onVerboseLoggingChange
+            )
+
+            HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+
+            SettingsClickableItem(
+                title = "Test File Picker",
+                subtitle = "Open file picker and show selected path",
+                icon = Icons.Default.FolderOpen,
+                onClick = onTestFilePicker
             )
         }
     }
@@ -582,6 +606,55 @@ private fun SettingsSwitchItem(
                 checkedTrackColor = colors.primary.copy(alpha = 0.5f)
             )
         )
+    }
+}
+
+@Composable
+private fun SettingsClickableItem(
+    title: String,
+    subtitle: String,
+    icon: ImageVector,
+    onClick: () -> Unit = {}
+) {
+    val colors = MaterialTheme.colorScheme
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() }
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .size(40.dp)
+                .background(colors.surfaceVariant.copy(alpha = 0.5f), RoundedCornerShape(12.dp)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = colors.onSurfaceVariant,
+                modifier = Modifier.size(20.dp)
+            )
+        }
+
+        Spacer(Modifier.width(12.dp))
+
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Medium
+            )
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.bodySmall,
+                color = colors.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
     }
 }
 
