@@ -1,7 +1,5 @@
 package jamgmilk.fuwagit.ui.screen.status
 
-import jamgmilk.fuwagit.ui.AppViewModel
-
 import android.annotation.SuppressLint
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
@@ -102,11 +100,9 @@ data class StatusStats(
 @Composable
 fun StatusScreen(
     statusViewModel: StatusViewModel,
-    appViewModel: AppViewModel,
     modifier: Modifier = Modifier
 ) {
     val uiState by statusViewModel.uiState.collectAsState()
-    val currentRepoInfo by appViewModel.currentRepoInfo.collectAsState()
     val files = uiState.workspaceFiles
     val staged = remember(files) { files.filter { it.isStaged } }
     val workspace = remember(files) { files.filter { !it.isStaged } }
@@ -146,7 +142,7 @@ fun StatusScreen(
     ) {
         RepositoryStatusCard(
             isRepo = uiState.isGitRepo,
-            repoState = currentRepoInfo.state,
+            repoState = uiState.repoState,
             repoName = uiState.repoName,
             targetPath = uiState.repoPath,
             currentBranch = currentBranch,

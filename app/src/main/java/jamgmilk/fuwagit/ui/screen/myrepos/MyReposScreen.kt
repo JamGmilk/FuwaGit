@@ -104,7 +104,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import jamgmilk.fuwagit.domain.model.credential.CloneCredential
-import jamgmilk.fuwagit.ui.AppViewModel
 import jamgmilk.fuwagit.ui.screen.myrepos.HttpsCredentialItem
 import jamgmilk.fuwagit.ui.screen.myrepos.SshKeyItem
 import jamgmilk.fuwagit.ui.theme.FuwaGitThemeExtras
@@ -122,7 +121,6 @@ import java.util.Locale
 @Composable
 fun MyReposScreen(
     myReposViewModel: MyReposViewModel,
-    appViewModel: AppViewModel,
     modifier: Modifier = Modifier,
     onNavigateToStatus: () -> Unit = {}
 ) {
@@ -156,16 +154,9 @@ fun MyReposScreen(
     var repoInfoState by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
 
     LaunchedEffect(Unit) {
-        appViewModel.initializeStorage()
         myReposViewModel.initializeStorage(context)
         myReposViewModel.refreshRepoItems(context)
         myReposViewModel.loadSavedRepos()
-
-        delay(200)
-        val targetPath = currentRepoInfo.repoPath
-        if (targetPath != null && targetPath.isNotBlank()) {
-            onNavigateToStatus()
-        }
     }
 
     Box(modifier = modifier.fillMaxSize()) {
