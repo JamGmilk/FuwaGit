@@ -56,6 +56,10 @@ sealed class AppException : Exception() {
 
     data class BiometricNotEnabled(override val message: String = "Biometric authentication not enabled") : AppException()
 
+    data class ImportFailed(override val message: String = "Failed to import credentials") : AppException()
+
+    data class ExportFailed(override val message: String = "Failed to export credentials") : AppException()
+
     data class GitOperationFailed(val operation: String, override val message: String) : AppException()
 
     data class RepositoryNotFound(val path: String) : AppException() {

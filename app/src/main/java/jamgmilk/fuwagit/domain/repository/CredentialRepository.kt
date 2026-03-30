@@ -48,4 +48,12 @@ interface CredentialRepository {
     suspend fun getSshPrivateKey(uuid: String): AppResult<String>
 
     suspend fun getSshPassphrase(uuid: String): AppResult<String?>
+
+    suspend fun exportCredentials(): AppResult<String>
+
+    suspend fun importCredentials(jsonData: String): AppResult<Unit>
+
+    suspend fun enableBiometric(): AppResult<Unit>
+
+    suspend fun disableBiometric(): AppResult<Unit>
 }

@@ -83,4 +83,20 @@ class CredentialUseCases @Inject constructor(
     fun isUnlocked(): Boolean = repository.isUnlocked()
 
     fun lock() = repository.lock()
+
+    suspend fun exportCredentials(): AppResult<String> {
+        return repository.exportCredentials()
+    }
+
+    suspend fun importCredentials(jsonData: String): AppResult<Unit> {
+        return repository.importCredentials(jsonData)
+    }
+
+    suspend fun enableBiometric(): AppResult<Unit> {
+        return repository.enableBiometric()
+    }
+
+    suspend fun disableBiometric(): AppResult<Unit> {
+        return repository.disableBiometric()
+    }
 }

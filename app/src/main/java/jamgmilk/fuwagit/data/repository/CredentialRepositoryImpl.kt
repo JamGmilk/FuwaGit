@@ -157,4 +157,28 @@ class CredentialRepositoryImpl(context: Context) : CredentialRepository {
             secureStore.getSshPassphrase(uuid, key)
         }
     }
+
+    override suspend fun exportCredentials(): AppResult<String> {
+        return AppResult.catching {
+            val key = getMasterKey()
+            secureStore.exportAllCredentials(key)
+        }
+    }
+
+    override suspend fun importCredentials(jsonData: String): AppResult<Unit> {
+        return AppResult.catching {
+            val key = getMasterKey()
+            secureStore.importAllCredentials(jsonData, key)
+        }
+    }
+
+    override suspend fun enableBiometric(): AppResult<Unit> {
+        return AppResult.Error(AppException.BiometricNotEnabled())
+    }
+
+    override suspend fun disableBiometric(): AppResult<Unit> {
+        return AppResult.catching {
+            masterKeyManager.disableBiometric()
+        }
+    }
 }
