@@ -1,7 +1,7 @@
 package jamgmilk.fuwagit.domain.repository
 
-import jamgmilk.fuwagit.credential.store.HttpsCredential
-import jamgmilk.fuwagit.credential.store.SshKey
+import jamgmilk.fuwagit.data.local.credential.HttpsCredential
+import jamgmilk.fuwagit.data.local.credential.SshKey
 import jamgmilk.fuwagit.domain.model.AppResult
 
 interface CredentialRepository {

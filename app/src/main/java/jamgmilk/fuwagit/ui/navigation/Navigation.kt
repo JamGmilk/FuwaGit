@@ -15,15 +15,15 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import jamgmilk.fuwagit.ui.AppViewModel
+import jamgmilk.fuwagit.ui.screen.myrepos.MyReposScreen
+import jamgmilk.fuwagit.ui.screen.myrepos.MyReposViewModel
 import jamgmilk.fuwagit.ui.screen.branches.BranchesScreen
 import jamgmilk.fuwagit.ui.screen.branches.BranchesViewModel
 import jamgmilk.fuwagit.ui.screen.history.HistoryScreen
 import jamgmilk.fuwagit.ui.screen.history.HistoryViewModel
-import jamgmilk.fuwagit.ui.screen.repo.RepoScreen
-import jamgmilk.fuwagit.ui.screen.repo.RepoViewModel
-import jamgmilk.fuwagit.ui.screen.settings.SettingsScreen
 import jamgmilk.fuwagit.ui.screen.status.StatusScreen
 import jamgmilk.fuwagit.ui.screen.status.StatusViewModel
+import jamgmilk.fuwagit.ui.screen.settings.SettingsScreen
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
@@ -32,11 +32,11 @@ sealed class Screen(val route: String, val index: Int) {
     data object Status : Screen("status", 0)
     data object History : Screen("history", 1)
     data object Branches : Screen("branches", 2)
-    data object Repo : Screen("repo", 3)
+    data object MyRepos : Screen("my_repos", 3)
     data object Settings : Screen("settings", 4)
 
     companion object {
-        val screens: List<Screen> by lazy { listOf(Status, History, Branches, Repo, Settings) }
+        val screens: List<Screen> by lazy { listOf(Status, History, Branches, MyRepos, Settings) }
         fun fromIndex(index: Int): Screen = screens.getOrNull(index) ?: Status
     }
 }
@@ -61,7 +61,7 @@ fun FuwaGitNavHost(
     val statusViewModel: StatusViewModel = hiltViewModel()
     val historyViewModel: HistoryViewModel = hiltViewModel()
     val branchesViewModel: BranchesViewModel = hiltViewModel()
-    val repoViewModel: RepoViewModel = hiltViewModel()
+    val myReposViewModel: MyReposViewModel = hiltViewModel()
     
     val currentScreenState by viewModel.currentScreenFlow.collectAsState()
     val swipeEnabled by viewModel.swipeEnabledFlow.collectAsState()
@@ -80,22 +80,18 @@ fun FuwaGitNavHost(
             }
     }
 
-    val uiState by repoViewModel.uiState.collectAsState()
+    val uiState by myReposViewModel.uiState.collectAsState()
 
     LaunchedEffect(uiState.targetPath) {
         viewModel.updateTargetPath(uiState.targetPath)
     }
 
-    LaunchedEffect(currentScreenState) {
-        val targetIndex = currentScreenState.index
-        if (pagerState.settledPage != targetIndex) {
-            focusManager.clearFocus()
-            scope.launch {
-                pagerState.animateScrollToPage(
-                    page = targetIndex,
-                    animationSpec = tween(250)
-                )
-            }
+    LaunchedEffect(currentScreen) {
+        if (pagerState.currentPage != currentScreen.index) {
+            pagerState.animateScrollToPage(
+                currentScreen.index,
+                animationSpec = tween(250)
+            )
         }
     }
 
@@ -111,28 +107,28 @@ fun FuwaGitNavHost(
         when (screen) {
             Screen.Status -> StatusScreen(
                 statusViewModel = statusViewModel,
-                repoViewModel = repoViewModel,
+                myReposViewModel = myReposViewModel,
                 modifier = Modifier.fillMaxSize()
             )
             Screen.History -> HistoryScreen(
                 historyViewModel = historyViewModel,
-                repoViewModel = repoViewModel,
+                myReposViewModel = myReposViewModel,
                 modifier = Modifier.fillMaxSize()
             )
             Screen.Branches -> BranchesScreen(
                 branchesViewModel = branchesViewModel,
-                repoViewModel = repoViewModel,
+                myReposViewModel = myReposViewModel,
                 modifier = Modifier.fillMaxSize()
             )
-            Screen.Repo -> RepoScreen(
-                repoViewModel = repoViewModel,
+            Screen.MyRepos -> MyReposScreen(
+                myReposViewModel = myReposViewModel,
                 appViewModel = viewModel,
                 modifier = Modifier.fillMaxSize(),
                 onNavigateToStatus = { onScreenChange(Screen.Status) }
             )
             Screen.Settings -> SettingsScreen(
                 viewModel = viewModel,
-                repoViewModel = repoViewModel,
+                myReposViewModel = myReposViewModel,
                 modifier = Modifier.fillMaxSize()
             )
         }

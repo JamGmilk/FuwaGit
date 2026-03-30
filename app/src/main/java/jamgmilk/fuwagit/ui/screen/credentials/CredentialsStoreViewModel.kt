@@ -4,20 +4,9 @@ import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
-import jamgmilk.fuwagit.credential.store.HttpsCredential
-import jamgmilk.fuwagit.credential.store.SshKey
-import jamgmilk.fuwagit.domain.repository.CredentialRepository
-import jamgmilk.fuwagit.domain.usecase.credential.AddHttpsCredentialUseCase
-import jamgmilk.fuwagit.domain.usecase.credential.AddSshKeyUseCase
-import jamgmilk.fuwagit.domain.usecase.credential.DeleteHttpsCredentialUseCase
-import jamgmilk.fuwagit.domain.usecase.credential.DeleteSshKeyUseCase
-import jamgmilk.fuwagit.domain.usecase.credential.GetHttpsCredentialsUseCase
-import jamgmilk.fuwagit.domain.usecase.credential.GetHttpsPasswordUseCase
-import jamgmilk.fuwagit.domain.usecase.credential.GetSshKeysUseCase
-import jamgmilk.fuwagit.domain.usecase.credential.GetSshPrivateKeyUseCase
-import jamgmilk.fuwagit.domain.usecase.credential.SetupMasterPasswordUseCase
-import jamgmilk.fuwagit.domain.usecase.credential.UnlockWithPasswordUseCase
-import jamgmilk.fuwagit.domain.usecase.credential.UpdateHttpsCredentialUseCase
+import jamgmilk.fuwagit.data.local.credential.HttpsCredential
+import jamgmilk.fuwagit.data.local.credential.SshKey
+import jamgmilk.fuwagit.domain.usecase.CredentialUseCases
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -38,31 +27,20 @@ data class CredentialsStoreUiState(
 
 @HiltViewModel
 class CredentialsStoreViewModel @Inject constructor(
-    private val credentialRepository: CredentialRepository,
-    private val setupMasterPasswordUseCase: SetupMasterPasswordUseCase,
-    private val unlockWithPasswordUseCase: UnlockWithPasswordUseCase,
-    private val getHttpsCredentialsUseCase: GetHttpsCredentialsUseCase,
-    private val addHttpsCredentialUseCase: AddHttpsCredentialUseCase,
-    private val updateHttpsCredentialUseCase: UpdateHttpsCredentialUseCase,
-    private val deleteHttpsCredentialUseCase: DeleteHttpsCredentialUseCase,
-    private val getHttpsPasswordUseCase: GetHttpsPasswordUseCase,
-    private val getSshKeysUseCase: GetSshKeysUseCase,
-    private val addSshKeyUseCase: AddSshKeyUseCase,
-    private val deleteSshKeyUseCase: DeleteSshKeyUseCase,
-    private val getSshPrivateKeyUseCase: GetSshPrivateKeyUseCase
+    private val credentialUseCases: CredentialUseCases
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(CredentialsStoreUiState())
     val uiState: StateFlow<CredentialsStoreUiState> = _uiState.asStateFlow()
 
     fun initialize() {
-        val isSet = credentialRepository.isMasterPasswordSet()
-        val isBioEnabled = credentialRepository.isBiometricEnabled()
+        val isSet = credentialUseCases.isMasterPasswordSet()
+        val isBioEnabled = credentialUseCases.isBiometricEnabled()
 
         _uiState.value = _uiState.value.copy(
             isMasterPasswordSet = isSet,
             isBiometricEnabled = isBioEnabled,
-            passwordHint = credentialRepository.getMasterPasswordHint()
+            passwordHint = credentialUseCases.getMasterPasswordHint()
         )
 
         loadCredentials()
@@ -72,7 +50,7 @@ class CredentialsStoreViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
 
-            setupMasterPasswordUseCase(password, confirmPassword, hint)
+            credentialUseCases.setupMasterPassword(password, confirmPassword, hint)
                 .onSuccess {
                     _uiState.value = _uiState.value.copy(
                         isMasterPasswordSet = true,
@@ -102,7 +80,7 @@ class CredentialsStoreViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
 
-            unlockWithPasswordUseCase(password)
+            credentialUseCases.unlockWithPassword(password)
                 .onSuccess {
                     _uiState.value = _uiState.value.copy(
                         isDecryptionUnlocked = true,
@@ -127,12 +105,12 @@ class CredentialsStoreViewModel @Inject constructor(
 
     private fun loadCredentials() {
         viewModelScope.launch {
-            getHttpsCredentialsUseCase()
+            credentialUseCases.getHttpsCredentials()
                 .onSuccess { credentials ->
                     _uiState.value = _uiState.value.copy(httpsCredentials = credentials)
                 }
 
-            getSshKeysUseCase()
+            credentialUseCases.getSshKeys()
                 .onSuccess { keys ->
                     _uiState.value = _uiState.value.copy(sshKeys = keys)
                 }
@@ -143,7 +121,7 @@ class CredentialsStoreViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)
 
-            addHttpsCredentialUseCase(host, username, password)
+            credentialUseCases.addHttpsCredential(host, username, password)
                 .onSuccess {
                     loadCredentials()
                     _uiState.value = _uiState.value.copy(isLoading = false)
@@ -161,7 +139,7 @@ class CredentialsStoreViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)
 
-            updateHttpsCredentialUseCase(uuid, host, username, password)
+            credentialUseCases.updateHttpsCredential(uuid, host, username, password)
                 .onSuccess {
                     loadCredentials()
                     _uiState.value = _uiState.value.copy(isLoading = false)
@@ -177,7 +155,7 @@ class CredentialsStoreViewModel @Inject constructor(
 
     fun deleteHttpsCredential(uuid: String) {
         viewModelScope.launch {
-            deleteHttpsCredentialUseCase(uuid)
+            credentialUseCases.deleteHttpsCredential(uuid)
                 .onSuccess {
                     loadCredentials()
                 }
@@ -188,7 +166,7 @@ class CredentialsStoreViewModel @Inject constructor(
     }
 
     suspend fun getHttpsPassword(uuid: String): String? {
-        return when (val result = getHttpsPasswordUseCase(uuid)) {
+        return when (val result = credentialUseCases.getHttpsPassword(uuid)) {
             is jamgmilk.fuwagit.domain.model.AppResult.Success -> result.data
             is jamgmilk.fuwagit.domain.model.AppResult.Error -> null
         }
@@ -205,7 +183,7 @@ class CredentialsStoreViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
 
-            addSshKeyUseCase(
+            credentialUseCases.addSshKey(
                 name = name,
                 type = type,
                 publicKey = publicKey,
@@ -226,7 +204,7 @@ class CredentialsStoreViewModel @Inject constructor(
 
     fun deleteSshKey(uuid: String) {
         viewModelScope.launch {
-            deleteSshKeyUseCase(uuid)
+            credentialUseCases.deleteSshKey(uuid)
                 .onSuccess {
                     loadCredentials()
                 }
@@ -237,18 +215,18 @@ class CredentialsStoreViewModel @Inject constructor(
     }
 
     suspend fun getSshPrivateKey(uuid: String): String? {
-        return when (val result = getSshPrivateKeyUseCase(uuid)) {
+        return when (val result = credentialUseCases.getSshPrivateKey(uuid)) {
             is jamgmilk.fuwagit.domain.model.AppResult.Success -> result.data
             is jamgmilk.fuwagit.domain.model.AppResult.Error -> null
         }
     }
 
     fun isDecryptionUnlocked(): Boolean {
-        return credentialRepository.isUnlocked()
+        return credentialUseCases.isUnlocked()
     }
 
     fun lock() {
-        credentialRepository.lock()
+        credentialUseCases.lock()
         _uiState.value = _uiState.value.copy(isDecryptionUnlocked = false)
     }
 }

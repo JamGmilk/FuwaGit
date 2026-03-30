@@ -76,7 +76,7 @@ fun AppRoot(viewModel: AppViewModel, modifier: Modifier = Modifier) {
         Screen.Status,
         Screen.History,
         Screen.Branches,
-        Screen.Repo,
+        Screen.MyRepos,
         Screen.Settings
     )
 
@@ -143,7 +143,7 @@ private fun PortraitLayout(
                         Screen.Status -> Icon(Icons.AutoMirrored.Filled.List, contentDescription = "Status")
                         Screen.History -> Icon(Icons.Default.History, contentDescription = "History")
                         Screen.Branches -> Icon(Icons.Default.AccountTree, contentDescription = "Branches")
-                        Screen.Repo -> Icon(Icons.Default.Folder, contentDescription = "Repo")
+                        Screen.MyRepos -> Icon(Icons.Default.Folder, contentDescription = "My Repos")
                         Screen.Settings -> Icon(Icons.Default.Settings, contentDescription = "Settings")
                     }
                 },
@@ -153,7 +153,7 @@ private fun PortraitLayout(
                             Screen.Status -> "Status"
                             Screen.History -> "History"
                             Screen.Branches -> "Branches"
-                            Screen.Repo -> "Repo"
+                            Screen.MyRepos -> "My Repos"
                             Screen.Settings -> "Settings"
                         }
                     )
@@ -187,7 +187,7 @@ private fun LandscapeLayout(
                             Screen.Status -> Icon(Icons.AutoMirrored.Filled.List, contentDescription = "Status")
                             Screen.History -> Icon(Icons.Default.History, contentDescription = "History")
                             Screen.Branches -> Icon(Icons.Default.AccountTree, contentDescription = "Branches")
-                            Screen.Repo -> Icon(Icons.Default.Folder, contentDescription = "Repo")
+                            Screen.MyRepos -> Icon(Icons.Default.Folder, contentDescription = "My Repos")
                             Screen.Settings -> Icon(Icons.Default.Settings, contentDescription = "Settings")
                         }
                     },
@@ -197,7 +197,7 @@ private fun LandscapeLayout(
                                 Screen.Status -> "Status"
                                 Screen.History -> "History"
                                 Screen.Branches -> "Branches"
-                                Screen.Repo -> "Repo"
+                                Screen.MyRepos -> "My Repos"
                                 Screen.Settings -> "Settings"
                             }
                         )

@@ -4,35 +4,13 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import jamgmilk.fuwagit.data.source.RepoPathUtils
-import jamgmilk.fuwagit.domain.model.GitBranch
-import jamgmilk.fuwagit.domain.model.GitFileStatus
-import jamgmilk.fuwagit.domain.model.GitRemote
-import jamgmilk.fuwagit.domain.model.GitStash
-import jamgmilk.fuwagit.domain.model.GitTag
-import jamgmilk.fuwagit.domain.usecase.git.ApplyStashUseCase
-import jamgmilk.fuwagit.domain.usecase.git.CheckRepoStatusUseCase
-import jamgmilk.fuwagit.domain.usecase.git.CleanUseCase
-import jamgmilk.fuwagit.domain.usecase.git.CommitChangesUseCase
-import jamgmilk.fuwagit.domain.usecase.git.CreateTagUseCase
-import jamgmilk.fuwagit.domain.usecase.git.DeleteRemoteUseCase
-import jamgmilk.fuwagit.domain.usecase.git.DeleteTagUseCase
-import jamgmilk.fuwagit.domain.usecase.git.DiscardChangesUseCase
-import jamgmilk.fuwagit.domain.usecase.git.DropStashUseCase
-import jamgmilk.fuwagit.domain.usecase.git.FetchUseCase
-import jamgmilk.fuwagit.domain.usecase.git.GetBranchesUseCase
-import jamgmilk.fuwagit.domain.usecase.git.GetRemotesUseCase
-import jamgmilk.fuwagit.domain.usecase.git.GetTagsUseCase
-import jamgmilk.fuwagit.domain.usecase.git.GetWorkspaceStatusUseCase
-import jamgmilk.fuwagit.domain.usecase.git.InitRepoUseCase
-import jamgmilk.fuwagit.domain.usecase.git.PullUseCase
-import jamgmilk.fuwagit.domain.usecase.git.PushUseCase
-import jamgmilk.fuwagit.domain.usecase.git.RenameBranchUseCase
-import jamgmilk.fuwagit.domain.usecase.git.StageAllUseCase
-import jamgmilk.fuwagit.domain.usecase.git.StageFileUseCase
-import jamgmilk.fuwagit.domain.usecase.git.StashChangesUseCase
-import jamgmilk.fuwagit.domain.usecase.git.StashListUseCase
-import jamgmilk.fuwagit.domain.usecase.git.UnstageAllUseCase
-import jamgmilk.fuwagit.domain.usecase.git.UnstageFileUseCase
+import jamgmilk.fuwagit.domain.model.git.GitBranch
+import jamgmilk.fuwagit.domain.model.git.GitFileStatus
+import jamgmilk.fuwagit.domain.model.git.GitRemote
+import jamgmilk.fuwagit.domain.model.git.GitStash
+import jamgmilk.fuwagit.domain.model.git.GitTag
+import jamgmilk.fuwagit.domain.usecase.GitOperationUseCases
+import jamgmilk.fuwagit.domain.usecase.GitQueryUseCases
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -65,30 +43,8 @@ data class StatusUiState(
 
 @HiltViewModel
 class StatusViewModel @Inject constructor(
-    private val getWorkspaceStatusUseCase: GetWorkspaceStatusUseCase,
-    private val getBranchesUseCase: GetBranchesUseCase,
-    private val stageAllUseCase: StageAllUseCase,
-    private val unstageAllUseCase: UnstageAllUseCase,
-    private val stageFileUseCase: StageFileUseCase,
-    private val unstageFileUseCase: UnstageFileUseCase,
-    private val commitChangesUseCase: CommitChangesUseCase,
-    private val pullUseCase: PullUseCase,
-    private val pushUseCase: PushUseCase,
-    private val fetchUseCase: FetchUseCase,
-    private val initRepoUseCase: InitRepoUseCase,
-    private val discardChangesUseCase: DiscardChangesUseCase,
-    private val checkRepoStatusUseCase: CheckRepoStatusUseCase,
-    private val stashListUseCase: StashListUseCase,
-    private val stashChangesUseCase: StashChangesUseCase,
-    private val applyStashUseCase: ApplyStashUseCase,
-    private val dropStashUseCase: DropStashUseCase,
-    private val getTagsUseCase: GetTagsUseCase,
-    private val createTagUseCase: CreateTagUseCase,
-    private val deleteTagUseCase: DeleteTagUseCase,
-    private val getRemotesUseCase: GetRemotesUseCase,
-    private val deleteRemoteUseCase: DeleteRemoteUseCase,
-    private val renameBranchUseCase: RenameBranchUseCase,
-    private val cleanUseCase: CleanUseCase
+    private val gitQueryUseCases: GitQueryUseCases,
+    private val gitOperationUseCases: GitOperationUseCases
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(StatusUiState())
@@ -131,26 +87,14 @@ class StatusViewModel @Inject constructor(
         }
 
         viewModelScope.launch {
-            withContext(Dispatchers.IO) {
-                checkRepoStatusUseCase(path)
-            }.fold(
-                onSuccess = { status ->
-                    _uiState.update { 
-                        it.copy(
-                            isGitRepo = status.isGitRepo,
-                            statusMessage = status.message
-                        )
-                    }
-                },
-                onFailure = { e ->
-                    _uiState.update { 
-                        it.copy(
-                            isGitRepo = false,
-                            statusMessage = "Path: ${RepoPathUtils.shortDisplayPath(path)}\nError: ${e.message}"
-                        )
-                    }
-                }
-            )
+            gitQueryUseCases.hasGitDir(path)
+            val isGitRepo = gitQueryUseCases.hasGitDir(path)
+            _uiState.update { 
+                it.copy(
+                    isGitRepo = isGitRepo,
+                    statusMessage = if (isGitRepo) "Git repository" else "Not a git repository"
+                )
+            }
         }
     }
 
@@ -160,8 +104,8 @@ class StatusViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
             
-            val filesResult = withContext(Dispatchers.IO) { getWorkspaceStatusUseCase(path) }
-            val branchesResult = withContext(Dispatchers.IO) { getBranchesUseCase(path) }
+            val filesResult = withContext(Dispatchers.IO) { gitQueryUseCases.getDetailedStatus(path) }
+            val branchesResult = withContext(Dispatchers.IO) { gitQueryUseCases.getBranches(path) }
             
             filesResult.fold(
                 onSuccess = { files ->
@@ -193,7 +137,7 @@ class StatusViewModel @Inject constructor(
         val path = currentRepoPath ?: return
 
         viewModelScope.launch {
-            stageAllUseCase(path).fold(
+            gitOperationUseCases.stageAll(path).fold(
                 onSuccess = { result ->
                     appendTerminalLog("git add -A", result)
                     refreshWorkspace()
@@ -209,7 +153,7 @@ class StatusViewModel @Inject constructor(
         val path = currentRepoPath ?: return
 
         viewModelScope.launch {
-            unstageAllUseCase(path).fold(
+            gitOperationUseCases.unstageAll(path).fold(
                 onSuccess = { result ->
                     appendTerminalLog("git reset", result)
                     refreshWorkspace()
@@ -225,7 +169,7 @@ class StatusViewModel @Inject constructor(
         val path = currentRepoPath ?: return
 
         viewModelScope.launch {
-            stageFileUseCase(path, filePath).fold(
+            gitOperationUseCases.stageFile(path, filePath).fold(
                 onSuccess = { refreshWorkspace() },
                 onFailure = { e ->
                     appendTerminalLog("git add $filePath", "Error: ${e.message}")
@@ -238,7 +182,7 @@ class StatusViewModel @Inject constructor(
         val path = currentRepoPath ?: return
 
         viewModelScope.launch {
-            unstageFileUseCase(path, filePath).fold(
+            gitOperationUseCases.unstageFile(path, filePath).fold(
                 onSuccess = { refreshWorkspace() },
                 onFailure = { e ->
                     appendTerminalLog("git reset $filePath", "Error: ${e.message}")
@@ -251,7 +195,7 @@ class StatusViewModel @Inject constructor(
         val path = currentRepoPath ?: return
 
         viewModelScope.launch {
-            discardChangesUseCase(path, filePath).fold(
+            gitOperationUseCases.discardChanges(path, filePath).fold(
                 onSuccess = { refreshWorkspace() },
                 onFailure = { e ->
                     appendTerminalLog("git checkout -- $filePath", "Error: ${e.message}")
@@ -264,7 +208,7 @@ class StatusViewModel @Inject constructor(
         val path = currentRepoPath ?: return
 
         viewModelScope.launch {
-            commitChangesUseCase(path, message).fold(
+            gitOperationUseCases.commit(path, message).fold(
                 onSuccess = { result ->
                     appendTerminalLog("git commit -m \"${message.trim()}\"", result)
                     refreshWorkspace()
@@ -281,9 +225,9 @@ class StatusViewModel @Inject constructor(
 
         viewModelScope.launch {
             appendTerminalLog("git pull", "Attempting pull. Remote auth may be required")
-            pullUseCase(path).fold(
+            gitOperationUseCases.pull(path).fold(
                 onSuccess = { result ->
-                    appendTerminalLog("git pull", result)
+                    appendTerminalLog("git pull", result.toString())
                     refreshWorkspace()
                 },
                 onFailure = { e ->
@@ -298,7 +242,7 @@ class StatusViewModel @Inject constructor(
 
         viewModelScope.launch {
             appendTerminalLog("git push", "Attempting push. Remote auth may be required")
-            pushUseCase(path).fold(
+            gitOperationUseCases.push(path).fold(
                 onSuccess = { result ->
                     appendTerminalLog("git push", result)
                 },
@@ -314,7 +258,7 @@ class StatusViewModel @Inject constructor(
 
         viewModelScope.launch {
             appendTerminalLog("git fetch", "Fetching from remote...")
-            fetchUseCase(path).fold(
+            gitOperationUseCases.fetch(path).fold(
                 onSuccess = { result ->
                     appendTerminalLog("git fetch", result)
                     refreshAll()
@@ -336,7 +280,7 @@ class StatusViewModel @Inject constructor(
         val path = currentRepoPath ?: return
 
         viewModelScope.launch {
-            initRepoUseCase(path).fold(
+            gitOperationUseCases.initRepo(path).fold(
                 onSuccess = { result ->
                     appendTerminalLog("git init", result)
                     checkRepoStatus()
@@ -357,7 +301,7 @@ class StatusViewModel @Inject constructor(
 
         viewModelScope.launch {
             withContext(Dispatchers.IO) {
-                stashListUseCase(path)
+                gitQueryUseCases.getStashList(path)
             }.fold(
                 onSuccess = { stashes ->
                     _uiState.update { it.copy(stashList = stashes) }
@@ -373,7 +317,7 @@ class StatusViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
             withContext(Dispatchers.IO) {
-                stashChangesUseCase(path, message)
+                gitOperationUseCases.stashChanges(path, message)
             }.fold(
                 onSuccess = { result ->
                     appendTerminalLog("git stash", result)
@@ -395,7 +339,7 @@ class StatusViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
             withContext(Dispatchers.IO) {
-                applyStashUseCase(path, stashIndex, dropAfterApply)
+                gitOperationUseCases.applyStash(path, stashIndex, dropAfterApply)
             }.fold(
                 onSuccess = { result ->
                     appendTerminalLog("git stash pop", result)
@@ -417,7 +361,7 @@ class StatusViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
             withContext(Dispatchers.IO) {
-                dropStashUseCase(path, stashIndex)
+                gitOperationUseCases.dropStash(path, stashIndex)
             }.fold(
                 onSuccess = { result ->
                     appendTerminalLog("git stash drop", result)
@@ -437,7 +381,7 @@ class StatusViewModel @Inject constructor(
 
         viewModelScope.launch {
             withContext(Dispatchers.IO) {
-                getTagsUseCase(path)
+                gitQueryUseCases.getTags(path)
             }.fold(
                 onSuccess = { tags ->
                     _uiState.update { it.copy(tagList = tags) }
@@ -453,7 +397,7 @@ class StatusViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
             withContext(Dispatchers.IO) {
-                createTagUseCase(path, tagName, message)
+                gitOperationUseCases.createTag(path, tagName, message)
             }.fold(
                 onSuccess = { result ->
                     appendTerminalLog("git tag", result)
@@ -474,7 +418,7 @@ class StatusViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
             withContext(Dispatchers.IO) {
-                deleteTagUseCase(path, tagName)
+                gitOperationUseCases.deleteTag(path, tagName)
             }.fold(
                 onSuccess = { result ->
                     appendTerminalLog("git tag -d", result)
@@ -494,7 +438,7 @@ class StatusViewModel @Inject constructor(
 
         viewModelScope.launch {
             withContext(Dispatchers.IO) {
-                getRemotesUseCase(path)
+                gitQueryUseCases.getRemotes(path)
             }.fold(
                 onSuccess = { remotes ->
                     _uiState.update { it.copy(remoteList = remotes) }
@@ -510,7 +454,7 @@ class StatusViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
             withContext(Dispatchers.IO) {
-                deleteRemoteUseCase(path, remoteName)
+                gitOperationUseCases.deleteRemote(path, remoteName)
             }.fold(
                 onSuccess = { result ->
                     appendTerminalLog("git remote remove", result)
@@ -531,7 +475,7 @@ class StatusViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
             withContext(Dispatchers.IO) {
-                renameBranchUseCase(path, oldName, newName)
+                gitOperationUseCases.renameBranch(path, oldName, newName)
             }.fold(
                 onSuccess = { result ->
                     appendTerminalLog("git branch -m", result)
@@ -552,7 +496,7 @@ class StatusViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
             withContext(Dispatchers.IO) {
-                cleanUseCase(path, dryRun)
+                gitOperationUseCases.clean(path, dryRun)
             }.fold(
                 onSuccess = { result ->
                     appendTerminalLog("git clean", result)

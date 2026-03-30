@@ -1,16 +1,16 @@
 package jamgmilk.fuwagit.data.repository
 
 import jamgmilk.fuwagit.data.source.JGitDataSource
-import jamgmilk.fuwagit.domain.model.CloneCredential
-import jamgmilk.fuwagit.domain.model.GitBranch
-import jamgmilk.fuwagit.domain.model.GitChangeType
-import jamgmilk.fuwagit.domain.model.GitCommit
-import jamgmilk.fuwagit.domain.model.GitFileStatus
-import jamgmilk.fuwagit.domain.model.GitRepoStatus
-import jamgmilk.fuwagit.domain.model.GitRemote
-import jamgmilk.fuwagit.domain.model.GitStash
-import jamgmilk.fuwagit.domain.model.GitTag
-import jamgmilk.fuwagit.domain.model.PullResult
+import jamgmilk.fuwagit.domain.model.credential.CloneCredential
+import jamgmilk.fuwagit.domain.model.git.GitBranch
+import jamgmilk.fuwagit.domain.model.git.GitChangeType
+import jamgmilk.fuwagit.domain.model.git.GitCommit
+import jamgmilk.fuwagit.domain.model.git.GitFileStatus
+import jamgmilk.fuwagit.domain.model.git.GitRepoStatus
+import jamgmilk.fuwagit.domain.model.git.GitRemote
+import jamgmilk.fuwagit.domain.model.git.GitStash
+import jamgmilk.fuwagit.domain.model.git.GitTag
+import jamgmilk.fuwagit.domain.model.git.PullResult
 import jamgmilk.fuwagit.domain.repository.GitRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext

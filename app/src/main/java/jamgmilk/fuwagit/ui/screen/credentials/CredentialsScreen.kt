@@ -83,9 +83,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.fragment.app.FragmentActivity
-import jamgmilk.fuwagit.credential.store.HttpsCredential
-import jamgmilk.fuwagit.credential.store.SshKey
-import jamgmilk.fuwagit.credential.store.extractCommentFromPublicKey
+import jamgmilk.fuwagit.data.local.credential.HttpsCredential
+import jamgmilk.fuwagit.data.local.credential.SshKey
+import jamgmilk.fuwagit.data.local.credential.extractCommentFromPublicKey
 import jamgmilk.fuwagit.ui.components.SubSettingsTemplate
 import jamgmilk.fuwagit.ui.theme.FuwaGitThemeExtras
 import jamgmilk.fuwagit.ui.theme.Sakura80

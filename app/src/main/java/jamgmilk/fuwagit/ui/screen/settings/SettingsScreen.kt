@@ -71,13 +71,13 @@ import jamgmilk.fuwagit.ui.navigation.Screen
 import jamgmilk.fuwagit.ui.screen.credentials.CredentialsScreen
 import jamgmilk.fuwagit.ui.screen.credentials.CredentialsStoreViewModel
 import jamgmilk.fuwagit.ui.screen.permissions.PermissionsScreen
-import jamgmilk.fuwagit.ui.screen.repo.RepoViewModel
+import jamgmilk.fuwagit.ui.screen.myrepos.MyReposViewModel
 import jamgmilk.fuwagit.ui.theme.FuwaGitThemeExtras
 
 @Composable
 fun SettingsScreen(
     viewModel: AppViewModel,
-    repoViewModel: RepoViewModel,
+    myReposViewModel: MyReposViewModel,
     modifier: Modifier = Modifier
 ) {
     val colors = MaterialTheme.colorScheme
@@ -132,7 +132,7 @@ fun SettingsScreen(
             "permissions" -> {
                 BackHandler { showPermissions = false }
                 PermissionsScreen(
-                    repoViewModel = repoViewModel,
+                    myReposViewModel = myReposViewModel,
                     onBack = { showPermissions = false },
                     modifier = modifier
                 )

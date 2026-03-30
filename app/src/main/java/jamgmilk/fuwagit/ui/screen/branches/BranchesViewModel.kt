@@ -3,14 +3,9 @@ package jamgmilk.fuwagit.ui.screen.branches
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
-import jamgmilk.fuwagit.domain.model.GitBranch
-import jamgmilk.fuwagit.domain.usecase.git.CheckoutBranchUseCase
-import jamgmilk.fuwagit.domain.usecase.git.CreateBranchUseCase
-import jamgmilk.fuwagit.domain.usecase.git.DeleteBranchUseCase
-import jamgmilk.fuwagit.domain.usecase.git.GetBranchesUseCase
-import jamgmilk.fuwagit.domain.usecase.git.MergeBranchUseCase
-import jamgmilk.fuwagit.domain.usecase.git.RebaseBranchUseCase
-import jamgmilk.fuwagit.domain.usecase.git.RenameBranchUseCase
+import jamgmilk.fuwagit.domain.model.git.GitBranch
+import jamgmilk.fuwagit.domain.usecase.GitOperationUseCases
+import jamgmilk.fuwagit.domain.usecase.GitQueryUseCases
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -33,13 +28,8 @@ data class BranchesUiState(
 
 @HiltViewModel
 class BranchesViewModel @Inject constructor(
-    private val getBranchesUseCase: GetBranchesUseCase,
-    private val checkoutBranchUseCase: CheckoutBranchUseCase,
-    private val createBranchUseCase: CreateBranchUseCase,
-    private val mergeBranchUseCase: MergeBranchUseCase,
-    private val rebaseBranchUseCase: RebaseBranchUseCase,
-    private val deleteBranchUseCase: DeleteBranchUseCase,
-    private val renameBranchUseCase: RenameBranchUseCase
+    private val gitQueryUseCases: GitQueryUseCases,
+    private val gitOperationUseCases: GitOperationUseCases
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(BranchesUiState())
@@ -73,7 +63,7 @@ class BranchesViewModel @Inject constructor(
 
         viewModelScope.launch(Dispatchers.IO) {
             _uiState.update { it.copy(isLoading = true) }
-            getBranchesUseCase(path)
+            gitQueryUseCases.getBranches(path)
                 .onSuccess { branches ->
                     val local = branches.filter { !it.isRemote }
                     val remote = branches.filter { it.isRemote }
@@ -105,7 +95,7 @@ class BranchesViewModel @Inject constructor(
         val path = currentRepoPath ?: return
 
         viewModelScope.launch {
-            checkoutBranchUseCase(path, name)
+            gitOperationUseCases.checkoutBranch(path, name)
                 .onSuccess {
                     loadBranches()
                 }
@@ -119,7 +109,7 @@ class BranchesViewModel @Inject constructor(
         val path = currentRepoPath ?: return
 
         viewModelScope.launch {
-            createBranchUseCase(path, name)
+            gitOperationUseCases.createBranch(path, name)
                 .onSuccess {
                     loadBranches()
                 }
@@ -133,7 +123,7 @@ class BranchesViewModel @Inject constructor(
         val path = currentRepoPath ?: return
 
         viewModelScope.launch {
-            deleteBranchUseCase(path, name, force)
+            gitOperationUseCases.deleteBranch(path, name, force)
                 .onSuccess {
                     loadBranches()
                 }
@@ -147,7 +137,7 @@ class BranchesViewModel @Inject constructor(
         val path = currentRepoPath ?: return
 
         viewModelScope.launch {
-            mergeBranchUseCase(path, name)
+            gitOperationUseCases.mergeBranch(path, name)
                 .onSuccess {
                     loadBranches()
                 }
@@ -161,7 +151,7 @@ class BranchesViewModel @Inject constructor(
         val path = currentRepoPath ?: return
 
         viewModelScope.launch {
-            rebaseBranchUseCase(path, name)
+            gitOperationUseCases.rebaseBranch(path, name)
                 .onSuccess {
                     loadBranches()
                 }
@@ -175,7 +165,7 @@ class BranchesViewModel @Inject constructor(
         val path = currentRepoPath ?: return
 
         viewModelScope.launch {
-            renameBranchUseCase(path, oldName, newName)
+            gitOperationUseCases.renameBranch(path, oldName, newName)
                 .onSuccess {
                     loadBranches()
                 }
