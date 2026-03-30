@@ -164,58 +164,6 @@ class GitOperationUseCases @Inject constructor(
         return repository.renameBranch(repoPath, oldName, newName)
     }
 
-    suspend fun createTag(
-        repoPath: String,
-        tagName: String,
-        message: String? = null,
-        commitHash: String? = null
-    ): Result<String> {
-        if (repoPath.isBlank()) {
-            return Result.failure(IllegalArgumentException("Repository path cannot be empty"))
-        }
-        if (tagName.isBlank()) {
-            return Result.failure(IllegalArgumentException("Tag name cannot be empty"))
-        }
-        return repository.createTag(repoPath, tagName, message, commitHash)
-    }
-
-    suspend fun deleteTag(repoPath: String, tagName: String): Result<String> {
-        if (repoPath.isBlank()) {
-            return Result.failure(IllegalArgumentException("Repository path cannot be empty"))
-        }
-        if (tagName.isBlank()) {
-            return Result.failure(IllegalArgumentException("Tag name cannot be empty"))
-        }
-        return repository.deleteTag(repoPath, tagName)
-    }
-
-    suspend fun stashChanges(repoPath: String, message: String? = null): Result<String> {
-        if (repoPath.isBlank()) {
-            return Result.failure(IllegalArgumentException("Repository path cannot be empty"))
-        }
-        return repository.stashChanges(repoPath, message)
-    }
-
-    suspend fun applyStash(repoPath: String, stashIndex: Int, dropAfterApply: Boolean = false): Result<String> {
-        if (repoPath.isBlank()) {
-            return Result.failure(IllegalArgumentException("Repository path cannot be empty"))
-        }
-        if (stashIndex < 0) {
-            return Result.failure(IllegalArgumentException("Stash index cannot be negative"))
-        }
-        return repository.applyStash(repoPath, stashIndex, dropAfterApply)
-    }
-
-    suspend fun dropStash(repoPath: String, stashIndex: Int): Result<String> {
-        if (repoPath.isBlank()) {
-            return Result.failure(IllegalArgumentException("Repository path cannot be empty"))
-        }
-        if (stashIndex < 0) {
-            return Result.failure(IllegalArgumentException("Stash index cannot be negative"))
-        }
-        return repository.dropStash(repoPath, stashIndex)
-    }
-
     suspend fun configureRemote(localPath: String, name: String, url: String): Result<String> {
         if (localPath.isBlank()) {
             return Result.failure(IllegalArgumentException("Local path cannot be empty"))
@@ -244,25 +192,5 @@ class GitOperationUseCases @Inject constructor(
             return Result.failure(IllegalArgumentException("Repository path cannot be empty"))
         }
         return repository.clean(repoPath, dryRun)
-    }
-
-    suspend fun revertCommit(repoPath: String, commitHash: String): Result<String> {
-        if (repoPath.isBlank()) {
-            return Result.failure(IllegalArgumentException("Repository path cannot be empty"))
-        }
-        if (commitHash.isBlank()) {
-            return Result.failure(IllegalArgumentException("Commit hash cannot be empty"))
-        }
-        return repository.revertCommit(repoPath, commitHash)
-    }
-
-    suspend fun cherryPick(repoPath: String, commitHash: String): Result<String> {
-        if (repoPath.isBlank()) {
-            return Result.failure(IllegalArgumentException("Repository path cannot be empty"))
-        }
-        if (commitHash.isBlank()) {
-            return Result.failure(IllegalArgumentException("Commit hash cannot be empty"))
-        }
-        return repository.cherryPick(repoPath, commitHash)
     }
 }

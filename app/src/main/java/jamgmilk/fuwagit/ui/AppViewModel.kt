@@ -1,35 +1,33 @@
 package jamgmilk.fuwagit.ui
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import dagger.hilt.android.lifecycle.HiltViewModel
+import jamgmilk.fuwagit.domain.CurrentRepoInfo
+import jamgmilk.fuwagit.domain.CurrentRepoManager
+import jamgmilk.fuwagit.domain.usecase.CurrentRepoUseCase
 import jamgmilk.fuwagit.ui.navigation.Screen
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
+import javax.inject.Inject
 
-enum class AppPage {
-    Status,
-    History,
-    Branches,
-    Repo,
-    Settings
-}
-
-sealed class RootStatus {
-    data object Idle : RootStatus()
-    data object Checking : RootStatus()
-    data object Granted : RootStatus()
-    data object Denied : RootStatus()
-}
-
-class AppViewModel : ViewModel() {
-    private val _currentPage = MutableStateFlow(AppPage.Status)
-    val currentPage: StateFlow<AppPage> = _currentPage.asStateFlow()
+@HiltViewModel
+class AppViewModel @Inject constructor(
+    private val currentRepoUseCase: CurrentRepoUseCase,
+    private val currentRepoManager: CurrentRepoManager
+) : ViewModel() {
 
     private val _currentScreen = MutableStateFlow<Screen>(Screen.Status)
     val currentScreenFlow: StateFlow<Screen> = _currentScreen.asStateFlow()
 
     private val _swipeEnabled = MutableStateFlow(true)
     val swipeEnabledFlow: StateFlow<Boolean> = _swipeEnabled.asStateFlow()
+
+    val currentRepoInfo: StateFlow<CurrentRepoInfo> = currentRepoManager.currentRepoInfo
+
+    private var storageInitialized = false
 
     var swipeEnabled: Boolean
         get() = _swipeEnabled.value
@@ -39,17 +37,20 @@ class AppViewModel : ViewModel() {
         get() = _currentScreen.value
         set(value) { _currentScreen.value = value }
 
-    private val _targetPath = MutableStateFlow<String?>(null)
-    val targetPath: StateFlow<String?> = _targetPath.asStateFlow()
-
-    private val _rootStatus = MutableStateFlow<RootStatus>(RootStatus.Idle)
-    val rootStatus: StateFlow<RootStatus> = _rootStatus.asStateFlow()
-
-    fun switchPage(page: AppPage) {
-        _currentPage.value = page
+    init {
+        viewModelScope.launch {
+            currentRepoManager.validationRequest.collect { path ->
+                currentRepoUseCase.validateAndSetCurrentRepo(path)
+            }
+        }
     }
 
-    fun updateTargetPath(path: String?) {
-        _targetPath.value = path
+    fun initializeStorage() {
+        if (storageInitialized) return
+        storageInitialized = true
+
+        viewModelScope.launch {
+            currentRepoUseCase.initializeFromStorage()
+        }
     }
 }

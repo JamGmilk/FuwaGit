@@ -52,7 +52,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
-import jamgmilk.fuwagit.ui.screen.myrepos.MyReposViewModel
+
 import jamgmilk.fuwagit.ui.components.SubSettingsTemplate
 import jamgmilk.fuwagit.ui.theme.FuwaGitThemeExtras
 import jamgmilk.fuwagit.ui.theme.Sakura50
@@ -61,14 +61,13 @@ import jamgmilk.fuwagit.ui.theme.Sakura90
 
 @Composable
 fun PermissionsScreen(
-    myReposViewModel: MyReposViewModel,
+    savedReposCount: Int,
     onBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
     val colors = MaterialTheme.colorScheme
     val uiColors = FuwaGitThemeExtras.colors
-    val uiState by myReposViewModel.uiState.collectAsState()
 
     val requestPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission(),
@@ -93,7 +92,7 @@ fun PermissionsScreen(
         )
 
         ScopedStorageCard(
-            savedReposCount = myReposViewModel.savedRepos.value.size
+            savedReposCount = savedReposCount
         )
     }
 }

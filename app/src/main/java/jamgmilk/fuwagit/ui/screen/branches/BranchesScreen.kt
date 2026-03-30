@@ -1,8 +1,5 @@
 package jamgmilk.fuwagit.ui.screen.branches
 
-import jamgmilk.fuwagit.ui.screen.myrepos.MyReposViewModel
-import jamgmilk.fuwagit.ui.screen.status.RenameBranchDialog
-
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -36,6 +33,7 @@ import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.outlined.AccountTree
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -45,6 +43,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -69,11 +68,9 @@ import jamgmilk.fuwagit.ui.theme.FuwaGitThemeExtras
 @Composable
 fun BranchesScreen(
     branchesViewModel: BranchesViewModel,
-    myReposViewModel: MyReposViewModel,
     modifier: Modifier = Modifier
 ) {
     val uiState by branchesViewModel.uiState.collectAsState()
-    val repoUiState by myReposViewModel.uiState.collectAsState()
     val branches = uiState.branches
     val local = uiState.localBranches
     val remote = uiState.remoteBranches
@@ -84,10 +81,6 @@ fun BranchesScreen(
     var showCreateDialog by remember { mutableStateOf(false) }
     var showRenameDialog by remember { mutableStateOf(false) }
     var branchToRename by remember { mutableStateOf<String?>(null) }
-
-    LaunchedEffect(repoUiState.targetPath) {
-        branchesViewModel.setRepoPath(repoUiState.targetPath)
-    }
 
     ScreenTemplate(
         title = "Branches",
@@ -163,17 +156,89 @@ fun BranchesScreen(
     }
 
     if (showRenameDialog && branchToRename != null) {
-        RenameBranchDialog(
-            currentBranch = branchToRename!!,
-            onDismiss = {
+        var newName by remember { mutableStateOf(branchToRename!!) }
+
+        AlertDialog(
+            onDismissRequest = {
                 showRenameDialog = false
                 branchToRename = null
             },
-            onRename = { oldName, newName ->
-                branchesViewModel.renameBranch(oldName, newName)
-                showRenameDialog = false
-                branchToRename = null
-            }
+            icon = {
+                Box(
+                    modifier = Modifier
+                        .size(56.dp)
+                        .background(Color(0xFFFF5722).copy(alpha = 0.15f), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        Icons.Default.Edit,
+                        contentDescription = null,
+                        tint = Color(0xFFFF5722),
+                        modifier = Modifier.size(28.dp)
+                    )
+                }
+            },
+            title = {
+                Text(
+                    text = "Rename Branch",
+                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.titleLarge
+                )
+            },
+            text = {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Text(
+                        text = "Rename branch \"$branchToRename\" to a new name.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    OutlinedTextField(
+                        value = newName,
+                        onValueChange = { newName = it },
+                        label = { Text("New branch name") },
+                        placeholder = { Text("Enter new name") },
+                        singleLine = true,
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = Color(0xFFFF5722),
+                            focusedLabelColor = Color(0xFFFF5722)
+                        )
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        branchesViewModel.renameBranch(branchToRename!!, newName)
+                        showRenameDialog = false
+                        branchToRename = null
+                    },
+                    enabled = newName.isNotBlank() && newName != branchToRename,
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF5722)),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Icon(
+                        Icons.Default.Edit,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    Text("Rename")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    showRenameDialog = false
+                    branchToRename = null
+                }) {
+                    Text("Cancel")
+                }
+            },
+            shape = RoundedCornerShape(24.dp)
         )
     }
 }

@@ -7,14 +7,15 @@ import jamgmilk.fuwagit.domain.model.git.GitChangeType
 import jamgmilk.fuwagit.domain.model.git.GitCommit
 import jamgmilk.fuwagit.domain.model.git.GitFileStatus
 import jamgmilk.fuwagit.domain.model.git.GitRemote
-import jamgmilk.fuwagit.domain.model.git.GitStash
-import jamgmilk.fuwagit.domain.model.git.GitTag
 import org.eclipse.jgit.api.Git
 import org.eclipse.jgit.api.ListBranchCommand
+import org.eclipse.jgit.api.Status
 import org.eclipse.jgit.api.errors.JGitInternalException
 import org.eclipse.jgit.errors.LockFailedException
 import org.eclipse.jgit.errors.RepositoryNotFoundException
 import org.eclipse.jgit.lib.Repository
+import org.eclipse.jgit.revwalk.RevCommit
+import org.eclipse.jgit.revwalk.RevWalk
 import java.io.File
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -28,11 +29,13 @@ data class GitRepoStatus(
 
 @Singleton
 class JGitDataSource @Inject constructor() {
-    
+
     private val gitMutex = Mutex()
-    
+
     companion object {
         private const val TAG = "JGitDataSource"
+        private const val DEFAULT_LOG_LIMIT = 100
+        private const val MAX_LOG_LIMIT = 1000
     }
 
     suspend fun <T> withGitLock(block: suspend () -> T): T = gitMutex.withLock {
@@ -61,6 +64,17 @@ class JGitDataSource @Inject constructor() {
         } catch (e: Exception) {
             Log.e(TAG, "Unexpected error during git operation", e)
             throw e
+        }
+    }
+
+    private fun <T> runGitWithRevWalk(dir: File, block: (Git, RevWalk) -> T): T {
+        val git = Git.open(dir)
+        val revWalk = RevWalk(git.repository)
+        return try {
+            block(git, revWalk)
+        } finally {
+            revWalk.close()
+            git.close()
         }
     }
 
@@ -99,16 +113,7 @@ class JGitDataSource @Inject constructor() {
         try {
             runGit(dir) { git ->
                 val status = git.status().call()
-
-                status.added.forEach { result.add(GitFileStatus(it, File(it).name, true, GitChangeType.Added)) }
-                status.changed.forEach { result.add(GitFileStatus(it, File(it).name, true, GitChangeType.Modified)) }
-                status.removed.forEach { result.add(GitFileStatus(it, File(it).name, true, GitChangeType.Removed)) }
-
-                status.modified.forEach { result.add(GitFileStatus(it, File(it).name, false, GitChangeType.Modified)) }
-                status.untracked.forEach { result.add(GitFileStatus(it, File(it).name, false, GitChangeType.Untracked)) }
-                status.missing.forEach { result.add(GitFileStatus(it, File(it).name, false, GitChangeType.Removed)) }
-                
-                status.conflicting.forEach { result.add(GitFileStatus(it, File(it).name, false, GitChangeType.Conflicting)) }
+                collectFileStatuses(status, result)
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error getting detailed status at ${dir.absolutePath}", e)
@@ -117,25 +122,50 @@ class JGitDataSource @Inject constructor() {
         return result.distinctBy { it.path + it.isStaged }.sortedBy { it.path.lowercase() }
     }
 
-    fun getLog(dir: File, maxCount: Int = 100): List<GitCommit> {
+    private fun collectFileStatuses(status: Status, result: MutableList<GitFileStatus>) {
+        status.added.forEach { result.add(GitFileStatus(it, File(it).name, true, GitChangeType.Added)) }
+        status.changed.forEach { result.add(GitFileStatus(it, File(it).name, true, GitChangeType.Modified)) }
+        status.removed.forEach { result.add(GitFileStatus(it, File(it).name, true, GitChangeType.Removed)) }
+        status.modified.forEach { result.add(GitFileStatus(it, File(it).name, false, GitChangeType.Modified)) }
+        status.untracked.forEach { result.add(GitFileStatus(it, File(it).name, false, GitChangeType.Untracked)) }
+        status.missing.forEach { result.add(GitFileStatus(it, File(it).name, false, GitChangeType.Removed)) }
+        status.conflicting.forEach { result.add(GitFileStatus(it, File(it).name, false, GitChangeType.Conflicting)) }
+    }
+
+    fun getLog(dir: File, maxCount: Int = DEFAULT_LOG_LIMIT): List<GitCommit> {
+        val limitedMaxCount = maxCount.coerceIn(1, MAX_LOG_LIMIT)
         return try {
-            runGit(dir) { git ->
-                git.log().setMaxCount(maxCount).call().map { rev ->
-                    GitCommit(
-                        hash = rev.name,
-                        shortHash = rev.name.take(7),
-                        authorName = rev.authorIdent.name,
-                        authorEmail = rev.authorIdent.emailAddress,
-                        message = rev.shortMessage,
-                        timestamp = rev.commitTime.toLong() * 1000L,
-                        parentHashes = rev.parents.map { it.name }
-                    )
+            runGitWithRevWalk(dir) { git, revWalk ->
+                val commits = mutableListOf<GitCommit>()
+                val objectId = git.repository.resolve("HEAD")
+                if (objectId != null) {
+                    revWalk.markStart(revWalk.parseCommit(objectId))
+                    revWalk.setRetainBody(false)
+                    var count = 0
+                    for (rev in revWalk) {
+                        if (count >= limitedMaxCount) break
+                        commits.add(rev.toGitCommit())
+                        count++
+                    }
                 }
+                commits
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error getting log at ${dir.absolutePath}", e)
             return emptyList()
         }
+    }
+
+    private fun RevCommit.toGitCommit(): GitCommit {
+        return GitCommit(
+            hash = name,
+            shortHash = name.take(7),
+            authorName = authorIdent.name,
+            authorEmail = authorIdent.emailAddress,
+            message = shortMessage,
+            timestamp = commitTime.toLong() * 1000L,
+            parentHashes = parents.map { it.name }
+        )
     }
 
     fun getBranches(dir: File): List<GitBranch> {
@@ -204,7 +234,7 @@ class JGitDataSource @Inject constructor() {
             git.reset().addPath(path).call()
         }
     }
-    
+
     fun discardChanges(dir: File, path: String) {
         runGit(dir) { git ->
             git.checkout().addPath(path).call()
@@ -222,19 +252,19 @@ class JGitDataSource @Inject constructor() {
             git.checkout().setName(name).call()
         }
     }
-    
+
     fun createBranch(dir: File, name: String) {
         runGit(dir) { git ->
             git.branchCreate().setName(name).call()
         }
     }
-    
+
     fun deleteBranch(dir: File, name: String, force: Boolean = false) {
         runGit(dir) { git ->
             git.branchDelete().setBranchNames(name).setForce(force).call()
         }
     }
-    
+
     fun mergeBranch(dir: File, ref: String) {
         runGit(dir) { git ->
             git.merge().include(git.repository.findRef(ref)).call()
@@ -278,28 +308,29 @@ class JGitDataSource @Inject constructor() {
     fun getRepoInfo(dir: File): Map<String, String> {
         val info = mutableMapOf<String, String>()
         try {
-            runGit(dir) { git ->
+            runGitWithRevWalk(dir) { git, revWalk ->
                 val repo = git.repository
                 val config = repo.config
                 val remotes = config.getSubsections("remote")
-                
+
                 info["Current Branch"] = try { repo.branch ?: "N/A" } catch(_: Exception) { "N/A" }
                 info["Status"] = try { if (git.status().call().isClean) "Clean" else "Modified" } catch(_: Exception) { "Unknown" }
-                
+
                 remotes.forEach { remote ->
                     val url = config.getString("remote", remote, "url") ?: "No URL"
                     info["Remote: $remote"] = url
                 }
-                
-                val lastCommit = try { git.log().setMaxCount(1).call().firstOrNull() } catch(_: Exception) { null }
-                if (lastCommit != null) {
-                    info["Last Commit"] = lastCommit.shortMessage
-                    info["Last Commit Hash"] = lastCommit.name.take(7)
-                    info["Last Commit Date"] = java.util.Date(lastCommit.commitTime.toLong() * 1000L).toString()
+
+                val objectId = repo.resolve("HEAD")
+                if (objectId != null) {
+                    val commit = revWalk.parseCommit(objectId)
+                    info["Last Commit"] = commit.shortMessage
+                    info["Last Commit Hash"] = commit.name.take(7)
+                    info["Last Commit Date"] = java.util.Date(commit.commitTime.toLong() * 1000L).toString()
                 } else {
                     info["Last Commit"] = "None"
                 }
-                
+
                 info["Local Path"] = dir.absolutePath
             }
         } catch (e: Exception) {
@@ -376,7 +407,6 @@ class JGitDataSource @Inject constructor() {
                     }
                     is CloneCredential.Ssh -> {
                         // SSH cloning uses the system's SSH configuration
-                        // Private key authentication is handled by JSch
                     }
                 }
             }
@@ -389,118 +419,6 @@ class JGitDataSource @Inject constructor() {
             if (localPath.exists() && localPath.listFiles()?.isEmpty() == true) {
                 localPath.delete()
             }
-            throw e
-        }
-    }
-
-    fun getStashList(repoPath: File): List<GitStash> {
-        return try {
-            runGit(repoPath) { git ->
-                val stashList = git.stashList().call()
-                stashList.mapIndexed { index, ref ->
-                    GitStash(
-                        index = index,
-                        message = ref.name,
-                        branch = "",
-                        timestamp = 0L
-                    )
-                }
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Error getting stash list at ${repoPath.absolutePath}", e)
-            emptyList()
-        }
-    }
-
-    fun stashChanges(repoPath: File, message: String?): String {
-        return try {
-            runGit(repoPath) { git ->
-                val ref = git.stashCreate().call()
-                "Stashed changes: ${ref.name}"
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Error stashing changes at ${repoPath.absolutePath}", e)
-            throw e
-        }
-    }
-
-    fun applyStash(repoPath: File, stashIndex: Int, dropAfterApply: Boolean): String {
-        return try {
-            runGit(repoPath) { git ->
-                val stashRef = "refs/stash/$stashIndex"
-                if (dropAfterApply) {
-                    git.stashApply().setStashRef(stashRef).call()
-                    git.stashDrop().setStashRef(stashIndex).call()
-                    "Applied and dropped stash $stashIndex"
-                } else {
-                    git.stashApply().setStashRef(stashRef).call()
-                    "Applied stash $stashIndex"
-                }
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Error applying stash $stashIndex at ${repoPath.absolutePath}", e)
-            throw e
-        }
-    }
-
-    fun dropStash(repoPath: File, stashIndex: Int): String {
-        return try {
-            runGit(repoPath) { git ->
-                git.stashDrop().setStashRef(stashIndex).call()
-                "Dropped stash $stashIndex"
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Error dropping stash $stashIndex at ${repoPath.absolutePath}", e)
-            throw e
-        }
-    }
-
-    fun getTags(repoPath: File): List<GitTag> {
-        return try {
-            runGit(repoPath) { git ->
-                val tagList = git.tagList().call()
-                tagList.map { ref ->
-                    val peel = ref.peeledObjectId
-                    val commitId = peel?.name ?: ref.objectId?.name ?: ""
-                    GitTag(
-                        name = ref.name.removePrefix("refs/tags/"),
-                        commitHash = commitId.take(7),
-                        message = null,
-                        tagger = null,
-                        timestamp = 0L
-                    )
-                }
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Error getting tags at ${repoPath.absolutePath}", e)
-            emptyList()
-        }
-    }
-
-    fun createTag(repoPath: File, tagName: String, message: String?, commitHash: String?): String {
-        return try {
-            runGit(repoPath) { git ->
-                val repo = git.repository
-                val refUpdate = repo.updateRef("refs/tags/$tagName")
-                refUpdate.setNewObjectId(repo.resolve(commitHash ?: "HEAD"))
-                refUpdate.setRefLogMessage("Tag created by FuwaGit", true)
-                refUpdate.update()
-                "Tag '$tagName' created"
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Error creating tag '$tagName' at ${repoPath.absolutePath}", e)
-            throw e
-        }
-    }
-
-    fun deleteTag(repoPath: File, tagName: String): String {
-        return try {
-            runGit(repoPath) { git ->
-                git.tagDelete().setTags(tagName).call()
-                "Tag '$tagName' deleted"
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Error deleting tag '$tagName' at ${repoPath.absolutePath}", e)
             throw e
         }
     }
@@ -546,32 +464,6 @@ class JGitDataSource @Inject constructor() {
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error renaming branch from '$oldName' to '$newName' at ${repoPath.absolutePath}", e)
-            throw e
-        }
-    }
-
-    fun revertCommit(repoPath: File, commitHash: String): String {
-        return try {
-            runGit(repoPath) { git ->
-                val objectId = git.repository.resolve(commitHash)
-                git.revert().include(objectId).call()
-                "Reverted commit $commitHash"
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Error reverting commit $commitHash at ${repoPath.absolutePath}", e)
-            throw e
-        }
-    }
-
-    fun cherryPick(repoPath: File, commitHash: String): String {
-        return try {
-            runGit(repoPath) { git ->
-                val objectId = git.repository.resolve(commitHash)
-                git.cherryPick().include(objectId).call()
-                "Cherry-picked commit $commitHash"
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Error cherry-picking commit $commitHash at ${repoPath.absolutePath}", e)
             throw e
         }
     }

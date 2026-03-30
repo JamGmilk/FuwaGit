@@ -6,10 +6,12 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import jamgmilk.fuwagit.domain.model.git.GitBranch
 import jamgmilk.fuwagit.domain.usecase.GitOperationUseCases
 import jamgmilk.fuwagit.domain.usecase.GitQueryUseCases
+import jamgmilk.fuwagit.domain.CurrentRepoManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -29,7 +31,8 @@ data class BranchesUiState(
 @HiltViewModel
 class BranchesViewModel @Inject constructor(
     private val gitQueryUseCases: GitQueryUseCases,
-    private val gitOperationUseCases: GitOperationUseCases
+    private val gitOperationUseCases: GitOperationUseCases,
+    private val currentRepoManager: CurrentRepoManager
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(BranchesUiState())
@@ -37,19 +40,23 @@ class BranchesViewModel @Inject constructor(
 
     private var currentRepoPath: String? = null
 
-    fun setRepoPath(path: String?) {
-        currentRepoPath = path
-        _uiState.update { it.copy(repoPath = path) }
-        if (path != null) {
-            loadBranches()
-        } else {
-            _uiState.update { 
-                it.copy(
-                    branches = emptyList(),
-                    localBranches = emptyList(),
-                    remoteBranches = emptyList(),
-                    currentBranch = null
-                )
+    init {
+        viewModelScope.launch {
+            currentRepoManager.currentRepoInfo.collectLatest { info ->
+                currentRepoPath = info.repoPath
+                _uiState.update { it.copy(repoPath = info.repoPath) }
+                if (info.repoPath != null) {
+                    loadBranches()
+                } else {
+                    _uiState.update { 
+                        it.copy(
+                            branches = emptyList(),
+                            localBranches = emptyList(),
+                            remoteBranches = emptyList(),
+                            currentBranch = null
+                        )
+                    }
+                }
             }
         }
     }

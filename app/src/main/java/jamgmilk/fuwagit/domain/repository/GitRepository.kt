@@ -6,8 +6,6 @@ import jamgmilk.fuwagit.domain.model.git.GitCommit
 import jamgmilk.fuwagit.domain.model.git.GitFileStatus
 import jamgmilk.fuwagit.domain.model.git.GitRemote
 import jamgmilk.fuwagit.domain.model.git.GitRepoStatus
-import jamgmilk.fuwagit.domain.model.git.GitStash
-import jamgmilk.fuwagit.domain.model.git.GitTag
 import jamgmilk.fuwagit.domain.model.git.PullResult
 
 interface GitRepository {
@@ -65,29 +63,11 @@ interface GitRepository {
     
     suspend fun configureRemote(localPath: String, name: String, url: String): Result<String>
 
-    suspend fun getStashList(repoPath: String): Result<List<GitStash>>
-
-    suspend fun stashChanges(repoPath: String, message: String? = null): Result<String>
-
-    suspend fun applyStash(repoPath: String, stashIndex: Int, dropAfterApply: Boolean = false): Result<String>
-
-    suspend fun dropStash(repoPath: String, stashIndex: Int): Result<String>
-
-    suspend fun getTags(repoPath: String): Result<List<GitTag>>
-
-    suspend fun createTag(repoPath: String, tagName: String, message: String? = null, commitHash: String? = null): Result<String>
-
-    suspend fun deleteTag(repoPath: String, tagName: String): Result<String>
-
     suspend fun getRemotes(repoPath: String): Result<List<GitRemote>>
 
     suspend fun deleteRemote(repoPath: String, remoteName: String): Result<String>
 
     suspend fun renameBranch(repoPath: String, oldName: String, newName: String): Result<String>
-
-    suspend fun revertCommit(repoPath: String, commitHash: String): Result<String>
-
-    suspend fun cherryPick(repoPath: String, commitHash: String): Result<String>
 
     suspend fun clean(repoPath: String, dryRun: Boolean = false): Result<String>
 }
