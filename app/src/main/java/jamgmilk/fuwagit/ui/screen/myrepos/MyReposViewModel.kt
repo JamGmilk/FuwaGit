@@ -18,6 +18,7 @@ import jamgmilk.fuwagit.domain.usecase.GitOperationUseCases
 import jamgmilk.fuwagit.domain.usecase.GitQueryUseCases
 import jamgmilk.fuwagit.domain.CurrentRepoManager
 import jamgmilk.fuwagit.domain.CurrentRepoInfo
+import jamgmilk.fuwagit.domain.usecase.CurrentRepoUseCase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -77,7 +78,8 @@ class MyReposViewModel @Inject constructor(
     private val gitOperationUseCases: GitOperationUseCases,
     private val credentialUseCases: CredentialUseCases,
     private val repoDataStore: RepoDataStore,
-    private val currentRepoManager: CurrentRepoManager
+    private val currentRepoManager: CurrentRepoManager,
+    private val currentRepoUseCase: CurrentRepoUseCase
 ) : ViewModel() {
 
     private val _isLoading = MutableStateFlow(false)
@@ -134,6 +136,9 @@ class MyReposViewModel @Inject constructor(
     fun initializeStorage(context: Context) {
         if (storageInitialized) return
         storageInitialized = true
+        viewModelScope.launch {
+            currentRepoUseCase.initializeFromStorage()
+        }
         loadSavedRepos()
     }
 

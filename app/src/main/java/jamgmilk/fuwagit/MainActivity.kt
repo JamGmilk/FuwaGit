@@ -5,7 +5,6 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.activity.viewModels
 import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
@@ -31,95 +30,111 @@ import androidx.compose.material3.NavigationRailItem
 import androidx.compose.material3.Text
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.navigation.NavDestination.Companion.hierarchy
+import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.navigation.compose.rememberNavController
 import dagger.hilt.android.AndroidEntryPoint
-import jamgmilk.fuwagit.ui.AppViewModel
 import jamgmilk.fuwagit.ui.navigation.FuwaGitNavHost
-import jamgmilk.fuwagit.ui.navigation.Screen
-import jamgmilk.fuwagit.ui.theme.FuwaGitExtraColors
+import jamgmilk.fuwagit.ui.navigation.NavRoutes
 import jamgmilk.fuwagit.ui.theme.FuwaGitTheme
 import jamgmilk.fuwagit.ui.theme.FuwaGitThemeExtras
 import jamgmilk.fuwagit.ui.theme.appBackgroundBrush
 
+data class NavItem(
+    val route: String,
+    val title: String,
+    val icon: @Composable () -> Unit
+)
+
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
-
-    private val appViewModel by viewModels<AppViewModel>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
             FuwaGitTheme {
-                AppRoot(viewModel = appViewModel)
+                AppRoot()
             }
         }
     }
 }
 
 @Composable
-fun AppRoot(viewModel: AppViewModel, modifier: Modifier = Modifier) {
-    val currentScreen by viewModel.currentScreenFlow.collectAsState()
-
-    AppRootContent(
-        currentScreen = currentScreen,
-        onScreenChange = { viewModel.currentScreen = it },
-        navHost = { innerModifier ->
-            FuwaGitNavHost(
-                currentScreen = currentScreen,
-                onScreenChange = { viewModel.currentScreen = it },
-                viewModel = viewModel,
-                modifier = innerModifier
-            )
-        },
-        modifier = modifier
-    )
-}
-
-@Composable
-fun AppRootContent(
-    currentScreen: Screen,
-    onScreenChange: (Screen) -> Unit,
-    navHost: @Composable (Modifier) -> Unit,
-    modifier: Modifier = Modifier
-) {
+fun AppRoot() {
+    val navController = rememberNavController()
     val darkTheme = isSystemInDarkTheme()
     val uiColors = FuwaGitThemeExtras.colors
 
     val configuration = LocalConfiguration.current
     val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
 
-    val screens = listOf(
-        Screen.Status,
-        Screen.History,
-        Screen.Branches,
-        Screen.MyRepos,
-        Screen.Settings
+    val navItems = listOf(
+        NavItem(NavRoutes.STATUS, "Status") { Icon(Icons.AutoMirrored.Filled.List, contentDescription = "Status") },
+        NavItem(NavRoutes.HISTORY, "History") { Icon(Icons.Default.History, contentDescription = "History") },
+        NavItem(NavRoutes.BRANCHES, "Branches") { Icon(Icons.Default.AccountTree, contentDescription = "Branches") },
+        NavItem(NavRoutes.MY_REPOS, "My Repos") { Icon(Icons.Default.Folder, contentDescription = "My Repos") },
+        NavItem(NavRoutes.SETTINGS, "Settings") { Icon(Icons.Default.Settings, contentDescription = "Settings") }
     )
 
+    val navBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentDestination = navBackStackEntry?.destination
+
+    val navigateToItem: (String) -> Unit = { route ->
+        navController.navigate(route) {
+            popUpTo(navController.graph.findStartDestination().id) {
+                saveState = true
+            }
+            launchSingleTop = true
+            restoreState = true
+        }
+    }
+
     Row(
-        modifier = modifier
+        modifier = Modifier
             .fillMaxSize()
             .background(appBackgroundBrush(darkTheme = darkTheme))
     ) {
         if (isLandscape) {
-            LandscapeLayout(
-                currentScreen = currentScreen,
-                screens = screens,
-                onScreenChange = onScreenChange,
-                uiColors = uiColors
+            NavigationRail(
+                containerColor = uiColors.navBarContainer,
+                modifier = Modifier.fillMaxHeight()
+            ) {
+                navItems.forEach { item ->
+                    val selected = currentDestination?.hierarchy?.any { it.route == item.route } == true
+
+                    NavigationRailItem(
+                        selected = selected,
+                        onClick = { navigateToItem(item.route) },
+                        icon = item.icon,
+                        label = { Text(item.title) },
+                        alwaysShowLabel = true
+                    )
+                }
+            }
+
+            VerticalDivider(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .width(1.dp),
+                color = uiColors.cardBorder
             )
         }
 
         Column(modifier = Modifier.weight(1f)) {
-            Box(modifier = Modifier.weight(1f)) {
-                navHost(
-                    Modifier
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxSize()
+            ) {
+                FuwaGitNavHost(
+                    navController = navController,
+                    modifier = Modifier
                         .fillMaxSize()
                         .statusBarsPadding()
                         .then(
@@ -129,130 +144,23 @@ fun AppRootContent(
             }
 
             if (!isLandscape) {
-                PortraitLayout(
-                    currentScreen = currentScreen,
-                    screens = screens,
-                    onScreenChange = onScreenChange,
-                    uiColors = uiColors
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun PortraitLayout(
-    currentScreen: Screen,
-    screens: List<Screen>,
-    onScreenChange: (Screen) -> Unit,
-    uiColors: FuwaGitExtraColors
-) {
-    NavigationBar(
-        windowInsets = NavigationBarDefaults.windowInsets,
-        containerColor = uiColors.navBarContainer
-    ) {
-        screens.forEach { screen ->
-            val selected = currentScreen == screen
-
-            NavigationBarItem(
-                selected = selected,
-                onClick = { onScreenChange(screen) },
-                icon = {
-                    when (screen) {
-                        Screen.Status -> Icon(Icons.AutoMirrored.Filled.List, contentDescription = "Status")
-                        Screen.History -> Icon(Icons.Default.History, contentDescription = "History")
-                        Screen.Branches -> Icon(Icons.Default.AccountTree, contentDescription = "Branches")
-                        Screen.MyRepos -> Icon(Icons.Default.Folder, contentDescription = "My Repos")
-                        Screen.Settings -> Icon(Icons.Default.Settings, contentDescription = "Settings")
-                    }
-                },
-                label = {
-                    Text(
-                        when (screen) {
-                            Screen.Status -> "Status"
-                            Screen.History -> "History"
-                            Screen.Branches -> "Branches"
-                            Screen.MyRepos -> "My Repos"
-                            Screen.Settings -> "Settings"
-                        }
-                    )
-                },
-                alwaysShowLabel = false
-            )
-        }
-    }
-}
-
-@Composable
-private fun LandscapeLayout(
-    currentScreen: Screen,
-    screens: List<Screen>,
-    onScreenChange: (Screen) -> Unit,
-    uiColors: FuwaGitExtraColors
-) {
-    Row(modifier = Modifier.fillMaxHeight()) {
-        NavigationRail(
-            containerColor = uiColors.navBarContainer,
-            modifier = Modifier.fillMaxHeight()
-        ) {
-            screens.forEach { screen ->
-                val selected = currentScreen == screen
-
-                NavigationRailItem(
-                    selected = selected,
-                    onClick = { onScreenChange(screen) },
-                    icon = {
-                        when (screen) {
-                            Screen.Status -> Icon(Icons.AutoMirrored.Filled.List, contentDescription = "Status")
-                            Screen.History -> Icon(Icons.Default.History, contentDescription = "History")
-                            Screen.Branches -> Icon(Icons.Default.AccountTree, contentDescription = "Branches")
-                            Screen.MyRepos -> Icon(Icons.Default.Folder, contentDescription = "My Repos")
-                            Screen.Settings -> Icon(Icons.Default.Settings, contentDescription = "Settings")
-                        }
-                    },
-                    label = {
-                        Text(
-                            when (screen) {
-                                Screen.Status -> "Status"
-                                Screen.History -> "History"
-                                Screen.Branches -> "Branches"
-                                Screen.MyRepos -> "My Repos"
-                                Screen.Settings -> "Settings"
-                            }
-                        )
-                    },
-                    alwaysShowLabel = true
-                )
-            }
-        }
-
-        VerticalDivider(
-            modifier = Modifier
-                .fillMaxHeight()
-                .width(1.dp),
-            color = uiColors.cardBorder
-        )
-    }
-}
-
-@Preview(showBackground = true, device = "spec:parent=pixel_5,orientation=landscape")
-@Composable
-fun AppRootLandscapeLayoutPreview() {
-    FuwaGitTheme {
-        AppRootContent(
-            currentScreen = Screen.Status,
-            onScreenChange = {},
-            navHost = { modifier ->
-                Box(
-                    modifier
-                        .background(androidx.compose.ui.graphics.Color.Gray.copy(alpha = 0.3f))
+                NavigationBar(
+                    windowInsets = NavigationBarDefaults.windowInsets,
+                    containerColor = uiColors.navBarContainer
                 ) {
-                    Text(
-                        "Nav Host Placeholder",
-                        modifier = Modifier.align(androidx.compose.ui.Alignment.Center)
-                    )
+                    navItems.forEach { item ->
+                        val selected = currentDestination?.hierarchy?.any { it.route == item.route } == true
+
+                        NavigationBarItem(
+                            selected = selected,
+                            onClick = { navigateToItem(item.route) },
+                            icon = item.icon,
+                            label = { Text(item.title) },
+                            alwaysShowLabel = false
+                        )
+                    }
                 }
             }
-        )
+        }
     }
 }

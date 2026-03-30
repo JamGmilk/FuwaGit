@@ -27,6 +27,7 @@ data class StatusUiState(
     val error: String? = null,
     val repoPath: String? = null,
     val repoName: String? = null,
+    val repoState: CurrentRepoState = CurrentRepoState.NO_REPO_SELECTED,
     val isGitRepo: Boolean = false,
     val statusMessage: String = "Select a target repo",
     val branch: String = "",
@@ -55,8 +56,14 @@ class StatusViewModel @Inject constructor(
             currentRepoManager.currentRepoInfo.collectLatest { info ->
                 currentRepoPath = info.repoPath
                 val repoName = info.repoPath?.substringAfterLast("/")
-                _uiState.update { it.copy(repoPath = info.repoPath, repoName = repoName) }
-                
+                _uiState.update {
+                    it.copy(
+                        repoPath = info.repoPath,
+                        repoName = repoName,
+                        repoState = info.state
+                    )
+                }
+
                 if (info.state == CurrentRepoState.REPO_VALID && info.repoPath != null) {
                     refreshAll()
                 } else if (info.state == CurrentRepoState.NO_REPO_SELECTED) {

@@ -111,7 +111,7 @@ private fun SystemPermissionsCard(
         if (Environment.isExternalStorageManager()) PermissionStatus.Granted else PermissionStatus.Denied
     } else {
         val writeGranted = ContextCompat.checkSelfPermission(
-            androidx.compose.ui.platform.LocalContext.current,
+            LocalContext.current,
             Manifest.permission.WRITE_EXTERNAL_STORAGE
         ) == PackageManager.PERMISSION_GRANTED
         if (writeGranted) PermissionStatus.Granted else PermissionStatus.Denied

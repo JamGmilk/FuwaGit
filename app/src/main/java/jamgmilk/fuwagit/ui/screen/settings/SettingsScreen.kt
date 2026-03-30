@@ -65,7 +65,6 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.pm.PackageInfoCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.core.net.toUri
-import jamgmilk.fuwagit.ui.AppViewModel
 import jamgmilk.fuwagit.ui.screen.myrepos.MyReposViewModel
 import jamgmilk.fuwagit.ui.components.ScreenTemplate
 import jamgmilk.fuwagit.ui.screen.credentials.CredentialsScreen
@@ -83,7 +82,6 @@ sealed class SettingsNavigationTarget {
 
 @Composable
 fun SettingsScreen(
-    viewModel: AppViewModel,
     myReposViewModel: MyReposViewModel,
     modifier: Modifier = Modifier
 ) {
@@ -97,10 +95,6 @@ fun SettingsScreen(
 
     LaunchedEffect(Unit) {
         myReposViewModel.loadSavedRepos()
-    }
-
-    LaunchedEffect(showPermissions, showCredentials) {
-        viewModel.swipeEnabled = !(showPermissions || showCredentials)
     }
 
     var autoSync by rememberSaveable { mutableStateOf(false) }
