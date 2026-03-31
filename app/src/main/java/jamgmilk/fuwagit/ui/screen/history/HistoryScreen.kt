@@ -93,7 +93,7 @@ fun HistoryScreen(
         ElevatedCard(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(500.dp)
+                .weight(1f)
                 .border(1.dp, uiColors.cardBorder, RoundedCornerShape(24.dp)),
             shape = RoundedCornerShape(24.dp),
             colors = CardDefaults.elevatedCardColors(containerColor = uiColors.cardContainer),

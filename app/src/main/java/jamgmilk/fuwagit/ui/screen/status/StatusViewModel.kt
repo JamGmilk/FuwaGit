@@ -10,10 +10,9 @@ import jamgmilk.fuwagit.domain.model.git.GitFileStatus
 import jamgmilk.fuwagit.domain.usecase.git.CommitUseCase
 import jamgmilk.fuwagit.domain.usecase.git.DiscardChangesUseCase
 import jamgmilk.fuwagit.domain.usecase.git.FetchUseCase
-import jamgmilk.fuwagit.domain.usecase.git.GetBranchesUseCase
 import jamgmilk.fuwagit.domain.usecase.git.GetDetailedStatusUseCase
+import jamgmilk.fuwagit.domain.usecase.git.GetBranchesUseCase
 import jamgmilk.fuwagit.domain.usecase.git.HasGitDirUseCase
-import jamgmilk.fuwagit.domain.usecase.git.InitRepoUseCase
 import jamgmilk.fuwagit.domain.usecase.git.PullUseCase
 import jamgmilk.fuwagit.domain.usecase.git.PushUseCase
 import jamgmilk.fuwagit.domain.usecase.git.StageAllUseCase
@@ -30,7 +29,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.util.Date
-import java.util.Locale
 import javax.inject.Inject
 
 data class StatusUiState(
@@ -41,12 +39,9 @@ data class StatusUiState(
     val repoState: RepoState = RepoState.NO_REPO_SELECTED,
     val isGitRepo: Boolean = false,
     val statusMessage: String = "Select a target repo",
-    val branch: String = "",
     val currentBranch: GitBranch? = null,
     val branches: List<GitBranch> = emptyList(),
     val workspaceFiles: List<GitFileStatus> = emptyList(),
-    val stagedFiles: List<GitFileStatus> = emptyList(),
-    val unstagedFiles: List<GitFileStatus> = emptyList(),
     val terminalOutput: List<String> = emptyList()
 )
 
@@ -64,8 +59,7 @@ class StatusViewModel @Inject constructor(
     private val commitUseCase: CommitUseCase,
     private val pullUseCase: PullUseCase,
     private val pushUseCase: PushUseCase,
-    private val fetchUseCase: FetchUseCase,
-    private val initRepoUseCase: InitRepoUseCase
+    private val fetchUseCase: FetchUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(StatusUiState())
@@ -77,11 +71,10 @@ class StatusViewModel @Inject constructor(
         viewModelScope.launch {
             currentRepoManager.repoInfo.collectLatest { info ->
                 currentRepoPath = info.repoPath
-                val repoName = info.repoPath?.substringAfterLast("/")
                 _uiState.update {
                     it.copy(
                         repoPath = info.repoPath,
-                        repoName = repoName,
+                        repoName = info.repoName,
                         repoState = info.state
                     )
                 }
@@ -145,8 +138,6 @@ class StatusViewModel @Inject constructor(
                     _uiState.update {
                         it.copy(
                             workspaceFiles = files,
-                            stagedFiles = files.filter { file -> file.isStaged },
-                            unstagedFiles = files.filter { file -> !file.isStaged },
                             isLoading = false
                         )
                     }
@@ -161,7 +152,9 @@ class StatusViewModel @Inject constructor(
                     val currentBranch = branches.find { it.isCurrent }
                     _uiState.update { it.copy(branches = branches, currentBranch = currentBranch) }
                 },
-                onFailure = { }
+                onFailure = { e ->
+                    appendTerminalLog("git branch", "Error: ${e.message}")
+                }
             )
         }
     }
@@ -304,25 +297,9 @@ class StatusViewModel @Inject constructor(
     }
 
     private fun appendTerminalLog(command: String, result: String) {
-        val time = SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date())
+        val time = SimpleDateFormat("HH:mm:ss").format(Date())
         val line = "[$time] > $command\n$result"
         _uiState.update { it.copy(terminalOutput = it.terminalOutput + line) }
-    }
-
-    fun initRepo() {
-        val path = currentRepoPath ?: return
-
-        viewModelScope.launch {
-            initRepoUseCase(path).fold(
-                onSuccess = { result ->
-                    appendTerminalLog("git init", result)
-                    checkRepoStatus()
-                },
-                onFailure = { e ->
-                    appendTerminalLog("git init", "Error: ${e.message}")
-                }
-            )
-        }
     }
 
     fun clearError() {

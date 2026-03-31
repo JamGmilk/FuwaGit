@@ -12,7 +12,6 @@ import jamgmilk.fuwagit.domain.usecase.git.MergeBranchUseCase
 import jamgmilk.fuwagit.domain.usecase.git.RebaseBranchUseCase
 import jamgmilk.fuwagit.domain.usecase.git.RenameBranchUseCase
 import jamgmilk.fuwagit.domain.state.RepoStateManager
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -25,12 +24,9 @@ data class BranchesUiState(
     val isLoading: Boolean = false,
     val error: String? = null,
     val repoPath: String? = null,
-    val branches: List<GitBranch> = emptyList(),
     val localBranches: List<GitBranch> = emptyList(),
     val remoteBranches: List<GitBranch> = emptyList(),
-    val currentBranch: GitBranch? = null,
-    val searchQuery: String = "",
-    val selectedBranch: GitBranch? = null
+    val currentBranch: GitBranch? = null
 )
 
 @HiltViewModel
@@ -58,9 +54,8 @@ class BranchesViewModel @Inject constructor(
                 if (info.repoPath != null) {
                     loadBranches()
                 } else {
-                    _uiState.update { 
+                    _uiState.update {
                         it.copy(
-                            branches = emptyList(),
                             localBranches = emptyList(),
                             remoteBranches = emptyList(),
                             currentBranch = null
@@ -74,11 +69,16 @@ class BranchesViewModel @Inject constructor(
     fun loadBranches() {
         val path = currentRepoPath
         if (path == null) {
-            _uiState.update { it.copy(branches = emptyList()) }
+            _uiState.update {
+                it.copy(
+                    localBranches = emptyList(),
+                    remoteBranches = emptyList()
+                )
+            }
             return
         }
 
-        viewModelScope.launch(Dispatchers.IO) {
+        viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
             getBranchesUseCase(path)
                 .onSuccess { branches ->
@@ -88,7 +88,6 @@ class BranchesViewModel @Inject constructor(
 
                     _uiState.update {
                         it.copy(
-                            branches = branches,
                             localBranches = local,
                             remoteBranches = remote,
                             currentBranch = current,
@@ -189,23 +188,6 @@ class BranchesViewModel @Inject constructor(
                 .onFailure { e ->
                     _uiState.update { it.copy(error = e.message) }
                 }
-        }
-    }
-
-    fun setSearchQuery(query: String) {
-        _uiState.update { it.copy(searchQuery = query) }
-    }
-
-    fun selectBranch(branch: GitBranch?) {
-        _uiState.update { it.copy(selectedBranch = branch) }
-    }
-
-    fun getFilteredBranches(): List<GitBranch> {
-        val query = _uiState.value.searchQuery.trim().lowercase()
-        if (query.isEmpty()) return _uiState.value.branches
-        
-        return _uiState.value.branches.filter { branch ->
-            branch.name.lowercase().contains(query)
         }
     }
 

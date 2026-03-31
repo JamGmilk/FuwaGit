@@ -16,8 +16,14 @@ import java.nio.charset.StandardCharsets
 import javax.crypto.Cipher
 import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
+import dagger.hilt.android.qualifiers.ApplicationContext
+import javax.inject.Inject
+import javax.inject.Singleton
 
-class SecureCredentialStore(private val context: Context) {
+@Singleton
+class SecureCredentialStore @Inject constructor(
+    @ApplicationContext private val context: Context
+) {
 
     companion object {
         private const val DATA_FILE = "credential_data.json"
@@ -59,7 +65,21 @@ class SecureCredentialStore(private val context: Context) {
 
     fun saveCredentialData(data: CredentialData) {
         val updatedData = data.copy(updated_at = System.currentTimeMillis())
-        dataFile.writeText(json.encodeToString(updatedData))
+        val jsonString = json.encodeToString(updatedData)
+        
+        // Atomic write using a temporary file
+        val tempFile = File(context.filesDir, "$DATA_FILE.tmp")
+        try {
+            tempFile.writeText(jsonString)
+            if (!tempFile.renameTo(dataFile)) {
+                // If rename fails, try to copy and delete
+                tempFile.copyTo(dataFile, overwrite = true)
+                tempFile.delete()
+            }
+        } catch (e: Exception) {
+            tempFile.delete()
+            throw e
+        }
     }
 
     fun getPublicCredentials(): List<HttpsCredential> {
@@ -246,7 +266,8 @@ class SecureCredentialStore(private val context: Context) {
     suspend fun getSshPassphrase(uuid: String, masterKey: SecretKey): String? {
         val data = loadCredentialData()
         val key = data.ssh_keys.find { it.uuid == uuid } ?: return null
-        return key.passphrase?.let { decryptField(it, masterKey) }
+        val passphrase = key.passphrase ?: return null
+        return decryptField(passphrase, masterKey)
     }
 
     private fun encryptField(value: String, key: SecretKey): String {
@@ -255,7 +276,7 @@ class SecureCredentialStore(private val context: Context) {
         return ENCRYPTED_MARKER + encoded
     }
 
-    private fun decryptField(value: String, key: SecretKey): String {
+    private fun decryptField(value: String, key: SecretKey): String? {
         return try {
             if (!value.startsWith(ENCRYPTED_MARKER)) {
                 value
@@ -266,18 +287,18 @@ class SecureCredentialStore(private val context: Context) {
                 String(decrypted, StandardCharsets.UTF_8)
             }
         } catch (e: Exception) {
-            value
+            null
         }
     }
 
     private fun decryptAllSecrets(data: CredentialData, masterKey: SecretKey): CredentialData {
         return data.copy(
             https_credentials = data.https_credentials.map { cred ->
-                cred.copy(password = decryptField(cred.password, masterKey))
+                cred.copy(password = decryptField(cred.password, masterKey) ?: "DECRYPTION_FAILED")
             },
             ssh_keys = data.ssh_keys.map { key ->
                 key.copy(
-                    private_key = decryptField(key.private_key, masterKey),
+                    private_key = decryptField(key.private_key, masterKey) ?: "DECRYPTION_FAILED",
                     passphrase = key.passphrase?.let { decryptField(it, masterKey) }
                 )
             }

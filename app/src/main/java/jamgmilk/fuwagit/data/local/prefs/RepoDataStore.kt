@@ -1,28 +1,39 @@
 package jamgmilk.fuwagit.data.local.prefs
 
 import android.content.Context
-import android.content.SharedPreferences
 import dagger.hilt.android.qualifiers.ApplicationContext
 import jamgmilk.fuwagit.domain.model.repo.RepoData
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import java.io.File
 import javax.inject.Inject
 import javax.inject.Singleton
-import androidx.core.content.edit
 
 @Serializable
-data class RepoListWrapper(val repos: List<RepoData>)
+data class RepoListWrapper(
+    val repos: List<RepoData> = emptyList(),
+    val currentRepoPath: String? = null
+)
 
 @Singleton
 class RepoDataStore @Inject constructor(
     @ApplicationContext private val context: Context
 ) {
-    private val prefs: SharedPreferences = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-    private val json = Json { ignoreUnknownKeys = true }
+    private val json = Json {
+        ignoreUnknownKeys = true
+        prettyPrint = true
+        encodeDefaults = true
+    }
+
+    private val dataFile: File by lazy {
+        File(context.filesDir, DATA_FILE)
+    }
 
     private val _reposFlow = MutableStateFlow<List<RepoData>>(emptyList())
 
@@ -33,82 +44,111 @@ class RepoDataStore @Inject constructor(
     fun getSavedReposFlow(): Flow<List<RepoData>> = _reposFlow.asStateFlow()
 
     fun getSavedRepos(): List<RepoData> {
-        val jsonStr = prefs.getString(KEY_REPO_LIST, null) ?: return emptyList()
-        return try {
-            json.decodeFromString<RepoListWrapper>(jsonStr).repos
-        } catch (e: Exception) {
-            emptyList()
-        }
+        return loadFromFile().repos
     }
 
     suspend fun getAllRepos(): List<RepoData> = getSavedRepos()
 
-    suspend fun setCurrentRepo(path: String?) {
-        if (path != null) {
-            prefs.edit { putString(KEY_CURRENT_REPO, path) }
-        } else {
-            prefs.edit {remove(KEY_CURRENT_REPO)}
+    private fun loadFromFile(): RepoListWrapper {
+        return try {
+            if (!dataFile.exists()) {
+                RepoListWrapper()
+            } else {
+                val content = dataFile.readText()
+                if (content.isBlank()) {
+                    RepoListWrapper()
+                } else {
+                    json.decodeFromString<RepoListWrapper>(content)
+                }
+            }
+        } catch (e: Exception) {
+            RepoListWrapper()
         }
     }
 
+    private fun saveToFile(wrapper: RepoListWrapper) {
+        val tempFile = File(context.filesDir, "$DATA_FILE.tmp")
+        try {
+            val jsonStr = json.encodeToString(wrapper)
+            tempFile.writeText(jsonStr)
+            if (!tempFile.renameTo(dataFile)) {
+                tempFile.copyTo(dataFile, overwrite = true)
+                tempFile.delete()
+            }
+        } catch (e: Exception) {
+            tempFile.delete()
+            throw e
+        }
+    }
+
+    private suspend fun updateAndSave(repos: List<RepoData>, currentPath: String?): List<RepoData> {
+        saveToFile(RepoListWrapper(repos, currentPath))
+        _reposFlow.value = repos
+        return repos
+    }
+
+    suspend fun setCurrentRepo(path: String?) {
+        val wrapper = loadFromFile()
+        updateAndSave(wrapper.repos, path)
+    }
+
     suspend fun getCurrentRepoPath(): String? {
-        return prefs.getString(KEY_CURRENT_REPO, null)
+        return loadFromFile().currentRepoPath
     }
 
     suspend fun addRepo(repo: RepoData): Boolean {
-        val currentList = getSavedRepos().toMutableList()
+        val wrapper = loadFromFile()
+        val currentList = wrapper.repos.toMutableList()
         currentList.removeAll { it.path == repo.path }
         currentList.add(repo)
-        saveRepoList(currentList)
-        _reposFlow.value = currentList
+        updateAndSave(currentList, wrapper.currentRepoPath)
         return true
     }
 
     suspend fun removeRepo(path: String): Boolean {
-        val currentList = getSavedRepos().toMutableList()
+        val wrapper = loadFromFile()
+        val currentList = wrapper.repos.toMutableList()
         currentList.removeAll { it.path == path }
-        saveRepoList(currentList)
-        _reposFlow.value = currentList
+        val newCurrentPath = if (wrapper.currentRepoPath == path) null else wrapper.currentRepoPath
+        updateAndSave(currentList, newCurrentPath)
         return true
     }
 
     suspend fun updateRepo(path: String, update: (RepoData) -> RepoData) {
-        val currentList = getSavedRepos().toMutableList()
+        val wrapper = loadFromFile()
+        val currentList = wrapper.repos.toMutableList()
         val index = currentList.indexOfFirst { it.path == path }
         if (index >= 0) {
             currentList[index] = update(currentList[index])
-            saveRepoList(currentList)
-            _reposFlow.value = currentList
+            updateAndSave(currentList, wrapper.currentRepoPath)
         }
     }
 
     suspend fun toggleFavorite(path: String) {
-        val currentList = getSavedRepos().toMutableList()
+        val wrapper = loadFromFile()
+        val currentList = wrapper.repos.toMutableList()
         val index = currentList.indexOfFirst { it.path == path }
         if (index >= 0) {
             currentList[index] = currentList[index].copy(isFavorite = !currentList[index].isFavorite)
-            saveRepoList(currentList)
-            _reposFlow.value = currentList
+            updateAndSave(currentList, wrapper.currentRepoPath)
         }
     }
 
     suspend fun updateLastAccessed(path: String) {
-        prefs.edit { putLong(KEY_LAST_ACCESSED + path, System.currentTimeMillis())}
+        val wrapper = loadFromFile()
+        val currentList = wrapper.repos.toMutableList()
+        val index = currentList.indexOfFirst { it.path == path }
+        if (index >= 0) {
+            currentList[index] = currentList[index].copy(lastAccessedAt = System.currentTimeMillis())
+            updateAndSave(currentList, wrapper.currentRepoPath)
+        }
     }
 
     suspend fun getLastAccessed(path: String): Long {
-        return prefs.getLong(KEY_LAST_ACCESSED + path, 0L)
-    }
-
-    private fun saveRepoList(repos: List<RepoData>) {
-        val jsonStr = json.encodeToString(RepoListWrapper(repos))
-        prefs.edit { putString(KEY_REPO_LIST, jsonStr)}
+        return loadFromFile().repos.find { it.path == path }?.lastAccessedAt ?: 0L
     }
 
     companion object {
-        private const val PREFS_NAME = "repo_prefs"
-        private const val KEY_REPO_LIST = "repo_list"
-        private const val KEY_CURRENT_REPO = "current_repo"
-        private const val KEY_LAST_ACCESSED = "last_accessed_"
+        private const val DATA_FILE = "repo_data.json"
     }
 }

@@ -1,17 +1,11 @@
 package jamgmilk.fuwagit.ui.screen.myrepos
 
 import android.content.Context
-import android.content.Intent
-import android.net.Uri
-import androidx.core.content.edit
-import androidx.core.net.toUri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import jamgmilk.fuwagit.data.local.prefs.RepoDataStore
-import jamgmilk.fuwagit.data.util.RepoPathUtils
 import jamgmilk.fuwagit.domain.model.credential.CloneCredential
-import jamgmilk.fuwagit.domain.model.git.GitBranch
 import jamgmilk.fuwagit.domain.model.repo.RepoData
 import jamgmilk.fuwagit.domain.usecase.credential.GetHttpsCredentialsUseCase
 import jamgmilk.fuwagit.domain.usecase.credential.GetHttpsPasswordUseCase
@@ -26,27 +20,20 @@ import jamgmilk.fuwagit.domain.state.RepoStateManager
 import jamgmilk.fuwagit.domain.state.RepoInfo
 import jamgmilk.fuwagit.domain.usecase.CurrentRepoUseCase
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
 import javax.inject.Inject
 
 data class RepoFolderItem(
     val path: String,
-    val alias: String, // 在添加或克隆时需要填入 alias，不填默认就为文件夹名
+    val alias: String,
     val isGitRepo: Boolean,
     val isRemote: Boolean,
     val isActive: Boolean,
@@ -95,7 +82,6 @@ class MyReposViewModel @Inject constructor(
     val currentRepoInfo: StateFlow<RepoInfo> = currentRepoManager.repoInfo
 
     private val _savedRepos = MutableStateFlow<List<RepoData>>(emptyList())
-    val savedRepos: StateFlow<List<RepoData>> = _savedRepos.asStateFlow()
 
     val uiState: StateFlow<RepoUiState> = combine(
         _savedRepos,
@@ -123,9 +109,6 @@ class MyReposViewModel @Inject constructor(
         initialValue = RepoUiState()
     )
 
-    private val _terminalOutput = MutableStateFlow<List<String>>(emptyList())
-    val terminalOutput: StateFlow<List<String>> = _terminalOutput.asStateFlow()
-
     private var storageInitialized = false
 
     fun loadSavedRepos() {
@@ -138,9 +121,6 @@ class MyReposViewModel @Inject constructor(
     fun initializeStorage(context: Context) {
         if (storageInitialized) return
         storageInitialized = true
-        viewModelScope.launch {
-            currentRepoUseCase.initializeFromStorage()
-        }
         loadSavedRepos()
     }
 
@@ -164,34 +144,20 @@ class MyReposViewModel @Inject constructor(
         return result
     }
 
-    suspend fun updateRepoAlias(path: String, alias: String?) {
-        repoDataStore.updateRepo(path) { it.copy(alias = alias) }
-        loadSavedRepos()
-    }
-
-    suspend fun toggleFavorite(path: String) {
-        repoDataStore.toggleFavorite(path)
-        loadSavedRepos()
-    }
-
-    fun removeRepo(context: Context, item: RepoFolderItem) {
-        viewModelScope.launch {
-            repoDataStore.removeRepo(item.path)
-            if (currentRepoManager.getRepoPath() == item.path) {
-                currentRepoManager.clearRepo()
-            }
-            loadSavedRepos()
+    suspend fun removeRepo(item: RepoFolderItem) {
+        repoDataStore.removeRepo(item.path)
+        if (currentRepoManager.getRepoPath() == item.path) {
+            currentRepoManager.clearRepo()
         }
+        loadSavedRepos()
     }
 
     suspend fun setCurrentRepo(path: String?) {
         currentRepoManager.setRepoPath(path)
     }
 
-    fun refreshRepoItems(context: Context) {
-        viewModelScope.launch {
-            loadSavedRepos()
-        }
+    fun refreshRepoItems() {
+        loadSavedRepos()
     }
 
     suspend fun cleanRepo(path: String, dryRun: Boolean = false): Result<String> {
@@ -209,47 +175,14 @@ class MyReposViewModel @Inject constructor(
     fun configureRemote(localPath: String, name: String, url: String) {
         viewModelScope.launch {
             configureRemoteUseCase(localPath, name, url)
-                .onSuccess { result ->
-                    appendTerminalLog("git remote add $name $url", result)
-                }
-                .onFailure { e ->
-                    appendTerminalLog("git remote add $name $url", "Error: ${e.message}")
-                }
         }
     }
 
-    fun cloneRepository(
-        context: Context,
-        uri: String,
-        localPath: String,
-        branch: String? = null,
-        credentials: CloneCredential? = null,
-        onResult: (Result<String>) -> Unit
-    ) {
-        viewModelScope.launch {
-            _isLoading.value = true
-            appendTerminalLog("git clone $uri", "Cloning...")
-
-            cloneRepositoryUseCase(uri, localPath, branch, credentials)
-                .onSuccess { result ->
-                    appendTerminalLog("git clone $uri", result)
-                    _isLoading.value = false
-                    addRepo(localPath, null)
-                    onResult(Result.success(result))
-                }
-                .onFailure { e ->
-                    val errorMsg = "Error: ${e.message}"
-                    appendTerminalLog("git clone $uri", errorMsg)
-                    _isLoading.value = false
-                    _error.value = errorMsg
-                    onResult(Result.failure(e))
-                }
+    suspend fun isDirectoryEmpty(path: String): Boolean {
+        return withContext(Dispatchers.IO) {
+            val dir = File(path)
+            !dir.exists() || dir.listFiles()?.isEmpty() != false
         }
-    }
-
-    fun isDirectoryEmpty(path: String): Boolean {
-        val dir = File(path)
-        return !dir.exists() || dir.listFiles()?.isEmpty() != false
     }
 
     suspend fun getHttpsCredentials(): List<HttpsCredentialItem> {
@@ -291,7 +224,6 @@ class MyReposViewModel @Inject constructor(
     }
 
     fun cloneWithCredentials(
-        context: Context,
         uri: String,
         localPath: String,
         branch: String? = null,
@@ -301,7 +233,6 @@ class MyReposViewModel @Inject constructor(
     ) {
         viewModelScope.launch {
             _isLoading.value = true
-            appendTerminalLog("git clone $uri", "Cloning...")
 
             val credentials: CloneCredential? = when {
                 httpsCredentialUuid != null -> {
@@ -322,24 +253,19 @@ class MyReposViewModel @Inject constructor(
 
             cloneRepositoryUseCase(uri, localPath, branch, credentials)
                 .onSuccess { result ->
-                    appendTerminalLog("git clone $uri", result)
                     _isLoading.value = false
                     addRepo(localPath, null)
                     onResult(Result.success(result))
                 }
                 .onFailure { e ->
-                    val errorMsg = "Error: ${e.message}"
-                    appendTerminalLog("git clone $uri", errorMsg)
                     _isLoading.value = false
-                    _error.value = errorMsg
+                    _error.value = e.message
                     onResult(Result.failure(e))
                 }
         }
     }
 
-    fun appendTerminalLog(command: String, output: String) {
-        val time = SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date())
-        val line = "[$time] > $command\n$output"
-        _terminalOutput.value += line
+    fun clearError() {
+        _error.value = null
     }
 }

@@ -17,25 +17,21 @@ class CurrentRepoUseCase @Inject constructor(
 ) {
     suspend fun validateAndSetCurrentRepo(path: String?) {
         if (path == null) {
-            repoStateManager.updateRepoInfo(
-                RepoInfo(
-                    state = RepoState.NO_REPO_SELECTED,
-                    repoPath = null,
-                    repoName = null
-                )
-            )
+            repoStateManager.clearRepo()
             repoDataStore.setCurrentRepo(null)
             return
         }
 
         val file = File(path)
+        val name = file.name
+        
         when {
             !file.exists() -> {
                 repoStateManager.updateRepoInfo(
                     RepoInfo(
                         state = RepoState.REPO_PATH_INVALID,
                         repoPath = path,
-                        repoName = path.substringAfterLast("/"),
+                        repoName = name,
                         errorMessage = "Path does not exist"
                     )
                 )
@@ -46,18 +42,19 @@ class CurrentRepoUseCase @Inject constructor(
                     RepoInfo(
                         state = RepoState.REPO_NOT_GIT,
                         repoPath = path,
-                        repoName = path.substringAfterLast("/"),
+                        repoName = name,
                         errorMessage = "Not a git repository"
                     )
                 )
-                repoDataStore.setCurrentRepo(path)
+                // Do not set as current repo in store if it's not a valid git repo
+                repoDataStore.setCurrentRepo(null)
             }
             else -> {
                 repoStateManager.updateRepoInfo(
                     RepoInfo(
                         state = RepoState.REPO_VALID,
                         repoPath = path,
-                        repoName = path.substringAfterLast("/")
+                        repoName = name
                     )
                 )
                 repoDataStore.setCurrentRepo(path)
