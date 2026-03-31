@@ -5,8 +5,8 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -14,6 +14,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarDefaults
 import androidx.compose.material3.NavigationBarItem
@@ -22,20 +24,30 @@ import androidx.compose.material3.NavigationRailItem
 import androidx.compose.material3.Text
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
-import androidx.navigation.NavDestination.Companion.hierarchy
-import androidx.navigation.NavGraph.Companion.findStartDestination
-import androidx.navigation.compose.currentBackStackEntryAsState
-import androidx.navigation.compose.rememberNavController
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import dagger.hilt.android.AndroidEntryPoint
-import jamgmilk.fuwagit.ui.navigation.FuwaGitNavHost
 import jamgmilk.fuwagit.ui.navigation.rememberNavItems
+import jamgmilk.fuwagit.ui.screen.branches.BranchesScreen
+import jamgmilk.fuwagit.ui.screen.branches.BranchesViewModel
+import jamgmilk.fuwagit.ui.screen.history.HistoryScreen
+import jamgmilk.fuwagit.ui.screen.history.HistoryViewModel
+import jamgmilk.fuwagit.ui.screen.myrepos.MyReposScreen
+import jamgmilk.fuwagit.ui.screen.myrepos.MyReposViewModel
+import jamgmilk.fuwagit.ui.screen.settings.SettingsScreen
+import jamgmilk.fuwagit.ui.screen.status.StatusScreen
+import jamgmilk.fuwagit.ui.screen.status.StatusViewModel
 import jamgmilk.fuwagit.ui.theme.FuwaGitTheme
 import jamgmilk.fuwagit.ui.theme.FuwaGitThemeExtras
+import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -51,27 +63,31 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun AppRoot() {
-    val navController = rememberNavController()
-    val uiColors = FuwaGitThemeExtras.colors
     val navItems = rememberNavItems()
-
     val configuration = LocalConfiguration.current
     val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+    val scope = rememberCoroutineScope()
 
-    val navBackStackEntry by navController.currentBackStackEntryAsState()
-    val currentDestination = navBackStackEntry?.destination
+    var isSubPageVisible by remember { mutableStateOf(false) }
+    var resetKey by remember { mutableStateOf(0) }
 
-    val navigateToItem: (String) -> Unit = remember(navController) {
-        { route ->
-            navController.navigate(route) {
-                popUpTo(navController.graph.findStartDestination().id) {
-                    saveState = true
-                }
-                launchSingleTop = true
-                restoreState = true
-            }
+    val pagerState = rememberPagerState(
+        pageCount = { navItems.size }
+    )
+
+    LaunchedEffect(pagerState.currentPage) {
+        if (pagerState.currentPage != 4 && isSubPageVisible) {
+            isSubPageVisible = false
+            resetKey++
+        }
+    }
+
+    fun navigateToPage(index: Int) {
+        scope.launch {
+            pagerState.animateScrollToPage(index)
         }
     }
 
@@ -82,18 +98,15 @@ fun AppRoot() {
     ) {
         if (isLandscape) {
             NavigationRail(
-                containerColor = uiColors.navBarContainer,
+                containerColor = FuwaGitThemeExtras.colors.navBarContainer,
                 modifier = Modifier.fillMaxHeight()
             ) {
-                navItems.forEach { item ->
-                    val selected = currentDestination?.hierarchy?.any { it.route == item.route } == true
-
+                navItems.forEachIndexed { index, item ->
                     NavigationRailItem(
-                        selected = selected,
-                        onClick = { navigateToItem(item.route) },
+                        selected = pagerState.currentPage == index && !isSubPageVisible,
+                        onClick = { navigateToPage(index) },
                         icon = item.icon,
-                        label = { Text(item.title) },
-                        alwaysShowLabel = true
+                        label = { Text(item.title) }
                     )
                 }
             }
@@ -102,38 +115,74 @@ fun AppRoot() {
                 modifier = Modifier
                     .fillMaxHeight()
                     .width(1.dp),
-                color = uiColors.cardBorder
+                color = FuwaGitThemeExtras.colors.cardBorder
             )
         }
 
         Column(modifier = Modifier.weight(1f)) {
-            Box(
+            HorizontalPager(
+                state = pagerState,
+                beyondViewportPageCount = 0,
+                userScrollEnabled = !isSubPageVisible,
+                key = { it },
                 modifier = Modifier
                     .weight(1f)
-                    .fillMaxSize()
-            ) {
-                FuwaGitNavHost(
-                    navController = navController,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .statusBarsPadding()
-                        .then(
-                            if (isLandscape) Modifier.navigationBarsPadding() else Modifier
+                    .statusBarsPadding()
+                    .then(
+                        if (isLandscape) Modifier.navigationBarsPadding() else Modifier
+                    )
+            ) { page ->
+                when (page) {
+                    0 -> {
+                        val statusViewModel: StatusViewModel = hiltViewModel()
+                        StatusScreen(
+                            statusViewModel = statusViewModel,
+                            modifier = Modifier.fillMaxSize()
                         )
-                )
+                    }
+                    1 -> {
+                        val historyViewModel: HistoryViewModel = hiltViewModel()
+                        HistoryScreen(
+                            historyViewModel = historyViewModel,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    }
+                    2 -> {
+                        val branchesViewModel: BranchesViewModel = hiltViewModel()
+                        BranchesScreen(
+                            branchesViewModel = branchesViewModel,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    }
+                    3 -> {
+                        val myReposViewModel: MyReposViewModel = hiltViewModel()
+                        MyReposScreen(
+                            myReposViewModel = myReposViewModel,
+                            modifier = Modifier.fillMaxSize(),
+                            onNavigateToStatus = {
+                                navigateToPage(0)
+                            }
+                        )
+                    }
+                    4 -> {
+                        SettingsScreen(
+                            modifier = Modifier.fillMaxSize(),
+                            resetKey = resetKey,
+                            onSubPageVisibleChange = { visible -> isSubPageVisible = visible }
+                        )
+                    }
+                }
             }
 
             if (!isLandscape) {
                 NavigationBar(
                     windowInsets = NavigationBarDefaults.windowInsets,
-                    containerColor = uiColors.navBarContainer
+                    containerColor = FuwaGitThemeExtras.colors.navBarContainer
                 ) {
-                    navItems.forEach { item ->
-                        val selected = currentDestination?.hierarchy?.any { it.route == item.route } == true
-
+                    navItems.forEachIndexed { index, item ->
                         NavigationBarItem(
-                            selected = selected,
-                            onClick = { navigateToItem(item.route) },
+                            selected = pagerState.currentPage == index && !isSubPageVisible,
+                            onClick = { navigateToPage(index) },
                             icon = item.icon,
                             label = { Text(item.title) },
                             alwaysShowLabel = false
