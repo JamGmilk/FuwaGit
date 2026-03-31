@@ -11,7 +11,7 @@ import jamgmilk.fuwagit.data.local.security.MasterKeyManager
 import jamgmilk.fuwagit.data.local.security.SecureCredentialStore
 import jamgmilk.fuwagit.data.repository.CredentialRepositoryImpl
 import jamgmilk.fuwagit.data.repository.GitRepositoryImpl
-import jamgmilk.fuwagit.data.source.JGitDataSource
+import jamgmilk.fuwagit.data.jgit.JGitDataSource
 import jamgmilk.fuwagit.domain.repository.CredentialRepository
 import jamgmilk.fuwagit.domain.repository.GitRepository
 import javax.inject.Singleton

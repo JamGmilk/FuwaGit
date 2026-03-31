@@ -81,7 +81,7 @@ fun FilePickerDialog(
     var isLoading by remember { mutableStateOf(true) }
     var error by remember { mutableStateOf<String?>(null) }
     var targetPath by remember { mutableStateOf<String?>(null) }
-    val colors = MaterialTheme.colorScheme
+    val colors = MaterialTheme.colorScheme // TODO: 改主题色喵
     val uiColors = FuwaGitThemeExtras.colors
     val scope = rememberCoroutineScope()
 
@@ -134,7 +134,8 @@ fun FilePickerDialog(
         properties = DialogProperties(
             dismissOnBackPress = true,
             dismissOnClickOutside = false,
-            usePlatformDefaultWidth = false
+            usePlatformDefaultWidth = false, // 适配平板？
+            decorFitsSystemWindows = false
         )
     ) {
         Surface(

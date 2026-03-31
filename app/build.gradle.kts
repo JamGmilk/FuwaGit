@@ -80,8 +80,6 @@ dependencies {
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.compose.material.icons.extended)
 
-    implementation(libs.libsu.core)
-    implementation(libs.libsu.service)
     implementation(libs.org.eclipse.jgit)
     implementation(libs.jsch)
     implementation(libs.bouncycastle)

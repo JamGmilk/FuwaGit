@@ -4,6 +4,7 @@ import jamgmilk.fuwagit.data.local.prefs.RepoDataStore
 import jamgmilk.fuwagit.domain.CurrentRepoInfo
 import jamgmilk.fuwagit.domain.CurrentRepoManager
 import jamgmilk.fuwagit.domain.CurrentRepoState
+import jamgmilk.fuwagit.domain.usecase.git.HasGitDirUseCase
 import java.io.File
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -11,7 +12,7 @@ import javax.inject.Singleton
 @Singleton
 class CurrentRepoUseCase @Inject constructor(
     private val repoDataStore: RepoDataStore,
-    private val gitQueryUseCases: GitQueryUseCases,
+    private val hasGitDirUseCase: HasGitDirUseCase,
     private val currentRepoManager: CurrentRepoManager
 ) {
     suspend fun validateAndSetCurrentRepo(path: String?) {
@@ -40,7 +41,7 @@ class CurrentRepoUseCase @Inject constructor(
                 )
                 repoDataStore.setCurrentRepo(null)
             }
-            !gitQueryUseCases.hasGitDir(path) -> {
+            !hasGitDirUseCase(path) -> {
                 currentRepoManager.updateRepoInfo(
                     CurrentRepoInfo(
                         state = CurrentRepoState.REPO_NOT_GIT,

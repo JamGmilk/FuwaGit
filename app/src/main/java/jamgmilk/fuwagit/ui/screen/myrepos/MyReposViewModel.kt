@@ -9,13 +9,19 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import jamgmilk.fuwagit.data.local.prefs.RepoDataStore
-import jamgmilk.fuwagit.data.source.RepoPathUtils
+import jamgmilk.fuwagit.data.util.RepoPathUtils
 import jamgmilk.fuwagit.domain.model.credential.CloneCredential
 import jamgmilk.fuwagit.domain.model.git.GitBranch
 import jamgmilk.fuwagit.domain.model.repo.RepoData
-import jamgmilk.fuwagit.domain.usecase.CredentialUseCases
-import jamgmilk.fuwagit.domain.usecase.GitOperationUseCases
-import jamgmilk.fuwagit.domain.usecase.GitQueryUseCases
+import jamgmilk.fuwagit.domain.usecase.credential.GetHttpsCredentialsUseCase
+import jamgmilk.fuwagit.domain.usecase.credential.GetHttpsPasswordUseCase
+import jamgmilk.fuwagit.domain.usecase.credential.GetSshKeysUseCase
+import jamgmilk.fuwagit.domain.usecase.credential.GetSshPrivateKeyUseCase
+import jamgmilk.fuwagit.domain.usecase.git.CleanUseCase
+import jamgmilk.fuwagit.domain.usecase.git.CloneRepositoryUseCase
+import jamgmilk.fuwagit.domain.usecase.git.ConfigureRemoteUseCase
+import jamgmilk.fuwagit.domain.usecase.git.GetRepoInfoUseCase
+import jamgmilk.fuwagit.domain.usecase.git.GetRemoteUrlUseCase
 import jamgmilk.fuwagit.domain.CurrentRepoManager
 import jamgmilk.fuwagit.domain.CurrentRepoInfo
 import jamgmilk.fuwagit.domain.usecase.CurrentRepoUseCase
@@ -69,12 +75,18 @@ data class SshKeyItem(
 
 @HiltViewModel
 class MyReposViewModel @Inject constructor(
-    private val gitQueryUseCases: GitQueryUseCases,
-    private val gitOperationUseCases: GitOperationUseCases,
-    private val credentialUseCases: CredentialUseCases,
     private val repoDataStore: RepoDataStore,
     private val currentRepoManager: CurrentRepoManager,
-    private val currentRepoUseCase: CurrentRepoUseCase
+    private val currentRepoUseCase: CurrentRepoUseCase,
+    private val cleanUseCase: CleanUseCase,
+    private val cloneRepositoryUseCase: CloneRepositoryUseCase,
+    private val configureRemoteUseCase: ConfigureRemoteUseCase,
+    private val getRepoInfoUseCase: GetRepoInfoUseCase,
+    private val getRemoteUrlUseCase: GetRemoteUrlUseCase,
+    private val getHttpsCredentialsUseCase: GetHttpsCredentialsUseCase,
+    private val getHttpsPasswordUseCase: GetHttpsPasswordUseCase,
+    private val getSshKeysUseCase: GetSshKeysUseCase,
+    private val getSshPrivateKeyUseCase: GetSshPrivateKeyUseCase
 ) : ViewModel() {
 
     private val _isLoading = MutableStateFlow(false)
@@ -183,20 +195,20 @@ class MyReposViewModel @Inject constructor(
     }
 
     suspend fun cleanRepo(path: String, dryRun: Boolean = false): Result<String> {
-        return gitOperationUseCases.clean(path, dryRun)
+        return cleanUseCase(path, dryRun)
     }
 
     suspend fun getRepoInfo(localPath: String): Map<String, String> {
-        return gitQueryUseCases.getRepoInfo(localPath)
+        return getRepoInfoUseCase(localPath)
     }
 
     suspend fun getRemoteUrl(localPath: String, name: String = "origin"): String? {
-        return gitQueryUseCases.getRemoteUrl(localPath, name)
+        return getRemoteUrlUseCase(localPath, name)
     }
 
     fun configureRemote(localPath: String, name: String, url: String) {
         viewModelScope.launch {
-            gitOperationUseCases.configureRemote(localPath, name, url)
+            configureRemoteUseCase(localPath, name, url)
                 .onSuccess { result ->
                     appendTerminalLog("git remote add $name $url", result)
                 }
@@ -218,7 +230,7 @@ class MyReposViewModel @Inject constructor(
             _isLoading.value = true
             appendTerminalLog("git clone $uri", "Cloning...")
 
-            gitOperationUseCases.cloneRepository(uri, localPath, branch, credentials)
+            cloneRepositoryUseCase(uri, localPath, branch, credentials)
                 .onSuccess { result ->
                     appendTerminalLog("git clone $uri", result)
                     _isLoading.value = false
@@ -241,7 +253,7 @@ class MyReposViewModel @Inject constructor(
     }
 
     suspend fun getHttpsCredentials(): List<HttpsCredentialItem> {
-        return credentialUseCases.getHttpsCredentials()
+        return getHttpsCredentialsUseCase()
             .map { credentials ->
                 credentials.map { cred ->
                     HttpsCredentialItem(
@@ -256,11 +268,11 @@ class MyReposViewModel @Inject constructor(
     }
 
     suspend fun getHttpsPassword(uuid: String): String? {
-        return credentialUseCases.getHttpsPassword(uuid).getOrNull()
+        return getHttpsPasswordUseCase(uuid).getOrNull()
     }
 
     suspend fun getSshKeys(): List<SshKeyItem> {
-        return credentialUseCases.getSshKeys()
+        return getSshKeysUseCase()
             .map { keys ->
                 keys.map { key ->
                     SshKeyItem(
@@ -275,7 +287,7 @@ class MyReposViewModel @Inject constructor(
     }
 
     suspend fun getSshPrivateKey(uuid: String): String? {
-        return credentialUseCases.getSshPrivateKey(uuid).getOrNull()
+        return getSshPrivateKeyUseCase(uuid).getOrNull()
     }
 
     fun cloneWithCredentials(
@@ -308,7 +320,7 @@ class MyReposViewModel @Inject constructor(
                 else -> null
             }
 
-            gitOperationUseCases.cloneRepository(uri, localPath, branch, credentials)
+            cloneRepositoryUseCase(uri, localPath, branch, credentials)
                 .onSuccess { result ->
                     appendTerminalLog("git clone $uri", result)
                     _isLoading.value = false
@@ -325,9 +337,9 @@ class MyReposViewModel @Inject constructor(
         }
     }
 
-    private fun appendTerminalLog(command: String, result: String) {
+    fun appendTerminalLog(command: String, output: String) {
         val time = SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date())
-        val line = "[$time] > $command\n$result"
+        val line = "[$time] > $command\n$output"
         _terminalOutput.value += line
     }
 }
