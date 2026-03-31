@@ -43,7 +43,6 @@ import jamgmilk.fuwagit.ui.navigation.FuwaGitNavHost
 import jamgmilk.fuwagit.ui.navigation.NavRoutes
 import jamgmilk.fuwagit.ui.theme.FuwaGitTheme
 import jamgmilk.fuwagit.ui.theme.FuwaGitThemeExtras
-import jamgmilk.fuwagit.ui.theme.appBackgroundBrush
 
 data class NavItem(
     val route: String,
@@ -98,7 +97,7 @@ fun AppRoot() {
     Row(
         modifier = Modifier
             .fillMaxSize()
-            .background(appBackgroundBrush(darkTheme = darkTheme))
+            .background(FuwaGitThemeExtras.colors.backgroundBrush)
     ) {
         if (isLandscape) {
             NavigationRail(
