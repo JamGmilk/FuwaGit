@@ -32,6 +32,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountTree
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.CloudDownload
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Folder
@@ -93,6 +94,7 @@ import jamgmilk.fuwagit.ui.components.CloneRepoDialog
 import jamgmilk.fuwagit.ui.components.ConfigureRemoteDialog
 import jamgmilk.fuwagit.ui.components.FilePickerDialog
 import jamgmilk.fuwagit.ui.components.ScreenTemplate
+import jamgmilk.fuwagit.ui.theme.AppShapes
 import jamgmilk.fuwagit.ui.theme.FuwaGitThemeExtras
 import jamgmilk.fuwagit.ui.theme.Sakura80
 import kotlinx.coroutines.launch
@@ -149,8 +151,8 @@ fun MyReposScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f)
-                    .border(1.dp, FuwaGitThemeExtras.colors.cardBorder, RoundedCornerShape(20.dp)),
-                shape = RoundedCornerShape(20.dp),
+                    .border(1.dp, FuwaGitThemeExtras.colors.cardBorder, AppShapes.medium),
+                shape = AppShapes.medium,
                 colors = CardDefaults.elevatedCardColors(containerColor = FuwaGitThemeExtras.colors.cardContainer),
                 elevation = CardDefaults.elevatedCardElevation(0.dp)
             ) {
@@ -182,49 +184,51 @@ fun MyReposScreen(
                 .padding(16.dp)
         )
 
-        if (showAddLocalDialog) {
-            AddRepoDialog(
-                repoPath = addLocalPath,
-                onPathChange = { addLocalPath = it },
-                onPickFolder = { showAddLocalFolderPicker = true },
-                onDismiss = {
-                    showAddLocalDialog = false
-                    addLocalPath = ""
-                },
-                onConfirm = { path, alias ->
-                    scope.launch {
-                        myReposViewModel.addRepo(path, alias)
-                        myReposViewModel.setCurrentRepo(path)
-                    }
-                    showAddLocalDialog = false
-                    addLocalPath = ""
-                    onNavigateToStatus()
-                }
-            )
-        }
-
-        if (showCloneFolderPicker) {
-            FilePickerDialog(
-                title = "Select Clone Destination",
-                onDismiss = { showCloneFolderPicker = false },
-                onSelect = { path ->
-                    cloneLocalPath = path
-                    showCloneFolderPicker = false
-                }
-            )
-        }
-
-        if (showAddLocalFolderPicker) {
-            FilePickerDialog(
-                title = "Select Repository Folder",
-                onDismiss = { showAddLocalFolderPicker = false },
-                onSelect = { path ->
-                    addLocalPath = path
-                    showAddLocalFolderPicker = false
-                }
-            )
-        }
     }
+
+    if (showAddLocalDialog) {
+        AddRepoDialog(
+            repoPath = addLocalPath,
+            onPathChange = { addLocalPath = it },
+            onPickFolder = { showAddLocalFolderPicker = true },
+            onDismiss = {
+                showAddLocalDialog = false
+                addLocalPath = ""
+            },
+            onConfirm = { path, alias ->
+                scope.launch {
+                    myReposViewModel.addRepo(path, alias)
+                    myReposViewModel.setCurrentRepo(path)
+                }
+                showAddLocalDialog = false
+                addLocalPath = ""
+                onNavigateToStatus()
+            }
+        )
+    }
+
+    if (showCloneFolderPicker) {
+        FilePickerDialog(
+            title = "Select Clone Destination",
+            onDismiss = { showCloneFolderPicker = false },
+            onSelect = { path ->
+                cloneLocalPath = path
+                showCloneFolderPicker = false
+            }
+        )
+    }
+
+    if (showAddLocalFolderPicker) {
+        FilePickerDialog(
+            title = "Select Repository Folder",
+            onDismiss = { showAddLocalFolderPicker = false },
+            onSelect = { path ->
+                addLocalPath = path
+                showAddLocalFolderPicker = false
+            }
+        )
+    }
+
 
     if (showCloneDialog) {
         val httpsCredentials = remember { mutableStateListOf<HttpsCredentialItem>() }
@@ -1233,7 +1237,7 @@ fun RepoSpeedDial(
                 modifier = Modifier.padding(bottom = 12.dp)
             ) {
                 SpeedDialAction(
-                    icon = Icons.Default.ContentCopy,
+                    icon = Icons.Default.CloudDownload,
                     label = "Clone Remote",
                     color = Color(0xFF2196F3),
                     onClick = {
@@ -1256,7 +1260,8 @@ fun RepoSpeedDial(
         FloatingActionButton(
             onClick = { onExpandedChange(!expanded) },
             containerColor = Sakura80,
-            elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 0.dp)
+            elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 0.dp),
+            shape = AppShapes.medium
         ) {
             Icon(
                 Icons.Default.Add,

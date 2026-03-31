@@ -25,7 +25,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Undo
@@ -38,22 +37,16 @@ import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.Pending
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedCard
+import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -73,16 +66,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 import jamgmilk.fuwagit.domain.model.git.GitBranch
 import jamgmilk.fuwagit.domain.model.git.GitChangeType
 import jamgmilk.fuwagit.domain.model.git.GitFileStatus
 import jamgmilk.fuwagit.domain.state.RepoState
-import jamgmilk.fuwagit.ui.components.RefreshAction
 import jamgmilk.fuwagit.ui.components.ScreenTemplate
-import jamgmilk.fuwagit.ui.theme.FuwaGitTheme
 import jamgmilk.fuwagit.ui.theme.AppColors
 import jamgmilk.fuwagit.ui.theme.FuwaGitThemeExtras
 import jamgmilk.fuwagit.ui.theme.Sakura50
@@ -109,8 +100,6 @@ fun StatusScreen(
     val staged = remember(files) { files.filter { it.isStaged } }
     val workspace = remember(files) { files.filter { !it.isStaged } }
     var commitMessage by remember { mutableStateOf("") }
-    val colors = MaterialTheme.colorScheme
-    val uiColors = FuwaGitThemeExtras.colors
 
     val isRepo = uiState.isGitRepo
     val terminalLogs = uiState.terminalOutput
@@ -138,7 +127,16 @@ fun StatusScreen(
         title = "Status",
         modifier = modifier,
         actions = {
-            RefreshAction(onRefresh = { statusViewModel.refreshWorkspace() })
+            FilledTonalIconButton(
+                onClick = { statusViewModel.refreshWorkspace() },
+                modifier = Modifier.size(36.dp)
+            ) {
+                Icon(
+                    Icons.Default.Refresh,
+                    contentDescription = "Refresh",
+                    modifier = Modifier.size(18.dp)
+                )
+            }
         }
     ) {
         RepositoryStatusCard(
@@ -557,6 +555,15 @@ private fun StatChipsRow(stats: StatusStats) {
             .height(IntrinsicSize.Min),
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
+        StatChip(
+            label = "Workspace",
+            count = stats.unstaged,
+            color = Sakura80,
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxHeight()
+        )
+
         StatChip(
             label = "Staged",
             count = stats.staged,
