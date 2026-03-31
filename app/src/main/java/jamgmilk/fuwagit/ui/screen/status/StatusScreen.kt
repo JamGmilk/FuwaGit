@@ -68,7 +68,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import jamgmilk.fuwagit.domain.model.git.GitBranch
 import jamgmilk.fuwagit.domain.model.git.GitChangeType
 import jamgmilk.fuwagit.domain.model.git.GitFileStatus
@@ -115,7 +115,7 @@ fun StatusScreen(
         StatusStats(
             totalChanges = files.size,
             staged = staged.size,
-            unstaged = workspace.count { it.changeType != GitChangeType.Untracked },
+            unstaged = workspace.size,
             untracked = workspace.count { it.changeType == GitChangeType.Untracked },
             modified = files.count { it.changeType == GitChangeType.Modified },
             added = files.count { it.changeType == GitChangeType.Added },

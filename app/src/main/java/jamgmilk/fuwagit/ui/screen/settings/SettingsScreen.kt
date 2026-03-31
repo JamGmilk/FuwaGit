@@ -85,6 +85,8 @@ sealed class SettingsNavigationTarget {
 @Composable
 fun SettingsScreen(
     modifier: Modifier = Modifier,
+    resetKey: Int = 0,
+    onSubPageVisibleChange: (Boolean) -> Unit = {},
     settingsViewModel: SettingsViewModel = hiltViewModel()
 ) {
     val savedReposCount by settingsViewModel.savedReposCount.collectAsState()
@@ -92,6 +94,18 @@ fun SettingsScreen(
     var showPermissions by rememberSaveable { mutableStateOf(false) }
     var showCredentials by rememberSaveable { mutableStateOf(false) }
     var showFilePicker by rememberSaveable { mutableStateOf(false) }
+
+    LaunchedEffect(resetKey) {
+        if (resetKey > 0) {
+            showPermissions = false
+            showCredentials = false
+            showFilePicker = false
+        }
+    }
+
+    LaunchedEffect(showPermissions, showCredentials) {
+        onSubPageVisibleChange(showPermissions || showCredentials)
+    }
 
     var autoSync by rememberSaveable { mutableStateOf(false) }
     var conflictSafeMode by rememberSaveable { mutableStateOf(true) }

@@ -77,7 +77,7 @@ private val LightExtraColors = FuwaGitExtraColors(
     cardContainer = Sakura20,
     cardBorder = Sakura50.copy(alpha = 0.40f),
     terminalBackground = CatNightSoft,
-    terminalText = Sakura30,
+    terminalText = CatCream,
     navBarContainer = Sakura20.copy(alpha = 0.95f),
     backgroundBrush = LightBackgroundBrush,
     gitAdded = AppColors.GitGreen,
