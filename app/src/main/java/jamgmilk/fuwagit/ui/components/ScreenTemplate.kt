@@ -41,15 +41,13 @@ fun ScreenTemplate(
         modifier = modifier
             .fillMaxSize()
             .pointerInput(Unit) {
-                detectTapGestures(onTap = {
-                    focusManager.clearFocus()
-                })
+                detectTapGestures(onTap = { focusManager.clearFocus() })
             }
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = 16.dp, vertical = 12.dp),
+            .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Spacer(Modifier.height(8.dp))
+        Spacer(Modifier.height(4.dp))
 
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -67,23 +65,6 @@ fun ScreenTemplate(
 
         content()
 
-        Spacer(Modifier.height(4.dp))
-    }
-}
-
-@Composable
-fun RefreshAction(
-    onRefresh: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    FilledTonalIconButton(
-        onClick = onRefresh,
-        modifier = modifier.size(44.dp)
-    ) {
-        Icon(
-            Icons.Default.Refresh,
-            contentDescription = "Refresh",
-            modifier = Modifier.size(22.dp)
-        )
+        //Spacer(Modifier.height(2.dp))
     }
 }

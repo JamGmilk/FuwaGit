@@ -85,12 +85,14 @@ fun BranchesScreen(
         title = "Branches",
         modifier = modifier,
         actions = {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 IconButton(
                     onClick = { branchesViewModel.loadBranches() },
                     modifier = Modifier
                         .size(36.dp)
                         .background(colors.primaryContainer.copy(alpha = 0.3f), CircleShape)
+                        .clip(CircleShape)
+
                 ) {
                     Icon(
                         Icons.Default.Refresh,
@@ -103,7 +105,9 @@ fun BranchesScreen(
                     onClick = { showCreateDialog = true },
                     modifier = Modifier
                         .size(36.dp)
+                        .clip(CircleShape)
                         .background(colors.primary, CircleShape)
+                        .clip(CircleShape)
                 ) {
                     Icon(
                         Icons.Default.Add,
