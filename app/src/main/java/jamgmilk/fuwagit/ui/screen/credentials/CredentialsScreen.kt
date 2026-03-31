@@ -34,7 +34,6 @@ sealed class CredentialsTab {
 
 private sealed class CredentialDialogState {
     data object None : CredentialDialogState()
-    data object SetupFirst : CredentialDialogState()
     data object AddHttps : CredentialDialogState()
     data object GenerateSsh : CredentialDialogState()
     data object ImportSsh : CredentialDialogState()
@@ -71,106 +70,98 @@ fun CredentialsScreen(
         modifier = modifier,
         snackbarHostState = snackbarHostState
     ) {
-        Column(
-            modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            CredentialsTabSelector(
-                selectedTab = selectedTab,
-                onTabSelected = { selectedTab = it },
-                httpsCount = uiState.httpsCredentials.size,
-                sshCount = uiState.sshKeys.size
+        if (!uiState.isMasterPasswordSet) {
+            SetupMasterPasswordContent(
+                onConfirm = { password, hint ->
+                    viewModel.setupMasterPassword(password, password, hint)
+                },
+                error = uiState.error,
+                isLoading = uiState.isLoading
             )
+        } else {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                CredentialsTabSelector(
+                    selectedTab = selectedTab,
+                    onTabSelected = { selectedTab = it },
+                    httpsCount = uiState.httpsCredentials.size,
+                    sshCount = uiState.sshKeys.size
+                )
 
-            SecuritySettingsSection(
-                isBiometricEnabled = uiState.isBiometricEnabled,
-                isDecryptionUnlocked = uiState.isDecryptionUnlocked,
-                onToggleBiometric = {
-                    if (!uiState.isDecryptionUnlocked) {
-                        viewModel.showUnlockDialog()
-                    } else if (uiState.isBiometricEnabled) {
-                        viewModel.disableBiometric()
-                    } else {
-                        activity?.let {
-                            viewModel.enableBiometric(it)
+                SecuritySettingsSection(
+                    isBiometricEnabled = uiState.isBiometricEnabled,
+                    isDecryptionUnlocked = uiState.isDecryptionUnlocked,
+                    onToggleBiometric = {
+                        if (!uiState.isDecryptionUnlocked) {
+                            viewModel.showUnlockDialog()
+                        } else if (uiState.isBiometricEnabled) {
+                            viewModel.disableBiometric()
+                        } else {
+                            activity?.let {
+                                viewModel.enableBiometric(it)
+                            }
                         }
-                    }
-                },
-                onExport = {
-                    if (!uiState.isDecryptionUnlocked) {
-                        viewModel.showUnlockDialog()
-                    } else {
-                        dialogState = CredentialDialogState.ExportCredentials
-                    }
-                },
-                onImport = {
-                    if (!uiState.isDecryptionUnlocked) {
-                        viewModel.showUnlockDialog()
-                    } else {
-                        dialogState = CredentialDialogState.ImportCredentials
-                    }
-                },
-                onLock = { viewModel.lock() }
-            )
+                    },
+                    onExport = {
+                        if (!uiState.isDecryptionUnlocked) {
+                            viewModel.showUnlockDialog()
+                        } else {
+                            dialogState = CredentialDialogState.ExportCredentials
+                        }
+                    },
+                    onImport = {
+                        if (!uiState.isDecryptionUnlocked) {
+                            viewModel.showUnlockDialog()
+                        } else {
+                            dialogState = CredentialDialogState.ImportCredentials
+                        }
+                    },
+                    onLock = { viewModel.lock() }
+                )
 
-            AnimatedContent(
-                targetState = selectedTab,
-                transitionSpec = {
-                    fadeIn(animationSpec = tween(260)) togetherWith fadeOut(animationSpec = tween(200))
-                },
-                label = "credentials_tab_transition"
-            ) { tab ->
-                when (tab) {
-                    is CredentialsTab.Https -> {
-                        HttpsCredentialsSection(
-                            credentials = uiState.httpsCredentials,
-                            onAdd = {
-                                when {
-                                    !uiState.isMasterPasswordSet -> {
-                                        dialogState = CredentialDialogState.SetupFirst
-                                    }
-                                    !uiState.isDecryptionUnlocked -> {
+                AnimatedContent(
+                    targetState = selectedTab,
+                    transitionSpec = {
+                        fadeIn(animationSpec = tween(260)) togetherWith fadeOut(animationSpec = tween(200))
+                    },
+                    label = "credentials_tab_transition"
+                ) { tab ->
+                    when (tab) {
+                        is CredentialsTab.Https -> {
+                            HttpsCredentialsSection(
+                                credentials = uiState.httpsCredentials,
+                                onAdd = {
+                                    if (!uiState.isDecryptionUnlocked) {
                                         viewModel.showUnlockDialog()
-                                    }
-                                    else -> {
+                                    } else {
                                         dialogState = CredentialDialogState.AddHttps
                                     }
-                                }
-                            },
-                            onInfo = { dialogState = CredentialDialogState.HttpsInfo(it) }
-                        )
-                    }
-                    is CredentialsTab.Ssh -> {
-                        SshKeysSection(
-                            keys = uiState.sshKeys,
-                            onGenerate = {
-                                when {
-                                    !uiState.isMasterPasswordSet -> {
-                                        dialogState = CredentialDialogState.SetupFirst
-                                    }
-                                    !uiState.isDecryptionUnlocked -> {
+                                },
+                                onInfo = { dialogState = CredentialDialogState.HttpsInfo(it) }
+                            )
+                        }
+                        is CredentialsTab.Ssh -> {
+                            SshKeysSection(
+                                keys = uiState.sshKeys,
+                                onGenerate = {
+                                    if (!uiState.isDecryptionUnlocked) {
                                         viewModel.showUnlockDialog()
-                                    }
-                                    else -> {
+                                    } else {
                                         dialogState = CredentialDialogState.GenerateSsh
                                     }
-                                }
-                            },
-                            onImport = {
-                                when {
-                                    !uiState.isMasterPasswordSet -> {
-                                        dialogState = CredentialDialogState.SetupFirst
-                                    }
-                                    !uiState.isDecryptionUnlocked -> {
+                                },
+                                onImport = {
+                                    if (!uiState.isDecryptionUnlocked) {
                                         viewModel.showUnlockDialog()
-                                    }
-                                    else -> {
+                                    } else {
                                         dialogState = CredentialDialogState.ImportSsh
                                     }
-                                }
-                            },
-                            onInfo = { dialogState = CredentialDialogState.SshInfo(it) }
-                        )
+                                },
+                                onInfo = { dialogState = CredentialDialogState.SshInfo(it) }
+                            )
+                        }
                     }
                 }
             }
@@ -190,17 +181,6 @@ fun CredentialsScreen(
     }
 
     when (val state = dialogState) {
-        is CredentialDialogState.SetupFirst -> {
-            SetupPasswordDialog(
-                onDismiss = { dialogState = CredentialDialogState.None },
-                onConfirm = { password, hint ->
-                    viewModel.setupMasterPassword(password, password, hint)
-                    dialogState = CredentialDialogState.None
-                },
-                error = uiState.error,
-                isLoading = uiState.isLoading
-            )
-        }
         is CredentialDialogState.AddHttps -> {
             AddHttpsCredentialDialog(
                 onDismiss = { dialogState = CredentialDialogState.None },

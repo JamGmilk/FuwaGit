@@ -1,12 +1,16 @@
 package jamgmilk.fuwagit.ui.screen.myrepos
 
 import android.content.Context
+import android.os.Environment
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import jamgmilk.fuwagit.data.local.prefs.RepoDataStore
 import jamgmilk.fuwagit.domain.model.credential.CloneCredential
 import jamgmilk.fuwagit.domain.model.repo.RepoData
+import jamgmilk.fuwagit.domain.state.RepoInfo
+import jamgmilk.fuwagit.domain.state.RepoStateManager
+import jamgmilk.fuwagit.domain.usecase.CurrentRepoUseCase
 import jamgmilk.fuwagit.domain.usecase.credential.GetHttpsCredentialsUseCase
 import jamgmilk.fuwagit.domain.usecase.credential.GetHttpsPasswordUseCase
 import jamgmilk.fuwagit.domain.usecase.credential.GetSshKeysUseCase
@@ -14,16 +18,12 @@ import jamgmilk.fuwagit.domain.usecase.credential.GetSshPrivateKeyUseCase
 import jamgmilk.fuwagit.domain.usecase.git.CleanUseCase
 import jamgmilk.fuwagit.domain.usecase.git.CloneRepositoryUseCase
 import jamgmilk.fuwagit.domain.usecase.git.ConfigureRemoteUseCase
-import jamgmilk.fuwagit.domain.usecase.git.GetRepoInfoUseCase
 import jamgmilk.fuwagit.domain.usecase.git.GetRemoteUrlUseCase
-import jamgmilk.fuwagit.domain.state.RepoStateManager
-import jamgmilk.fuwagit.domain.state.RepoInfo
-import jamgmilk.fuwagit.domain.usecase.CurrentRepoUseCase
+import jamgmilk.fuwagit.domain.usecase.git.GetRepoInfoUseCase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -38,7 +38,17 @@ data class RepoFolderItem(
     val isRemote: Boolean,
     val isActive: Boolean,
     val lastModified: Long = 0L,
-)
+) {
+    val shortPath: String
+        get() {
+            val externalStorageDirPrefix = Environment.getExternalStorageDirectory().absolutePath
+            return if (path.startsWith(externalStorageDirPrefix)) {
+                "/External${path.removePrefix(externalStorageDirPrefix)}"
+            } else {
+                path
+            }
+        }
+}
 
 data class RepoUiState(
     val repoItems: List<RepoFolderItem> = emptyList(),
@@ -94,7 +104,7 @@ class MyReposViewModel @Inject constructor(
                 RepoFolderItem(
                     path = repo.path,
                     alias = repo.displayName,
-                    isGitRepo = true,
+                    isGitRepo = File(repo.path, ".git").exists(),
                     isRemote = false,
                     isActive = repo.path == currentRepo.repoPath,
                     lastModified = repo.lastAccessedAt

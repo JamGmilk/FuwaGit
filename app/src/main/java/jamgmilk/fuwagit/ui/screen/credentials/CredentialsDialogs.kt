@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -398,6 +399,159 @@ fun AddHttpsCredentialDialog(
         },
         shape = RoundedCornerShape(24.dp)
     )
+}
+
+@Composable
+fun SetupMasterPasswordContent(
+    onConfirm: (password: String, hint: String?) -> Unit,
+    error: String? = null,
+    isLoading: Boolean = false
+) {
+    val colors = MaterialTheme.colorScheme
+    
+    var password by remember { mutableStateOf("") }
+    var confirmPassword by remember { mutableStateOf("") }
+    var hint by remember { mutableStateOf("") }
+    var showPassword by remember { mutableStateOf(false) }
+    var showConfirmPassword by remember { mutableStateOf(false) }
+    
+    val passwordMatchError = if (confirmPassword.isNotEmpty() && password != confirmPassword) {
+        "Passwords do not match"
+    } else null
+    
+    val passwordLengthError = if (password.isNotEmpty() && password.length < 8) {
+        "At least 8 characters"
+    } else null
+    
+    val isFormValid = password.length >= 8 && password == confirmPassword
+    
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Box(
+            modifier = Modifier
+                .size(72.dp)
+                .background(
+                    colors.primary.copy(alpha = 0.12f),
+                    CircleShape
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                Icons.Default.Lock,
+                contentDescription = null,
+                tint = colors.primary,
+                modifier = Modifier.size(36.dp)
+            )
+        }
+        
+        Spacer(Modifier.height(16.dp))
+        
+        Text(
+            text = "Create a master password to protect your sensitive credentials. You'll need this password to view passwords and private keys.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = colors.onSurfaceVariant,
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+        )
+        
+        Spacer(Modifier.height(20.dp))
+        
+        OutlinedTextField(
+            value = password,
+            onValueChange = { password = it },
+            label = { Text("Password") },
+            placeholder = { Text("At least 8 characters") },
+            visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
+            trailingIcon = {
+                IconButton(onClick = { showPassword = !showPassword }) {
+                    Icon(
+                        if (showPassword) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                        contentDescription = if (showPassword) "Hide" else "Show"
+                    )
+                }
+            },
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.Password,
+                imeAction = ImeAction.Next
+            ),
+            singleLine = true,
+            isError = passwordLengthError != null,
+            supportingText = passwordLengthError?.let { { Text(it) } },
+            modifier = Modifier.fillMaxWidth()
+        )
+        
+        Spacer(Modifier.height(16.dp))
+        
+        OutlinedTextField(
+            value = confirmPassword,
+            onValueChange = { confirmPassword = it },
+            label = { Text("Confirm Password") },
+            visualTransformation = if (showConfirmPassword) VisualTransformation.None else PasswordVisualTransformation(),
+            trailingIcon = {
+                IconButton(onClick = { showConfirmPassword = !showConfirmPassword }) {
+                    Icon(
+                        if (showConfirmPassword) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                        contentDescription = if (showConfirmPassword) "Hide" else "Show"
+                    )
+                }
+            },
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.Password,
+                imeAction = ImeAction.Next
+            ),
+            singleLine = true,
+            isError = passwordMatchError != null,
+            supportingText = passwordMatchError?.let { { Text(it) } },
+            modifier = Modifier.fillMaxWidth()
+        )
+        
+        Spacer(Modifier.height(16.dp))
+        
+        OutlinedTextField(
+            value = hint,
+            onValueChange = { hint = it },
+            label = { Text("Password Hint (optional)") },
+            placeholder = { Text("Help you remember") },
+            keyboardOptions = KeyboardOptions(
+                imeAction = ImeAction.Done
+            ),
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth()
+        )
+        
+        if (error != null) {
+            Spacer(Modifier.height(12.dp))
+            Text(
+                text = error,
+                color = colors.error,
+                style = MaterialTheme.typography.bodySmall
+            )
+        }
+        
+        Spacer(Modifier.height(24.dp))
+        
+        Button(
+            onClick = { onConfirm(password, hint.ifBlank { null }) },
+            enabled = !isLoading && isFormValid,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(50.dp),
+            shape = RoundedCornerShape(12.dp)
+        ) {
+            if (isLoading) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(20.dp),
+                    color = colors.onPrimary,
+                    strokeWidth = 2.dp
+                )
+                Spacer(Modifier.width(8.dp))
+                Text("Setting...")
+            } else {
+                Text("Set Password", fontSize = 16.sp)
+            }
+        }
+    }
 }
 
 @Composable
