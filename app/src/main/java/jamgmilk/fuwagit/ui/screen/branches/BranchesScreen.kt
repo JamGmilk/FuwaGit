@@ -71,7 +71,6 @@ fun BranchesScreen(
     modifier: Modifier = Modifier
 ) {
     val uiState by branchesViewModel.uiState.collectAsState()
-    val branches = uiState.branches
     val local = uiState.localBranches
     val remote = uiState.remoteBranches
     val currentBranch = uiState.currentBranch?.name
@@ -119,19 +118,18 @@ fun BranchesScreen(
         ElevatedCard(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(500.dp)
+                .weight(1f)
                 .border(1.dp, uiColors.cardBorder, RoundedCornerShape(24.dp)),
             shape = RoundedCornerShape(24.dp),
             colors = CardDefaults.elevatedCardColors(containerColor = uiColors.cardContainer),
             elevation = CardDefaults.elevatedCardElevation(0.dp)
         ) {
-            if (branches.isEmpty()) {
+            if (local.isEmpty() && remote.isEmpty()) {
                 EmptyBranchesState()
             } else {
                 BranchListContent(
                     localBranches = local,
                     remoteBranches = remote,
-                    currentBranch = currentBranch,
                     branchesViewModel = branchesViewModel,
                     showRenameDialog = showRenameDialog,
                     branchToRename = branchToRename,
@@ -157,6 +155,10 @@ fun BranchesScreen(
 
     if (showRenameDialog && branchToRename != null) {
         var newName by remember { mutableStateOf(branchToRename!!) }
+
+        LaunchedEffect(branchToRename) {
+            newName = branchToRename ?: ""
+        }
 
         AlertDialog(
             onDismissRequest = {
@@ -279,7 +281,6 @@ private fun EmptyBranchesState() {
 private fun BranchListContent(
     localBranches: List<GitBranch>,
     remoteBranches: List<GitBranch>,
-    currentBranch: String?,
     branchesViewModel: BranchesViewModel,
     showRenameDialog: Boolean,
     branchToRename: String?,
@@ -287,6 +288,8 @@ private fun BranchListContent(
     modifier: Modifier = Modifier
 ) {
     val colors = MaterialTheme.colorScheme
+    val uiState by branchesViewModel.uiState.collectAsState()
+    val currentBranch = uiState.currentBranch?.name
 
     LazyColumn(
         modifier = modifier.padding(12.dp),

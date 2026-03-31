@@ -19,8 +19,14 @@ import javax.crypto.spec.GCMParameterSpec
 import javax.crypto.spec.PBEKeySpec
 import javax.crypto.spec.SecretKeySpec
 import android.util.Base64
+import dagger.hilt.android.qualifiers.ApplicationContext
+import javax.inject.Inject
+import javax.inject.Singleton
 
-class MasterKeyManager(private val context: Context) {
+@Singleton
+class MasterKeyManager @Inject constructor(
+    @ApplicationContext private val context: Context
+) {
 
     companion object {
         private const val KEYSTORE_ALIAS = "fuwagit_credential_key"
@@ -76,7 +82,7 @@ class MasterKeyManager(private val context: Context) {
 
     suspend fun unlockWithPassword(password: String): Result<SecretKey> {
         return withContext(Dispatchers.IO) {
-            runCatching {
+            try {
                 val saltBase64 = prefs.getString(KEY_SALT, null)
                     ?: throw IllegalStateException("Salt not found")
                 val encryptedMasterBase64 = prefs.getString(KEY_ENCRYPTED_MASTER, null)
@@ -88,7 +94,9 @@ class MasterKeyManager(private val context: Context) {
                 val derivedKey = deriveKey(password, salt)
                 val masterKeyBytes = decryptWithKey(encryptedMasterKey, derivedKey)
 
-                SecretKeySpec(masterKeyBytes, "AES")
+                Result.success(SecretKeySpec(masterKeyBytes, "AES"))
+            } catch (e: Exception) {
+                Result.failure(e)
             }
         }
     }
@@ -243,11 +251,11 @@ class MasterKeyManager(private val context: Context) {
     }
 
     fun setPasswordHint(hint: String) {
-        prefs.edit { putString("password_hint", hint) }
+        prefs.edit { putString(KEY_PASSWORD_HINT, hint) }
     }
 
     fun getPasswordHint(): String? {
-        return prefs.getString("password_hint", null)
+        return prefs.getString(KEY_PASSWORD_HINT, null)
     }
 
     private fun deriveKey(password: String, salt: ByteArray): SecretKey {

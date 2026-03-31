@@ -68,11 +68,9 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.pm.PackageInfoCompat
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.core.net.toUri
-import jamgmilk.fuwagit.ui.screen.settings.SettingsViewModel
 import jamgmilk.fuwagit.ui.components.FilePickerDialog
 import jamgmilk.fuwagit.ui.components.ScreenTemplate
 import jamgmilk.fuwagit.ui.screen.credentials.CredentialsScreen
-import jamgmilk.fuwagit.ui.screen.credentials.CredentialsStoreViewModel
 import jamgmilk.fuwagit.ui.screen.permissions.PermissionsScreen
 
 
@@ -86,11 +84,9 @@ sealed class SettingsNavigationTarget {
 
 @Composable
 fun SettingsScreen(
-    settingsViewModel: SettingsViewModel = hiltViewModel(),
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    settingsViewModel: SettingsViewModel = hiltViewModel()
 ) {
-    val colors = MaterialTheme.colorScheme
-    val uiColors = FuwaGitThemeExtras.colors
     val savedReposCount by settingsViewModel.savedReposCount.collectAsState()
 
     var showPermissions by rememberSaveable { mutableStateOf(false) }
@@ -196,7 +192,6 @@ private fun StorageSettingsCard(
     onShowHiddenFilesChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val colors = MaterialTheme.colorScheme
     val uiColors = FuwaGitThemeExtras.colors
 
     ElevatedCard(
@@ -339,7 +334,6 @@ private fun DeveloperOptionsCard(
     onTestFilePicker: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val colors = MaterialTheme.colorScheme
     val uiColors = FuwaGitThemeExtras.colors
 
     ElevatedCard(
@@ -379,7 +373,6 @@ private fun DeveloperOptionsCard(
 private fun AboutCard(
     modifier: Modifier = Modifier
 ) {
-    val colors = MaterialTheme.colorScheme
     val uiColors = FuwaGitThemeExtras.colors
     val context = LocalContext.current
 

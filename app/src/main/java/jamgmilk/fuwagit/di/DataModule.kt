@@ -1,54 +1,24 @@
 package jamgmilk.fuwagit.di
 
-import android.content.Context
+import dagger.Binds
 import dagger.Module
-import dagger.Provides
 import dagger.hilt.InstallIn
-import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
-import jamgmilk.fuwagit.data.local.prefs.RepoDataStore
-import jamgmilk.fuwagit.data.local.security.MasterKeyManager
-import jamgmilk.fuwagit.data.local.security.SecureCredentialStore
 import jamgmilk.fuwagit.data.repository.CredentialRepositoryImpl
 import jamgmilk.fuwagit.data.repository.GitRepositoryImpl
-import jamgmilk.fuwagit.data.jgit.JGitDataSource
 import jamgmilk.fuwagit.domain.repository.CredentialRepository
 import jamgmilk.fuwagit.domain.repository.GitRepository
 import javax.inject.Singleton
 
 @Module
 @InstallIn(SingletonComponent::class)
-object DataModule {
+abstract class DataModule {
 
-    @Provides
+    @Binds
     @Singleton
-    fun provideJGitDataSource(): JGitDataSource = JGitDataSource()
+    abstract fun bindGitRepository(impl: GitRepositoryImpl): GitRepository
 
-    @Provides
+    @Binds
     @Singleton
-    fun provideGitRepository(jGitDataSource: JGitDataSource): GitRepository = GitRepositoryImpl(jGitDataSource)
-
-    @Provides
-    @Singleton
-    fun provideSecureCredentialStore(
-        @ApplicationContext context: Context
-    ): SecureCredentialStore = SecureCredentialStore(context)
-
-    @Provides
-    @Singleton
-    fun provideMasterKeyManager(
-        @ApplicationContext context: Context
-    ): MasterKeyManager = MasterKeyManager(context)
-
-    @Provides
-    @Singleton
-    fun provideCredentialRepository(
-        @ApplicationContext context: Context
-    ): CredentialRepository = CredentialRepositoryImpl(context)
-
-    @Provides
-    @Singleton
-    fun provideRepoDataStore(
-        @ApplicationContext context: Context
-    ): RepoDataStore = RepoDataStore(context)
+    abstract fun bindCredentialRepository(impl: CredentialRepositoryImpl): CredentialRepository
 }

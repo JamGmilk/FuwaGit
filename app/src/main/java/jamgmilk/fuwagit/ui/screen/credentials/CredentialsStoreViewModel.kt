@@ -284,9 +284,15 @@ class CredentialsStoreViewModel @Inject constructor(
         }
     }
 
-    fun enableBiometric(activity: FragmentActivity, onSuccess: () -> Unit, onError: (String) -> Unit) {
+    fun enableBiometric(activity: FragmentActivity) {
         viewModelScope.launch {
             enableBiometricUseCase()
+                .onSuccess {
+                    _uiState.value = _uiState.value.copy(isBiometricEnabled = true)
+                }
+                .onError { e ->
+                    _uiState.value = _uiState.value.copy(error = e.message)
+                }
         }
     }
 

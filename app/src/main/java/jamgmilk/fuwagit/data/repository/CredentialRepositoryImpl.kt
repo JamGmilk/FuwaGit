@@ -9,11 +9,15 @@ import jamgmilk.fuwagit.core.result.AppException
 import jamgmilk.fuwagit.core.result.AppResult
 import jamgmilk.fuwagit.domain.repository.CredentialRepository
 import javax.crypto.SecretKey
+import javax.inject.Inject
+import javax.inject.Singleton
 
-class CredentialRepositoryImpl(context: Context) : CredentialRepository {
+@Singleton
+class CredentialRepositoryImpl @Inject constructor(
+    private val secureStore: SecureCredentialStore,
+    private val masterKeyManager: MasterKeyManager
+) : CredentialRepository {
 
-    private val secureStore = SecureCredentialStore(context)
-    private val masterKeyManager = MasterKeyManager(context)
     private var cachedMasterKey: SecretKey? = null
 
     override suspend fun setupMasterPassword(password: String, hint: String?): AppResult<Unit> {
@@ -104,8 +108,13 @@ class CredentialRepositoryImpl(context: Context) : CredentialRepository {
     override suspend fun getHttpsPassword(uuid: String): AppResult<String> {
         return AppResult.catching {
             val key = getMasterKey()
-            secureStore.getHttpsPassword(uuid, key)
-                ?: throw AppException.CredentialNotFound(uuid)
+            val result = secureStore.getHttpsPassword(uuid, key)
+            if (result == null) {
+                val exists = secureStore.getPublicCredentials().any { it.uuid == uuid }
+                if (exists) throw AppException.DecryptionFailed()
+                else throw AppException.CredentialNotFound(uuid)
+            }
+            result
         }
     }
 
@@ -146,8 +155,13 @@ class CredentialRepositoryImpl(context: Context) : CredentialRepository {
     override suspend fun getSshPrivateKey(uuid: String): AppResult<String> {
         return AppResult.catching {
             val key = getMasterKey()
-            secureStore.getSshPrivateKey(uuid, key)
-                ?: throw AppException.CredentialNotFound(uuid)
+            val result = secureStore.getSshPrivateKey(uuid, key)
+            if (result == null) {
+                val exists = secureStore.getPublicSshKeys().any { it.uuid == uuid }
+                if (exists) throw AppException.DecryptionFailed()
+                else throw AppException.CredentialNotFound(uuid)
+            }
+            result
         }
     }
 

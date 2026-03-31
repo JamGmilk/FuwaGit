@@ -1,6 +1,5 @@
 package jamgmilk.fuwagit.ui.screen.status
 
-import android.annotation.SuppressLint
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
@@ -117,8 +116,7 @@ fun StatusScreen(
     val terminalLogs = uiState.terminalOutput
     val currentBranch = uiState.currentBranch
 
-    LaunchedEffect(Unit) {
-        kotlinx.coroutines.delay(100)
+    LaunchedEffect(uiState.repoPath) {
         if (uiState.repoPath != null) {
             statusViewModel.refreshAll()
         }
@@ -417,13 +415,7 @@ private fun RepositoryStatusCard(
 
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = when {
-                            repoState == RepoState.REPO_VALID -> repoName ?: "Repository Active"
-                            repoState == RepoState.REPO_NOT_GIT -> repoName ?: "Not a Git Repository"
-                            repoState == RepoState.REPO_PATH_INVALID -> repoName ?: "Invalid Path"
-                            repoState == RepoState.CHECKING -> "Checking..."
-                            else -> "Select a Repository"
-                        },
+                        text = repoName ?: "No Repository Selected",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = when (repoState) {
@@ -442,7 +434,7 @@ private fun RepositoryStatusCard(
                             overflow = TextOverflow.Ellipsis
                         )
                     }
-                    if (repoState == RepoState.REPO_NOT_GIT || repoState == RepoState.REPO_PATH_INVALID) {
+                    if (repoState != RepoState.REPO_VALID && repoState != RepoState.NO_REPO_SELECTED && repoState != RepoState.CHECKING) {
                         Spacer(Modifier.height(4.dp))
                         Text(
                             text = if (repoState == RepoState.REPO_PATH_INVALID) "Path does not exist" else "Not a git repository",
@@ -560,14 +552,18 @@ private fun ChangesOverviewCard(
 @Composable
 private fun StatChipsRow(stats: StatusStats) {
     Row(
-        modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min),
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(IntrinsicSize.Min),
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         StatChip(
             label = "Staged",
             count = stats.staged,
             color = AppColors.GitGreen,
-            modifier = Modifier.weight(1f).fillMaxHeight()
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxHeight()
         )
 
         Column(
@@ -579,24 +575,30 @@ private fun StatChipsRow(stats: StatusStats) {
                 .padding(4.dp),
             verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
-                MiniStatChip(
-                    label = "Modified",
-                    count = stats.modified,
-                    color = AppColors.GitBlue,
-                    modifier = Modifier.weight(1f).fillMaxWidth()
-                )
-                MiniStatChip(
-                    label = "Added",
-                    count = stats.added,
-                    color = AppColors.GitGreen,
-                    modifier = Modifier.weight(1f).fillMaxWidth()
-                )
-                MiniStatChip(
-                    label = "Removed",
-                    count = stats.removed,
-                    color = AppColors.GitRed,
-                    modifier = Modifier.weight(1f).fillMaxWidth()
-                )
+            MiniStatChip(
+                label = "Modified",
+                count = stats.modified,
+                color = AppColors.GitBlue,
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+            )
+            MiniStatChip(
+                label = "Added",
+                count = stats.added,
+                color = AppColors.GitGreen,
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+            )
+            MiniStatChip(
+                label = "Removed",
+                count = stats.removed,
+                color = AppColors.GitRed,
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+            )
         }
     }
 }
