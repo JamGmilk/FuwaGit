@@ -1,9 +1,17 @@
 package jamgmilk.fuwagit.ui.navigation
 
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.List
+import androidx.compose.material.icons.filled.AccountTree
+import androidx.compose.material.icons.filled.Folder
+import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -25,22 +33,35 @@ object NavRoutes {
     const val SETTINGS = "settings"
 }
 
+data class NavItem(
+    val route: String,
+    val title: String,
+    val icon: @Composable () -> Unit
+)
+
+@Composable
+fun rememberNavItems(): List<NavItem> = remember {
+    listOf(
+        NavItem(NavRoutes.STATUS, "Status") { Icon(Icons.AutoMirrored.Filled.List, contentDescription = "Status") },
+        NavItem(NavRoutes.HISTORY, "History") { Icon(Icons.Default.History, contentDescription = "History") },
+        NavItem(NavRoutes.BRANCHES, "Branches") { Icon(Icons.Default.AccountTree, contentDescription = "Branches") },
+        NavItem(NavRoutes.MY_REPOS, "My Repos") { Icon(Icons.Default.Folder, contentDescription = "My Repos") },
+        NavItem(NavRoutes.SETTINGS, "Settings") { Icon(Icons.Default.Settings, contentDescription = "Settings") }
+    )
+}
+
 @Composable
 fun FuwaGitNavHost(
     navController: NavHostController,
     modifier: Modifier = Modifier
 ) {
-    val statusViewModel: StatusViewModel = hiltViewModel()
-    val historyViewModel: HistoryViewModel = hiltViewModel()
-    val branchesViewModel: BranchesViewModel = hiltViewModel()
-    val myReposViewModel: MyReposViewModel = hiltViewModel()
-
     NavHost(
         navController = navController,
         startDestination = NavRoutes.STATUS,
         modifier = modifier
     ) {
         composable(NavRoutes.STATUS) {
+            val statusViewModel: StatusViewModel = hiltViewModel()
             StatusScreen(
                 statusViewModel = statusViewModel,
                 modifier = Modifier.fillMaxSize()
@@ -48,6 +69,7 @@ fun FuwaGitNavHost(
         }
 
         composable(NavRoutes.HISTORY) {
+            val historyViewModel: HistoryViewModel = hiltViewModel()
             HistoryScreen(
                 historyViewModel = historyViewModel,
                 modifier = Modifier.fillMaxSize()
@@ -55,6 +77,7 @@ fun FuwaGitNavHost(
         }
 
         composable(NavRoutes.BRANCHES) {
+            val branchesViewModel: BranchesViewModel = hiltViewModel()
             BranchesScreen(
                 branchesViewModel = branchesViewModel,
                 modifier = Modifier.fillMaxSize()
@@ -62,6 +85,7 @@ fun FuwaGitNavHost(
         }
 
         composable(NavRoutes.MY_REPOS) {
+            val myReposViewModel: MyReposViewModel = hiltViewModel()
             MyReposScreen(
                 myReposViewModel = myReposViewModel,
                 modifier = Modifier.fillMaxSize(),
@@ -75,7 +99,6 @@ fun FuwaGitNavHost(
 
         composable(NavRoutes.SETTINGS) {
             SettingsScreen(
-                myReposViewModel = myReposViewModel,
                 modifier = Modifier.fillMaxSize()
             )
         }

@@ -1,5 +1,6 @@
 package jamgmilk.fuwagit.ui.screen.myrepos
 
+import android.annotation.SuppressLint
 import android.content.Intent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
@@ -108,6 +109,7 @@ import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import androidx.core.net.toUri
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -707,6 +709,7 @@ fun EmptyReposState(modifier: Modifier = Modifier) {
     }
 }
 
+@SuppressLint("UseKtx")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RepoOptionsSheet(
@@ -808,13 +811,13 @@ fun RepoOptionsSheet(
                     onClick = {
                         try {
                             val intent = Intent(Intent.ACTION_VIEW).apply {
-                                setDataAndType(android.net.Uri.parse("content://com.android.externalstorage.documents/document/primary:${item.path}"), "resource/folder")
+                                setDataAndType("content://com.android.externalstorage.documents/document/primary:${item.path}".toUri(), "resource/folder")
                             }
                             context.startActivity(intent)
                         } catch (e: Exception) {
                             try {
                                 val intent = Intent(Intent.ACTION_VIEW).apply {
-                                    data = android.net.Uri.parse("file://${item.path}")
+                                    data = "file://${item.path}".toUri()
                                 }
                                 context.startActivity(intent)
                             } catch (e2: Exception) {

@@ -140,8 +140,8 @@ class CredentialsStoreViewModel @Inject constructor(
             _uiState.value = _uiState.value.copy(isDecryptionUnlocked = true)
 
             getHttpsCredentialsUseCase()
-                .onSuccess { creds ->
-                    _uiState.value = _uiState.value.copy(httpsCredentials = creds)
+                .onSuccess { credentials ->
+                    _uiState.value = _uiState.value.copy(httpsCredentials = credentials)
                 }
 
             getSshKeysUseCase()

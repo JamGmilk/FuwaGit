@@ -1,4 +1,4 @@
-package jamgmilk.fuwagit.domain
+package jamgmilk.fuwagit.domain.state
 
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -9,7 +9,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import javax.inject.Inject
 import javax.inject.Singleton
 
-enum class CurrentRepoState {
+enum class RepoState {
     NO_REPO_SELECTED,
     CHECKING,
     REPO_PATH_INVALID,
@@ -17,41 +17,41 @@ enum class CurrentRepoState {
     REPO_VALID
 }
 
-data class CurrentRepoInfo(
-    val state: CurrentRepoState = CurrentRepoState.NO_REPO_SELECTED,
+data class RepoInfo(
+    val state: RepoState = RepoState.NO_REPO_SELECTED,
     val repoPath: String? = null,
     val repoName: String? = null,
     val errorMessage: String? = null
 )
 
 @Singleton
-class CurrentRepoManager @Inject constructor() {
+class RepoStateManager @Inject constructor() {
 
-    private val _currentRepoInfo = MutableStateFlow(CurrentRepoInfo())
-    val currentRepoInfo: StateFlow<CurrentRepoInfo> = _currentRepoInfo.asStateFlow()
+    private val _repoInfo = MutableStateFlow(RepoInfo())
+    val repoInfo: StateFlow<RepoInfo> = _repoInfo.asStateFlow()
 
     private val _validationRequest = MutableSharedFlow<String?>()
     val validationRequest: SharedFlow<String?> = _validationRequest.asSharedFlow()
 
-    fun updateRepoInfo(info: CurrentRepoInfo) {
-        _currentRepoInfo.value = info
+    fun updateRepoInfo(info: RepoInfo) {
+        _repoInfo.value = info
     }
 
-    fun getCurrentRepoPath(): String? = _currentRepoInfo.value.repoPath
+    fun getRepoPath(): String? = _repoInfo.value.repoPath
 
-    fun isRepoReady(): Boolean = _currentRepoInfo.value.state == CurrentRepoState.REPO_VALID
+    fun isRepoReady(): Boolean = _repoInfo.value.state == RepoState.REPO_VALID
 
-    fun clearCurrentRepo() {
-        _currentRepoInfo.value = CurrentRepoInfo(
-            state = CurrentRepoState.NO_REPO_SELECTED,
+    fun clearRepo() {
+        _repoInfo.value = RepoInfo(
+            state = RepoState.NO_REPO_SELECTED,
             repoPath = null,
             repoName = null
         )
     }
 
-    suspend fun setCurrentRepoPath(path: String?) {
-        _currentRepoInfo.value = CurrentRepoInfo(
-            state = CurrentRepoState.CHECKING,
+    suspend fun setRepoPath(path: String?) {
+        _repoInfo.value = RepoInfo(
+            state = RepoState.CHECKING,
             repoPath = path,
             repoName = path?.substringAfterLast("/")
         )

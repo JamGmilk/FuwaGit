@@ -80,7 +80,7 @@ import androidx.compose.ui.unit.sp
 import jamgmilk.fuwagit.domain.model.git.GitBranch
 import jamgmilk.fuwagit.domain.model.git.GitChangeType
 import jamgmilk.fuwagit.domain.model.git.GitFileStatus
-import jamgmilk.fuwagit.domain.CurrentRepoState
+import jamgmilk.fuwagit.domain.state.RepoState
 import jamgmilk.fuwagit.ui.components.RefreshAction
 import jamgmilk.fuwagit.ui.components.ScreenTemplate
 import jamgmilk.fuwagit.ui.theme.FuwaGitTheme
@@ -365,7 +365,7 @@ private fun ActionButton(
 @Composable
 private fun RepositoryStatusCard(
     isRepo: Boolean,
-    repoState: CurrentRepoState,
+    repoState: RepoState,
     repoName: String?,
     targetPath: String?,
     currentBranch: GitBranch?,
@@ -375,11 +375,11 @@ private fun RepositoryStatusCard(
     val uiColors = FuwaGitThemeExtras.colors
 
     val statusMessage = when (repoState) {
-        CurrentRepoState.NO_REPO_SELECTED -> "Select a repository"
-        CurrentRepoState.CHECKING -> "Checking repository..."
-        CurrentRepoState.REPO_PATH_INVALID -> "Path does not exist"
-        CurrentRepoState.REPO_NOT_GIT -> "Not a git repository"
-        CurrentRepoState.REPO_VALID -> if (isRepo) "Repository Active" else "Not a git repository"
+        RepoState.NO_REPO_SELECTED -> "Select a repository"
+        RepoState.CHECKING -> "Checking repository..."
+        RepoState.REPO_PATH_INVALID -> "Path does not exist"
+        RepoState.REPO_NOT_GIT -> "Not a git repository"
+        RepoState.REPO_VALID -> if (isRepo) "Repository Active" else "Not a git repository"
     }
 
     ElevatedCard(
@@ -418,17 +418,17 @@ private fun RepositoryStatusCard(
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = when {
-                            repoState == CurrentRepoState.REPO_VALID -> repoName ?: "Repository Active"
-                            repoState == CurrentRepoState.REPO_NOT_GIT -> repoName ?: "Not a Git Repository"
-                            repoState == CurrentRepoState.REPO_PATH_INVALID -> repoName ?: "Invalid Path"
-                            repoState == CurrentRepoState.CHECKING -> "Checking..."
+                            repoState == RepoState.REPO_VALID -> repoName ?: "Repository Active"
+                            repoState == RepoState.REPO_NOT_GIT -> repoName ?: "Not a Git Repository"
+                            repoState == RepoState.REPO_PATH_INVALID -> repoName ?: "Invalid Path"
+                            repoState == RepoState.CHECKING -> "Checking..."
                             else -> "Select a Repository"
                         },
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = when (repoState) {
-                            CurrentRepoState.REPO_VALID -> colors.primary
-                            CurrentRepoState.CHECKING -> colors.tertiary
+                            RepoState.REPO_VALID -> colors.primary
+                            RepoState.CHECKING -> colors.tertiary
                             else -> colors.error
                         }
                     )
@@ -442,10 +442,10 @@ private fun RepositoryStatusCard(
                             overflow = TextOverflow.Ellipsis
                         )
                     }
-                    if (repoState == CurrentRepoState.REPO_NOT_GIT || repoState == CurrentRepoState.REPO_PATH_INVALID) {
+                    if (repoState == RepoState.REPO_NOT_GIT || repoState == RepoState.REPO_PATH_INVALID) {
                         Spacer(Modifier.height(4.dp))
                         Text(
-                            text = if (repoState == CurrentRepoState.REPO_PATH_INVALID) "Path does not exist" else "Not a git repository",
+                            text = if (repoState == RepoState.REPO_PATH_INVALID) "Path does not exist" else "Not a git repository",
                             style = MaterialTheme.typography.bodySmall,
                             color = colors.error
                         )
