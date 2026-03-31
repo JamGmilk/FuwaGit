@@ -1,4 +1,4 @@
-package jamgmilk.fuwagit.data.source
+package jamgmilk.fuwagit.data.util
 
 import android.net.Uri
 import android.os.Environment

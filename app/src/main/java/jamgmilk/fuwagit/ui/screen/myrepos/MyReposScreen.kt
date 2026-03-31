@@ -1,8 +1,6 @@
 package jamgmilk.fuwagit.ui.screen.myrepos
 
 import android.content.Intent
-import android.net.Uri
-import androidx.core.content.ContextCompat
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.expandVertically
@@ -28,11 +26,9 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Checkbox
-import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountTree
 import androidx.compose.material.icons.filled.Add
@@ -47,7 +43,6 @@ import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.filled.FolderShared
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Link
-import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Source
 import androidx.compose.material.icons.filled.Sync
@@ -57,12 +52,14 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CheckboxDefaults
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
-import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.HorizontalDivider
@@ -82,9 +79,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -103,15 +100,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import jamgmilk.fuwagit.domain.model.credential.CloneCredential
-import jamgmilk.fuwagit.ui.screen.myrepos.HttpsCredentialItem
-import jamgmilk.fuwagit.ui.screen.myrepos.SshKeyItem
-import jamgmilk.fuwagit.ui.theme.AppColors
+import jamgmilk.fuwagit.ui.components.FilePickerDialog
+import jamgmilk.fuwagit.ui.components.ScreenTemplate
 import jamgmilk.fuwagit.ui.theme.FuwaGitThemeExtras
 import jamgmilk.fuwagit.ui.theme.Sakura80
-import jamgmilk.fuwagit.ui.components.ScreenTemplate
-import jamgmilk.fuwagit.ui.components.FilePickerDialog
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -257,7 +249,6 @@ fun MyReposScreen(
             cloneUrl = cloneUrl,
             onCloneUrlChange = { cloneUrl = it },
             localPath = cloneLocalPath,
-            onLocalPathChange = { cloneLocalPath = it },
             onPickFolder = {
                 showCloneFolderPicker = true
             },
@@ -1378,6 +1369,9 @@ private fun AddRepoDialog(
 
     LaunchedEffect(repoPath) {
         path = repoPath
+        if (repoPath.isNotBlank() && alias.isBlank()) {
+            alias = repoPath.substringAfterLast("/")
+        }
     }
 
     AlertDialog(
@@ -1411,20 +1405,6 @@ private fun AddRepoDialog(
                     .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                OutlinedTextField(
-                    value = alias,
-                    onValueChange = { alias = it },
-                    label = { Text("Alias (optional)") },
-                    placeholder = { Text("Enter a friendly name") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = Sakura80,
-                        focusedLabelColor = Sakura80,
-                        cursorColor = Sakura80
-                    )
-                )
-
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -1505,15 +1485,11 @@ private fun AddRepoDialog(
                 }
 
                 OutlinedTextField(
-                    value = path,
-                    onValueChange = {
-                        path = it
-                        onPathChange(it)
-                    },
-                    label = { Text("Or enter path manually") },
-                    placeholder = { Text("/storage/emulated/0/Git") },
+                    value = alias,
+                    onValueChange = { alias = it },
+                    label = { Text("Alias (optional)") },
+                    placeholder = { Text("Enter a friendly name") },
                     singleLine = true,
-                    shape = RoundedCornerShape(12.dp),
                     modifier = Modifier.fillMaxWidth(),
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = Sakura80,
@@ -1569,7 +1545,6 @@ fun CloneRepoDialog(
     cloneUrl: String,
     onCloneUrlChange: (String) -> Unit,
     localPath: String,
-    onLocalPathChange: (String) -> Unit,
     onPickFolder: () -> Unit,
     isDirectoryEmpty: Boolean,
     error: String?,
@@ -1782,21 +1757,6 @@ fun CloneRepoDialog(
                         }
                     }
                 }
-
-                OutlinedTextField(
-                    value = localPath,
-                    onValueChange = onLocalPathChange,
-                    label = { Text("Or enter path manually") },
-                    placeholder = { Text("/storage/emulated/0/Git") },
-                    singleLine = true,
-                    shape = RoundedCornerShape(12.dp),
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = Sakura80,
-                        focusedLabelColor = Sakura80,
-                        cursorColor = Sakura80
-                    )
-                )
 
                 if (error != null) {
                     Surface(

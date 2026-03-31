@@ -163,7 +163,13 @@ fun CredentialsScreen(
                     } else if (uiState.isBiometricEnabled) {
                         viewModel.disableBiometric()
                     } else {
-                        viewModel.enableBiometric()
+                        activity?.let {
+                            viewModel.enableBiometric(
+                                activity = it,
+                                onSuccess = { },
+                                onError = { error -> scope.launch { snackbarHostState.showSnackbar(error) } }
+                            )
+                        }
                     }
                 },
                 onExport = {
@@ -249,12 +255,9 @@ fun CredentialsScreen(
 
     if (uiState.showUnlockDialog) {
         UnlockDialog(
-            onDismiss = { viewModel.hideUnlockDialog() },
+            onDismiss = { viewModel.dismissUnlockDialog() },
             onUnlock = { password ->
                 viewModel.unlockWithPassword(password)
-            },
-            onBiometricUnlock = {
-                activity?.let { viewModel.unlockWithBiometric(it) }
             },
             passwordHint = uiState.passwordHint,
             error = uiState.error,
