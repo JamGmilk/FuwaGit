@@ -8,6 +8,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 
 private val DarkColorScheme = darkColorScheme(
@@ -54,20 +55,22 @@ private val LightColorScheme = lightColorScheme(
     onError = CatCream
 )
 
-private object ColorTokens {
-    val surface = Sakura20
-    val surfaceVariant = Sakura30
-    val surfaceDark = Color(0xFF3B2A39)
-    val surfaceVariantDark = Color(0xFF4A3446)
-}
-
 @Immutable
 data class FuwaGitExtraColors(
     val cardContainer: Color,
     val cardBorder: Color,
     val terminalBackground: Color,
     val terminalText: Color,
-    val navBarContainer: Color
+    val navBarContainer: Color,
+    val backgroundBrush: Brush,
+    val gitAdded: Color,
+    val gitAddedLight: Color,
+    val gitModified: Color,
+    val gitModifiedLight: Color,
+    val gitDeleted: Color,
+    val gitDeletedLight: Color,
+    val gitUntracked: Color,
+    val gitConflicting: Color
 )
 
 private val LightExtraColors = FuwaGitExtraColors(
@@ -75,7 +78,16 @@ private val LightExtraColors = FuwaGitExtraColors(
     cardBorder = Sakura50.copy(alpha = 0.40f),
     terminalBackground = CatNightSoft,
     terminalText = Sakura30,
-    navBarContainer = Sakura20.copy(alpha = 0.95f)
+    navBarContainer = Sakura20.copy(alpha = 0.95f),
+    backgroundBrush = LightBackgroundBrush,
+    gitAdded = AppColors.GitGreen,
+    gitAddedLight = AppColors.GitGreenLight,
+    gitModified = AppColors.GitBlue,
+    gitModifiedLight = AppColors.GitBlueLight,
+    gitDeleted = AppColors.GitRed,
+    gitDeletedLight = AppColors.GitRedLight,
+    gitUntracked = AppColors.Untracked,
+    gitConflicting = AppColors.Conflicting
 )
 
 private val DarkExtraColors = FuwaGitExtraColors(
@@ -83,7 +95,16 @@ private val DarkExtraColors = FuwaGitExtraColors(
     cardBorder = Sakura70.copy(alpha = 0.40f),
     terminalBackground = CatNightSoft,
     terminalText = Sakura30,
-    navBarContainer = CatNight
+    navBarContainer = CatNight,
+    backgroundBrush = DarkBackgroundBrush,
+    gitAdded = AppColors.GitGreen,
+    gitAddedLight = AppColors.GitGreenLight,
+    gitModified = AppColors.GitBlue,
+    gitModifiedLight = AppColors.GitBlueLight,
+    gitDeleted = AppColors.GitRed,
+    gitDeletedLight = AppColors.GitRedLight,
+    gitUntracked = AppColors.Untracked,
+    gitConflicting = AppColors.Conflicting
 )
 
 private val LocalExtraColors = staticCompositionLocalOf { LightExtraColors }
