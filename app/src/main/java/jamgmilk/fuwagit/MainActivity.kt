@@ -161,7 +161,8 @@ fun AppRoot() {
                             modifier = Modifier.fillMaxSize(),
                             onNavigateToStatus = {
                                 navigateToPage(0)
-                            }
+                            },
+                            onSubPageVisibleChange = { visible -> isSubPageVisible = visible }
                         )
                     }
                     4 -> {
@@ -174,7 +175,7 @@ fun AppRoot() {
                 }
             }
 
-            if (!isLandscape) {
+            if (!isLandscape && !isSubPageVisible) {
                 NavigationBar(
                     windowInsets = NavigationBarDefaults.windowInsets,
                     containerColor = FuwaGitThemeExtras.colors.navBarContainer

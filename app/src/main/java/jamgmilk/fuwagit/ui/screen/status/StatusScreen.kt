@@ -229,12 +229,18 @@ fun StatusScreen(
             )
         }
 
-        TerminalLogsCard(
-            logs = terminalLogs,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(160.dp)
-        )
+        AnimatedVisibility(
+            visible = isRepo,
+            enter = fadeIn() + expandVertically(),
+            exit = fadeOut() + shrinkVertically()
+        ) {
+            TerminalLogsCard(
+                logs = terminalLogs,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(160.dp)
+            )
+        }
     }
 }
 

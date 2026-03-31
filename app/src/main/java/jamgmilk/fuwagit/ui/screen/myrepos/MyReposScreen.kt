@@ -2,11 +2,16 @@ package jamgmilk.fuwagit.ui.screen.myrepos
 
 import android.annotation.SuppressLint
 import android.content.Intent
+import android.widget.Toast
+import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.expandVertically
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -32,6 +37,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountTree
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.CleaningServices
 import androidx.compose.material.icons.filled.CloudDownload
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
@@ -107,7 +113,8 @@ import java.util.Locale
 fun MyReposScreen(
     myReposViewModel: MyReposViewModel,
     modifier: Modifier = Modifier,
-    onNavigateToStatus: () -> Unit = {}
+    onNavigateToStatus: () -> Unit = {},
+    onSubPageVisibleChange: (Boolean) -> Unit = {}
 ) {
     val context = LocalContext.current
     val uiState by myReposViewModel.uiState.collectAsState()
@@ -121,7 +128,7 @@ fun MyReposScreen(
     var showCloneFolderPicker by remember { mutableStateOf(false) }
     var showAddLocalFolderPicker by remember { mutableStateOf(false) }
     var showCleanDialog by remember { mutableStateOf(false) }
-    var showAddLocalDialog by remember { mutableStateOf(false) }
+    var showAddLocalScreen by remember { mutableStateOf(false) }
     var addLocalPath by remember { mutableStateOf("") }
     var cloneUrl by remember { mutableStateOf("") }
     var cloneLocalPath by remember { mutableStateOf("") }
@@ -142,69 +149,81 @@ fun MyReposScreen(
         myReposViewModel.loadSavedRepos()
     }
 
-    Box(modifier = modifier.fillMaxSize()) {
-        ScreenTemplate(
-            title = "My Repos",
-            modifier = Modifier.fillMaxSize()
-        ) {
-            ElevatedCard(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f)
-                    .border(1.dp, FuwaGitThemeExtras.colors.cardBorder, AppShapes.medium),
-                shape = AppShapes.medium,
-                colors = CardDefaults.elevatedCardColors(containerColor = FuwaGitThemeExtras.colors.cardContainer),
-                elevation = CardDefaults.elevatedCardElevation(0.dp)
-            ) {
-                if (folders.isEmpty()) {
-                    EmptyReposState()
-                } else {
-                    RepoListContent(
-                        folders = folders,
-                        selectedTarget = selectedTarget,
-                        onSetTarget = { path ->
-                            scope.launch {
-                                myReposViewModel.setCurrentRepo(path)
-                            }
-                            onNavigateToStatus()
-                        },
-                        onItemLongClick = { selectedItemForSheet = it }
-                    )
-                }
-            }
-        }
-
-        RepoSpeedDial(
-            expanded = expandedFab,
-            onExpandedChange = { expandedFab = it },
-            onCloneRemote = { showCloneDialog = true },
-            onAddLocal = { showAddLocalDialog = true },
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(16.dp)
-        )
-
+    LaunchedEffect(showAddLocalScreen) {
+        onSubPageVisibleChange(showAddLocalScreen)
     }
 
-    if (showAddLocalDialog) {
-        AddRepoDialog(
-            repoPath = addLocalPath,
-            onPathChange = { addLocalPath = it },
-            onPickFolder = { showAddLocalFolderPicker = true },
-            onDismiss = {
-                showAddLocalDialog = false
-                addLocalPath = ""
-            },
-            onConfirm = { path, alias ->
-                scope.launch {
-                    myReposViewModel.addRepo(path, alias)
-                    myReposViewModel.setCurrentRepo(path)
+    AnimatedContent(
+        targetState = showAddLocalScreen,
+        transitionSpec = {
+            fadeIn(animationSpec = tween(260)) togetherWith fadeOut(animationSpec = tween(200))
+        },
+        label = "myrepos_transition"
+    ) { showAddLocal ->
+        if (showAddLocal) {
+            BackHandler { showAddLocalScreen = false }
+            AddLocalRepositoryScreen(
+                initialPath = addLocalPath,
+                onBack = {
+                    showAddLocalScreen = false
+                    addLocalPath = ""
+                },
+                onAddRepository = { path, alias ->
+                    scope.launch {
+                        myReposViewModel.addRepo(path, alias)
+                        myReposViewModel.setCurrentRepo(path)
+                    }
+                    showAddLocalScreen = false
+                    addLocalPath = ""
+                    onNavigateToStatus()
+                },
+                onPickFolder = { showAddLocalFolderPicker = true },
+                modifier = modifier
+            )
+        } else {
+            Box(modifier = modifier.fillMaxSize()) {
+                ScreenTemplate(
+                    title = "My Repos",
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    ElevatedCard(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f)
+                            .border(1.dp, FuwaGitThemeExtras.colors.cardBorder, AppShapes.medium),
+                        shape = AppShapes.medium,
+                        colors = CardDefaults.elevatedCardColors(containerColor = FuwaGitThemeExtras.colors.cardContainer),
+                        elevation = CardDefaults.elevatedCardElevation(0.dp)
+                    ) {
+                        if (folders.isEmpty()) {
+                            EmptyReposState()
+                        } else {
+                            RepoListContent(
+                                folders = folders,
+                                selectedTarget = selectedTarget,
+                                onSetTarget = { path ->
+                                    scope.launch {
+                                        myReposViewModel.setCurrentRepo(path)
+                                    }
+                                    onNavigateToStatus()
+                                },
+                                onItemLongClick = { selectedItemForSheet = it }
+                            )
+                        }
+                    }
                 }
-                showAddLocalDialog = false
-                addLocalPath = ""
-                onNavigateToStatus()
+
+                RepoSpeedDial(
+                    expanded = expandedFab,
+                    onExpandedChange = { expandedFab = it },
+                    onCloneRemote = { showCloneDialog = true },
+                    onAddLocal = { showAddLocalScreen = true },
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(16.dp)
+                )
             }
-        )
+        }
     }
 
     if (showCloneFolderPicker) {
@@ -604,6 +623,7 @@ fun RepoItemCard(
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f, fill = false)
                     )
+
                     if (isSelected) {
                         Surface(
                             shape = RoundedCornerShape(6.dp),
@@ -619,10 +639,39 @@ fun RepoItemCard(
                             )
                         }
                     }
+
+                    if (!item.isGitRepo) {
+                        Row(
+                            modifier = Modifier
+                                .padding(horizontal = 8.dp, vertical = 3.dp)
+                                .background(
+                                    color = accentColor.copy(alpha = 0.15f),
+                                    shape = RoundedCornerShape(6.dp)
+                                ),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.Warning,
+                                contentDescription = null,
+                                tint = accentColor,
+                                modifier = Modifier.size(12.dp)
+                            )
+                            Text(
+                                text = "Not a Git",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = accentColor,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+
+                    }
+
+
                 }
 
                 Text(
-                    text = item.path,
+                    text = item.shortPath,
                     style = MaterialTheme.typography.bodySmall,
                     color = colors.onSurfaceVariant,
                     fontFamily = FontFamily.Monospace,
@@ -732,46 +781,31 @@ fun RepoOptionsSheet(
         sheetState = sheetState,
         containerColor = uiColors.cardContainer,
         contentColor = colors.onSurface,
-        dragHandle = {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier.padding(top = 12.dp)
-            ) {
-                Surface(
-                    modifier = Modifier.size(32.dp, 4.dp),
-                    shape = CircleShape,
-                    color = colors.onSurfaceVariant.copy(alpha = 0.4f)
-                ) {}
-            }
-        }
+        dragHandle = null
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp)
-                .padding(bottom = 32.dp)
+                .padding(horizontal = 16.dp, vertical = 32.dp)
         ) {
             RepoHeader(
                 item = item,
                 onCopyPath = {
                     clipboardManager.setText(AnnotatedString(item.path))
-                    scope.launch {
-                        kotlinx.coroutines.delay(300)
-                        onDismiss()
-                    }
                 }
             )
 
-            Spacer(Modifier.height(16.dp))
-            HorizontalDivider(color = colors.outline.copy(alpha = 0.15f))
-            Spacer(Modifier.height(12.dp))
+            HorizontalDivider(
+                modifier = Modifier.padding(top = 16.dp, bottom = 12.dp),
+                color = colors.outline.copy(alpha = 0.15f)
+            )
 
             Text(
                 text = "OPTIONS",
                 style = MaterialTheme.typography.labelSmall,
                 fontWeight = FontWeight.SemiBold,
                 color = colors.onSurfaceVariant.copy(alpha = 0.6f),
-                modifier = Modifier.padding(start = 8.dp, bottom = 8.dp)
+                modifier = Modifier.padding(start = 8.dp)
             )
 
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -783,56 +817,27 @@ fun RepoOptionsSheet(
                     onClick = onConfigureRemote
                 )
 
-                RepoOptionItem(
-                    icon = Icons.Default.Delete,
-                    title = "Clean Repository",
-                    subtitle = "Remove untracked files",
-                    accentColor = Color(0xFFE91E63),
-                    onClick = onClean
-                )
-
-                RepoOptionItem(
-                    icon = Icons.Default.ContentCopy,
-                    title = "Copy Path",
-                    subtitle = item.path,
-                    accentColor = Color(0xFF607D8B),
-                    onClick = {
-                        clipboardManager.setText(AnnotatedString(item.path))
-                    }
-                )
-
-                RepoOptionItem(
-                    icon = Icons.Default.FolderShared,
-                    title = "Open in Files",
-                    subtitle = "Browse repository folder",
-                    accentColor = Color(0xFF795548),
-                    onClick = {
-                        try {
-                            val intent = Intent(Intent.ACTION_VIEW).apply {
-                                data = android.net.Uri.parse("file://${item.path}")
-                            }
-                            context.startActivity(intent)
-                        } catch (e: Exception) {
-                            clipboardManager.setText(AnnotatedString(item.path))
-                        }
-                        scope.launch {
-                            kotlinx.coroutines.delay(300)
-                            onDismiss()
-                        }
-                    }
-                )
             }
 
-            Spacer(Modifier.height(12.dp))
-            HorizontalDivider(color = colors.outline.copy(alpha = 0.15f))
-            Spacer(Modifier.height(12.dp))
+            HorizontalDivider(
+                modifier = Modifier.padding(12.dp),
+                color = colors.outline.copy(alpha = 0.15f)
+            )
 
             Text(
                 text = "DANGER ZONE",
                 style = MaterialTheme.typography.labelSmall,
                 fontWeight = FontWeight.SemiBold,
                 color = colors.error.copy(alpha = 0.7f),
-                modifier = Modifier.padding(start = 8.dp, bottom = 8.dp)
+                modifier = Modifier.padding(start = 8.dp)
+            )
+
+            RepoOptionItem(
+                icon = Icons.Default.CleaningServices,
+                title = "Clean Repository",
+                subtitle = "Remove untracked files",
+                accentColor = Color(0xFFE91E63),
+                onClick = onClean
             )
 
             RepoOptionItem(
@@ -852,36 +857,34 @@ private fun RepoHeader(
     onCopyPath: () -> Unit
 ) {
     val colors = MaterialTheme.colorScheme
-    val accentColor = if (item.isGitRepo) Color(0xFF4CAF50) else Color(0xFFFF9800)
+    val context = LocalContext.current
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .background(
-                Brush.verticalGradient(
-                    colors = listOf(
-                        Sakura80.copy(alpha = 0.12f),
-                        Sakura80.copy(alpha = 0.04f)
-                    )
-                ),
+                color = Sakura80.copy(alpha = 0.12f),
                 shape = RoundedCornerShape(16.dp)
             )
             .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Surface(
-            shape = RoundedCornerShape(14.dp),
-            color = if (item.isGitRepo) Color(0xFF4CAF50) else Color(0xFFFF9800),
-            modifier = Modifier.size(56.dp)
+
+        Box(
+            modifier = Modifier
+                .size(56.dp)
+                .background(
+                    color = if (item.isGitRepo) Color(0xFF4CAF50) else Color(0xFFFF9800),
+                    shape = RoundedCornerShape(14.dp)
+                ),
+            contentAlignment = Alignment.Center
         ) {
-            Box(contentAlignment = Alignment.Center) {
-                Icon(
-                    Icons.Default.Folder,
-                    contentDescription = null,
-                    tint = Color.White,
-                    modifier = Modifier.size(28.dp)
-                )
-            }
+            Icon(
+                imageVector = Icons.Default.Folder,
+                contentDescription = null,
+                tint = Color.White,
+                modifier = Modifier.size(28.dp)
+            )
         }
 
         Spacer(Modifier.width(16.dp))
@@ -889,63 +892,28 @@ private fun RepoHeader(
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = item.alias.ifBlank { item.path.substringAfterLast("/") },
-                style = MaterialTheme.typography.titleLarge,
+                style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
-            Spacer(Modifier.height(4.dp))
 
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                Surface(
-                    shape = RoundedCornerShape(6.dp),
-                    color = accentColor.copy(alpha = 0.15f)
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        Icon(
-                            if (item.isGitRepo) Icons.Default.CheckCircle else Icons.Default.Warning,
-                            contentDescription = null,
-                            tint = accentColor,
-                            modifier = Modifier.size(12.dp)
-                        )
-                        Text(
-                            text = if (item.isGitRepo) "Git Repository" else "Not a Git",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = accentColor,
-                            fontWeight = FontWeight.Medium
-                        )
-                    }
-                }
-
-                IconButton(
-                    onClick = onCopyPath,
-                    modifier = Modifier.size(24.dp)
-                ) {
-                    Icon(
-                        Icons.Default.ContentCopy,
-                        contentDescription = "Copy path",
-                        tint = colors.onSurfaceVariant,
-                        modifier = Modifier.size(16.dp)
-                    )
-                }
-            }
-
-            Spacer(Modifier.height(6.dp))
+            //Spacer(Modifier.height(6.dp))
 
             Text(
                 text = item.path,
-                style = MaterialTheme.typography.bodySmall,
+                style = MaterialTheme.typography.bodySmall.copy(lineHeight = 16.sp),
                 color = colors.onSurfaceVariant.copy(alpha = 0.8f),
                 fontFamily = FontFamily.Monospace,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.combinedClickable(
+                    onClick = {},
+                    onLongClick = {
+                        onCopyPath()
+                        Toast.makeText(context, "Path copied", Toast.LENGTH_SHORT).show()
+                    }
+                )
             )
         }
     }

@@ -39,8 +39,12 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -52,6 +56,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 
 import jamgmilk.fuwagit.ui.components.SubSettingsTemplate
 import jamgmilk.fuwagit.ui.theme.FuwaGitThemeExtras
@@ -104,17 +111,36 @@ private fun SystemPermissionsCard(
 ) {
     val colors = MaterialTheme.colorScheme
     val uiColors = FuwaGitThemeExtras.colors
+    val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
+    val isInspectionMode = LocalInspectionMode.current
 
-    val allFilesStatus = if (LocalInspectionMode.current) {
-        PermissionStatus.Unknown
-    } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-        if (Environment.isExternalStorageManager()) PermissionStatus.Granted else PermissionStatus.Denied
-    } else {
-        val writeGranted = ContextCompat.checkSelfPermission(
-            LocalContext.current,
-            Manifest.permission.WRITE_EXTERNAL_STORAGE
-        ) == PackageManager.PERMISSION_GRANTED
-        if (writeGranted) PermissionStatus.Granted else PermissionStatus.Denied
+    fun checkAllFilesStatus(): PermissionStatus {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            if (Environment.isExternalStorageManager()) PermissionStatus.Granted else PermissionStatus.Denied
+        } else {
+            val writeGranted = ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.WRITE_EXTERNAL_STORAGE
+            ) == PackageManager.PERMISSION_GRANTED
+            if (writeGranted) PermissionStatus.Granted else PermissionStatus.Denied
+        }
+    }
+
+    var allFilesStatus by remember {
+        mutableStateOf(
+            if (isInspectionMode) PermissionStatus.Unknown else checkAllFilesStatus()
+        )
+    }
+
+    LaunchedEffect(lifecycleOwner) {
+        lifecycleOwner.lifecycle.addObserver(object : LifecycleEventObserver {
+            override fun onStateChanged(source: androidx.lifecycle.LifecycleOwner, event: Lifecycle.Event) {
+                if (event == Lifecycle.Event.ON_RESUME) {
+                    allFilesStatus = checkAllFilesStatus()
+                }
+            }
+        })
     }
 
     ElevatedCard(
@@ -162,9 +188,9 @@ private fun SystemPermissionsCard(
                     title = "All Files Access",
                     description = "Required for Git operations on all directories",
                     status = allFilesStatus,
-                    actionLabel = if (allFilesStatus == PermissionStatus.Granted) "Granted" else "Grant",
+                    actionLabel = if (allFilesStatus == PermissionStatus.Granted) "Open Settings" else "Grant",
                     onAction = onRequestAllFilesAccess,
-                    actionEnabled = allFilesStatus != PermissionStatus.Granted,
+                    actionEnabled = true,
                     accentColor = Sakura80
                 )
             }
