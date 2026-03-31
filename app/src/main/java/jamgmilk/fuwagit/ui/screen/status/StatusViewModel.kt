@@ -3,8 +3,8 @@ package jamgmilk.fuwagit.ui.screen.status
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
-import jamgmilk.fuwagit.domain.CurrentRepoManager
-import jamgmilk.fuwagit.domain.CurrentRepoState
+import jamgmilk.fuwagit.domain.state.RepoStateManager
+import jamgmilk.fuwagit.domain.state.RepoState
 import jamgmilk.fuwagit.domain.model.git.GitBranch
 import jamgmilk.fuwagit.domain.model.git.GitFileStatus
 import jamgmilk.fuwagit.domain.usecase.git.CommitUseCase
@@ -38,7 +38,7 @@ data class StatusUiState(
     val error: String? = null,
     val repoPath: String? = null,
     val repoName: String? = null,
-    val repoState: CurrentRepoState = CurrentRepoState.NO_REPO_SELECTED,
+    val repoState: RepoState = RepoState.NO_REPO_SELECTED,
     val isGitRepo: Boolean = false,
     val statusMessage: String = "Select a target repo",
     val branch: String = "",
@@ -52,7 +52,7 @@ data class StatusUiState(
 
 @HiltViewModel
 class StatusViewModel @Inject constructor(
-    private val currentRepoManager: CurrentRepoManager,
+    private val currentRepoManager: RepoStateManager,
     private val hasGitDirUseCase: HasGitDirUseCase,
     private val getDetailedStatusUseCase: GetDetailedStatusUseCase,
     private val getBranchesUseCase: GetBranchesUseCase,
@@ -75,7 +75,7 @@ class StatusViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
-            currentRepoManager.currentRepoInfo.collectLatest { info ->
+            currentRepoManager.repoInfo.collectLatest { info ->
                 currentRepoPath = info.repoPath
                 val repoName = info.repoPath?.substringAfterLast("/")
                 _uiState.update {
@@ -86,9 +86,9 @@ class StatusViewModel @Inject constructor(
                     )
                 }
 
-                if (info.state == CurrentRepoState.REPO_VALID && info.repoPath != null) {
+                if (info.state == RepoState.REPO_VALID && info.repoPath != null) {
                     refreshAll()
-                } else if (info.state == CurrentRepoState.NO_REPO_SELECTED) {
+                } else if (info.state == RepoState.NO_REPO_SELECTED) {
                     _uiState.update {
                         it.copy(
                             isGitRepo = false,

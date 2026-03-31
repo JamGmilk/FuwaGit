@@ -12,6 +12,7 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import javax.inject.Inject
 import javax.inject.Singleton
+import androidx.core.content.edit
 
 @Serializable
 data class RepoListWrapper(val repos: List<RepoData>)
@@ -44,9 +45,9 @@ class RepoDataStore @Inject constructor(
 
     suspend fun setCurrentRepo(path: String?) {
         if (path != null) {
-            prefs.edit().putString(KEY_CURRENT_REPO, path).apply()
+            prefs.edit { putString(KEY_CURRENT_REPO, path) }
         } else {
-            prefs.edit().remove(KEY_CURRENT_REPO).apply()
+            prefs.edit {remove(KEY_CURRENT_REPO)}
         }
     }
 
@@ -92,7 +93,7 @@ class RepoDataStore @Inject constructor(
     }
 
     suspend fun updateLastAccessed(path: String) {
-        prefs.edit().putLong(KEY_LAST_ACCESSED + path, System.currentTimeMillis()).apply()
+        prefs.edit { putLong(KEY_LAST_ACCESSED + path, System.currentTimeMillis())}
     }
 
     suspend fun getLastAccessed(path: String): Long {
@@ -101,7 +102,7 @@ class RepoDataStore @Inject constructor(
 
     private fun saveRepoList(repos: List<RepoData>) {
         val jsonStr = json.encodeToString(RepoListWrapper(repos))
-        prefs.edit().putString(KEY_REPO_LIST, jsonStr).apply()
+        prefs.edit { putString(KEY_REPO_LIST, jsonStr)}
     }
 
     companion object {

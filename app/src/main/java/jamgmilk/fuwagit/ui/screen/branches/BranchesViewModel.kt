@@ -11,7 +11,7 @@ import jamgmilk.fuwagit.domain.usecase.git.GetBranchesUseCase
 import jamgmilk.fuwagit.domain.usecase.git.MergeBranchUseCase
 import jamgmilk.fuwagit.domain.usecase.git.RebaseBranchUseCase
 import jamgmilk.fuwagit.domain.usecase.git.RenameBranchUseCase
-import jamgmilk.fuwagit.domain.CurrentRepoManager
+import jamgmilk.fuwagit.domain.state.RepoStateManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -35,7 +35,7 @@ data class BranchesUiState(
 
 @HiltViewModel
 class BranchesViewModel @Inject constructor(
-    private val currentRepoManager: CurrentRepoManager,
+    private val currentRepoManager: RepoStateManager,
     private val getBranchesUseCase: GetBranchesUseCase,
     private val checkoutBranchUseCase: CheckoutBranchUseCase,
     private val createBranchUseCase: CreateBranchUseCase,
@@ -52,7 +52,7 @@ class BranchesViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
-            currentRepoManager.currentRepoInfo.collectLatest { info ->
+            currentRepoManager.repoInfo.collectLatest { info ->
                 currentRepoPath = info.repoPath
                 _uiState.update { it.copy(repoPath = info.repoPath) }
                 if (info.repoPath != null) {

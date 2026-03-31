@@ -6,7 +6,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import jamgmilk.fuwagit.domain.model.git.CommitStats
 import jamgmilk.fuwagit.domain.model.git.GitCommit
 import jamgmilk.fuwagit.domain.usecase.git.GetCommitHistoryUseCase
-import jamgmilk.fuwagit.domain.CurrentRepoManager
+import jamgmilk.fuwagit.domain.state.RepoStateManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -33,7 +33,7 @@ data class HistoryUiState(
 
 @HiltViewModel
 class HistoryViewModel @Inject constructor(
-    private val currentRepoManager: CurrentRepoManager,
+    private val currentRepoManager: RepoStateManager,
     private val getCommitHistoryUseCase: GetCommitHistoryUseCase
 ) : ViewModel() {
 
@@ -44,7 +44,7 @@ class HistoryViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
-            currentRepoManager.currentRepoInfo.collectLatest { info ->
+            currentRepoManager.repoInfo.collectLatest { info ->
                 currentRepoPath = info.repoPath
                 _uiState.update { it.copy(repoPath = info.repoPath) }
                 if (info.repoPath != null) {

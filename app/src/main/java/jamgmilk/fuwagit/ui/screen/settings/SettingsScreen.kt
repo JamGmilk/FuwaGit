@@ -66,9 +66,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.content.pm.PackageInfoCompat
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.core.net.toUri
-import jamgmilk.fuwagit.ui.screen.myrepos.MyReposViewModel
+import jamgmilk.fuwagit.ui.screen.settings.SettingsViewModel
 import jamgmilk.fuwagit.ui.components.FilePickerDialog
 import jamgmilk.fuwagit.ui.components.ScreenTemplate
 import jamgmilk.fuwagit.ui.screen.credentials.CredentialsScreen
@@ -86,21 +86,16 @@ sealed class SettingsNavigationTarget {
 
 @Composable
 fun SettingsScreen(
-    myReposViewModel: MyReposViewModel,
+    settingsViewModel: SettingsViewModel = hiltViewModel(),
     modifier: Modifier = Modifier
 ) {
     val colors = MaterialTheme.colorScheme
     val uiColors = FuwaGitThemeExtras.colors
-    val savedRepos by myReposViewModel.savedRepos.collectAsState()
-    val savedReposCount = savedRepos.size
+    val savedReposCount by settingsViewModel.savedReposCount.collectAsState()
 
     var showPermissions by rememberSaveable { mutableStateOf(false) }
     var showCredentials by rememberSaveable { mutableStateOf(false) }
     var showFilePicker by rememberSaveable { mutableStateOf(false) }
-
-    LaunchedEffect(Unit) {
-        myReposViewModel.loadSavedRepos()
-    }
 
     var autoSync by rememberSaveable { mutableStateOf(false) }
     var conflictSafeMode by rememberSaveable { mutableStateOf(true) }
@@ -239,10 +234,10 @@ private fun StorageSettingsCard(
 
 @Composable
 private fun CredentialsSettingsCard(
+    modifier: Modifier = Modifier,
     onCredentialsClick: () -> Unit,
     biometricEnabled: Boolean = false,
-    onBiometricEnabledChange: ((Boolean) -> Unit)? = null,
-    modifier: Modifier = Modifier
+    onBiometricEnabledChange: ((Boolean) -> Unit)? = null
 ) {
     val uiColors = FuwaGitThemeExtras.colors
 

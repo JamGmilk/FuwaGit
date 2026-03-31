@@ -22,8 +22,8 @@ import jamgmilk.fuwagit.domain.usecase.git.CloneRepositoryUseCase
 import jamgmilk.fuwagit.domain.usecase.git.ConfigureRemoteUseCase
 import jamgmilk.fuwagit.domain.usecase.git.GetRepoInfoUseCase
 import jamgmilk.fuwagit.domain.usecase.git.GetRemoteUrlUseCase
-import jamgmilk.fuwagit.domain.CurrentRepoManager
-import jamgmilk.fuwagit.domain.CurrentRepoInfo
+import jamgmilk.fuwagit.domain.state.RepoStateManager
+import jamgmilk.fuwagit.domain.state.RepoInfo
 import jamgmilk.fuwagit.domain.usecase.CurrentRepoUseCase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
@@ -76,7 +76,7 @@ data class SshKeyItem(
 @HiltViewModel
 class MyReposViewModel @Inject constructor(
     private val repoDataStore: RepoDataStore,
-    private val currentRepoManager: CurrentRepoManager,
+    private val currentRepoManager: RepoStateManager,
     private val currentRepoUseCase: CurrentRepoUseCase,
     private val cleanUseCase: CleanUseCase,
     private val cloneRepositoryUseCase: CloneRepositoryUseCase,
@@ -92,7 +92,7 @@ class MyReposViewModel @Inject constructor(
     private val _isLoading = MutableStateFlow(false)
     private val _error = MutableStateFlow<String?>(null)
 
-    val currentRepoInfo: StateFlow<CurrentRepoInfo> = currentRepoManager.currentRepoInfo
+    val currentRepoInfo: StateFlow<RepoInfo> = currentRepoManager.repoInfo
 
     private val _savedRepos = MutableStateFlow<List<RepoData>>(emptyList())
     val savedRepos: StateFlow<List<RepoData>> = _savedRepos.asStateFlow()
@@ -148,8 +148,8 @@ class MyReposViewModel @Inject constructor(
         val repo = RepoData(path = path, alias = alias)
         val result = repoDataStore.addRepo(repo)
         if (result) {
-            if (currentRepoManager.getCurrentRepoPath() == null) {
-                currentRepoManager.setCurrentRepoPath(path)
+            if (currentRepoManager.getRepoPath() == null) {
+                currentRepoManager.setRepoPath(path)
             }
             loadSavedRepos()
         }
@@ -177,15 +177,15 @@ class MyReposViewModel @Inject constructor(
     fun removeRepo(context: Context, item: RepoFolderItem) {
         viewModelScope.launch {
             repoDataStore.removeRepo(item.path)
-            if (currentRepoManager.getCurrentRepoPath() == item.path) {
-                currentRepoManager.clearCurrentRepo()
+            if (currentRepoManager.getRepoPath() == item.path) {
+                currentRepoManager.clearRepo()
             }
             loadSavedRepos()
         }
     }
 
     suspend fun setCurrentRepo(path: String?) {
-        currentRepoManager.setCurrentRepoPath(path)
+        currentRepoManager.setRepoPath(path)
     }
 
     fun refreshRepoItems(context: Context) {

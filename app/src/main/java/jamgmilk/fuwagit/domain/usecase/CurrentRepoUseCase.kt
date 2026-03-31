@@ -1,9 +1,9 @@
 package jamgmilk.fuwagit.domain.usecase
 
 import jamgmilk.fuwagit.data.local.prefs.RepoDataStore
-import jamgmilk.fuwagit.domain.CurrentRepoInfo
-import jamgmilk.fuwagit.domain.CurrentRepoManager
-import jamgmilk.fuwagit.domain.CurrentRepoState
+import jamgmilk.fuwagit.domain.state.RepoInfo
+import jamgmilk.fuwagit.domain.state.RepoState
+import jamgmilk.fuwagit.domain.state.RepoStateManager
 import jamgmilk.fuwagit.domain.usecase.git.HasGitDirUseCase
 import java.io.File
 import javax.inject.Inject
@@ -13,13 +13,13 @@ import javax.inject.Singleton
 class CurrentRepoUseCase @Inject constructor(
     private val repoDataStore: RepoDataStore,
     private val hasGitDirUseCase: HasGitDirUseCase,
-    private val currentRepoManager: CurrentRepoManager
+    private val repoStateManager: RepoStateManager
 ) {
     suspend fun validateAndSetCurrentRepo(path: String?) {
         if (path == null) {
-            currentRepoManager.updateRepoInfo(
-                CurrentRepoInfo(
-                    state = CurrentRepoState.NO_REPO_SELECTED,
+            repoStateManager.updateRepoInfo(
+                RepoInfo(
+                    state = RepoState.NO_REPO_SELECTED,
                     repoPath = null,
                     repoName = null
                 )
@@ -31,9 +31,9 @@ class CurrentRepoUseCase @Inject constructor(
         val file = File(path)
         when {
             !file.exists() -> {
-                currentRepoManager.updateRepoInfo(
-                    CurrentRepoInfo(
-                        state = CurrentRepoState.REPO_PATH_INVALID,
+                repoStateManager.updateRepoInfo(
+                    RepoInfo(
+                        state = RepoState.REPO_PATH_INVALID,
                         repoPath = path,
                         repoName = path.substringAfterLast("/"),
                         errorMessage = "Path does not exist"
@@ -42,9 +42,9 @@ class CurrentRepoUseCase @Inject constructor(
                 repoDataStore.setCurrentRepo(null)
             }
             !hasGitDirUseCase(path) -> {
-                currentRepoManager.updateRepoInfo(
-                    CurrentRepoInfo(
-                        state = CurrentRepoState.REPO_NOT_GIT,
+                repoStateManager.updateRepoInfo(
+                    RepoInfo(
+                        state = RepoState.REPO_NOT_GIT,
                         repoPath = path,
                         repoName = path.substringAfterLast("/"),
                         errorMessage = "Not a git repository"
@@ -53,9 +53,9 @@ class CurrentRepoUseCase @Inject constructor(
                 repoDataStore.setCurrentRepo(path)
             }
             else -> {
-                currentRepoManager.updateRepoInfo(
-                    CurrentRepoInfo(
-                        state = CurrentRepoState.REPO_VALID,
+                repoStateManager.updateRepoInfo(
+                    RepoInfo(
+                        state = RepoState.REPO_VALID,
                         repoPath = path,
                         repoName = path.substringAfterLast("/")
                     )
@@ -67,7 +67,7 @@ class CurrentRepoUseCase @Inject constructor(
     }
 
     suspend fun clearCurrentRepo() {
-        currentRepoManager.clearCurrentRepo()
+        repoStateManager.clearRepo()
         repoDataStore.setCurrentRepo(null)
     }
 
