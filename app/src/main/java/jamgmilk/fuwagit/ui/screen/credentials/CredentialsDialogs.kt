@@ -402,6 +402,400 @@ fun AddHttpsCredentialDialog(
 }
 
 @Composable
+fun ChangeMasterPasswordDialog(
+    onDismiss: () -> Unit,
+    onConfirm: (oldPassword: String, newPassword: String, confirmPassword: String, hint: String?) -> Unit,
+    passwordHint: String? = null,
+    error: String? = null,
+    isLoading: Boolean = false
+) {
+    val colors = MaterialTheme.colorScheme
+    var oldPassword by remember { mutableStateOf("") }
+    var newPassword by remember { mutableStateOf("") }
+    var confirmPassword by remember { mutableStateOf("") }
+    var hint by remember { mutableStateOf("") }
+    var showOldPassword by remember { mutableStateOf(false) }
+    var showNewPassword by remember { mutableStateOf(false) }
+    var showConfirmPassword by remember { mutableStateOf(false) }
+
+    val passwordMatchError = if (confirmPassword.isNotEmpty() && newPassword != confirmPassword) {
+        "Passwords do not match"
+    } else null
+
+    val passwordLengthError = if (newPassword.isNotEmpty() && newPassword.length < 8) {
+        "At least 8 characters"
+    } else null
+
+    val isFormValid = oldPassword.isNotBlank() && newPassword.length >= 8 && newPassword == confirmPassword
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        icon = {
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .background(Sakura80.copy(alpha = 0.15f), CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    Icons.Default.Key,
+                    contentDescription = null,
+                    tint = Sakura80,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+        },
+        title = {
+            Text(
+                text = "Change Master Password",
+                fontWeight = FontWeight.Bold
+            )
+        },
+        text = {
+            Column(
+                modifier = Modifier.verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Text(
+                    text = "Enter your current password and set a new one. This will also disable biometric unlock if enabled.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = colors.onSurfaceVariant
+                )
+
+                Spacer(Modifier.height(4.dp))
+
+                OutlinedTextField(
+                    value = oldPassword,
+                    onValueChange = { oldPassword = it },
+                    label = { Text("Current Password") },
+                    visualTransformation = if (showOldPassword) VisualTransformation.None else PasswordVisualTransformation(),
+                    trailingIcon = {
+                        IconButton(onClick = { showOldPassword = !showOldPassword }) {
+                            Icon(
+                                if (showOldPassword) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                                contentDescription = if (showOldPassword) "Hide" else "Show"
+                            )
+                        }
+                    },
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Password,
+                        imeAction = ImeAction.Next
+                    ),
+                    singleLine = true,
+                    isError = error != null,
+                    supportingText = error?.let { { Text(it, color = colors.error) } },
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Sakura80,
+                        focusedLabelColor = Sakura80,
+                        cursorColor = Sakura80
+                    )
+                )
+
+                HorizontalDivider(
+                    modifier = Modifier.padding(vertical = 4.dp),
+                    color = colors.outline.copy(alpha = 0.2f)
+                )
+
+                OutlinedTextField(
+                    value = newPassword,
+                    onValueChange = { newPassword = it },
+                    label = { Text("New Password") },
+                    placeholder = { Text("At least 8 characters") },
+                    visualTransformation = if (showNewPassword) VisualTransformation.None else PasswordVisualTransformation(),
+                    trailingIcon = {
+                        IconButton(onClick = { showNewPassword = !showNewPassword }) {
+                            Icon(
+                                if (showNewPassword) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                                contentDescription = if (showNewPassword) "Hide" else "Show"
+                            )
+                        }
+                    },
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Password,
+                        imeAction = ImeAction.Next
+                    ),
+                    singleLine = true,
+                    isError = passwordLengthError != null,
+                    supportingText = passwordLengthError?.let { { Text(it) } },
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Sakura80,
+                        focusedLabelColor = Sakura80,
+                        cursorColor = Sakura80
+                    )
+                )
+
+                OutlinedTextField(
+                    value = confirmPassword,
+                    onValueChange = { confirmPassword = it },
+                    label = { Text("Confirm New Password") },
+                    visualTransformation = if (showConfirmPassword) VisualTransformation.None else PasswordVisualTransformation(),
+                    trailingIcon = {
+                        IconButton(onClick = { showConfirmPassword = !showConfirmPassword }) {
+                            Icon(
+                                if (showConfirmPassword) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                                contentDescription = if (showConfirmPassword) "Hide" else "Show"
+                            )
+                        }
+                    },
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Password,
+                        imeAction = ImeAction.Next
+                    ),
+                    singleLine = true,
+                    isError = passwordMatchError != null,
+                    supportingText = passwordMatchError?.let { { Text(it) } },
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Sakura80,
+                        focusedLabelColor = Sakura80,
+                        cursorColor = Sakura80
+                    )
+                )
+
+                OutlinedTextField(
+                    value = hint,
+                    onValueChange = { hint = it },
+                    label = { Text("Password Hint (optional)") },
+                    placeholder = { Text("Help you remember") },
+                    keyboardOptions = KeyboardOptions(
+                        imeAction = ImeAction.Done
+                    ),
+                    singleLine = true,
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Sakura80,
+                        focusedLabelColor = Sakura80,
+                        cursorColor = Sakura80
+                    )
+                )
+
+                passwordHint?.let { existingHint ->
+                    if (existingHint.isNotBlank() && hint.isBlank()) {
+                        Text(
+                            text = "Current hint: $existingHint",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = colors.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = { onConfirm(oldPassword, newPassword, confirmPassword, hint.ifBlank { null }) },
+                enabled = !isLoading && isFormValid,
+                colors = ButtonDefaults.buttonColors(containerColor = Sakura80),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                if (isLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(18.dp),
+                        color = Color.White,
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    Icon(
+                        Icons.Default.Check,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+                Spacer(Modifier.width(6.dp))
+                Text("Change Password")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        },
+        shape = RoundedCornerShape(24.dp)
+    )
+}
+
+@Composable
+fun SetupMasterPasswordDialog(
+    onDismiss: () -> Unit,
+    onConfirm: (password: String, confirmPassword: String, hint: String?) -> Unit,
+    error: String? = null,
+    isLoading: Boolean = false
+) {
+    val colors = MaterialTheme.colorScheme
+    var password by remember { mutableStateOf("") }
+    var confirmPassword by remember { mutableStateOf("") }
+    var hint by remember { mutableStateOf("") }
+    var showPassword by remember { mutableStateOf(false) }
+    var showConfirmPassword by remember { mutableStateOf(false) }
+
+    val passwordMatchError = if (confirmPassword.isNotEmpty() && password != confirmPassword) {
+        "Passwords do not match"
+    } else null
+
+    val passwordLengthError = if (password.isNotEmpty() && password.length < 8) {
+        "At least 8 characters"
+    } else null
+
+    val isFormValid = password.length >= 8 && password == confirmPassword
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        icon = {
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .background(Sakura80.copy(alpha = 0.15f), CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    Icons.Default.Lock,
+                    contentDescription = null,
+                    tint = Sakura80,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+        },
+        title = {
+            Text(
+                text = "Set Master Password",
+                fontWeight = FontWeight.Bold
+            )
+        },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(
+                    text = "Create a master password to protect your sensitive credentials. You'll need this password to view passwords and private keys.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = colors.onSurfaceVariant
+                )
+
+                Spacer(Modifier.height(4.dp))
+
+                OutlinedTextField(
+                    value = password,
+                    onValueChange = { password = it },
+                    label = { Text("Password") },
+                    placeholder = { Text("At least 8 characters") },
+                    visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
+                    trailingIcon = {
+                        IconButton(onClick = { showPassword = !showPassword }) {
+                            Icon(
+                                if (showPassword) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                                contentDescription = if (showPassword) "Hide" else "Show"
+                            )
+                        }
+                    },
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Password,
+                        imeAction = ImeAction.Next
+                    ),
+                    singleLine = true,
+                    isError = passwordLengthError != null,
+                    supportingText = passwordLengthError?.let { { Text(it) } },
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Sakura80,
+                        focusedLabelColor = Sakura80,
+                        cursorColor = Sakura80
+                    )
+                )
+
+                OutlinedTextField(
+                    value = confirmPassword,
+                    onValueChange = { confirmPassword = it },
+                    label = { Text("Confirm Password") },
+                    visualTransformation = if (showConfirmPassword) VisualTransformation.None else PasswordVisualTransformation(),
+                    trailingIcon = {
+                        IconButton(onClick = { showConfirmPassword = !showConfirmPassword }) {
+                            Icon(
+                                if (showConfirmPassword) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                                contentDescription = if (showConfirmPassword) "Hide" else "Show"
+                            )
+                        }
+                    },
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Password,
+                        imeAction = ImeAction.Next
+                    ),
+                    singleLine = true,
+                    isError = passwordMatchError != null,
+                    supportingText = passwordMatchError?.let { { Text(it) } },
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Sakura80,
+                        focusedLabelColor = Sakura80,
+                        cursorColor = Sakura80
+                    )
+                )
+
+                OutlinedTextField(
+                    value = hint,
+                    onValueChange = { hint = it },
+                    label = { Text("Password Hint (optional)") },
+                    placeholder = { Text("Help you remember") },
+                    keyboardOptions = KeyboardOptions(
+                        imeAction = ImeAction.Done
+                    ),
+                    singleLine = true,
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Sakura80,
+                        focusedLabelColor = Sakura80,
+                        cursorColor = Sakura80
+                    )
+                )
+
+                if (error != null) {
+                    Text(
+                        text = error,
+                        color = colors.error,
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = { onConfirm(password, confirmPassword, hint.ifBlank { null }) },
+                enabled = !isLoading && isFormValid,
+                colors = ButtonDefaults.buttonColors(containerColor = Sakura80),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                if (isLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(18.dp),
+                        color = Color.White,
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    Icon(
+                        Icons.Default.Check,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+                Spacer(Modifier.width(6.dp))
+                Text("Set Password")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        },
+        shape = RoundedCornerShape(24.dp)
+    )
+}
+
+@Composable
 fun SetupMasterPasswordContent(
     onConfirm: (password: String, hint: String?) -> Unit,
     error: String? = null,
@@ -560,7 +954,7 @@ fun GenerateSshKeyDialog(
     onGenerate: (name: String, type: String, comment: String) -> Unit
 ) {
     var name by rememberSaveable { mutableStateOf("") }
-    var selectedType by rememberSaveable { mutableStateOf("ED25519") }
+    var selectedType by rememberSaveable { mutableStateOf("Ed25519") }
     var comment by rememberSaveable { mutableStateOf("") }
     val colors = MaterialTheme.colorScheme
 
@@ -615,10 +1009,10 @@ fun GenerateSshKeyDialog(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     SshTypeChip(
-                        label = "ED25519",
+                        label = "Ed25519",
                         description = "Recommended",
-                        selected = selectedType == "ED25519",
-                        onClick = { selectedType = "ED25519" },
+                        selected = selectedType == "Ed25519",
+                        onClick = { selectedType = "Ed25519" },
                         modifier = Modifier.weight(1f)
                     )
                     SshTypeChip(

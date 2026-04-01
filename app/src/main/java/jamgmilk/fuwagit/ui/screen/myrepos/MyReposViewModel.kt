@@ -222,7 +222,7 @@ class MyReposViewModel @Inject constructor(
                         uuid = key.uuid,
                         name = key.name,
                         fingerprint = key.fingerprint,
-                        displayName = key.name
+                        displayName = "${key.name} (${key.type})"
                     )
                 }
             }

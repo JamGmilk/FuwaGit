@@ -3,6 +3,7 @@ package jamgmilk.fuwagit.domain.repository
 import jamgmilk.fuwagit.data.local.credential.HttpsCredential
 import jamgmilk.fuwagit.data.local.credential.SshKey
 import jamgmilk.fuwagit.core.result.AppResult
+import javax.crypto.SecretKey
 
 interface CredentialRepository {
 
@@ -21,6 +22,10 @@ interface CredentialRepository {
     fun isUnlocked(): Boolean
 
     fun lock()
+
+    fun getCachedMasterKey(): SecretKey?
+
+    fun setMasterKey(key: SecretKey)
 
     suspend fun getAllHttpsCredentials(): AppResult<List<HttpsCredential>>
 
