@@ -18,8 +18,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckCircle
@@ -28,10 +30,14 @@ import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.Link
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -45,7 +51,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -63,15 +68,29 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import jamgmilk.fuwagit.ui.components.CredentialDropdown
+import jamgmilk.fuwagit.domain.model.credential.HttpsCredential
+import jamgmilk.fuwagit.domain.model.credential.SshKey
 import jamgmilk.fuwagit.ui.components.FilePickerDialog
 import jamgmilk.fuwagit.ui.components.SubSettingsTemplate
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import java.io.File
 
 sealed class AddRepoTab {
     data object Clone : AddRepoTab()
     data object Local : AddRepoTab()
 }
+
+enum class UrlProtocol {
+    NONE, HTTPS, SSH
+}
+
+data class UrlValidationResult(
+    val isValid: Boolean,
+    val protocol: UrlProtocol,
+    val errorMessage: String? = null
+)
 
 @Composable
 fun AddRepositoryScreen(
@@ -116,6 +135,7 @@ fun AddRepositoryScreen(
                     }
                     is AddRepoTab.Local -> {
                         LocalContent(
+                            myReposViewModel = myReposViewModel,
                             onAddRepository = { path, alias ->
                                 onAddRepository(path, alias)
                                 Toast.makeText(context, "Repository added", Toast.LENGTH_SHORT).show()
@@ -138,7 +158,7 @@ private fun AddRepoTabSelector(
         horizontalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         AddRepoTabChip(
-            label = "Clone",
+            label = "Clone Remote",
             icon = Icons.Default.CloudDownload,
             selected = selectedTab is AddRepoTab.Clone,
             accentColor = Color(0xFF2196F3),
@@ -147,7 +167,7 @@ private fun AddRepoTabSelector(
         )
 
         AddRepoTabChip(
-            label = "Local",
+            label = "Add Local",
             icon = Icons.Default.Folder,
             selected = selectedTab is AddRepoTab.Local,
             accentColor = Color(0xFF4CAF50),
@@ -204,41 +224,103 @@ private fun AddRepoTabChip(
     }
 }
 
+private fun validateUrl(url: String): UrlValidationResult {
+    if (url.isBlank()) {
+        return UrlValidationResult(false, UrlProtocol.NONE)
+    }
+
+    return when {
+        url.startsWith("https://") || url.startsWith("http://") -> {
+            if (url.contains(" ") || !url.contains(".") || url.length < 10) {
+                UrlValidationResult(false, UrlProtocol.HTTPS, "Invalid HTTPS URL format")
+            } else {
+                UrlValidationResult(true, UrlProtocol.HTTPS)
+            }
+        }
+        url.startsWith("git@") -> {
+            val gitHostPattern = Regex("^git@[a-zA-Z0-9.-]+:[a-zA-Z0-9._/-]+$")
+            if (gitHostPattern.matches(url)) {
+                UrlValidationResult(true, UrlProtocol.SSH)
+            } else {
+                UrlValidationResult(false, UrlProtocol.SSH, "Invalid SSH format (expected: git@host:path)")
+            }
+        }
+        url.startsWith("ssh://") -> {
+            UrlValidationResult(true, UrlProtocol.SSH)
+        }
+        else -> {
+            UrlValidationResult(false, UrlProtocol.NONE, "URL must start with https://, http://, git@, or ssh://")
+        }
+    }
+}
+
+private fun extractRepoName(url: String): String {
+    return url
+        .substringAfterLast("/")
+        .substringBefore(".git")
+        .substringBefore("?")
+        .ifBlank { "repository" }
+}
+
 @Composable
 private fun CloneContent(
     myReposViewModel: MyReposViewModel,
     onCloneComplete: (String) -> Unit
 ) {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
 
     var cloneUrl by remember { mutableStateOf("") }
+    var debouncedUrl by remember { mutableStateOf("") }
     var localPath by remember { mutableStateOf("") }
+    var suggestedFolderName by remember { mutableStateOf("") }
+    var validationResult by remember { mutableStateOf<UrlValidationResult>(UrlValidationResult(false, UrlProtocol.NONE)) }
     var error by remember { mutableStateOf<String?>(null) }
     var isLoading by remember { mutableStateOf(false) }
 
-    val httpsCredentials = remember { mutableStateListOf<HttpsCredentialItem>() }
-    val sshKeys = remember { mutableStateListOf<SshKeyItem>() }
+    var httpsCredentials by remember { mutableStateOf<List<HttpsCredential>>(emptyList()) }
+    var sshKeys by remember { mutableStateOf<List<SshKey>>(emptyList()) }
     var selectedHttpsUuid by remember { mutableStateOf<String?>(null) }
     var selectedSshUuid by remember { mutableStateOf<String?>(null) }
+
+    var useAnonymousHttps by remember { mutableStateOf(true) }
     var useCredential by remember { mutableStateOf(false) }
     var showFolderPicker by remember { mutableStateOf(false) }
 
     var isDirectoryEmptyState by remember { mutableStateOf(true) }
 
     LaunchedEffect(Unit) {
-        httpsCredentials.clear()
-        sshKeys.clear()
-        httpsCredentials.addAll(myReposViewModel.getHttpsCredentials())
-        sshKeys.addAll(myReposViewModel.getSshKeys())
+        httpsCredentials = myReposViewModel.getHttpsCredentials()
+        sshKeys = myReposViewModel.getSshKeys()
+    }
+
+    LaunchedEffect(cloneUrl) {
+        val job = Job()
+        kotlinx.coroutines.coroutineScope {
+            launch {
+                delay(500)
+                debouncedUrl = cloneUrl
+            }
+        }
+    }
+
+    LaunchedEffect(debouncedUrl) {
+        validationResult = validateUrl(debouncedUrl)
+        if (validationResult.isValid && debouncedUrl.isNotBlank()) {
+            suggestedFolderName = extractRepoName(debouncedUrl)
+        } else {
+            suggestedFolderName = ""
+        }
     }
 
     LaunchedEffect(localPath) {
         isDirectoryEmptyState = localPath.isBlank() || myReposViewModel.isDirectoryEmpty(localPath)
     }
 
-    val isHttps = cloneUrl.startsWith("http://") || cloneUrl.startsWith("https://")
-    val isSsh = cloneUrl.startsWith("git@") || cloneUrl.startsWith("ssh://")
-    val showCredentials = useCredential && ((isHttps && httpsCredentials.isNotEmpty()) || (isSsh && sshKeys.isNotEmpty()))
+    val isHttps = validationResult.protocol == UrlProtocol.HTTPS
+    val isSsh = validationResult.protocol == UrlProtocol.SSH
+    val hasCredentials = (isHttps && httpsCredentials.isNotEmpty()) || (isSsh && sshKeys.isNotEmpty())
+    val showCredentialSection = isHttps || isSsh
 
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -274,6 +356,7 @@ private fun CloneContent(
             value = cloneUrl,
             onValueChange = { cloneUrl = it },
             label = { Text("Repository URL") },
+            placeholder = { Text("https://github.com/user/repo.git or git@github.com:user/repo.git") },
             leadingIcon = {
                 Icon(
                     Icons.Default.Link,
@@ -282,7 +365,7 @@ private fun CloneContent(
                 )
             },
             trailingIcon = {
-                if (isHttps || isSsh) {
+                if (showCredentialSection) {
                     Surface(
                         shape = RoundedCornerShape(6.dp),
                         color = if (isHttps) Color(0xFF4CAF50).copy(alpha = 0.15f) else Color(0xFF2196F3).copy(alpha = 0.15f)
@@ -297,6 +380,20 @@ private fun CloneContent(
                     }
                 }
             },
+            isError = validationResult.errorMessage != null,
+            supportingText = {
+                if (validationResult.errorMessage != null) {
+                    Text(
+                        text = validationResult.errorMessage!!,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                } else if (isHttps && !useCredential && useAnonymousHttps) {
+                    Text(
+                        text = "Anonymous download - no credential required",
+                        color = Color(0xFF4CAF50)
+                    )
+                }
+            },
             singleLine = true,
             shape = RoundedCornerShape(12.dp),
             modifier = Modifier.fillMaxWidth(),
@@ -307,7 +404,53 @@ private fun CloneContent(
             )
         )
 
-        if ((isHttps && httpsCredentials.isNotEmpty()) || (isSsh && sshKeys.isNotEmpty())) {
+        if (showCredentialSection && isHttps) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Checkbox(
+                    checked = useAnonymousHttps,
+                    onCheckedChange = {
+                        useAnonymousHttps = it
+                        if (it) useCredential = false
+                    },
+                    colors = CheckboxDefaults.colors(checkedColor = Color(0xFF4CAF50))
+                )
+                Column {
+                    Text(
+                        text = "Anonymous download",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Text(
+                        text = "For public repositories",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+
+            if (!useAnonymousHttps && hasCredentials) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Checkbox(
+                        checked = useCredential,
+                        onCheckedChange = { useCredential = it },
+                        colors = CheckboxDefaults.colors(checkedColor = Color(0xFF2196F3))
+                    )
+                    Text(
+                        text = "Use saved credentials",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+            }
+        }
+
+        if (showCredentialSection && isSsh && hasCredentials) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -319,36 +462,45 @@ private fun CloneContent(
                     colors = CheckboxDefaults.colors(checkedColor = Color(0xFF2196F3))
                 )
                 Text(
-                    text = "Use saved credentials",
+                    text = "Use saved SSH key",
                     style = MaterialTheme.typography.bodyMedium
                 )
             }
+        }
 
-            if (showCredentials) {
-                if (isHttps && httpsCredentials.isNotEmpty()) {
-                    CredentialDropdown(
-                        label = "HTTPS Credential",
-                        items = httpsCredentials.map { it.uuid to it.displayName },
-                        selectedUuid = selectedHttpsUuid,
-                        onSelected = { selectedHttpsUuid = it },
-                        accentColor = Color(0xFF4CAF50)
-                    )
-                }
+        if (showCredentialSection && useCredential) {
+            if (isHttps && httpsCredentials.isNotEmpty()) {
+                val selectedCred = httpsCredentials.find { it.uuid == selectedHttpsUuid }
+                CredentialSelectionButton(
+                    label = if (selectedCred != null) "Using: ${selectedCred.username}" else "Select HTTPS Credential",
+                    isEnabled = true,
+                    onClick = {
+                        scope.launch {
+                            val selected = myReposViewModel.showHttpsCredentialSelector()
+                            selected?.let { selectedHttpsUuid = it }
+                        }
+                    }
+                )
+            }
 
-                if (isSsh && sshKeys.isNotEmpty()) {
-                    CredentialDropdown(
-                        label = "SSH Key",
-                        items = sshKeys.map { it.uuid to it.displayName },
-                        selectedUuid = selectedSshUuid,
-                        onSelected = { selectedSshUuid = it },
-                        accentColor = Color(0xFF2196F3)
-                    )
-                }
+            if (isSsh && sshKeys.isNotEmpty()) {
+                val selectedKey = sshKeys.find { it.uuid == selectedSshUuid }
+                CredentialSelectionButton(
+                    label = if (selectedKey != null) "Using: ${selectedKey.name}" else "Select SSH Key",
+                    isEnabled = true,
+                    onClick = {
+                        scope.launch {
+                            val selected = myReposViewModel.showSshKeySelector()
+                            selected?.let { selectedSshUuid = it }
+                        }
+                    }
+                )
             }
         }
 
         TargetFolderSelector(
             localPath = localPath,
+            suggestedFolderName = suggestedFolderName,
             isDirectoryEmpty = localPath.isBlank() || isDirectoryEmptyState,
             onPickFolder = { showFolderPicker = true }
         )
@@ -380,17 +532,27 @@ private fun CloneContent(
 
         Spacer(Modifier.height(4.dp))
 
+        val isCloneButtonEnabled = validationResult.isValid &&
+            localPath.isNotBlank() &&
+            isDirectoryEmptyState &&
+            !isLoading &&
+            (!useCredential || (isHttps && selectedHttpsUuid != null) || (isSsh && selectedSshUuid != null) || (isHttps && useAnonymousHttps))
+
         Button(
             onClick = {
-                val repoName = cloneUrl.substringAfterLast("/").substringBefore(".git").ifBlank { "repo" }
+                val repoName = extractRepoName(cloneUrl)
                 val targetPath = if (localPath.endsWith("/")) localPath else "$localPath/"
                 val fullPath = "${targetPath}$repoName"
 
                 error = null
                 isLoading = true
 
-                val httpsUuid = if (isHttps && useCredential && selectedHttpsUuid != null) selectedHttpsUuid else null
-                val sshUuid = if (!isHttps && useCredential && selectedSshUuid != null) selectedSshUuid else null
+                val httpsUuid = if (isHttps && useCredential && !useAnonymousHttps && selectedHttpsUuid != null) {
+                    selectedHttpsUuid
+                } else null
+                val sshUuid = if (isSsh && useCredential && selectedSshUuid != null) {
+                    selectedSshUuid
+                } else null
 
                 myReposViewModel.cloneWithCredentials(
                     uri = cloneUrl,
@@ -405,10 +567,15 @@ private fun CloneContent(
                         onCloneComplete(fullPath)
                     }.onFailure { e ->
                         error = e.message
+                        if (e.message?.contains("401") == true) {
+                            error = "Authentication failed. Please provide credentials."
+                            useAnonymousHttps = false
+                            useCredential = true
+                        }
                     }
                 }
             },
-            enabled = cloneUrl.isNotBlank() && localPath.isNotBlank() && isDirectoryEmptyState && !isLoading,
+            enabled = isCloneButtonEnabled,
             modifier = Modifier
                 .fillMaxWidth()
                 .height(50.dp),
@@ -448,27 +615,111 @@ private fun CloneContent(
 }
 
 @Composable
+private fun CredentialSelectionButton(
+    label: String,
+    isEnabled: Boolean,
+    onClick: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(enabled = isEnabled, onClick = onClick),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = if (isEnabled) {
+                Color(0xFF2196F3).copy(alpha = 0.1f)
+            } else {
+                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+            }
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    if (label.startsWith("Using:")) Icons.Default.CheckCircle else Icons.Default.Key,
+                    contentDescription = null,
+                    tint = if (isEnabled) Color(0xFF2196F3) else MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(Modifier.width(12.dp))
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = if (isEnabled) {
+                        MaterialTheme.colorScheme.onSurface
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    }
+                )
+            }
+            if (isEnabled) {
+                Icon(
+                    Icons.Default.FolderOpen,
+                    contentDescription = null,
+                    tint = Color(0xFF2196F3),
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+        }
+    }
+}
+
+@Composable
 private fun LocalContent(
+    myReposViewModel: MyReposViewModel,
     onAddRepository: (path: String, alias: String?) -> Unit
 ) {
     val colors = MaterialTheme.colorScheme
+    val scope = rememberCoroutineScope()
 
     var path by remember { mutableStateOf("") }
     var alias by remember { mutableStateOf("") }
+    var remoteUrl by remember { mutableStateOf("") }
     var isGitRepo by remember { mutableStateOf(false) }
     var showFolderPicker by remember { mutableStateOf(false) }
+    var repoInfo by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
+    var remotes by remember { mutableStateOf<List<Pair<String, String>>>(emptyList()) }
+    var selectedRemoteIndex by remember { mutableStateOf(0) }
+    var showNonEmptyWarning by remember { mutableStateOf(false) }
 
     LaunchedEffect(path) {
         if (path.isNotBlank()) {
-            isGitRepo = File(path, ".git").exists()
+            val gitDir = File(path, ".git")
+            isGitRepo = gitDir.exists()
+
+            if (isGitRepo) {
+                repoInfo = myReposViewModel.getRepoInfo(path)
+                remotes = myReposViewModel.getRemotes(path)
+                if (remotes.isNotEmpty() && selectedRemoteIndex == 0) {
+                    remoteUrl = remotes[0].second
+                }
+            } else {
+                val isEmpty = myReposViewModel.isDirectoryEmpty(path)
+                showNonEmptyWarning = !isEmpty
+                repoInfo = emptyMap()
+                remotes = emptyList()
+            }
+
             if (alias.isBlank() || alias == path.substringAfterLast("/")) {
                 alias = path.substringAfterLast("/")
             }
+        } else {
+            isGitRepo = false
+            repoInfo = emptyMap()
+            remotes = emptyList()
+            showNonEmptyWarning = false
         }
     }
 
     Column(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         Box(
@@ -504,10 +755,75 @@ private fun LocalContent(
         )
 
         if (path.isNotBlank()) {
-            RepositoryInfoCard(
-                path = path,
-                isGitRepo = isGitRepo
-            )
+            if (isGitRepo) {
+                RepositoryInfoCard(
+                    path = path,
+                    repoInfo = repoInfo
+                )
+
+                if (remotes.size > 1) {
+                    RemoteSelectorDropdown(
+                        remotes = remotes,
+                        selectedIndex = selectedRemoteIndex,
+                        onSelected = { index ->
+                            selectedRemoteIndex = index
+                            remoteUrl = remotes[index].second
+                        }
+                    )
+                } else if (remotes.isNotEmpty()) {
+                    RemoteUrlDisplay(
+                        remoteName = remotes[0].first,
+                        remoteUrl = remotes[0].second
+                    )
+                }
+            } else {
+                if (showNonEmptyWarning) {
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = Color(0xFFFF9800).copy(alpha = 0.1f)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                Icons.Default.Warning,
+                                contentDescription = null,
+                                tint = Color(0xFFFF9800),
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(Modifier.width(8.dp))
+                            Text(
+                                text = "Folder is not empty. Git init will be executed.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = Color(0xFFFF9800)
+                            )
+                        }
+                    }
+                }
+
+                OutlinedTextField(
+                    value = remoteUrl,
+                    onValueChange = { remoteUrl = it },
+                    label = { Text("Remote URL (optional)") },
+                    placeholder = { Text("https://github.com/user/repo.git") },
+                    leadingIcon = {
+                        Icon(
+                            Icons.Default.Link,
+                            contentDescription = null,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    },
+                    singleLine = true,
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Color(0xFF4CAF50),
+                        focusedLabelColor = Color(0xFF4CAF50),
+                        cursorColor = Color(0xFF4CAF50)
+                    )
+                )
+            }
         }
 
         OutlinedTextField(
@@ -529,7 +845,14 @@ private fun LocalContent(
         Button(
             onClick = {
                 if (path.isNotBlank()) {
-                    onAddRepository(path, alias.ifBlank { null })
+                    scope.launch {
+                        myReposViewModel.addLocalRepository(
+                            path = path,
+                            alias = alias.ifBlank { null },
+                            remoteUrl = if (remoteUrl.isNotBlank() && !isGitRepo) remoteUrl else null
+                        )
+                        onAddRepository(path, alias.ifBlank { null })
+                    }
                 }
             },
             enabled = path.isNotBlank(),
@@ -545,7 +868,10 @@ private fun LocalContent(
                 modifier = Modifier.size(20.dp)
             )
             Spacer(Modifier.width(8.dp))
-            Text("Add Repository", fontSize = 16.sp)
+            Text(
+                text = if (isGitRepo) "Add Repository" else "Initialize Git",
+                fontSize = 16.sp
+            )
         }
 
         if (path.isBlank()) {
@@ -587,8 +913,110 @@ private fun LocalContent(
 }
 
 @Composable
+private fun RemoteSelectorDropdown(
+    remotes: List<Pair<String, String>>,
+    selectedIndex: Int,
+    onSelected: (Int) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Color(0xFF2196F3).copy(alpha = 0.1f)
+        )
+    ) {
+        Column(modifier = Modifier.padding(12.dp)) {
+            Text(
+                text = "Remote (${remotes.size} found)",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(Modifier.height(8.dp))
+
+            remotes.forEachIndexed { index, (name, url) ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onSelected(index) }
+                        .padding(vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        if (index == selectedIndex) Icons.Default.CheckCircle else Icons.Default.Link,
+                        contentDescription = null,
+                        tint = if (index == selectedIndex) Color(0xFF2196F3) else MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Column {
+                        Text(
+                            text = name,
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = if (index == selectedIndex) FontWeight.Bold else FontWeight.Normal
+                        )
+                        Text(
+                            text = url,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun RemoteUrlDisplay(
+    remoteName: String,
+    remoteUrl: String
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Color(0xFF2196F3).copy(alpha = 0.1f)
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                Icons.Default.Link,
+                contentDescription = null,
+                tint = Color(0xFF2196F3),
+                modifier = Modifier.size(18.dp)
+            )
+            Spacer(Modifier.width(8.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = remoteName,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = remoteUrl,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+        }
+    }
+}
+
+@Composable
 private fun TargetFolderSelector(
     localPath: String,
+    suggestedFolderName: String,
     isDirectoryEmpty: Boolean,
     onPickFolder: () -> Unit
 ) {
@@ -612,33 +1040,43 @@ private fun TargetFolderSelector(
             Surface(
                 modifier = Modifier.weight(1f),
                 shape = RoundedCornerShape(12.dp),
-                color = if (localPath.isBlank()) colors.surfaceVariant.copy(alpha = 0.5f)
-                else if (isDirectoryEmpty) Color(0xFF4CAF50).copy(alpha = 0.1f)
-                else Color(0xFFE53935).copy(alpha = 0.1f)
+                color = when {
+                    localPath.isBlank() -> colors.surfaceVariant.copy(alpha = 0.5f)
+                    isDirectoryEmpty -> Color(0xFF4CAF50).copy(alpha = 0.1f)
+                    else -> Color(0xFFE53935).copy(alpha = 0.1f)
+                }
             ) {
                 Row(
                     modifier = Modifier.padding(12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
-                        if (localPath.isBlank()) Icons.Default.FolderOpen
-                        else if (isDirectoryEmpty) Icons.Default.CheckCircle
-                        else Icons.Default.Warning,
+                        when {
+                            localPath.isBlank() -> Icons.Default.FolderOpen
+                            isDirectoryEmpty -> Icons.Default.CheckCircle
+                            else -> Icons.Default.Warning
+                        },
                         contentDescription = null,
-                        tint = if (localPath.isBlank()) colors.onSurfaceVariant
-                        else if (isDirectoryEmpty) Color(0xFF4CAF50)
-                        else Color(0xFFE53935),
+                        tint = when {
+                            localPath.isBlank() -> colors.onSurfaceVariant
+                            isDirectoryEmpty -> Color(0xFF4CAF50)
+                            else -> Color(0xFFE53935)
+                        },
                         modifier = Modifier.size(20.dp)
                     )
                     Spacer(Modifier.width(8.dp))
                     Text(
-                        text = if (localPath.isBlank()) "Select target folder"
-                        else if (isDirectoryEmpty) "Folder is empty"
-                        else "Folder is not empty",
+                        text = when {
+                            localPath.isBlank() -> "Select target folder"
+                            isDirectoryEmpty -> if (suggestedFolderName.isNotBlank()) "Will create: $suggestedFolderName" else "Folder is empty"
+                            else -> "Folder is not empty"
+                        },
                         style = MaterialTheme.typography.bodySmall,
-                        color = if (localPath.isBlank()) colors.onSurfaceVariant
-                        else if (isDirectoryEmpty) Color(0xFF4CAF50)
-                        else Color(0xFFE53935)
+                        color = when {
+                            localPath.isBlank() -> colors.onSurfaceVariant
+                            isDirectoryEmpty -> Color(0xFF4CAF50)
+                            else -> Color(0xFFE53935)
+                        }
                     )
                 }
             }
@@ -687,29 +1125,6 @@ private fun TargetFolderSelector(
                 }
             }
         }
-
-        Surface(
-            shape = RoundedCornerShape(10.dp),
-            color = colors.surfaceVariant.copy(alpha = 0.5f)
-        ) {
-            Row(
-                modifier = Modifier.padding(12.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    Icons.Default.Info,
-                    contentDescription = null,
-                    tint = colors.onSurfaceVariant,
-                    modifier = Modifier.size(16.dp)
-                )
-                Spacer(Modifier.width(8.dp))
-                Text(
-                    text = "Repository will be cloned to the selected folder with its name",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = colors.onSurfaceVariant
-                )
-            }
-        }
     }
 }
 
@@ -724,9 +1139,11 @@ private fun FolderSelectorCard(
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        color = if (path.isBlank()) colors.surfaceVariant.copy(alpha = 0.5f)
-        else if (isGitRepo) Color(0xFF4CAF50).copy(alpha = 0.08f)
-        else Color(0xFFFF9800).copy(alpha = 0.08f)
+        color = when {
+            path.isBlank() -> colors.surfaceVariant.copy(alpha = 0.5f)
+            isGitRepo -> Color(0xFF4CAF50).copy(alpha = 0.08f)
+            else -> Color(0xFFFF9800).copy(alpha = 0.08f)
+        }
     ) {
         Row(
             modifier = Modifier
@@ -800,43 +1217,23 @@ private fun FolderSelectorCard(
 @Composable
 private fun RepositoryInfoCard(
     path: String,
-    isGitRepo: Boolean
+    repoInfo: Map<String, String>
 ) {
     val colors = MaterialTheme.colorScheme
+    val repoName = path.substringAfterLast("/")
 
-    if (!isGitRepo) {
-        Surface(
-            shape = RoundedCornerShape(12.dp),
-            color = Color(0xFFFF9800).copy(alpha = 0.08f)
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Color(0xFF4CAF50).copy(alpha = 0.08f)
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Row(
-                modifier = Modifier.padding(12.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    Icons.Default.Info,
-                    contentDescription = null,
-                    tint = Color(0xFFFF9800),
-                    modifier = Modifier.size(16.dp)
-                )
-                Spacer(Modifier.width(8.dp))
-                Text(
-                    text = "This folder is not a Git repository. You can still add it, but Git operations may not work.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = Color(0xFFFF9800)
-                )
-            }
-        }
-    } else {
-        val repoName = path.substringAfterLast("/")
-        Surface(
-            shape = RoundedCornerShape(12.dp),
-            color = Color(0xFF4CAF50).copy(alpha = 0.08f)
-        ) {
-            Row(
-                modifier = Modifier.padding(12.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
                     Icons.Default.Folder,
                     contentDescription = null,
@@ -846,10 +1243,44 @@ private fun RepositoryInfoCard(
                 Spacer(Modifier.width(8.dp))
                 Text(
                     text = "Repository: $repoName",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = Color(0xFF4CAF50),
-                    fontWeight = FontWeight.Medium
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Medium,
+                    color = Color(0xFF4CAF50)
                 )
+            }
+
+            repoInfo["user.name"]?.let { userName ->
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        Icons.Default.Person,
+                        contentDescription = null,
+                        tint = colors.onSurfaceVariant,
+                        modifier = Modifier.size(14.dp)
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        text = "User: $userName",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = colors.onSurfaceVariant
+                    )
+                }
+            }
+
+            repoInfo["HEAD"]?.let { head ->
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        Icons.Default.Info,
+                        contentDescription = null,
+                        tint = colors.onSurfaceVariant,
+                        modifier = Modifier.size(14.dp)
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        text = "HEAD: ${head.take(12)}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = colors.onSurfaceVariant
+                    )
+                }
             }
         }
     }

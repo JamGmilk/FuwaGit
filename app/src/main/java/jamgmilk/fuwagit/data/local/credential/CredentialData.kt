@@ -1,5 +1,7 @@
 package jamgmilk.fuwagit.data.local.credential
 
+import jamgmilk.fuwagit.domain.model.credential.HttpsCredential as DomainHttpsCredential
+import jamgmilk.fuwagit.domain.model.credential.SshKey as DomainSshKey
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -8,8 +10,7 @@ data class CredentialData(
     val created_at: Long = System.currentTimeMillis(),
     val updated_at: Long = System.currentTimeMillis(),
     val https_credentials: List<HttpsCredential> = emptyList(),
-    val ssh_keys: List<SshKey> = emptyList(),
-    val master_password_hint: String? = null
+    val ssh_keys: List<SshKey> = emptyList()
 )
 
 @Serializable
@@ -20,7 +21,16 @@ data class HttpsCredential(
     val password: String,
     val created_at: Long = System.currentTimeMillis(),
     val updated_at: Long = System.currentTimeMillis()
-)
+) {
+    fun toDomain(): DomainHttpsCredential = DomainHttpsCredential(
+        uuid = uuid,
+        host = host,
+        username = username,
+        password = password,
+        createdAt = created_at,
+        updatedAt = updated_at
+    )
+}
 
 @Serializable
 data class SshKey(
@@ -35,6 +45,17 @@ data class SshKey(
 ) {
     val comment: String
         get() = extractCommentFromPublicKey(public_key)
+
+    fun toDomain(): DomainSshKey = DomainSshKey(
+        uuid = uuid,
+        name = name,
+        type = type,
+        publicKey = public_key,
+        privateKey = private_key,
+        passphrase = passphrase,
+        fingerprint = fingerprint,
+        createdAt = created_at
+    )
 }
 
 @Serializable

@@ -1,7 +1,7 @@
 package jamgmilk.fuwagit.domain.usecase.credential
 
 import jamgmilk.fuwagit.core.result.AppResult
-import jamgmilk.fuwagit.data.local.credential.SshKey
+import jamgmilk.fuwagit.domain.model.credential.SshKey
 import jamgmilk.fuwagit.domain.repository.CredentialRepository
 import javax.inject.Inject
 
