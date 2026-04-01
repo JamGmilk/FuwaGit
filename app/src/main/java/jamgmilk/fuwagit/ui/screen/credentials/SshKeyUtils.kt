@@ -181,7 +181,7 @@ fun calculateFingerprint(publicKey: String): String {
 fun detectSshKeyType(privateKey: String): String {
     return when {
         privateKey.contains("BEGIN RSA PRIVATE KEY") -> "RSA"
-        privateKey.contains("BEGIN OPENSSH PRIVATE KEY") -> "ED25519"
-        else -> "ED25519"
+        privateKey.contains("BEGIN OPENSSH PRIVATE KEY") -> "Ed25519"
+        else -> "Ed25519"
     }
 }

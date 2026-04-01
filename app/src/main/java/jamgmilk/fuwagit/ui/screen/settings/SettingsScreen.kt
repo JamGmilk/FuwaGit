@@ -22,6 +22,7 @@ import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.CloudSync
 import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.CreditCard
+import androidx.compose.material.icons.filled.Fingerprint
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.filled.Key
@@ -39,8 +40,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
-import androidx.compose.material3.Text
+import android.util.Log
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -51,6 +54,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -58,17 +62,31 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.pm.PackageInfoCompat
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.core.net.toUri
+import jamgmilk.fuwagit.ui.biometric.BiometricActivity
 import jamgmilk.fuwagit.ui.components.FilePickerDialog
 import jamgmilk.fuwagit.ui.components.ScreenTemplate
+import jamgmilk.fuwagit.ui.screen.credentials.CredentialsStoreViewModel
+import jamgmilk.fuwagit.ui.screen.credentials.UnlockDialog
 import jamgmilk.fuwagit.ui.theme.FuwaGitThemeExtras
+import androidx.compose.material3.Text
+import androidx.fragment.app.FragmentActivity
+import kotlinx.coroutines.delay
+import jamgmilk.fuwagit.ui.screen.credentials.ChangeMasterPasswordDialog
+import jamgmilk.fuwagit.ui.screen.credentials.SetupMasterPasswordDialog
 
+private const val TAG = "SettingsScreen"
 @Composable
 fun SettingsScreen(
     modifier: Modifier = Modifier,
     onNavigateToPermissions: () -> Unit = {},
     onNavigateToCredentials: () -> Unit = {},
-    settingsViewModel: SettingsViewModel = hiltViewModel()
+    settingsViewModel: SettingsViewModel = hiltViewModel(),
+    credentialsViewModel: CredentialsStoreViewModel = hiltViewModel()
 ) {
+    val context = LocalContext.current
+    val activity = context as? FragmentActivity
+    val credentialsUiState by credentialsViewModel.uiState.collectAsState()
+
     var showFilePicker by rememberSaveable { mutableStateOf(false) }
 
     var autoSync by rememberSaveable { mutableStateOf(false) }
@@ -76,7 +94,21 @@ fun SettingsScreen(
     var backupBeforeSync by rememberSaveable { mutableStateOf(true) }
     var showHiddenFiles by rememberSaveable { mutableStateOf(false) }
     var verboseLogging by rememberSaveable { mutableStateOf(false) }
-    var biometricEnabled by rememberSaveable { mutableStateOf(false) }
+    var pendingBiometricEnable by rememberSaveable { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        credentialsViewModel.initialize()
+    }
+
+    LaunchedEffect(credentialsUiState.isDecryptionUnlocked, pendingBiometricEnable) {
+        Log.d(TAG, "LaunchedEffect: isDecryptionUnlocked=${credentialsUiState.isDecryptionUnlocked}, pendingBiometricEnable=$pendingBiometricEnable")
+        if (credentialsUiState.isDecryptionUnlocked && pendingBiometricEnable) {
+            Log.d(TAG, "LaunchedEffect: calling enableBiometric")
+            delay(100)
+            pendingBiometricEnable = false
+            activity?.let { credentialsViewModel.enableBiometric(it) }
+        }
+    }
 
     ScreenTemplate(
         title = "Settings",
@@ -89,11 +121,25 @@ fun SettingsScreen(
             modifier = Modifier.fillMaxWidth()
         )
 
-        CredentialsSettingsCard(
+        SecuritySettingsCard(
             onCredentialsClick = onNavigateToCredentials,
-            biometricEnabled = biometricEnabled,
+            onMasterPasswordClick = {
+                credentialsViewModel.showChangePasswordDialog()
+            },
+            biometricEnabled = credentialsUiState.isBiometricEnabled,
+            isDecryptionUnlocked = credentialsUiState.isDecryptionUnlocked,
+            isMasterPasswordSet = credentialsUiState.isMasterPasswordSet,
             onBiometricEnabledChange = { enabled ->
-                biometricEnabled = enabled
+                Log.d(TAG, "Switch toggled: enabled=$enabled, isDecryptionUnlocked=${credentialsUiState.isDecryptionUnlocked}")
+                if (!credentialsUiState.isDecryptionUnlocked) {
+                    pendingBiometricEnable = true
+                    credentialsViewModel.showUnlockDialog()
+                } else if (enabled) {
+                    Log.d(TAG, "Calling enableBiometric directly")
+                    activity?.let { credentialsViewModel.enableBiometric(it) }
+                } else {
+                    credentialsViewModel.disableBiometric()
+                }
             },
             modifier = Modifier.fillMaxWidth()
         )
@@ -126,6 +172,44 @@ fun SettingsScreen(
             onDismiss = { showFilePicker = false },
             onSelect = { showFilePicker = false }
         )
+    }
+
+    if (credentialsUiState.showUnlockDialog) {
+        UnlockDialog(
+            onDismiss = {
+                pendingBiometricEnable = false
+                credentialsViewModel.dismissUnlockDialog()
+            },
+            onUnlock = { password ->
+                credentialsViewModel.unlockWithPassword(password)
+            },
+            passwordHint = credentialsUiState.passwordHint,
+            error = credentialsUiState.error,
+            isLoading = credentialsUiState.isLoading
+        )
+    }
+
+    if (credentialsUiState.showChangePasswordDialog) {
+        if (credentialsUiState.isMasterPasswordSet) {
+            ChangeMasterPasswordDialog(
+                onDismiss = { credentialsViewModel.dismissChangePasswordDialog() },
+                onConfirm = { oldPassword, newPassword, confirmPassword, hint ->
+                    credentialsViewModel.changeMasterPassword(oldPassword, newPassword, confirmPassword, hint)
+                },
+                passwordHint = credentialsUiState.passwordHint,
+                error = credentialsUiState.changePasswordError,
+                isLoading = credentialsUiState.isLoading
+            )
+        } else {
+            SetupMasterPasswordDialog(
+                onDismiss = { credentialsViewModel.dismissChangePasswordDialog() },
+                onConfirm = { password, confirmPassword, hint ->
+                    credentialsViewModel.setupMasterPassword(password, confirmPassword, hint)
+                },
+                error = credentialsUiState.changePasswordError,
+                isLoading = credentialsUiState.isLoading
+            )
+        }
     }
 }
 
@@ -172,10 +256,13 @@ private fun StorageSettingsCard(
 }
 
 @Composable
-private fun CredentialsSettingsCard(
+private fun SecuritySettingsCard(
     modifier: Modifier = Modifier,
     onCredentialsClick: () -> Unit,
+    onMasterPasswordClick: () -> Unit,
     biometricEnabled: Boolean = false,
+    isDecryptionUnlocked: Boolean = false,
+    isMasterPasswordSet: Boolean = false,
     onBiometricEnabledChange: ((Boolean) -> Unit)? = null
 ) {
     val uiColors = FuwaGitThemeExtras.colors
@@ -188,27 +275,40 @@ private fun CredentialsSettingsCard(
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
             SettingsSectionHeader(
-                title = "Credentials",
-                icon = Icons.Default.Key,
+                title = "Security",
+                icon = Icons.Default.Shield,
                 color = Color(0xFFE91E63)
             )
 
             SettingsNavigationItem(
-                title = "Git Credentials",
+                title = "Credentials",
                 subtitle = "HTTPS passwords & SSH keys",
-                icon = Icons.Default.CreditCard,
+                icon = Icons.Default.Key,
                 onClick = onCredentialsClick
             )
 
-            if (onBiometricEnabledChange != null) {
+            HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+
+            SettingsClickableItem(
+                title = if (isMasterPasswordSet) "Change Master Password" else "Set Master Password",
+                subtitle = if (isMasterPasswordSet) "Update your master password" else "Protect your credentials",
+                icon = Icons.Default.Lock,
+                onClick = onMasterPasswordClick
+            )
+
+            if (isMasterPasswordSet && onBiometricEnabledChange != null) {
                 HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
 
                 SettingsSwitchItem(
                     title = "Biometric Unlock",
-                    subtitle = if (biometricEnabled) "Enabled" else "Use fingerprint to unlock",
-                    icon = Icons.Default.Lock,
-                    checked = biometricEnabled,
-                    onCheckedChange = onBiometricEnabledChange
+                    subtitle = when {
+                        !isDecryptionUnlocked -> "Tap to unlock credentials first"
+                        biometricEnabled -> "Enabled"
+                        else -> "Use fingerprint to unlock"
+                    },
+                    icon = Icons.Default.Fingerprint,
+                    checked = biometricEnabled && isDecryptionUnlocked,
+                    onCheckedChange = { onBiometricEnabledChange(it) }
                 )
             }
         }
@@ -484,6 +584,7 @@ private fun SettingsSwitchItem(
     subtitle: String,
     icon: ImageVector,
     checked: Boolean,
+    enabled: Boolean = true,
     onCheckedChange: (Boolean) -> Unit
 ) {
     val colors = MaterialTheme.colorScheme
@@ -491,7 +592,7 @@ private fun SettingsSwitchItem(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { onCheckedChange(!checked) }
+            .clickable(enabled = enabled) { onCheckedChange(!checked) }
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -519,7 +620,8 @@ private fun SettingsSwitchItem(
             Text(
                 text = title,
                 style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Medium
+                fontWeight = FontWeight.Medium,
+                color = if (enabled) colors.onSurface else colors.onSurface.copy(alpha = 0.5f)
             )
             Text(
                 text = subtitle,
@@ -533,6 +635,7 @@ private fun SettingsSwitchItem(
         Switch(
             checked = checked,
             onCheckedChange = onCheckedChange,
+            enabled = enabled,
             colors = SwitchDefaults.colors(
                 checkedThumbColor = colors.primary,
                 checkedTrackColor = colors.primary.copy(alpha = 0.5f)

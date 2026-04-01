@@ -71,19 +71,7 @@ fun CredentialsScreen(
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 SecuritySettingsSection(
-                    isBiometricEnabled = uiState.isBiometricEnabled,
                     isDecryptionUnlocked = uiState.isDecryptionUnlocked,
-                    onToggleBiometric = {
-                        if (!uiState.isDecryptionUnlocked) {
-                            viewModel.showUnlockDialog()
-                        } else if (uiState.isBiometricEnabled) {
-                            viewModel.disableBiometric()
-                        } else {
-                            activity?.let {
-                                viewModel.enableBiometric(it)
-                            }
-                        }
-                    },
                     onExport = {
                         if (!uiState.isDecryptionUnlocked) {
                             viewModel.showUnlockDialog()

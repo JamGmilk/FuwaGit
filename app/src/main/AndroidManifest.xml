@@ -31,6 +31,12 @@
             </intent-filter>
         </activity>
 
+        <activity
+            android:name=".ui.biometric.BiometricActivity"
+            android:exported="false"
+            android:theme="@android:style/Theme.NoDisplay"
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden" />
+
     </application>
 
 </manifest>

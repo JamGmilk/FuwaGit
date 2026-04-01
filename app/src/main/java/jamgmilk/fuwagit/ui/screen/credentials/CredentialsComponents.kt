@@ -383,17 +383,18 @@ fun SshKeyItem(
         Spacer(Modifier.width(12.dp))
 
         Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = key.name,
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.SemiBold,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
+                Text(
+                    text = key.name,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f, fill = false)
+                )
                 Box(
                     modifier = Modifier
                         .background(
@@ -410,19 +411,14 @@ fun SshKeyItem(
                         fontWeight = FontWeight.Medium
                     )
                 }
-                Text(
-                    text = "•",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = colors.onSurfaceVariant
-                )
-                Text(
-                    text = key.fingerprint.take(20) + "...",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = colors.onSurfaceVariant,
-                    fontFamily = FontFamily.Monospace,
-                    fontSize = 10.sp
-                )
             }
+            Text(
+                text = key.fingerprint.take(24) + "...",
+                style = MaterialTheme.typography.labelSmall,
+                color = colors.onSurfaceVariant,
+                fontFamily = FontFamily.Monospace,
+                fontSize = 10.sp
+            )
         }
 
         IconButton(
@@ -488,9 +484,7 @@ fun EmptyStateContent(
 
 @Composable
 fun SecuritySettingsSection(
-    isBiometricEnabled: Boolean,
     isDecryptionUnlocked: Boolean,
-    onToggleBiometric: () -> Unit,
     onExport: () -> Unit,
     onImport: () -> Unit,
     onLock: () -> Unit
@@ -543,52 +537,6 @@ fun SecuritySettingsSection(
                 modifier = Modifier.padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
-                        .clickable { onToggleBiometric() }
-                        .padding(12.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            Icons.Default.Fingerprint,
-                            contentDescription = null,
-                            tint = if (isBiometricEnabled) Color(0xFF4CAF50) else colors.onSurfaceVariant,
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Spacer(Modifier.width(12.dp))
-                        Column {
-                            Text(
-                                text = "Biometric Unlock",
-                                style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = FontWeight.Medium
-                            )
-                            Text(
-                                text = if (isBiometricEnabled) "Enabled" else "Use fingerprint to unlock",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = colors.onSurfaceVariant
-                            )
-                        }
-                    }
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = if (isBiometricEnabled) Color(0xFF4CAF50).copy(alpha = 0.15f) else colors.surfaceVariant
-                    ) {
-                        Text(
-                            text = if (isBiometricEnabled) "ON" else "OFF",
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = if (isBiometricEnabled) Color(0xFF4CAF50) else colors.onSurfaceVariant,
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
-                        )
-                    }
-                }
-
-                HorizontalDivider(color = colors.outline.copy(alpha = 0.1f))
-
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
