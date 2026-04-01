@@ -1,12 +1,6 @@
 package jamgmilk.fuwagit.ui.screen.settings
 
 import android.content.Intent
-import androidx.activity.compose.BackHandler
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -38,7 +32,6 @@ import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material.icons.filled.Terminal
 import androidx.compose.material.icons.outlined.Info
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.HorizontalDivider
@@ -47,10 +40,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -70,42 +60,16 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.core.net.toUri
 import jamgmilk.fuwagit.ui.components.FilePickerDialog
 import jamgmilk.fuwagit.ui.components.ScreenTemplate
-import jamgmilk.fuwagit.ui.screen.credentials.CredentialsScreen
-import jamgmilk.fuwagit.ui.screen.permissions.PermissionsScreen
-
-
 import jamgmilk.fuwagit.ui.theme.FuwaGitThemeExtras
-
-sealed class SettingsNavigationTarget {
-    data object Main : SettingsNavigationTarget()
-    data object Credentials : SettingsNavigationTarget()
-    data object Permissions : SettingsNavigationTarget()
-}
 
 @Composable
 fun SettingsScreen(
     modifier: Modifier = Modifier,
-    resetKey: Int = 0,
-    onSubPageVisibleChange: (Boolean) -> Unit = {},
+    onNavigateToPermissions: () -> Unit = {},
+    onNavigateToCredentials: () -> Unit = {},
     settingsViewModel: SettingsViewModel = hiltViewModel()
 ) {
-    val savedReposCount by settingsViewModel.savedReposCount.collectAsState()
-
-    var showPermissions by rememberSaveable { mutableStateOf(false) }
-    var showCredentials by rememberSaveable { mutableStateOf(false) }
     var showFilePicker by rememberSaveable { mutableStateOf(false) }
-
-    LaunchedEffect(resetKey) {
-        if (resetKey > 0) {
-            showPermissions = false
-            showCredentials = false
-            showFilePicker = false
-        }
-    }
-
-    LaunchedEffect(showPermissions, showCredentials) {
-        onSubPageVisibleChange(showPermissions || showCredentials)
-    }
 
     var autoSync by rememberSaveable { mutableStateOf(false) }
     var conflictSafeMode by rememberSaveable { mutableStateOf(true) }
@@ -114,80 +78,46 @@ fun SettingsScreen(
     var verboseLogging by rememberSaveable { mutableStateOf(false) }
     var biometricEnabled by rememberSaveable { mutableStateOf(false) }
 
-    val currentTarget = when {
-        showCredentials -> SettingsNavigationTarget.Credentials
-        showPermissions -> SettingsNavigationTarget.Permissions
-        else -> SettingsNavigationTarget.Main
-    }
+    ScreenTemplate(
+        title = "Settings",
+        modifier = modifier
+    ) {
+        StorageSettingsCard(
+            onPermissionsClick = onNavigateToPermissions,
+            showHiddenFiles = showHiddenFiles,
+            onShowHiddenFilesChange = { showHiddenFiles = it },
+            modifier = Modifier.fillMaxWidth()
+        )
 
-    AnimatedContent(
-        targetState = currentTarget,
-        transitionSpec = {
-            fadeIn(animationSpec = tween(260)) togetherWith fadeOut(animationSpec = tween(200))
-        },
-        label = "settings_transition"
-    ) { target ->
-        when (target) {
-            SettingsNavigationTarget.Credentials -> {
-                BackHandler { showCredentials = false }
-                CredentialsScreen(
-                    viewModel = hiltViewModel(),
-                    onBack = { showCredentials = false },
-                    modifier = modifier
-                )
-            }
-            SettingsNavigationTarget.Permissions -> {
-                BackHandler { showPermissions = false }
-                PermissionsScreen(
-                    savedReposCount = savedReposCount,
-                    onBack = { showPermissions = false },
-                    modifier = modifier
-                )
-            }
-            SettingsNavigationTarget.Main -> {
-                ScreenTemplate(
-                    title = "Settings",
-                    modifier = modifier
-                ) {
-                    StorageSettingsCard(
-                        onPermissionsClick = { showPermissions = true },
-                        showHiddenFiles = showHiddenFiles,
-                        onShowHiddenFilesChange = { showHiddenFiles = it },
-                        modifier = Modifier.fillMaxWidth()
-                    )
+        CredentialsSettingsCard(
+            onCredentialsClick = onNavigateToCredentials,
+            biometricEnabled = biometricEnabled,
+            onBiometricEnabledChange = { enabled ->
+                biometricEnabled = enabled
+            },
+            modifier = Modifier.fillMaxWidth()
+        )
 
-                    CredentialsSettingsCard(
-                        onCredentialsClick = { showCredentials = true },
-                        biometricEnabled = biometricEnabled,
-                        onBiometricEnabledChange = { enabled ->
-                            biometricEnabled = enabled
-                        },
-                        modifier = Modifier.fillMaxWidth()
-                    )
+        SyncSettingsCard(
+            autoSync = autoSync,
+            onAutoSyncChange = { autoSync = it },
+            conflictSafeMode = conflictSafeMode,
+            onConflictSafeModeChange = { conflictSafeMode = it },
+            backupBeforeSync = backupBeforeSync,
+            onBackupBeforeSyncChange = { backupBeforeSync = it },
+            modifier = Modifier.fillMaxWidth()
+        )
 
-                    SyncSettingsCard(
-                        autoSync = autoSync,
-                        onAutoSyncChange = { autoSync = it },
-                        conflictSafeMode = conflictSafeMode,
-                        onConflictSafeModeChange = { conflictSafeMode = it },
-                        backupBeforeSync = backupBeforeSync,
-                        onBackupBeforeSyncChange = { backupBeforeSync = it },
-                        modifier = Modifier.fillMaxWidth()
-                    )
+        DeveloperOptionsCard(
+            verboseLogging = verboseLogging,
+            onVerboseLoggingChange = { verboseLogging = it },
+            onTestFilePicker = { showFilePicker = true },
+            modifier = Modifier.fillMaxWidth()
+        )
 
-                    DeveloperOptionsCard(
-                        verboseLogging = verboseLogging,
-                        onVerboseLoggingChange = { verboseLogging = it },
-                        onTestFilePicker = { showFilePicker = true },
-                        modifier = Modifier.fillMaxWidth()
-                    )
-
-                    AboutCard(
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-            }
-        }
+        AboutCard(
+            modifier = Modifier.fillMaxWidth()
+        )
     }
 
     if (showFilePicker) {

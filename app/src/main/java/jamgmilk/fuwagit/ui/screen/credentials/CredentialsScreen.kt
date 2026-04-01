@@ -1,15 +1,8 @@
 package jamgmilk.fuwagit.ui.screen.credentials
 
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -26,11 +19,6 @@ import jamgmilk.fuwagit.data.local.credential.HttpsCredential
 import jamgmilk.fuwagit.data.local.credential.SshKey
 import jamgmilk.fuwagit.ui.components.SubSettingsTemplate
 import kotlinx.coroutines.launch
-
-sealed class CredentialsTab {
-    data object Https : CredentialsTab()
-    data object Ssh : CredentialsTab()
-}
 
 private sealed class CredentialDialogState {
     data object None : CredentialDialogState()
@@ -56,7 +44,6 @@ fun CredentialsScreen(
 
     val uiState by viewModel.uiState.collectAsState()
 
-    var selectedTab by remember { mutableStateOf<CredentialsTab>(CredentialsTab.Https) }
     var dialogState by remember { mutableStateOf<CredentialDialogState>(CredentialDialogState.None) }
     var showDeleteConfirm by remember { mutableStateOf<Pair<String, Boolean>?>(null) }
 
@@ -83,13 +70,6 @@ fun CredentialsScreen(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                CredentialsTabSelector(
-                    selectedTab = selectedTab,
-                    onTabSelected = { selectedTab = it },
-                    httpsCount = uiState.httpsCredentials.size,
-                    sshCount = uiState.sshKeys.size
-                )
-
                 SecuritySettingsSection(
                     isBiometricEnabled = uiState.isBiometricEnabled,
                     isDecryptionUnlocked = uiState.isDecryptionUnlocked,
@@ -121,49 +101,36 @@ fun CredentialsScreen(
                     onLock = { viewModel.lock() }
                 )
 
-                AnimatedContent(
-                    targetState = selectedTab,
-                    transitionSpec = {
-                        fadeIn(animationSpec = tween(260)) togetherWith fadeOut(animationSpec = tween(200))
+                HttpsCredentialsSection(
+                    credentials = uiState.httpsCredentials,
+                    onAdd = {
+                        if (!uiState.isDecryptionUnlocked) {
+                            viewModel.showUnlockDialog()
+                        } else {
+                            dialogState = CredentialDialogState.AddHttps
+                        }
                     },
-                    label = "credentials_tab_transition"
-                ) { tab ->
-                    when (tab) {
-                        is CredentialsTab.Https -> {
-                            HttpsCredentialsSection(
-                                credentials = uiState.httpsCredentials,
-                                onAdd = {
-                                    if (!uiState.isDecryptionUnlocked) {
-                                        viewModel.showUnlockDialog()
-                                    } else {
-                                        dialogState = CredentialDialogState.AddHttps
-                                    }
-                                },
-                                onInfo = { dialogState = CredentialDialogState.HttpsInfo(it) }
-                            )
+                    onInfo = { dialogState = CredentialDialogState.HttpsInfo(it) }
+                )
+
+                SshKeysSection(
+                    keys = uiState.sshKeys,
+                    onGenerate = {
+                        if (!uiState.isDecryptionUnlocked) {
+                            viewModel.showUnlockDialog()
+                        } else {
+                            dialogState = CredentialDialogState.GenerateSsh
                         }
-                        is CredentialsTab.Ssh -> {
-                            SshKeysSection(
-                                keys = uiState.sshKeys,
-                                onGenerate = {
-                                    if (!uiState.isDecryptionUnlocked) {
-                                        viewModel.showUnlockDialog()
-                                    } else {
-                                        dialogState = CredentialDialogState.GenerateSsh
-                                    }
-                                },
-                                onImport = {
-                                    if (!uiState.isDecryptionUnlocked) {
-                                        viewModel.showUnlockDialog()
-                                    } else {
-                                        dialogState = CredentialDialogState.ImportSsh
-                                    }
-                                },
-                                onInfo = { dialogState = CredentialDialogState.SshInfo(it) }
-                            )
+                    },
+                    onImport = {
+                        if (!uiState.isDecryptionUnlocked) {
+                            viewModel.showUnlockDialog()
+                        } else {
+                            dialogState = CredentialDialogState.ImportSsh
                         }
-                    }
-                }
+                    },
+                    onInfo = { dialogState = CredentialDialogState.SshInfo(it) }
+                )
             }
         }
     }

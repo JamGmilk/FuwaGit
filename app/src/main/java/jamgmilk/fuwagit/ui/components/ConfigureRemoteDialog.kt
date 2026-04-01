@@ -108,7 +108,6 @@ fun ConfigureRemoteDialog(
                     value = url,
                     onValueChange = { url = it },
                     label = { Text("Remote URL") },
-                    placeholder = { Text("https://github.com/user/repo.git") },
                     leadingIcon = {
                         Icon(
                             Icons.Default.Source,
