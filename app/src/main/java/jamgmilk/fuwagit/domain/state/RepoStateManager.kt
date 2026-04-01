@@ -110,11 +110,9 @@ class RepoStateManager @Inject constructor(
             errorMessage = errorMessage
         )
 
+        repoDataStore.setCurrentRepo(path)
         if (state == RepoState.REPO_VALID) {
-            repoDataStore.setCurrentRepo(path)
             repoDataStore.updateLastAccessed(path)
-        } else {
-            repoDataStore.setCurrentRepo(null)
         }
     }
 
