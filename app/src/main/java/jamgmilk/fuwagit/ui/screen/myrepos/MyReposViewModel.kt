@@ -8,6 +8,8 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import jamgmilk.fuwagit.data.local.prefs.RepoDataStore
 import jamgmilk.fuwagit.domain.model.credential.CloneCredential
 import jamgmilk.fuwagit.domain.model.repo.RepoData
+import jamgmilk.fuwagit.domain.model.credential.HttpsCredential
+import jamgmilk.fuwagit.domain.model.credential.SshKey
 import jamgmilk.fuwagit.domain.state.RepoInfo
 import jamgmilk.fuwagit.domain.state.RepoStateManager
 import jamgmilk.fuwagit.domain.usecase.CurrentRepoUseCase
@@ -18,8 +20,10 @@ import jamgmilk.fuwagit.domain.usecase.credential.GetSshPrivateKeyUseCase
 import jamgmilk.fuwagit.domain.usecase.git.CleanUseCase
 import jamgmilk.fuwagit.domain.usecase.git.CloneRepositoryUseCase
 import jamgmilk.fuwagit.domain.usecase.git.ConfigureRemoteUseCase
+import jamgmilk.fuwagit.domain.usecase.git.GetRemotesUseCase
 import jamgmilk.fuwagit.domain.usecase.git.GetRemoteUrlUseCase
 import jamgmilk.fuwagit.domain.usecase.git.GetRepoInfoUseCase
+import jamgmilk.fuwagit.domain.usecase.git.InitRepoUseCase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -83,7 +87,9 @@ class MyReposViewModel @Inject constructor(
     private val getHttpsCredentialsUseCase: GetHttpsCredentialsUseCase,
     private val getHttpsPasswordUseCase: GetHttpsPasswordUseCase,
     private val getSshKeysUseCase: GetSshKeysUseCase,
-    private val getSshPrivateKeyUseCase: GetSshPrivateKeyUseCase
+    private val getSshPrivateKeyUseCase: GetSshPrivateKeyUseCase,
+    private val initRepoUseCase: InitRepoUseCase,
+    private val getRemotesUseCase: GetRemotesUseCase
 ) : ViewModel() {
 
     private val _isLoading = MutableStateFlow(false)
@@ -178,8 +184,27 @@ class MyReposViewModel @Inject constructor(
         return getRepoInfoUseCase(localPath)
     }
 
+    suspend fun getRemotes(localPath: String): List<Pair<String, String>> {
+        return getRemotesUseCase(localPath)
+            .map { remotes -> remotes.map { it.name to it.fetchUrl } }
+            .getOrNull() ?: emptyList()
+    }
+
     suspend fun getRemoteUrl(localPath: String, name: String = "origin"): String? {
         return getRemoteUrlUseCase(localPath, name)
+    }
+
+    suspend fun addLocalRepository(path: String, alias: String?, remoteUrl: String?) {
+        withContext(Dispatchers.IO) {
+            val gitDir = File(path, ".git")
+            if (!gitDir.exists()) {
+                initRepoUseCase(path).getOrThrow()
+                if (!remoteUrl.isNullOrBlank()) {
+                    configureRemoteUseCase(path, "origin", remoteUrl)
+                }
+            }
+        }
+        addRepo(path, alias)
     }
 
     fun configureRemote(localPath: String, name: String, url: String) {
@@ -195,18 +220,8 @@ class MyReposViewModel @Inject constructor(
         }
     }
 
-    suspend fun getHttpsCredentials(): List<HttpsCredentialItem> {
+    suspend fun getHttpsCredentials(): List<HttpsCredential> {
         return getHttpsCredentialsUseCase()
-            .map { credentials ->
-                credentials.map { cred ->
-                    HttpsCredentialItem(
-                        uuid = cred.uuid,
-                        host = cred.host,
-                        username = cred.username,
-                        displayName = "${cred.username}@${cred.host}"
-                    )
-                }
-            }
             .getOrNull() ?: emptyList()
     }
 
@@ -214,23 +229,21 @@ class MyReposViewModel @Inject constructor(
         return getHttpsPasswordUseCase(uuid).getOrNull()
     }
 
-    suspend fun getSshKeys(): List<SshKeyItem> {
+    suspend fun getSshKeys(): List<SshKey> {
         return getSshKeysUseCase()
-            .map { keys ->
-                keys.map { key ->
-                    SshKeyItem(
-                        uuid = key.uuid,
-                        name = key.name,
-                        fingerprint = key.fingerprint,
-                        displayName = "${key.name} (${key.type})"
-                    )
-                }
-            }
             .getOrNull() ?: emptyList()
     }
 
     suspend fun getSshPrivateKey(uuid: String): String? {
         return getSshPrivateKeyUseCase(uuid).getOrNull()
+    }
+
+    suspend fun showHttpsCredentialSelector(): String? {
+        return null
+    }
+
+    suspend fun showSshKeySelector(): String? {
+        return null
     }
 
     fun cloneWithCredentials(

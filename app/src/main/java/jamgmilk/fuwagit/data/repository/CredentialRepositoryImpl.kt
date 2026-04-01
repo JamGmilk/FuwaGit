@@ -1,12 +1,13 @@
 package jamgmilk.fuwagit.data.repository
 
-import android.content.Context
-import jamgmilk.fuwagit.data.local.credential.HttpsCredential
-import jamgmilk.fuwagit.data.local.security.MasterKeyManager
-import jamgmilk.fuwagit.data.local.security.SecureCredentialStore
-import jamgmilk.fuwagit.data.local.credential.SshKey
 import jamgmilk.fuwagit.core.result.AppException
 import jamgmilk.fuwagit.core.result.AppResult
+import jamgmilk.fuwagit.data.local.credential.HttpsCredential as DataHttpsCredential
+import jamgmilk.fuwagit.data.local.credential.SshKey as DataSshKey
+import jamgmilk.fuwagit.data.local.security.MasterKeyManager
+import jamgmilk.fuwagit.data.local.security.SecureCredentialStore
+import jamgmilk.fuwagit.domain.model.credential.HttpsCredential
+import jamgmilk.fuwagit.domain.model.credential.SshKey
 import jamgmilk.fuwagit.domain.repository.CredentialRepository
 import javax.crypto.SecretKey
 import javax.inject.Inject
@@ -28,7 +29,7 @@ class CredentialRepositoryImpl @Inject constructor(
                 cachedMasterKey = key
                 secureStore.cacheMasterKey(key)
                 if (hint != null) {
-                    secureStore.setMasterPasswordHint(hint)
+                    masterKeyManager.setPasswordHint(hint)
                 }
             } else {
                 throw result.exceptionOrNull() ?: AppException.Unknown("Failed to setup password")
@@ -62,7 +63,7 @@ class CredentialRepositoryImpl @Inject constructor(
     }
 
     override fun getMasterPasswordHint(): String? {
-        return secureStore.getMasterPasswordHint()
+        return masterKeyManager.getPasswordHint()
     }
 
     override fun isUnlocked(): Boolean {
@@ -90,7 +91,7 @@ class CredentialRepositoryImpl @Inject constructor(
 
     override suspend fun getAllHttpsCredentials(): AppResult<List<HttpsCredential>> {
         return AppResult.catching {
-            secureStore.getPublicCredentials()
+            secureStore.getPublicCredentials().map { (it as DataHttpsCredential).toDomain() }
         }
     }
 
@@ -129,7 +130,7 @@ class CredentialRepositoryImpl @Inject constructor(
 
     override suspend fun getAllSshKeys(): AppResult<List<SshKey>> {
         return AppResult.catching {
-            secureStore.getPublicSshKeys()
+            secureStore.getPublicSshKeys().map { (it as DataSshKey).toDomain() }
         }
     }
 

@@ -72,8 +72,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import jamgmilk.fuwagit.data.local.credential.HttpsCredential
-import jamgmilk.fuwagit.data.local.credential.SshKey
+import jamgmilk.fuwagit.domain.model.credential.HttpsCredential
+import jamgmilk.fuwagit.domain.model.credential.SshKey
 import jamgmilk.fuwagit.ui.theme.FuwaGitThemeExtras
 import jamgmilk.fuwagit.ui.theme.Sakura80
 import jamgmilk.fuwagit.ui.theme.Sakura90

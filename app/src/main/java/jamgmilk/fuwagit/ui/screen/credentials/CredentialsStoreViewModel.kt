@@ -5,8 +5,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import jamgmilk.fuwagit.core.result.AppResult
-import jamgmilk.fuwagit.data.local.credential.HttpsCredential
-import jamgmilk.fuwagit.data.local.credential.SshKey
+import jamgmilk.fuwagit.domain.model.credential.HttpsCredential
+import jamgmilk.fuwagit.domain.model.credential.SshKey
 import jamgmilk.fuwagit.data.local.security.MasterKeyManager
 import jamgmilk.fuwagit.domain.repository.CredentialRepository
 import jamgmilk.fuwagit.domain.usecase.credential.AddHttpsCredentialUseCase

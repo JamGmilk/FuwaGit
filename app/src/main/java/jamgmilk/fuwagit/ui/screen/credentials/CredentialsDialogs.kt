@@ -71,8 +71,8 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import jamgmilk.fuwagit.data.local.credential.HttpsCredential
-import jamgmilk.fuwagit.data.local.credential.SshKey
+import jamgmilk.fuwagit.domain.model.credential.HttpsCredential
+import jamgmilk.fuwagit.domain.model.credential.SshKey
 import jamgmilk.fuwagit.ui.theme.Sakura80
 import jamgmilk.fuwagit.ui.theme.Sakura90
 import kotlinx.coroutines.launch
@@ -1379,9 +1379,9 @@ fun HttpsCredentialInfoDialog(
                     )
                 }
                 HorizontalDivider(color = colors.outline.copy(alpha = 0.2f))
-                InfoRow(label = "Created", value = formatTimestamp(credential.created_at))
+                InfoRow(label = "Created", value = formatTimestamp(credential.createdAt))
                 HorizontalDivider(color = colors.outline.copy(alpha = 0.2f))
-                InfoRow(label = "Updated", value = formatTimestamp(credential.updated_at))
+                InfoRow(label = "Updated", value = formatTimestamp(credential.updatedAt))
             }
         },
         confirmButton = {
@@ -1515,13 +1515,13 @@ fun SshKeyInfoDialog(
                 }
                 SensitiveInfoRow(
                     label = "Public Key",
-                    value = key.public_key,
+                    value = key.publicKey,
                     isMonospace = true,
                     isSensitive = false,
                     isRevealed = true,
                     showToggle = false,
                     onCopy = {
-                        clipboardManager.setText(AnnotatedString(key.public_key))
+                        clipboardManager.setText(AnnotatedString(key.publicKey))
                         scope.launch {
                             snackbarHostState.showSnackbar(message = "Public key copied", duration = SnackbarDuration.Short)
                         }
@@ -1576,7 +1576,7 @@ fun SshKeyInfoDialog(
                     valueColor = if (key.passphrase != null) Color(0xFFFF9800) else colors.onSurfaceVariant
                 )
                 HorizontalDivider(color = colors.outline.copy(alpha = 0.2f))
-                InfoRow(label = "Created", value = formatTimestamp(key.created_at))
+                InfoRow(label = "Created", value = formatTimestamp(key.createdAt))
             }
         },
         confirmButton = {

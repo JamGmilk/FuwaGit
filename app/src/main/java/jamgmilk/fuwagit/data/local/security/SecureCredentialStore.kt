@@ -90,15 +90,6 @@ class SecureCredentialStore @Inject constructor(
         return loadCredentialData().ssh_keys
     }
 
-    fun getMasterPasswordHint(): String? {
-        return loadCredentialData().master_password_hint
-    }
-
-    fun setMasterPasswordHint(hint: String?) {
-        val data = loadCredentialData()
-        saveCredentialData(data.copy(master_password_hint = hint))
-    }
-
     fun cacheMasterKey(key: SecretKey) {
         cachedMasterKey = WeakReference(key)
         lastUnlockTime = System.currentTimeMillis()
