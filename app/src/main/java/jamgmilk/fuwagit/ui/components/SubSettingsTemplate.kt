@@ -40,7 +40,7 @@ fun SubSettingsTemplate(
     val colors = MaterialTheme.colorScheme
 
     Scaffold(
-        modifier = modifier.fillMaxSize(),
+        modifier = modifier,
         containerColor = Color.Transparent,
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { innerPadding ->
@@ -53,7 +53,6 @@ fun SubSettingsTemplate(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Spacer(Modifier.height(8.dp))
-
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -76,9 +75,7 @@ fun SubSettingsTemplate(
                 )
                 actions?.invoke()
             }
-
             content()
-
             Spacer(Modifier.height(8.dp))
         }
     }

@@ -1,18 +1,7 @@
 package jamgmilk.fuwagit.ui.screen.myrepos
 
 import android.annotation.SuppressLint
-import android.content.Intent
 import android.widget.Toast
-import androidx.activity.compose.BackHandler
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.togetherWith
-import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -38,12 +27,10 @@ import androidx.compose.material.icons.filled.AccountTree
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.CleaningServices
-import androidx.compose.material.icons.filled.CloudDownload
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.FolderOpen
-import androidx.compose.material.icons.filled.FolderShared
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.Schedule
@@ -74,7 +61,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -82,8 +68,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.rotate
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalClipboardManager
@@ -95,10 +79,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import jamgmilk.fuwagit.ui.components.AddRepoDialog
-import jamgmilk.fuwagit.ui.components.CloneRepoDialog
 import jamgmilk.fuwagit.ui.components.ConfigureRemoteDialog
-import jamgmilk.fuwagit.ui.components.FilePickerDialog
 import jamgmilk.fuwagit.ui.components.ScreenTemplate
 import jamgmilk.fuwagit.ui.theme.AppShapes
 import jamgmilk.fuwagit.ui.theme.FuwaGitThemeExtras
@@ -113,8 +94,7 @@ import java.util.Locale
 fun MyReposScreen(
     myReposViewModel: MyReposViewModel,
     modifier: Modifier = Modifier,
-    onNavigateToStatus: () -> Unit = {},
-    onSubPageVisibleChange: (Boolean) -> Unit = {}
+    onNavigateToAddRepository: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val uiState by myReposViewModel.uiState.collectAsState()
@@ -124,20 +104,10 @@ fun MyReposScreen(
     val folders = uiState.repoItems
     val selectedTarget = currentRepoInfo.repoPath
 
-    var showCloneDialog by remember { mutableStateOf(false) }
-    var showCloneFolderPicker by remember { mutableStateOf(false) }
-    var showAddLocalFolderPicker by remember { mutableStateOf(false) }
     var showCleanDialog by remember { mutableStateOf(false) }
-    var showAddLocalScreen by remember { mutableStateOf(false) }
-    var addLocalPath by remember { mutableStateOf("") }
-    var cloneUrl by remember { mutableStateOf("") }
-    var cloneLocalPath by remember { mutableStateOf("") }
-    var cloneBranch by remember { mutableStateOf<String?>(null) }
-    var expandedFab by remember { mutableStateOf(false) }
     var selectedItemForSheet by remember { mutableStateOf<RepoFolderItem?>(null) }
     var showRemoteDialog by remember { mutableStateOf<RepoFolderItem?>(null) }
     var showInfoDialog by remember { mutableStateOf<RepoFolderItem?>(null) }
-    var cloneError by remember { mutableStateOf<String?>(null) }
 
     val sheetState = rememberModalBottomSheetState()
 
@@ -149,182 +119,42 @@ fun MyReposScreen(
         myReposViewModel.loadSavedRepos()
     }
 
-    LaunchedEffect(showAddLocalScreen) {
-        onSubPageVisibleChange(showAddLocalScreen)
-    }
-
-    AnimatedContent(
-        targetState = showAddLocalScreen,
-        transitionSpec = {
-            fadeIn(animationSpec = tween(260)) togetherWith fadeOut(animationSpec = tween(200))
-        },
-        label = "myrepos_transition"
-    ) { showAddLocal ->
-        if (showAddLocal) {
-            BackHandler { showAddLocalScreen = false }
-            AddLocalRepositoryScreen(
-                initialPath = addLocalPath,
-                onBack = {
-                    showAddLocalScreen = false
-                    addLocalPath = ""
-                },
-                onAddRepository = { path, alias ->
-                    scope.launch {
-                        myReposViewModel.addRepo(path, alias)
-                        myReposViewModel.setCurrentRepo(path)
-                    }
-                    showAddLocalScreen = false
-                    addLocalPath = ""
-                    onNavigateToStatus()
-                },
-                onPickFolder = { showAddLocalFolderPicker = true },
-                modifier = modifier
-            )
-        } else {
-            Box(modifier = modifier.fillMaxSize()) {
-                ScreenTemplate(
-                    title = "My Repos",
-                    modifier = Modifier.fillMaxSize()
-                ) {
-                    ElevatedCard(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .weight(1f)
-                            .border(1.dp, FuwaGitThemeExtras.colors.cardBorder, AppShapes.medium),
-                        shape = AppShapes.medium,
-                        colors = CardDefaults.elevatedCardColors(containerColor = FuwaGitThemeExtras.colors.cardContainer),
-                        elevation = CardDefaults.elevatedCardElevation(0.dp)
-                    ) {
-                        if (folders.isEmpty()) {
-                            EmptyReposState()
-                        } else {
-                            RepoListContent(
-                                folders = folders,
-                                selectedTarget = selectedTarget,
-                                onSetTarget = { path ->
-                                    scope.launch {
-                                        myReposViewModel.setCurrentRepo(path)
-                                    }
-                                    onNavigateToStatus()
-                                },
-                                onItemLongClick = { selectedItemForSheet = it }
-                            )
-                        }
-                    }
-                }
-
-                RepoSpeedDial(
-                    expanded = expandedFab,
-                    onExpandedChange = { expandedFab = it },
-                    onCloneRemote = { showCloneDialog = true },
-                    onAddLocal = { showAddLocalScreen = true },
-                    modifier = Modifier
-                        .align(Alignment.BottomEnd)
-                        .padding(16.dp)
-                )
-            }
-        }
-    }
-
-    if (showCloneFolderPicker) {
-        FilePickerDialog(
-            title = "Select Clone Destination",
-            onDismiss = { showCloneFolderPicker = false },
-            onSelect = { path ->
-                cloneLocalPath = path
-                showCloneFolderPicker = false
-            }
-        )
-    }
-
-    if (showAddLocalFolderPicker) {
-        FilePickerDialog(
-            title = "Select Repository Folder",
-            onDismiss = { showAddLocalFolderPicker = false },
-            onSelect = { path ->
-                addLocalPath = path
-                showAddLocalFolderPicker = false
-            }
-        )
-    }
-
-
-    if (showCloneDialog) {
-        val httpsCredentials = remember { mutableStateListOf<HttpsCredentialItem>() }
-        val sshKeys = remember { mutableStateListOf<SshKeyItem>() }
-        var selectedHttpsUuid by remember { mutableStateOf<String?>(null) }
-        var selectedSshUuid by remember { mutableStateOf<String?>(null) }
-        var useCredential by remember { mutableStateOf(false) }
-        var isDirectoryEmptyState by remember { mutableStateOf(true) }
-
-        LaunchedEffect(showCloneDialog) {
-            if (showCloneDialog) {
-                httpsCredentials.clear()
-                sshKeys.clear()
-                httpsCredentials.addAll(myReposViewModel.getHttpsCredentials())
-                sshKeys.addAll(myReposViewModel.getSshKeys())
-            }
-        }
-
-        LaunchedEffect(cloneLocalPath) {
-            isDirectoryEmptyState = cloneLocalPath.isBlank() || myReposViewModel.isDirectoryEmpty(cloneLocalPath)
-        }
-
-        CloneRepoDialog(
-            cloneUrl = cloneUrl,
-            onCloneUrlChange = { cloneUrl = it },
-            localPath = cloneLocalPath,
-            onPickFolder = { showCloneFolderPicker = true },
-            isDirectoryEmpty = cloneLocalPath.isBlank() || isDirectoryEmptyState,
-            error = cloneError,
-            httpsCredentials = httpsCredentials.toList(),
-            sshKeys = sshKeys.toList(),
-            selectedHttpsUuid = selectedHttpsUuid,
-            selectedSshUuid = selectedSshUuid,
-            useCredential = useCredential,
-            onHttpsSelected = { selectedHttpsUuid = it },
-            onSshSelected = { selectedSshUuid = it },
-            onUseCredentialChange = { useCredential = it },
-            onDismiss = {
-                showCloneDialog = false
-                cloneUrl = ""
-                cloneLocalPath = ""
-                cloneError = null
-                useCredential = false
-                selectedHttpsUuid = null
-                selectedSshUuid = null
-            },
-            onClone = {
-                val repoName = cloneUrl.substringAfterLast("/").substringBefore(".git").ifBlank { "repo" }
-                val targetPath = if (cloneLocalPath.endsWith("/")) cloneLocalPath else "$cloneLocalPath/"
-                val fullPath = "${targetPath}$repoName"
-
-                cloneError = null
-
-                val isHttps = cloneUrl.startsWith("http://") || cloneUrl.startsWith("https://")
-                val httpsUuid = if (isHttps && useCredential && selectedHttpsUuid != null) selectedHttpsUuid else null
-                val sshUuid = if (!isHttps && useCredential && selectedSshUuid != null) selectedSshUuid else null
-
-                myReposViewModel.cloneWithCredentials(
-                    uri = cloneUrl,
-                    localPath = fullPath,
-                    branch = cloneBranch,
-                    httpsCredentialUuid = httpsUuid,
-                    sshKeyUuid = sshUuid
-                ) { result ->
-                    result.onSuccess {
-                        showCloneDialog = false
-                        cloneUrl = ""
-                        cloneLocalPath = ""
-                        useCredential = false
-                        selectedHttpsUuid = null
-                        selectedSshUuid = null
-                        scope.launch { myReposViewModel.loadSavedRepos() }
-                    }.onFailure { e ->
-                        cloneError = e.message
-                    }
+    Box(modifier = modifier.fillMaxSize()) {
+        ScreenTemplate(
+            title = "My Repos",
+            modifier = Modifier.fillMaxSize()
+        ) {
+            ElevatedCard(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .border(1.dp, FuwaGitThemeExtras.colors.cardBorder, AppShapes.medium),
+                shape = AppShapes.medium,
+                colors = CardDefaults.elevatedCardColors(containerColor = FuwaGitThemeExtras.colors.cardContainer),
+                elevation = CardDefaults.elevatedCardElevation(0.dp)
+            ) {
+                if (folders.isEmpty()) {
+                    EmptyReposState()
+                } else {
+                    RepoListContent(
+                        folders = folders,
+                        selectedTarget = selectedTarget,
+                        onSetTarget = { path ->
+                            scope.launch {
+                                myReposViewModel.setCurrentRepo(path)
+                            }
+                        },
+                        onItemLongClick = { selectedItemForSheet = it }
+                    )
                 }
             }
+        }
+
+        RepoSpeedDial(
+            onAddRepository = onNavigateToAddRepository,
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(16.dp)
         )
     }
 
@@ -1182,98 +1012,19 @@ private fun getInfoColor(key: String): Color {
 
 @Composable
 fun RepoSpeedDial(
-    expanded: Boolean,
-    onExpandedChange: (Boolean) -> Unit,
-    onCloneRemote: () -> Unit,
-    onAddLocal: () -> Unit,
+    onAddRepository: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val rotation by animateFloatAsState(if (expanded) 45f else 0f, label = "fab_rotation")
-
-    Column(
-        horizontalAlignment = Alignment.End,
+    FloatingActionButton(
+        onClick = onAddRepository,
+        containerColor = Sakura80,
+        elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 0.dp),
+        shape = AppShapes.medium,
         modifier = modifier
     ) {
-        AnimatedVisibility(
-            visible = expanded,
-            enter = fadeIn() + expandVertically(),
-            exit = fadeOut() + shrinkVertically()
-        ) {
-            Column(
-                horizontalAlignment = Alignment.End,
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-                modifier = Modifier.padding(bottom = 12.dp)
-            ) {
-                SpeedDialAction(
-                    icon = Icons.Default.CloudDownload,
-                    label = "Clone Remote",
-                    color = Color(0xFF2196F3),
-                    onClick = {
-                        onCloneRemote()
-                        onExpandedChange(false)
-                    }
-                )
-                SpeedDialAction(
-                    icon = Icons.Default.Add,
-                    label = "Add Local",
-                    color = Color(0xFF4CAF50),
-                    onClick = {
-                        onAddLocal()
-                        onExpandedChange(false)
-                    }
-                )
-            }
-        }
-
-        FloatingActionButton(
-            onClick = { onExpandedChange(!expanded) },
-            containerColor = Sakura80,
-            elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 0.dp),
-            shape = AppShapes.medium
-        ) {
-            Icon(
-                Icons.Default.Add,
-                contentDescription = "Expand",
-                modifier = Modifier.rotate(rotation)
-            )
-        }
-    }
-}
-
-@Composable
-fun SpeedDialAction(
-    icon: ImageVector,
-    label: String,
-    color: Color,
-    onClick: () -> Unit
-) {
-    val uiColors = FuwaGitThemeExtras.colors
-
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        modifier = Modifier.padding(end = 4.dp)
-    ) {
-        ElevatedCard(
-            shape = RoundedCornerShape(8.dp),
-            colors = CardDefaults.elevatedCardColors(containerColor = uiColors.cardContainer),
-            elevation = CardDefaults.elevatedCardElevation(2.dp)
-        ) {
-            Text(
-                text = label,
-                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                style = MaterialTheme.typography.bodySmall,
-                fontWeight = FontWeight.Medium
-            )
-        }
-        FloatingActionButton(
-            onClick = onClick,
-            modifier = Modifier.size(44.dp),
-            containerColor = color,
-            contentColor = Color.White,
-            elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 2.dp),
-        ) {
-            Icon(icon, contentDescription = label, modifier = Modifier.size(20.dp))
-        }
+        Icon(
+            Icons.Default.Add,
+            contentDescription = "Add Repository"
+        )
     }
 }

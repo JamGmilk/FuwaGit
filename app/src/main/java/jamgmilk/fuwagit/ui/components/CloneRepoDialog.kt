@@ -109,7 +109,6 @@ fun CloneRepoDialog(
                     value = cloneUrl,
                     onValueChange = onCloneUrlChange,
                     label = { Text("Repository URL") },
-                    placeholder = { Text("https://github.com/user/repo.git") },
                     leadingIcon = {
                         Icon(
                             Icons.Default.Link,
