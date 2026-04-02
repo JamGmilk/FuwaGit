@@ -161,19 +161,23 @@ fun SettingsScreen(
             isMasterPasswordSet = credentialsUiState.isMasterPasswordSet,
             onBiometricEnabledChange = { enabled ->
                 Log.d(TAG, "Switch toggled: enabled=$enabled, isDecryptionUnlocked=${credentialsUiState.isDecryptionUnlocked}, activity=$activity")
-                if (!credentialsUiState.isDecryptionUnlocked) {
-                    Log.d(TAG, "Decryption locked, showing unlock dialog")
-                    pendingBiometricEnable = true
-                    credentialsViewModel.showUnlockDialog()
-                } else if (enabled) {
-                    Log.d(TAG, "Calling enableBiometric directly")
-                    if (activity == null) {
-                        Log.e(TAG, "Activity is NULL in onBiometricEnabledChange")
+                if (enabled) {
+                    if (!credentialsUiState.isDecryptionUnlocked) {
+                        Log.d(TAG, "Enabling biometric but locked, showing unlock dialog")
+                        pendingBiometricEnable = true
+                        credentialsViewModel.showUnlockDialog()
+                    } else {
+                        Log.d(TAG, "Calling enableBiometric directly")
+                        activity?.let { credentialsViewModel.enableBiometric(it) }
                     }
-                    activity?.let { credentialsViewModel.enableBiometric(it) }
                 } else {
-                    Log.d(TAG, "Disabling biometric")
-                    credentialsViewModel.disableBiometric()
+                    if (!credentialsUiState.isDecryptionUnlocked && credentialsUiState.isBiometricEnabled) {
+                        Log.d(TAG, "Already enabled but locked, showing unlock dialog to unlock vault")
+                        credentialsViewModel.showUnlockDialog()
+                    } else {
+                        Log.d(TAG, "Disabling biometric")
+                        credentialsViewModel.disableBiometric()
+                    }
                 }
             },
             modifier = Modifier.fillMaxWidth()
@@ -334,7 +338,7 @@ private fun SecuritySettingsCard(
                         else -> "Use fingerprint to unlock"
                     },
                     icon = Icons.Default.Fingerprint,
-                    checked = biometricEnabled && isDecryptionUnlocked,
+                    checked = biometricEnabled,
                     onCheckedChange = { onBiometricEnabledChange(it) }
                 )
             }

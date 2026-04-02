@@ -4,6 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import jamgmilk.fuwagit.domain.model.git.GitBranch
+import jamgmilk.fuwagit.ui.components.DangerousOperationType
+import jamgmilk.fuwagit.ui.components.OperationResult
 import jamgmilk.fuwagit.domain.usecase.git.CheckoutBranchUseCase
 import jamgmilk.fuwagit.domain.usecase.git.CreateBranchUseCase
 import jamgmilk.fuwagit.domain.usecase.git.DeleteBranchUseCase
@@ -26,7 +28,11 @@ data class BranchesUiState(
     val repoPath: String? = null,
     val localBranches: List<GitBranch> = emptyList(),
     val remoteBranches: List<GitBranch> = emptyList(),
-    val currentBranch: GitBranch? = null
+    val currentBranch: GitBranch? = null,
+    // 危险操作相关状态
+    val pendingOperation: DangerousOperationType? = null,
+    val pendingOperationTarget: String? = null,
+    val operationResult: OperationResult? = null
 )
 
 @HiltViewModel
@@ -106,6 +112,144 @@ class BranchesViewModel @Inject constructor(
                 }
         }
     }
+
+    // ============ 危险操作：请求确认 ============
+
+    fun requestDeleteBranch(name: String) {
+        _uiState.update {
+            it.copy(
+                pendingOperation = DangerousOperationType.DELETE_BRANCH,
+                pendingOperationTarget = name
+            )
+        }
+    }
+
+    fun requestMergeBranch(name: String) {
+        _uiState.update {
+            it.copy(
+                pendingOperation = DangerousOperationType.MERGE,
+                pendingOperationTarget = name
+            )
+        }
+    }
+
+    fun requestRebaseBranch(name: String) {
+        _uiState.update {
+            it.copy(
+                pendingOperation = DangerousOperationType.REBASE,
+                pendingOperationTarget = name
+            )
+        }
+    }
+
+    // ============ 危险操作：执行 ============
+
+    fun confirmDeleteBranch(force: Boolean = false) {
+        val path = currentRepoPath ?: return
+        val branchName = _uiState.value.pendingOperationTarget ?: return
+
+        viewModelScope.launch {
+            deleteBranchUseCase(path, branchName, force)
+                .onSuccess {
+                    _uiState.update {
+                        it.copy(
+                            operationResult = OperationResult.Success("Branch '$branchName' deleted successfully"),
+                            pendingOperation = null,
+                            pendingOperationTarget = null
+                        )
+                    }
+                    loadBranches()
+                }
+                .onFailure { e ->
+                    val suggestion = when {
+                        e.message?.contains("not fully merged") == true ->
+                            "The branch contains commits that haven't been merged. Use force delete to remove it anyway."
+                        e.message?.contains("currently checked out") == true ->
+                            "Cannot delete the currently checked out branch. Switch to another branch first."
+                        else -> "Please try again or check the git logs for more details."
+                    }
+                    _uiState.update {
+                        it.copy(
+                            operationResult = OperationResult.Failure(e.message ?: "Unknown error", suggestion),
+                            pendingOperation = null,
+                            pendingOperationTarget = null
+                        )
+                    }
+                }
+        }
+    }
+
+    fun confirmMergeBranch() {
+        val path = currentRepoPath ?: return
+        val branchName = _uiState.value.pendingOperationTarget ?: return
+
+        viewModelScope.launch {
+            mergeBranchUseCase(path, branchName)
+                .onSuccess {
+                    _uiState.update {
+                        it.copy(
+                            operationResult = OperationResult.Success("Successfully merged '$branchName' into current branch"),
+                            pendingOperation = null,
+                            pendingOperationTarget = null
+                        )
+                    }
+                    loadBranches()
+                }
+                .onFailure { e ->
+                    val suggestion = when {
+                        e.message?.contains("conflict") == true ->
+                            "Resolve the conflicts manually in the Status screen, then commit the changes."
+                        e.message?.contains("not fully merged") == true ->
+                            "The branch contains unmerged commits. This is expected for a merge operation."
+                        else -> "Check if the current branch is up to date and try again."
+                    }
+                    _uiState.update {
+                        it.copy(
+                            operationResult = OperationResult.Failure(e.message ?: "Unknown error", suggestion),
+                            pendingOperation = null,
+                            pendingOperationTarget = null
+                        )
+                    }
+                }
+        }
+    }
+
+    fun confirmRebaseBranch() {
+        val path = currentRepoPath ?: return
+        val branchName = _uiState.value.pendingOperationTarget ?: return
+
+        viewModelScope.launch {
+            rebaseBranchUseCase(path, branchName)
+                .onSuccess {
+                    _uiState.update {
+                        it.copy(
+                            operationResult = OperationResult.Success("Successfully rebased onto '$branchName'"),
+                            pendingOperation = null,
+                            pendingOperationTarget = null
+                        )
+                    }
+                    loadBranches()
+                }
+                .onFailure { e ->
+                    val suggestion = when {
+                        e.message?.contains("conflict") == true ->
+                            "Resolve conflicts and run 'git rebase --continue', or 'git rebase --abort' to cancel."
+                        e.message?.contains("up to date") == true ->
+                            "The current branch is already up to date with the target branch."
+                        else -> "Run 'git rebase --abort' to cancel the rebase operation."
+                    }
+                    _uiState.update {
+                        it.copy(
+                            operationResult = OperationResult.Failure(e.message ?: "Unknown error", suggestion),
+                            pendingOperation = null,
+                            pendingOperationTarget = null
+                        )
+                    }
+                }
+        }
+    }
+
+    // ============ 常规操作 ============
 
     fun checkoutBranch(name: String) {
         val path = currentRepoPath ?: return
@@ -191,7 +335,28 @@ class BranchesViewModel @Inject constructor(
         }
     }
 
+    // ============ 状态清理 ============
+
     fun clearError() {
         _uiState.update { it.copy(error = null) }
+    }
+
+    fun clearOperationResult() {
+        _uiState.update {
+            it.copy(
+                operationResult = null,
+                pendingOperation = null,
+                pendingOperationTarget = null
+            )
+        }
+    }
+
+    fun cancelPendingOperation() {
+        _uiState.update {
+            it.copy(
+                pendingOperation = null,
+                pendingOperationTarget = null
+            )
+        }
     }
 }

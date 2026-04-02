@@ -1,19 +1,13 @@
-<?xml version="1.0" encoding="utf-8"?><!--
-   Sample data extraction rules file; uncomment and customize as necessary.
-   See https://developer.android.com/about/versions/12/backup-restore#xml-changes
-   for details.
--->
+<?xml version="1.0" encoding="utf-8"?>
 <data-extraction-rules>
     <cloud-backup>
-        <!-- TODO: Use <include> and <exclude> to control what is backed up.
-        <include .../>
-        <exclude .../>
-        -->
+        <!-- Exclude sensitive credential data and master key wrapping info from cloud backup -->
+        <exclude domain="file" path="credential_data.json"/>
+        <exclude domain="sharedpref" path="credential_key_store.xml"/>
     </cloud-backup>
-    <!--
     <device-transfer>
-        <include .../>
-        <exclude .../>
+        <!-- Exclude sensitive credential data and master key wrapping info from device-to-device transfer -->
+        <exclude domain="file" path="credential_data.json"/>
+        <exclude domain="sharedpref" path="credential_key_store.xml"/>
     </device-transfer>
-    -->
 </data-extraction-rules>

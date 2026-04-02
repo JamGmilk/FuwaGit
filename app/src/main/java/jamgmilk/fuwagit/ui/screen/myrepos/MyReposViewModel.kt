@@ -1,6 +1,7 @@
 package jamgmilk.fuwagit.ui.screen.myrepos
 
 import android.content.Context
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -128,6 +129,8 @@ class MyReposViewModel @Inject constructor(
         }
     }
 
+    private val _repoSizes = mutableStateMapOf<String, Long>()
+
     val uiState: StateFlow<RepoUiState> = combine(
         _savedRepos,
         currentRepoInfo,
@@ -143,7 +146,7 @@ class MyReposViewModel @Inject constructor(
                     isRemote = false,
                     isActive = repo.path == currentRepo.repoPath,
                     lastModified = repo.lastAccessedAt,
-                    size = calculateFolderSize(repo.path)
+                    size = _repoSizes[repo.path] ?: 0L
                 )
             },
             isLoading = loading,
@@ -161,6 +164,22 @@ class MyReposViewModel @Inject constructor(
         viewModelScope.launch {
             val repos = repoDataStore.getAllRepos()
             _savedRepos.value = repos
+            
+            // Background size calculation
+            repos.forEach { repo ->
+                if (!_repoSizes.containsKey(repo.path)) {
+                    calculateSizeAsync(repo.path)
+                }
+            }
+        }
+    }
+
+    private fun calculateSizeAsync(path: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val size = calculateFolderSize(path)
+            withContext(Dispatchers.Main) {
+                _repoSizes[path] = size
+            }
         }
     }
 

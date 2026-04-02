@@ -82,7 +82,7 @@ dependencies {
     implementation(libs.androidx.compose.material.icons.extended)
 
     implementation(libs.org.eclipse.jgit)
-    implementation(libs.jsch)
+    implementation(libs.org.eclipse.jgit.ssh.jsch)
     implementation(libs.bouncycastle)
     implementation(libs.androidx.security.crypto)
     implementation(libs.androidx.navigation.compose)

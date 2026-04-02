@@ -62,16 +62,16 @@ class GitRepositoryImpl @Inject constructor(
         jGitDataSource.commit(repoPath, message)
     }
 
-    override suspend fun pull(repoPath: String): Result<PullResult> = withContext(Dispatchers.IO) {
-        jGitDataSource.pull(repoPath)
+    override suspend fun pull(repoPath: String, credentials: CloneCredential?): Result<PullResult> = withContext(Dispatchers.IO) {
+        jGitDataSource.pull(repoPath, credentials)
     }
 
-    override suspend fun push(repoPath: String): Result<String> = withContext(Dispatchers.IO) {
-        jGitDataSource.push(repoPath)
+    override suspend fun push(repoPath: String, credentials: CloneCredential?): Result<String> = withContext(Dispatchers.IO) {
+        jGitDataSource.push(repoPath, credentials)
     }
 
-    override suspend fun fetch(repoPath: String): Result<String> = withContext(Dispatchers.IO) {
-        jGitDataSource.fetch(repoPath)
+    override suspend fun fetch(repoPath: String, credentials: CloneCredential?): Result<String> = withContext(Dispatchers.IO) {
+        jGitDataSource.fetch(repoPath, credentials)
     }
 
     override suspend fun checkoutBranch(repoPath: String, branchName: String): Result<Unit> = withContext(Dispatchers.IO) {

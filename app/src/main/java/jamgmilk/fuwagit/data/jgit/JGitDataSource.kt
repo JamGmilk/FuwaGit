@@ -1,6 +1,7 @@
 package jamgmilk.fuwagit.data.jgit
 
 import android.util.Log
+import com.jcraft.jsch.JSch
 import jamgmilk.fuwagit.domain.model.credential.CloneCredential
 import jamgmilk.fuwagit.domain.model.git.GitBranch
 import jamgmilk.fuwagit.domain.model.git.GitChangeType
@@ -17,6 +18,10 @@ import org.eclipse.jgit.errors.LockFailedException
 import org.eclipse.jgit.lib.ObjectId
 import org.eclipse.jgit.revwalk.RevCommit
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder
+import org.eclipse.jgit.util.FS
+import org.eclipse.jgit.transport.SshSessionFactory
+import org.eclipse.jgit.transport.TransportGitSsh
+import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider
 import java.io.File
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -26,6 +31,35 @@ class JGitDataSource @Inject constructor() {
 
     companion object {
         private const val TAG = "JGitDataSource"
+    }
+
+    private fun configureSshSessionFactory(privateKey: String, passphrase: String?) {
+        try {
+            val jsch = JSch()
+            jsch.addIdentity(
+                "ssh-key",
+                privateKey.toByteArray(),
+                null,
+                if (passphrase.isNullOrEmpty()) null else passphrase.toByteArray()
+            )
+            JSch.setConfig("StrictHostKeyChecking", "no")
+            JSch.setConfig("PreferredAuthentications", "publickey")
+
+            SshSessionFactory.setInstance(object : SshSessionFactory() {
+                private val delegate = SshSessionFactory.getInstance()
+
+                override fun getSession(uri: org.eclipse.jgit.transport.URIish?, credentialsProvider: org.eclipse.jgit.transport.CredentialsProvider?, fs: FS?, tms: Int): org.eclipse.jgit.transport.RemoteSession {
+                    return delegate.getSession(uri, credentialsProvider, fs, tms)
+                }
+
+                override fun getType(): String = delegate.type
+                override fun releaseSession(session: org.eclipse.jgit.transport.RemoteSession?) {
+                    delegate.releaseSession(session)
+                }
+            })
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to configure SSH session factory", e)
+        }
     }
 
     private inline fun <T> withGit(repoPath: String, block: (Git) -> T): Result<T> {
@@ -165,6 +199,8 @@ class JGitDataSource @Inject constructor() {
     }
 
     fun stageAll(repoPath: String): Result<String> = withGit(repoPath) { git ->
+        // Use add with update=true to include deletions, and another add for untracked files
+        git.add().addFilepattern(".").setUpdate(true).call()
         git.add().addFilepattern(".").call()
         "All changes staged"
     }
@@ -180,7 +216,12 @@ class JGitDataSource @Inject constructor() {
     }
 
     fun stageFile(repoPath: String, filePath: String): Result<Unit> = withGit(repoPath) { git ->
-        git.add().addFilepattern(filePath).call()
+        val status = git.status().addPath(filePath).call()
+        if (status.missing.contains(filePath) || status.removed.contains(filePath)) {
+            git.rm().addFilepattern(filePath).call()
+        } else {
+            git.add().addFilepattern(filePath).call()
+        }
         Unit
     }
 
@@ -208,6 +249,26 @@ class JGitDataSource @Inject constructor() {
         }
     }
 
+    private fun configureCredentials(
+        command: org.eclipse.jgit.api.TransportCommand<*, *>,
+        credentials: CloneCredential?
+    ) {
+        when (credentials) {
+            is CloneCredential.Https -> {
+                command.setCredentialsProvider(
+                    UsernamePasswordCredentialsProvider(
+                        credentials.username,
+                        credentials.password
+                    )
+                )
+            }
+            is CloneCredential.Ssh -> {
+                configureSshSessionFactory(credentials.privateKey, credentials.passphrase)
+            }
+            null -> {}
+        }
+    }
+
     fun cloneRepository(
         uri: String,
         localPath: String,
@@ -221,20 +282,7 @@ class JGitDataSource @Inject constructor() {
                 .setCloneAllBranches(false)
                 .setDepth(50)
 
-            when (credentials) {
-                is CloneCredential.Https -> {
-                    cloneCommand.setCredentialsProvider(
-                        org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider(
-                            credentials.username,
-                            credentials.password
-                        )
-                    )
-                }
-                is CloneCredential.Ssh -> {
-                    Log.w(TAG, "SSH credentials provided but full support might require additional setup")
-                }
-                null -> {}
-            }
+            configureCredentials(cloneCommand, credentials)
 
             if (branch != null) {
                 cloneCommand.setBranch(branch)
@@ -250,21 +298,27 @@ class JGitDataSource @Inject constructor() {
         }
     }
 
-    fun pull(repoPath: String): Result<PullResult> = withGit(repoPath) { git ->
-        val pullResult = git.pull().call()
+    fun pull(repoPath: String, credentials: CloneCredential? = null): Result<PullResult> = withGit(repoPath) { git ->
+        val pullCommand = git.pull()
+        configureCredentials(pullCommand, credentials)
+        val pullResult = pullCommand.call()
         PullResult(
             isSuccessful = pullResult.isSuccessful,
             message = if (pullResult.isSuccessful) "Pull successful" else "Pull failed"
         )
     }
 
-    fun push(repoPath: String): Result<String> = withGit(repoPath) { git ->
-        git.push().setPushAll().call()
+    fun push(repoPath: String, credentials: CloneCredential? = null): Result<String> = withGit(repoPath) { git ->
+        val pushCommand = git.push().setPushAll()
+        configureCredentials(pushCommand, credentials)
+        pushCommand.call()
         "Push completed"
     }
 
-    fun fetch(repoPath: String): Result<String> = withGit(repoPath) { git ->
-        git.fetch().setRemoveDeletedRefs(true).call()
+    fun fetch(repoPath: String, credentials: CloneCredential? = null): Result<String> = withGit(repoPath) { git ->
+        val fetchCommand = git.fetch().setRemoveDeletedRefs(true)
+        configureCredentials(fetchCommand, credentials)
+        fetchCommand.call()
         "Fetch completed"
     }
 
@@ -274,7 +328,41 @@ class JGitDataSource @Inject constructor() {
     }
 
     fun checkoutBranch(repoPath: String, branchName: String): Result<Unit> = withGit(repoPath) { git ->
-        git.checkout().setName(branchName).call()
+        // 检测是否是远程分支 (e.g., "origin/main", "upstream/develop")
+        val remoteBranchRegex = Regex("^([^/]+)/(.+)$")
+        val matchResult = remoteBranchRegex.find(branchName)
+        
+        if (matchResult != null) {
+            val remoteName = matchResult.groupValues[1]
+            val shortBranchName = matchResult.groupValues[2]
+            val remoteRefName = "refs/remotes/$branchName"
+            
+            // 检查该远程分支是否存在
+            val remoteRef = git.repository.findRef(remoteRefName)
+            if (remoteRef != null) {
+                // 检查是否已存在同名的本地分支
+                val localRef = git.repository.findRef("refs/heads/$shortBranchName")
+                
+                if (localRef != null) {
+                    // 本地分支已存在，直接 checkout
+                    git.checkout().setName(shortBranchName).call()
+                } else {
+                    // 本地分支不存在，创建 tracking branch 并 checkout
+                    git.checkout()
+                        .setName(shortBranchName)
+                        .setCreateBranch(true)
+                        .setStartPoint(remoteRefName)
+                        .setUpstreamMode(org.eclipse.jgit.api.CreateBranchCommand.SetupUpstreamMode.SET_UPSTREAM)
+                        .call()
+                }
+            } else {
+                // 远程分支引用不存在，尝试直接 checkout（可能分支名本身包含斜杠）
+                git.checkout().setName(branchName).call()
+            }
+        } else {
+            // 本地分支，直接 checkout
+            git.checkout().setName(branchName).call()
+        }
         Unit
     }
 
@@ -302,8 +390,17 @@ class JGitDataSource @Inject constructor() {
     }
 
     fun configureRemote(repoPath: String, name: String, url: String): Result<String> = withGit(repoPath) { git ->
-        git.remoteAdd().setName(name).setUri(org.eclipse.jgit.transport.URIish(url)).call()
-        "Remote $name configured: $url"
+        val config = git.repository.config
+        val exists = config.getSubsections("remote").contains(name)
+        
+        if (exists) {
+            config.setString("remote", name, "url", url)
+        } else {
+            config.setString("remote", name, "url", url)
+        }
+        config.save()
+        
+        if (exists) "Remote $name updated: $url" else "Remote $name added: $url"
     }
 
     fun deleteRemote(repoPath: String, remoteName: String): Result<String> = withGit(repoPath) { git ->

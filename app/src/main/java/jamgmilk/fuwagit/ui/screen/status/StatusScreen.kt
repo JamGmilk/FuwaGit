@@ -31,6 +31,7 @@ import androidx.compose.material.icons.automirrored.filled.Undo
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.CloudDownload
 import androidx.compose.material.icons.filled.CloudUpload
 import androidx.compose.material.icons.filled.Code
@@ -38,9 +39,12 @@ import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.Pending
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -73,6 +77,10 @@ import jamgmilk.fuwagit.domain.model.git.GitBranch
 import jamgmilk.fuwagit.domain.model.git.GitChangeType
 import jamgmilk.fuwagit.domain.model.git.GitFileStatus
 import jamgmilk.fuwagit.ui.components.ScreenTemplate
+import jamgmilk.fuwagit.ui.components.DangerousOperationType
+import jamgmilk.fuwagit.ui.components.OperationResultDialog
+import jamgmilk.fuwagit.ui.components.TwoStepConfirmDialog
+import jamgmilk.fuwagit.ui.components.CleanPreviewDialog
 import jamgmilk.fuwagit.ui.theme.AppColors
 import jamgmilk.fuwagit.ui.theme.FuwaGitThemeExtras
 import jamgmilk.fuwagit.ui.theme.Sakura50
@@ -126,15 +134,30 @@ fun StatusScreen(
         title = "Status",
         modifier = modifier,
         actions = {
-            FilledTonalIconButton(
-                onClick = { statusViewModel.refreshWorkspace() },
-                modifier = Modifier.size(36.dp)
-            ) {
-                Icon(
-                    Icons.Default.Refresh,
-                    contentDescription = "Refresh",
-                    modifier = Modifier.size(18.dp)
-                )
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                // Clean 按钮
+                if (statusStats.untracked > 0) {
+                    FilledTonalIconButton(
+                        onClick = { statusViewModel.requestCleanUntracked() },
+                        modifier = Modifier.size(36.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.Clear,
+                            contentDescription = "Clean untracked files",
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                }
+                FilledTonalIconButton(
+                    onClick = { statusViewModel.refreshWorkspace() },
+                    modifier = Modifier.size(36.dp)
+                ) {
+                    Icon(
+                        Icons.Default.Refresh,
+                        contentDescription = "Refresh",
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
             }
         }
     ) {
@@ -201,11 +224,10 @@ fun StatusScreen(
                     modifier = Modifier.weight(1f),
                     accentColor = Sakura80,
                     onFileAction = { file ->
-                        when (file.changeType) {
-                            GitChangeType.Untracked -> statusViewModel.stageFile(file.path)
-                            GitChangeType.Removed -> statusViewModel.discardChanges(file.path)
-                            else -> statusViewModel.stageFile(file.path)
-                        }
+                        statusViewModel.stageFile(file.path)
+                    },
+                    onDiscard = { file ->
+                        statusViewModel.requestDiscardChanges(file.path)
                     },
                     emptyMessage = "Working directory clean"
                 )
@@ -253,5 +275,46 @@ fun StatusScreen(
                     .height(160.dp)
             )
         }
+    }
+
+    // 危险操作双确认对话框
+    val pendingOperation = uiState.pendingOperation
+    val pendingTarget = uiState.pendingOperationTarget
+    if (pendingOperation != null && pendingTarget != null) {
+        when (pendingOperation) {
+            DangerousOperationType.DISCARD_CHANGES -> {
+                TwoStepConfirmDialog(
+                    operationType = DangerousOperationType.DISCARD_CHANGES,
+                    targetName = pendingTarget,
+                    description = "You are about to discard all changes to:",
+                    warningMessage = "Any unstaged modifications will be permanently lost. This action cannot be undone.",
+                    confirmText = "DISCARD",
+                    onConfirm = { statusViewModel.confirmDiscardChanges() },
+                    onDismiss = { statusViewModel.cancelPendingOperation() }
+                )
+            }
+            else -> {}
+        }
+    }
+
+    // Clean 预览对话框
+    val untrackedFiles = uiState.untrackedFilesForClean
+    if (untrackedFiles.isNotEmpty()) {
+        CleanPreviewDialog(
+            untrackedFiles = untrackedFiles,
+            onConfirm = { statusViewModel.confirmCleanUntracked() },
+            onDismiss = { statusViewModel.clearCleanPreview() }
+        )
+    }
+
+    // 操作结果反馈对话框
+    val operationResult = uiState.operationResult
+    if (operationResult != null) {
+        val operationType = pendingOperation ?: DangerousOperationType.DISCARD_CHANGES
+        OperationResultDialog(
+            result = operationResult,
+            operationType = operationType,
+            onDismiss = { statusViewModel.clearOperationResult() }
+        )
     }
 }

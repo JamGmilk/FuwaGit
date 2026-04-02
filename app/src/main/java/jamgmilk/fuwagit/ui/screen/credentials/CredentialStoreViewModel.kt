@@ -13,6 +13,7 @@ import jamgmilk.fuwagit.domain.usecase.credential.AddHttpsCredentialUseCase
 import jamgmilk.fuwagit.domain.usecase.credential.AddSshKeyUseCase
 import jamgmilk.fuwagit.domain.usecase.credential.DeleteHttpsCredentialUseCase
 import jamgmilk.fuwagit.domain.usecase.credential.DeleteSshKeyUseCase
+import jamgmilk.fuwagit.domain.usecase.credential.EnableBiometricUseCase
 import jamgmilk.fuwagit.domain.usecase.credential.ExportCredentialsUseCase
 import jamgmilk.fuwagit.domain.usecase.credential.GetHttpsCredentialsUseCase
 import jamgmilk.fuwagit.domain.usecase.credential.GetHttpsPasswordUseCase
@@ -20,6 +21,7 @@ import jamgmilk.fuwagit.domain.usecase.credential.GetSshKeysUseCase
 import jamgmilk.fuwagit.domain.usecase.credential.GetSshPrivateKeyUseCase
 import jamgmilk.fuwagit.domain.usecase.credential.ImportCredentialsUseCase
 import jamgmilk.fuwagit.domain.usecase.credential.SetupMasterPasswordUseCase
+import jamgmilk.fuwagit.domain.usecase.credential.UnlockWithBiometricUseCase
 import jamgmilk.fuwagit.domain.usecase.credential.UnlockWithPasswordUseCase
 import jamgmilk.fuwagit.domain.usecase.credential.UpdateHttpsCredentialUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -62,6 +64,8 @@ class CredentialStoreViewModel @Inject constructor(
     private val getSshPrivateKeyUseCase: GetSshPrivateKeyUseCase,
     private val exportCredentialsUseCase: ExportCredentialsUseCase,
     private val importCredentialsUseCase: ImportCredentialsUseCase,
+    private val enableBiometricUseCase: EnableBiometricUseCase,
+    private val unlockWithBiometricUseCase: UnlockWithBiometricUseCase,
     private val masterKeyManager: MasterKeyManager,
     private val credentialRepository: CredentialRepository
 ) : ViewModel() {
@@ -197,42 +201,35 @@ class CredentialStoreViewModel @Inject constructor(
     }
 
     fun enableBiometric(activity: FragmentActivity) {
-        val masterKey = credentialRepository.getCachedMasterKey()
-        if (masterKey == null) {
-            _uiState.update { it.copy(error = "Please unlock with password first") }
-            return
-        }
-
-        masterKeyManager.enableBiometric(
-            activity = activity,
-            masterKey = masterKey,
-            onSuccess = {
+        val result = enableBiometricUseCase(activity)
+        when (result) {
+            is AppResult.Success -> {
                 _uiState.update { it.copy(isBiometricEnabled = true) }
-            },
-            onError = { message ->
-                _uiState.update { it.copy(error = message) }
             }
-        )
+            is AppResult.Error -> {
+                _uiState.update { it.copy(error = result.message) }
+            }
+        }
     }
 
     fun unlockWithBiometric(activity: FragmentActivity) {
-        masterKeyManager.unlockWithBiometric(
-            activity = activity,
-            onSuccess = { key ->
-                credentialRepository.setMasterKey(key)
-                _uiState.update {
-                    it.copy(
-                        isDecryptionUnlocked = true,
-                        isBiometricEnabled = true,
-                        showUnlockDialog = false
-                    )
+        unlockWithBiometricUseCase(activity) { result ->
+            when (result) {
+                is AppResult.Success -> {
+                    _uiState.update {
+                        it.copy(
+                            isDecryptionUnlocked = true,
+                            isBiometricEnabled = true,
+                            showUnlockDialog = false
+                        )
+                    }
+                    loadCredentials()
                 }
-                loadCredentials()
-            },
-            onError = { message ->
-                _uiState.update { it.copy(error = message) }
+                is AppResult.Error -> {
+                    _uiState.update { it.copy(error = result.message) }
+                }
             }
-        )
+        }
     }
 
     fun disableBiometric() {
