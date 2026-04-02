@@ -4,7 +4,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import jamgmilk.fuwagit.domain.state.RepoStateManager
-import jamgmilk.fuwagit.domain.state.RepoState
 import jamgmilk.fuwagit.domain.model.git.GitBranch
 import jamgmilk.fuwagit.domain.model.git.GitFileStatus
 import jamgmilk.fuwagit.domain.usecase.git.CommitUseCase
@@ -38,7 +37,6 @@ data class StatusUiState(
     val error: String? = null,
     val repoPath: String? = null,
     val repoName: String? = null,
-    val repoState: RepoState = RepoState.NO_REPO_SELECTED,
     val isGitRepo: Boolean = false,
     val statusMessage: String = "Select a target repo",
     val currentBranch: GitBranch? = null,
@@ -77,14 +75,13 @@ class StatusViewModel @Inject constructor(
                 _uiState.update {
                     it.copy(
                         repoPath = info.repoPath,
-                        repoName = info.repoName,
-                        repoState = info.state
+                        repoName = info.repoName
                     )
                 }
 
-                if (info.state == RepoState.REPO_VALID && info.repoPath != null) {
+                if (info.isValidGit) {
                     refreshAll()
-                } else if (info.state == RepoState.NO_REPO_SELECTED) {
+                } else if (info.repoPath == null) {
                     _uiState.update {
                         it.copy(
                             isGitRepo = false,

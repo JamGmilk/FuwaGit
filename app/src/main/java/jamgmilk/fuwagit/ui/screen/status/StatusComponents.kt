@@ -65,7 +65,6 @@ import androidx.compose.ui.unit.sp
 import jamgmilk.fuwagit.domain.model.git.GitBranch
 import jamgmilk.fuwagit.domain.model.git.GitChangeType
 import jamgmilk.fuwagit.domain.model.git.GitFileStatus
-import jamgmilk.fuwagit.domain.state.RepoState
 import jamgmilk.fuwagit.ui.theme.AppColors
 import jamgmilk.fuwagit.ui.theme.FuwaGitThemeExtras
 import jamgmilk.fuwagit.ui.theme.Sakura50
@@ -195,21 +194,22 @@ private fun ActionButton(
 @Composable
 internal fun RepositoryStatusCard(
     isRepo: Boolean,
-    repoState: RepoState,
     repoName: String?,
     targetPath: String?,
     currentBranch: GitBranch?,
+    isLoading: Boolean = false,
+    error: String? = null,
     modifier: Modifier = Modifier
 ) {
     val colors = MaterialTheme.colorScheme
     val uiColors = FuwaGitThemeExtras.colors
 
-    val statusMessage = when (repoState) {
-        RepoState.NO_REPO_SELECTED -> "Select a repository"
-        RepoState.CHECKING -> "Checking repository..."
-        RepoState.REPO_PATH_INVALID -> "Path does not exist"
-        RepoState.REPO_NOT_GIT -> "Not a git repository"
-        RepoState.REPO_VALID -> if (isRepo) "Repository Active" else "Not a git repository"
+    val statusMessage = when {
+        isLoading -> "Checking repository..."
+        !isRepo && error != null -> error
+        !isRepo -> "Not a git repository"
+        isRepo -> "Repository Active"
+        else -> "Select a repository"
     }
 
     ElevatedCard(
@@ -250,9 +250,9 @@ internal fun RepositoryStatusCard(
                         text = repoName ?: "No Repository Selected",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
-                        color = when (repoState) {
-                            RepoState.REPO_VALID -> colors.primary
-                            RepoState.CHECKING -> colors.tertiary
+                        color = when {
+                            isLoading -> colors.tertiary
+                            isRepo -> colors.primary
                             else -> colors.error
                         }
                     )
@@ -266,10 +266,10 @@ internal fun RepositoryStatusCard(
                             overflow = TextOverflow.Ellipsis
                         )
                     }
-                    if (repoState != RepoState.REPO_VALID && repoState != RepoState.NO_REPO_SELECTED && repoState != RepoState.CHECKING) {
+                    if (!isRepo && !isLoading && error != null) {
                         Spacer(Modifier.height(4.dp))
                         Text(
-                            text = if (repoState == RepoState.REPO_PATH_INVALID) "Path does not exist" else "Not a git repository",
+                            text = error,
                             style = MaterialTheme.typography.bodySmall,
                             color = colors.error
                         )

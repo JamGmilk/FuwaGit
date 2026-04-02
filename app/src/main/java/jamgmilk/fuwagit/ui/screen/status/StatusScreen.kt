@@ -72,7 +72,6 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import jamgmilk.fuwagit.domain.model.git.GitBranch
 import jamgmilk.fuwagit.domain.model.git.GitChangeType
 import jamgmilk.fuwagit.domain.model.git.GitFileStatus
-import jamgmilk.fuwagit.domain.state.RepoState
 import jamgmilk.fuwagit.ui.components.ScreenTemplate
 import jamgmilk.fuwagit.ui.theme.AppColors
 import jamgmilk.fuwagit.ui.theme.FuwaGitThemeExtras
@@ -141,10 +140,11 @@ fun StatusScreen(
     ) {
         RepositoryStatusCard(
             isRepo = uiState.isGitRepo,
-            repoState = uiState.repoState,
             repoName = uiState.repoName,
             targetPath = uiState.repoPath,
             currentBranch = currentBranch,
+            isLoading = uiState.isCheckingRepo,
+            error = uiState.error,
             modifier = Modifier.fillMaxWidth()
         )
 

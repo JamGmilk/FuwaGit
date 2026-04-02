@@ -2,7 +2,6 @@ package jamgmilk.fuwagit.domain.usecase
 
 import jamgmilk.fuwagit.data.local.prefs.RepoDataStore
 import jamgmilk.fuwagit.domain.state.RepoInfo
-import jamgmilk.fuwagit.domain.state.RepoState
 import jamgmilk.fuwagit.domain.state.RepoStateManager
 import jamgmilk.fuwagit.domain.usecase.git.HasGitDirUseCase
 import java.io.File
@@ -24,15 +23,14 @@ class CurrentRepoUseCase @Inject constructor(
 
         val file = File(path)
         val name = file.name
-        
+
         when {
             !file.exists() -> {
                 repoStateManager.updateRepoInfo(
                     RepoInfo(
-                        state = RepoState.REPO_PATH_INVALID,
                         repoPath = path,
                         repoName = name,
-                        errorMessage = "Path does not exist"
+                        error = "Path does not exist"
                     )
                 )
                 repoDataStore.setCurrentRepo(null)
@@ -40,19 +38,16 @@ class CurrentRepoUseCase @Inject constructor(
             !hasGitDirUseCase(path) -> {
                 repoStateManager.updateRepoInfo(
                     RepoInfo(
-                        state = RepoState.REPO_NOT_GIT,
                         repoPath = path,
                         repoName = name,
-                        errorMessage = "Not a git repository"
+                        error = "Not a git repository"
                     )
                 )
-                // Do not set as current repo in store if it's not a valid git repo
                 repoDataStore.setCurrentRepo(null)
             }
             else -> {
                 repoStateManager.updateRepoInfo(
                     RepoInfo(
-                        state = RepoState.REPO_VALID,
                         repoPath = path,
                         repoName = name
                     )
