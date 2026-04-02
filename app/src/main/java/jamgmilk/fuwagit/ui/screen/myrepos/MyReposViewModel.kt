@@ -1,10 +1,10 @@
 package jamgmilk.fuwagit.ui.screen.myrepos
 
 import android.content.Context
-import android.os.Environment
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import jamgmilk.fuwagit.core.util.PathUtils
 import jamgmilk.fuwagit.data.local.prefs.RepoDataStore
 import jamgmilk.fuwagit.domain.model.credential.CloneCredential
 import jamgmilk.fuwagit.domain.model.repo.RepoData
@@ -45,14 +45,7 @@ data class RepoFolderItem(
     val size: Long = 0L
 ) {
     val shortPath: String
-        get() {
-            val externalStorageDirPrefix = Environment.getExternalStorageDirectory().absolutePath
-            return if (path.startsWith(externalStorageDirPrefix)) {
-                "/External${path.removePrefix(externalStorageDirPrefix)}"
-            } else {
-                path
-            }
-        }
+        get() = PathUtils.getShortPath(path)
 
     val formattedSize: String
         get() {

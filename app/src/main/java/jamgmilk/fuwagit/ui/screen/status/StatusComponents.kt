@@ -1,10 +1,5 @@
 package jamgmilk.fuwagit.ui.screen.status
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -37,7 +32,6 @@ import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.Pending
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.Icon
@@ -63,6 +57,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import jamgmilk.fuwagit.domain.model.git.GitBranch
+import jamgmilk.fuwagit.core.util.PathUtils
 import jamgmilk.fuwagit.domain.model.git.GitChangeType
 import jamgmilk.fuwagit.domain.model.git.GitFileStatus
 import jamgmilk.fuwagit.ui.theme.AppColors
@@ -258,7 +253,7 @@ internal fun RepositoryStatusCard(
                     )
                     targetPath?.let {
                         Text(
-                            text = it,
+                            text = PathUtils.getShortPath(it),
                             style = MaterialTheme.typography.bodySmall,
                             fontFamily = FontFamily.Monospace,
                             color = colors.onSurfaceVariant,

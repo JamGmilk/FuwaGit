@@ -73,8 +73,6 @@ fun PermissionsScreen(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
-    val colors = MaterialTheme.colorScheme
-    val uiColors = FuwaGitThemeExtras.colors
 
     val requestPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission(),
@@ -109,7 +107,6 @@ private fun SystemPermissionsCard(
     onRequestAllFilesAccess: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val colors = MaterialTheme.colorScheme
     val uiColors = FuwaGitThemeExtras.colors
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current

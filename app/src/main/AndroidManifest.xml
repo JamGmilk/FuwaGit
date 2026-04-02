@@ -32,7 +32,7 @@
         </activity>
 
         <activity
-            android:name=".ui.biometric.BiometricActivity"
+            android:name=".data.biometric.BiometricActivityResult"
             android:exported="false"
             android:theme="@android:style/Theme.NoDisplay"
             android:configChanges="orientation|screenSize|screenLayout|keyboardHidden" />
