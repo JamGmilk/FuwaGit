@@ -43,3 +43,11 @@ class GetSshPrivateKeyUseCase @Inject constructor(
         return repository.getSshPrivateKey(uuid)
     }
 }
+
+class GetSshPassphraseUseCase @Inject constructor(
+    private val repository: CredentialRepository
+) {
+    suspend operator fun invoke(uuid: String): AppResult<String?> {
+        return repository.getSshPassphrase(uuid)
+    }
+}

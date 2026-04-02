@@ -1,6 +1,7 @@
 package jamgmilk.fuwagit.domain.usecase.git
 
 import jamgmilk.fuwagit.domain.model.credential.CloneCredential
+import jamgmilk.fuwagit.domain.model.git.CloneOptions
 import jamgmilk.fuwagit.domain.repository.GitRepository
 import javax.inject.Inject
 
@@ -10,8 +11,8 @@ class CloneRepositoryUseCase @Inject constructor(
     suspend operator fun invoke(
         uri: String,
         localPath: String,
-        branch: String? = null,
-        credentials: CloneCredential? = null
+        credentials: CloneCredential? = null,
+        options: CloneOptions = CloneOptions()
     ): Result<String> {
         if (uri.isBlank()) {
             return Result.failure(IllegalArgumentException("URI cannot be empty"))
@@ -19,6 +20,6 @@ class CloneRepositoryUseCase @Inject constructor(
         if (localPath.isBlank()) {
             return Result.failure(IllegalArgumentException("Local path cannot be empty"))
         }
-        return repository.cloneRepository(uri, localPath, branch, credentials)
+        return repository.cloneRepository(uri, localPath, credentials, options)
     }
 }

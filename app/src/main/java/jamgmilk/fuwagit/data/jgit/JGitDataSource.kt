@@ -2,7 +2,10 @@ package jamgmilk.fuwagit.data.jgit
 
 import android.util.Log
 import com.jcraft.jsch.JSch
+import jamgmilk.fuwagit.data.local.prefs.GitConfigStore
 import jamgmilk.fuwagit.domain.model.credential.CloneCredential
+import jamgmilk.fuwagit.domain.model.git.CleanResult
+import jamgmilk.fuwagit.domain.model.git.CloneOptions
 import jamgmilk.fuwagit.domain.model.git.GitBranch
 import jamgmilk.fuwagit.domain.model.git.GitChangeType
 import jamgmilk.fuwagit.domain.model.git.GitCommit
@@ -18,8 +21,7 @@ import org.eclipse.jgit.errors.LockFailedException
 import org.eclipse.jgit.lib.ObjectId
 import org.eclipse.jgit.revwalk.RevCommit
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder
-import org.eclipse.jgit.util.FS
-import org.eclipse.jgit.transport.SshSessionFactory
+import org.eclipse.jgit.transport.CredentialsProvider
 import org.eclipse.jgit.transport.TransportGitSsh
 import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider
 import java.io.File
@@ -27,39 +29,12 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class JGitDataSource @Inject constructor() {
+class JGitDataSource @Inject constructor(
+    private val gitConfigStore: GitConfigStore
+) {
 
     companion object {
         private const val TAG = "JGitDataSource"
-    }
-
-    private fun configureSshSessionFactory(privateKey: String, passphrase: String?) {
-        try {
-            val jsch = JSch()
-            jsch.addIdentity(
-                "ssh-key",
-                privateKey.toByteArray(),
-                null,
-                if (passphrase.isNullOrEmpty()) null else passphrase.toByteArray()
-            )
-            JSch.setConfig("StrictHostKeyChecking", "no")
-            JSch.setConfig("PreferredAuthentications", "publickey")
-
-            SshSessionFactory.setInstance(object : SshSessionFactory() {
-                private val delegate = SshSessionFactory.getInstance()
-
-                override fun getSession(uri: org.eclipse.jgit.transport.URIish?, credentialsProvider: org.eclipse.jgit.transport.CredentialsProvider?, fs: FS?, tms: Int): org.eclipse.jgit.transport.RemoteSession {
-                    return delegate.getSession(uri, credentialsProvider, fs, tms)
-                }
-
-                override fun getType(): String = delegate.type
-                override fun releaseSession(session: org.eclipse.jgit.transport.RemoteSession?) {
-                    delegate.releaseSession(session)
-                }
-            })
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to configure SSH session factory", e)
-        }
     }
 
     private inline fun <T> withGit(repoPath: String, block: (Git) -> T): Result<T> {
@@ -86,6 +61,15 @@ class JGitDataSource @Inject constructor() {
                 .build().use { repository ->
                     repository.create()
                 }
+
+            Git.open(File(repoPath)).use { git ->
+                val defaultBranch = gitConfigStore.getConfig().defaultBranch
+                if (defaultBranch.isNotBlank()) {
+                    git.branchCreate().setName(defaultBranch).call()
+                    git.checkout().setName(defaultBranch).call()
+                    Log.d(TAG, "Created and checked out default branch: $defaultBranch")
+                }
+            }
 
             Result.success("Repository initialized at $repoPath")
         } catch (e: Exception) {
@@ -237,6 +221,19 @@ class JGitDataSource @Inject constructor() {
 
     fun commit(repoPath: String, message: String): Result<String> = withGit(repoPath) { git ->
         try {
+            val config = gitConfigStore.getConfig()
+            if (config.userName.isNotBlank() || config.userEmail.isNotBlank()) {
+                val storedConfig = git.repository.config
+                if (config.userName.isNotBlank()) {
+                    storedConfig.setString("user", null, "name", config.userName)
+                }
+                if (config.userEmail.isNotBlank()) {
+                    storedConfig.setString("user", null, "email", config.userEmail)
+                }
+                storedConfig.save()
+                Log.d(TAG, "Set user config: name=${config.userName}, email=${config.userEmail}")
+            }
+
             val commit = git.commit()
                 .setMessage(message)
                 .setAllowEmpty(false)
@@ -263,7 +260,20 @@ class JGitDataSource @Inject constructor() {
                 )
             }
             is CloneCredential.Ssh -> {
-                configureSshSessionFactory(credentials.privateKey, credentials.passphrase)
+                try {
+                    val jsch = com.jcraft.jsch.JSch()
+                    jsch.removeAllIdentity()
+                    jsch.addIdentity(
+                        "ssh-key",
+                        credentials.privateKey.toByteArray(),
+                        null,
+                        credentials.passphrase?.toByteArray()
+                    )
+                    com.jcraft.jsch.JSch.setConfig("StrictHostKeyChecking", "no")
+                    com.jcraft.jsch.JSch.setConfig("PreferredAuthentications", "publickey")
+                } catch (e: Exception) {
+                    Log.e(TAG, "Failed to configure SSH", e)
+                }
             }
             null -> {}
         }
@@ -272,24 +282,31 @@ class JGitDataSource @Inject constructor() {
     fun cloneRepository(
         uri: String,
         localPath: String,
-        branch: String? = null,
-        credentials: CloneCredential? = null
+        credentials: CloneCredential? = null,
+        options: CloneOptions = CloneOptions()
     ): Result<String> {
         return try {
             val cloneCommand = Git.cloneRepository()
                 .setURI(uri)
                 .setDirectory(File(localPath))
-                .setCloneAllBranches(false)
-                .setDepth(50)
+                .setCloneAllBranches(options.cloneAllBranches)
+
+            if (options.depth != null && options.depth > 0) {
+                cloneCommand.setDepth(options.depth)
+            }
+
+            if (options.isBare) {
+                cloneCommand.setBare(true)
+            }
 
             configureCredentials(cloneCommand, credentials)
 
-            if (branch != null) {
-                cloneCommand.setBranch(branch)
+            if (options.branch != null) {
+                cloneCommand.setBranch(options.branch)
             }
 
             val result = cloneCommand.call().use { git ->
-                git.repository.directory.parentFile.absolutePath
+                git.repository.directory?.parentFile?.absolutePath ?: localPath
             }
             Result.success(result)
         } catch (e: Exception) {
@@ -429,9 +446,13 @@ class JGitDataSource @Inject constructor() {
         }
     }
 
-    fun clean(repoPath: String, dryRun: Boolean = false): Result<String> = withGit(repoPath) { git ->
-        git.clean().setCleanDirectories(true).setIgnore(false).setDryRun(dryRun).call()
-        "Cleaned"
+    fun clean(repoPath: String, dryRun: Boolean = false): Result<CleanResult> = withGit(repoPath) { git ->
+        val cleanedPaths = git.clean()
+            .setCleanDirectories(true)
+            .setIgnore(false)
+            .setDryRun(dryRun)
+            .call()
+        CleanResult(files = cleanedPaths.toList(), isDryRun = dryRun)
     }
 
     fun getRepoInfo(repoPath: String): Map<String, String> {

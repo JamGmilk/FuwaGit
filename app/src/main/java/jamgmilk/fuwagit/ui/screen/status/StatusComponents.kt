@@ -41,6 +41,7 @@ import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
@@ -66,6 +67,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import jamgmilk.fuwagit.domain.model.git.GitBranch
+import jamgmilk.fuwagit.domain.model.credential.HttpsCredential
+import jamgmilk.fuwagit.domain.model.credential.SshKey
 import jamgmilk.fuwagit.core.util.PathUtils
 import jamgmilk.fuwagit.domain.model.git.GitChangeType
 import jamgmilk.fuwagit.domain.model.git.GitFileStatus
@@ -83,9 +86,23 @@ internal fun ActionToolbar(
     onPull: () -> Unit,
     onPush: () -> Unit,
     onFetch: () -> Unit,
+    httpsCredentials: List<HttpsCredential> = emptyList(),
+    sshKeys: List<SshKey> = emptyList(),
+    selectedCredentialUuid: String? = null,
+    selectedSshKeyUuid: String? = null,
+    onSelectHttpsCredential: (String?) -> Unit = {},
+    onSelectSshKey: (String?) -> Unit = {},
+    onLoadCredentials: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val uiColors = FuwaGitThemeExtras.colors
+    var showCredentialMenu by remember { mutableStateOf(false) }
+    var showSshKeyMenu by remember { mutableStateOf(false) }
+
+    // 加载凭据
+    LaunchedEffect(Unit) {
+        onLoadCredentials()
+    }
 
     ElevatedCard(
         modifier = modifier.border(1.dp, uiColors.cardBorder, RoundedCornerShape(20.dp)),
@@ -97,6 +114,154 @@ internal fun ActionToolbar(
             modifier = Modifier.padding(12.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
+            // 凭据选择行
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Credentials:",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = uiColors.cardBorder
+                )
+                
+                // HTTPS 凭据选择
+                Box(
+                    modifier = Modifier.weight(1f)
+                ) {
+                    OutlinedButton(
+                        onClick = { showCredentialMenu = true },
+                        modifier = Modifier.fillMaxWidth(),
+                        enabled = httpsCredentials.isNotEmpty()
+                    ) {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                Icons.Default.CheckCircle,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp),
+                                tint = if (selectedCredentialUuid != null) AppColors.GitGreen else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Text(
+                                text = if (selectedCredentialUuid != null) {
+                                    httpsCredentials.find { it.uuid == selectedCredentialUuid }?.username ?: "HTTPS"
+                                } else "HTTPS",
+                                style = MaterialTheme.typography.labelMedium,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            Icon(
+                                Icons.Default.ChevronRight,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                    }
+                    
+                    DropdownMenu(
+                        expanded = showCredentialMenu,
+                        onDismissRequest = { showCredentialMenu = false }
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("None") },
+                            onClick = {
+                                onSelectHttpsCredential(null)
+                                showCredentialMenu = false
+                            }
+                        )
+                        httpsCredentials.forEach { cred ->
+                            DropdownMenuItem(
+                                text = { Text("${cred.username}@${cred.host}") },
+                                onClick = {
+                                    onSelectHttpsCredential(cred.uuid)
+                                    showCredentialMenu = false
+                                },
+                                leadingIcon = {
+                                    if (cred.uuid == selectedCredentialUuid) {
+                                        Icon(
+                                            Icons.Default.Check,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                    }
+                                }
+                            )
+                        }
+                    }
+                }
+                
+                // SSH Key 选择
+                Box(
+                    modifier = Modifier.weight(1f)
+                ) {
+                    OutlinedButton(
+                        onClick = { showSshKeyMenu = true },
+                        modifier = Modifier.fillMaxWidth(),
+                        enabled = sshKeys.isNotEmpty()
+                    ) {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                Icons.Default.Code,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp),
+                                tint = if (selectedSshKeyUuid != null) AppColors.GitPurple else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Text(
+                                text = if (selectedSshKeyUuid != null) {
+                                    sshKeys.find { it.uuid == selectedSshKeyUuid }?.name ?: "SSH"
+                                } else "SSH",
+                                style = MaterialTheme.typography.labelMedium,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            Icon(
+                                Icons.Default.ChevronRight,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                    }
+                    
+                    DropdownMenu(
+                        expanded = showSshKeyMenu,
+                        onDismissRequest = { showSshKeyMenu = false }
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("None") },
+                            onClick = {
+                                onSelectSshKey(null)
+                                showSshKeyMenu = false
+                            }
+                        )
+                        sshKeys.forEach { key ->
+                            DropdownMenuItem(
+                                text = { Text("${key.name} (${key.fingerprint.take(16)}...)") },
+                                onClick = {
+                                    onSelectSshKey(key.uuid)
+                                    showSshKeyMenu = false
+                                },
+                                leadingIcon = {
+                                    if (key.uuid == selectedSshKeyUuid) {
+                                        Icon(
+                                            Icons.Default.Check,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                    }
+                                }
+                            )
+                        }
+                    }
+                }
+            }
+            
+            // 远程操作按钮行
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)

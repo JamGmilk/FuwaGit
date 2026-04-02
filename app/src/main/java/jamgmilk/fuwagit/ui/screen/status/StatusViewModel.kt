@@ -6,6 +6,9 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import jamgmilk.fuwagit.domain.state.RepoStateManager
 import jamgmilk.fuwagit.domain.model.git.GitBranch
 import jamgmilk.fuwagit.domain.model.git.GitFileStatus
+import jamgmilk.fuwagit.domain.model.credential.CloneCredential
+import jamgmilk.fuwagit.domain.model.credential.HttpsCredential
+import jamgmilk.fuwagit.domain.model.credential.SshKey
 import jamgmilk.fuwagit.ui.components.DangerousOperationType
 import jamgmilk.fuwagit.ui.components.OperationResult
 import jamgmilk.fuwagit.domain.usecase.git.CommitUseCase
@@ -22,6 +25,11 @@ import jamgmilk.fuwagit.domain.usecase.git.StageFileUseCase
 import jamgmilk.fuwagit.domain.usecase.git.UnstageAllUseCase
 import jamgmilk.fuwagit.domain.usecase.git.UnstageFileUseCase
 import jamgmilk.fuwagit.domain.usecase.git.CleanUseCase
+import jamgmilk.fuwagit.domain.usecase.credential.GetHttpsCredentialsUseCase
+import jamgmilk.fuwagit.domain.usecase.credential.GetHttpsPasswordUseCase
+import jamgmilk.fuwagit.domain.usecase.credential.GetSshKeysUseCase
+import jamgmilk.fuwagit.domain.usecase.credential.GetSshPrivateKeyUseCase
+import jamgmilk.fuwagit.domain.usecase.credential.GetSshPassphraseUseCase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -50,7 +58,12 @@ data class StatusUiState(
     val pendingOperation: DangerousOperationType? = null,
     val pendingOperationTarget: String? = null,
     val operationResult: OperationResult? = null,
-    val untrackedFilesForClean: List<String> = emptyList()
+    val untrackedFilesForClean: List<String> = emptyList(),
+    // 凭据相关状态
+    val selectedCredentialUuid: String? = null,
+    val selectedSshKeyUuid: String? = null,
+    val httpsCredentials: List<HttpsCredential> = emptyList(),
+    val sshKeys: List<SshKey> = emptyList()
 )
 
 @HiltViewModel
@@ -69,7 +82,13 @@ class StatusViewModel @Inject constructor(
     private val commitUseCase: CommitUseCase,
     private val pullUseCase: PullUseCase,
     private val pushUseCase: PushUseCase,
-    private val fetchUseCase: FetchUseCase
+    private val fetchUseCase: FetchUseCase,
+    // 凭据相关
+    private val getHttpsCredentialsUseCase: GetHttpsCredentialsUseCase,
+    private val getHttpsPasswordUseCase: GetHttpsPasswordUseCase,
+    private val getSshKeysUseCase: GetSshKeysUseCase,
+    private val getSshPrivateKeyUseCase: GetSshPrivateKeyUseCase,
+    private val getSshPassphraseUseCase: GetSshPassphraseUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(StatusUiState())
@@ -369,7 +388,8 @@ class StatusViewModel @Inject constructor(
 
         viewModelScope.launch {
             appendTerminalLog("git pull", "Attempting pull. Remote auth may be required")
-            pullUseCase(path).fold(
+            val credentials = loadSelectedCredentials()
+            pullUseCase(path, credentials).fold(
                 onSuccess = { result ->
                     appendTerminalLog("git pull", result.toString())
                     refreshWorkspace()
@@ -386,7 +406,8 @@ class StatusViewModel @Inject constructor(
 
         viewModelScope.launch {
             appendTerminalLog("git push", "Attempting push. Remote auth may be required")
-            pushUseCase(path).fold(
+            val credentials = loadSelectedCredentials()
+            pushUseCase(path, credentials).fold(
                 onSuccess = { result ->
                     appendTerminalLog("git push", result)
                 },
@@ -402,7 +423,8 @@ class StatusViewModel @Inject constructor(
 
         viewModelScope.launch {
             appendTerminalLog("git fetch", "Fetching from remote...")
-            fetchUseCase(path).fold(
+            val credentials = loadSelectedCredentials()
+            fetchUseCase(path, credentials).fold(
                 onSuccess = { result ->
                     appendTerminalLog("git fetch", result)
                     refreshAll()
@@ -411,6 +433,76 @@ class StatusViewModel @Inject constructor(
                     appendTerminalLog("git fetch", "Error: ${e.message}")
                 }
             )
+        }
+    }
+
+    // ============ 凭据管理 ============
+
+    fun loadCredentials() {
+        viewModelScope.launch {
+            withContext(Dispatchers.IO) {
+                val httpsCreds = getHttpsCredentialsUseCase().getOrNull() ?: emptyList()
+                val sshKeyList = getSshKeysUseCase().getOrNull() ?: emptyList()
+                withContext(Dispatchers.Main) {
+                    _uiState.update {
+                        it.copy(
+                            httpsCredentials = httpsCreds,
+                            sshKeys = sshKeyList
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    fun selectHttpsCredential(uuid: String?) {
+        _uiState.update {
+            it.copy(
+                selectedCredentialUuid = uuid,
+                selectedSshKeyUuid = null
+            )
+        }
+    }
+
+    fun selectSshKey(uuid: String?) {
+        _uiState.update {
+            it.copy(
+                selectedSshKeyUuid = uuid,
+                selectedCredentialUuid = null
+            )
+        }
+    }
+
+    private suspend fun loadSelectedCredentials(): CloneCredential? {
+        val state = _uiState.value
+        return when {
+            state.selectedCredentialUuid != null -> {
+                val uuid = state.selectedCredentialUuid!!
+                val cred = state.httpsCredentials.find { it.uuid == uuid } ?: return null
+                val password = getHttpsPasswordUseCase(uuid).getOrNull() ?: return null
+                CloneCredential.Https(cred.username, password)
+            }
+            state.selectedSshKeyUuid != null -> {
+                val uuid = state.selectedSshKeyUuid!!
+                val privateKey = getSshPrivateKeyUseCase(uuid).getOrNull() ?: return null
+                val passphrase = getSshPassphraseUseCase(uuid).getOrNull()
+                CloneCredential.Ssh(privateKey, passphrase)
+            }
+            else -> {
+                // 自动选择第一个可用的凭据
+                if (state.httpsCredentials.isNotEmpty()) {
+                    val cred = state.httpsCredentials.first()
+                    val password = getHttpsPasswordUseCase(cred.uuid).getOrNull() ?: return null
+                    CloneCredential.Https(cred.username, password)
+                } else if (state.sshKeys.isNotEmpty()) {
+                    val key = state.sshKeys.first()
+                    val privateKey = getSshPrivateKeyUseCase(key.uuid).getOrNull() ?: return null
+                    val passphrase = getSshPassphraseUseCase(key.uuid).getOrNull()
+                    CloneCredential.Ssh(privateKey, passphrase)
+                } else {
+                    null
+                }
+            }
         }
     }
 

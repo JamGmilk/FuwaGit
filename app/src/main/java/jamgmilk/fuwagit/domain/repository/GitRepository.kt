@@ -1,6 +1,8 @@
 package jamgmilk.fuwagit.domain.repository
 
 import jamgmilk.fuwagit.domain.model.credential.CloneCredential
+import jamgmilk.fuwagit.domain.model.git.CleanResult
+import jamgmilk.fuwagit.domain.model.git.CloneOptions
 import jamgmilk.fuwagit.domain.model.git.GitBranch
 import jamgmilk.fuwagit.domain.model.git.GitCommit
 import jamgmilk.fuwagit.domain.model.git.GitFileStatus
@@ -53,8 +55,8 @@ interface GitRepository {
     suspend fun cloneRepository(
         uri: String,
         localPath: String,
-        branch: String? = null,
-        credentials: CloneCredential? = null
+        credentials: CloneCredential? = null,
+        options: CloneOptions = CloneOptions()
     ): Result<String>
 
     suspend fun getRepoInfo(localPath: String): Map<String, String>
@@ -69,5 +71,5 @@ interface GitRepository {
 
     suspend fun renameBranch(repoPath: String, oldName: String, newName: String): Result<String>
 
-    suspend fun clean(repoPath: String, dryRun: Boolean = false): Result<String>
+    suspend fun clean(repoPath: String, dryRun: Boolean = false): Result<CleanResult>
 }
