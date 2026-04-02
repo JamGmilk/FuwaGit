@@ -24,6 +24,7 @@ import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Fingerprint
 import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.Lock
@@ -192,6 +193,8 @@ fun SetupPasswordDialog(
 fun UnlockDialog(
     onDismiss: () -> Unit,
     onUnlock: (password: String) -> Unit,
+    biometricEnabled: Boolean = false,
+    onUnlockWithBiometric: () -> Unit = {},
     passwordHint: String? = null,
     error: String? = null,
     isLoading: Boolean = false
@@ -199,14 +202,35 @@ fun UnlockDialog(
     var password by remember { mutableStateOf("") }
     var showPassword by remember { mutableStateOf(false) }
 
+    LaunchedEffect(Unit) {
+        if (biometricEnabled) {
+            onUnlockWithBiometric()
+        }
+    }
+
     AlertDialog(
         onDismissRequest = onDismiss,
         shape = RoundedCornerShape(20.dp),
         title = {
-            Text(
-                text = "Unlock Credentials",
-                style = MaterialTheme.typography.titleLarge
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Unlock Credentials",
+                    style = MaterialTheme.typography.titleLarge
+                )
+                if (biometricEnabled) {
+                    IconButton(onClick = onUnlockWithBiometric) {
+                        Icon(
+                            imageVector = Icons.Default.Fingerprint,
+                            contentDescription = "Unlock with biometric",
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+            }
         },
         text = {
             Column(
@@ -226,6 +250,14 @@ fun UnlockDialog(
                     onValueChange = { password = it },
                     label = { Text("Master Password") },
                     visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
+                    trailingIcon = {
+                        IconButton(onClick = { showPassword = !showPassword }) {
+                            Icon(
+                                if (showPassword) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                                contentDescription = if (showPassword) "Hide" else "Show"
+                            )
+                        }
+                    },
                     keyboardOptions = KeyboardOptions(
                         keyboardType = KeyboardType.Password,
                         imeAction = ImeAction.Done
@@ -1261,7 +1293,7 @@ fun ImportSshKeyDialog(
 @Composable
 fun HttpsCredentialInfoDialog(
     credential: HttpsCredential,
-    viewModel: CredentialsStoreViewModel,
+    viewModel: CredentialStoreViewModel,
     isDecryptionUnlocked: Boolean,
     snackbarHostState: SnackbarHostState,
     onDismiss: () -> Unit,
@@ -1408,7 +1440,7 @@ fun HttpsCredentialInfoDialog(
 @Composable
 fun SshKeyInfoDialog(
     key: SshKey,
-    viewModel: CredentialsStoreViewModel,
+    viewModel: CredentialStoreViewModel,
     isDecryptionUnlocked: Boolean,
     snackbarHostState: SnackbarHostState,
     onDismiss: () -> Unit,
@@ -1602,7 +1634,7 @@ fun SshKeyInfoDialog(
 
 @Composable
 fun ExportCredentialsDialog(
-    viewModel: CredentialsStoreViewModel,
+    viewModel: CredentialStoreViewModel,
     snackbarHostState: SnackbarHostState,
     onDismiss: () -> Unit
 ) {
@@ -1718,7 +1750,7 @@ fun ExportCredentialsDialog(
 
 @Composable
 fun ImportCredentialsDialog(
-    viewModel: CredentialsStoreViewModel,
+    viewModel: CredentialStoreViewModel,
     snackbarHostState: SnackbarHostState,
     onDismiss: () -> Unit
 ) {
@@ -1752,6 +1784,27 @@ fun ImportCredentialsDialog(
         },
         text = {
             Column {
+                Surface(
+                    shape = RoundedCornerShape(10.dp),
+                    color = Color(0xFFFF9800).copy(alpha = 0.12f)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "⚠️",
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            text = "Importing will replace existing credentials",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color(0xFFFF9800)
+                        )
+                    }
+                }
+                Spacer(Modifier.height(12.dp))
                 Text(
                     text = "Paste your exported credentials data below:",
                     style = MaterialTheme.typography.bodyMedium,

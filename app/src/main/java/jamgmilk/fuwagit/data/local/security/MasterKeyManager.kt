@@ -20,12 +20,14 @@ import javax.crypto.spec.PBEKeySpec
 import javax.crypto.spec.SecretKeySpec
 import android.util.Base64
 import dagger.hilt.android.qualifiers.ApplicationContext
+import jamgmilk.fuwagit.data.biometric.BiometricAuthManager
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 class MasterKeyManager @Inject constructor(
-    @ApplicationContext private val context: Context
+    @ApplicationContext private val context: Context,
+    private val biometricAuthManager: BiometricAuthManager
 ) {
 
     companion object {
@@ -133,52 +135,63 @@ class MasterKeyManager @Inject constructor(
         onSuccess: () -> Unit,
         onError: (String) -> Unit
     ) {
+        android.util.Log.d("MasterKeyManager", "enableBiometric: starting")
         try {
             if (keyStore.containsAlias(KEYSTORE_BIOMETRIC_ALIAS)) {
+                android.util.Log.d("MasterKeyManager", "enableBiometric: deleting existing key")
                 keyStore.deleteEntry(KEYSTORE_BIOMETRIC_ALIAS)
             }
 
+            android.util.Log.d("MasterKeyManager", "enableBiometric: creating biometric key")
             createBiometricKey()
 
+            android.util.Log.d("MasterKeyManager", "enableBiometric: creating cipher")
             val cipher = createBiometricCipher(Cipher.ENCRYPT_MODE)
-            val iv = cipher.iv
 
-            val prompt = BiometricPrompt(
-                activity,
-                androidx.core.content.ContextCompat.getMainExecutor(context),
-                object : BiometricPrompt.AuthenticationCallback() {
-                    override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
-                        result.cryptoObject?.cipher?.let { c ->
-                            val encrypted = c.doFinal(masterKey.encoded)
-                            prefs.edit {
-                                putString(KEY_BIOMETRIC_ENCRYPTED_MASTER,
-                                    Base64.encodeToString(encrypted, Base64.NO_WRAP))
-                                putString(KEY_BIOMETRIC_IV,
-                                    Base64.encodeToString(iv, Base64.NO_WRAP))
-                                putBoolean(KEY_BIOMETRIC_ENABLED, true)
+            biometricAuthManager.authenticateWithCrypto(
+                activity = activity,
+                action = BiometricAuthManager.AuthAction.ENABLE,
+                cryptoObject = BiometricPrompt.CryptoObject(cipher),
+                onResult = { result ->
+                    when (result) {
+                        is BiometricAuthManager.AuthResult.SuccessWithCrypto -> {
+                            android.util.Log.d("MasterKeyManager", "enableBiometric: onAuthenticationSucceeded")
+                            result.result.cryptoObject?.cipher?.let { c ->
+                                try {
+                                    val encrypted = c.doFinal(masterKey.encoded)
+                                    val actualIv = c.iv
+                                    prefs.edit {
+                                        putString(KEY_BIOMETRIC_ENCRYPTED_MASTER,
+                                            Base64.encodeToString(encrypted, Base64.NO_WRAP))
+                                        putString(KEY_BIOMETRIC_IV,
+                                            Base64.encodeToString(actualIv, Base64.NO_WRAP))
+                                        putBoolean(KEY_BIOMETRIC_ENABLED, true)
+                                        apply()
+                                    }
+                                    android.util.Log.d("MasterKeyManager", "enableBiometric: success saved to prefs with IV size ${actualIv?.size}")
+                                    onSuccess()
+                                } catch (e: Exception) {
+                                    android.util.Log.e("MasterKeyManager", "enableBiometric: doFinal failed: ${e.message}")
+                                    onError("Encryption failed: ${e.message}")
+                                }
+                            } ?: run {
+                                android.util.Log.e("MasterKeyManager", "enableBiometric: Cipher is null")
+                                onError("Cipher is null")
                             }
-                            onSuccess()
-                        } ?: onError("Cipher is null")
-                    }
-
-                    override fun onAuthenticationFailed() {
-                        onError("Authentication failed")
-                    }
-
-                    override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
-                        onError(errString.toString())
+                        }
+                        is BiometricAuthManager.AuthResult.Error -> {
+                            android.util.Log.e("MasterKeyManager", "enableBiometric: onAuthenticationError: ${result.code} - ${result.message}")
+                            onError(result.message)
+                        }
+                        is BiometricAuthManager.AuthResult.Cancelled -> {
+                            android.util.Log.d("MasterKeyManager", "enableBiometric: cancelled")
+                        }
+                        else -> {}
                     }
                 }
             )
-
-            val promptInfo = BiometricPrompt.PromptInfo.Builder()
-                .setTitle("Enable Biometric Unlock")
-                .setSubtitle("Use your fingerprint to quickly access credentials")
-                .setNegativeButtonText("Cancel")
-                .build()
-
-            prompt.authenticate(promptInfo, BiometricPrompt.CryptoObject(cipher))
         } catch (e: Exception) {
+            android.util.Log.e("MasterKeyManager", "enableBiometric: exception: ${e.message}", e)
             onError(e.message ?: "Failed to enable biometric")
         }
     }
@@ -188,9 +201,11 @@ class MasterKeyManager @Inject constructor(
         onSuccess: (SecretKey) -> Unit,
         onError: (String) -> Unit
     ) {
+        android.util.Log.d("MasterKeyManager", "unlockWithBiometric: starting")
         try {
             val ivBase64 = prefs.getString(KEY_BIOMETRIC_IV, null)
             if (ivBase64 == null) {
+                android.util.Log.e("MasterKeyManager", "unlockWithBiometric: Biometric not set up")
                 onError("Biometric not set up")
                 return
             }
@@ -198,41 +213,54 @@ class MasterKeyManager @Inject constructor(
             val iv = Base64.decode(ivBase64, Base64.NO_WRAP)
             val cipher = createBiometricCipherForDecrypt(iv)
 
-            val prompt = BiometricPrompt(
-                activity,
-                androidx.core.content.ContextCompat.getMainExecutor(context),
-                object : BiometricPrompt.AuthenticationCallback() {
-                    override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
-                        result.cryptoObject?.cipher?.let { c ->
-                            val encryptedBase64 = prefs.getString(KEY_BIOMETRIC_ENCRYPTED_MASTER, null)
-                            if (encryptedBase64 != null) {
-                                val encrypted = Base64.decode(encryptedBase64, Base64.NO_WRAP)
-                                val masterKeyBytes = c.doFinal(encrypted)
-                                onSuccess(SecretKeySpec(masterKeyBytes, "AES"))
-                            } else {
-                                onError("No biometric data found")
+            biometricAuthManager.authenticateWithCrypto(
+                activity = activity,
+                action = BiometricAuthManager.AuthAction.UNLOCK,
+                cryptoObject = BiometricPrompt.CryptoObject(cipher),
+                onResult = { result ->
+                    when (result) {
+                        is BiometricAuthManager.AuthResult.SuccessWithCrypto -> {
+                            android.util.Log.d("MasterKeyManager", "unlockWithBiometric: onAuthenticationSucceeded")
+                            result.result.cryptoObject?.cipher?.let { c ->
+                                val encryptedBase64 = prefs.getString(KEY_BIOMETRIC_ENCRYPTED_MASTER, null)
+                                if (encryptedBase64 != null) {
+                                    try {
+                                        val encrypted = Base64.decode(encryptedBase64, Base64.NO_WRAP)
+                                        val masterKeyBytes = c.doFinal(encrypted)
+                                        android.util.Log.d("MasterKeyManager", "unlockWithBiometric: success")
+                                        onSuccess(SecretKeySpec(masterKeyBytes, "AES"))
+                                    } catch (e: Exception) {
+                                        android.util.Log.e("MasterKeyManager", "unlockWithBiometric: doFinal failed: ${e.message}")
+                                        if (e is javax.crypto.AEADBadTagException) {
+                                            android.util.Log.w("MasterKeyManager", "unlockWithBiometric: AEADBadTagException, disabling biometric")
+                                            disableBiometric()
+                                            onError("Biometric data corrupted. Please re-enable in settings.")
+                                        } else {
+                                            onError("Decryption failed: ${e.message}")
+                                        }
+                                    }
+                                } else {
+                                    android.util.Log.e("MasterKeyManager", "unlockWithBiometric: No biometric data found")
+                                    onError("No biometric data found")
+                                }
+                            } ?: run {
+                                android.util.Log.e("MasterKeyManager", "unlockWithBiometric: Cipher is null")
+                                onError("Cipher is null")
                             }
-                        } ?: onError("Cipher is null")
-                    }
-
-                    override fun onAuthenticationFailed() {
-                        onError("Authentication failed")
-                    }
-
-                    override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
-                        onError(errString.toString())
+                        }
+                        is BiometricAuthManager.AuthResult.Error -> {
+                            android.util.Log.e("MasterKeyManager", "unlockWithBiometric: onAuthenticationError: ${result.code} - ${result.message}")
+                            onError(result.message)
+                        }
+                        is BiometricAuthManager.AuthResult.Cancelled -> {
+                            android.util.Log.d("MasterKeyManager", "unlockWithBiometric: cancelled")
+                        }
+                        else -> {}
                     }
                 }
             )
-
-            val promptInfo = BiometricPrompt.PromptInfo.Builder()
-                .setTitle("Unlock Credentials")
-                .setSubtitle("Use your fingerprint to access credentials")
-                .setNegativeButtonText("Use Password")
-                .build()
-
-            prompt.authenticate(promptInfo, BiometricPrompt.CryptoObject(cipher))
         } catch (e: Exception) {
+            android.util.Log.e("MasterKeyManager", "unlockWithBiometric: exception: ${e.message}", e)
             onError(e.message ?: "Failed to unlock with biometric")
         }
     }
@@ -241,6 +269,7 @@ class MasterKeyManager @Inject constructor(
         prefs.edit {
             remove(KEY_BIOMETRIC_ENCRYPTED_MASTER)
             putBoolean(KEY_BIOMETRIC_ENABLED, false)
+            apply()
         }
         try {
             if (keyStore.containsAlias(KEYSTORE_BIOMETRIC_ALIAS)) {

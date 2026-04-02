@@ -2,9 +2,9 @@ package jamgmilk.fuwagit
 
 import android.content.res.Configuration
 import android.os.Bundle
+import androidx.fragment.app.FragmentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.activity.ComponentActivity
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -45,8 +45,8 @@ import jamgmilk.fuwagit.ui.navigation.NavRoutes
 import jamgmilk.fuwagit.ui.navigation.rememberNavItems
 import jamgmilk.fuwagit.ui.screen.branches.BranchesScreen
 import jamgmilk.fuwagit.ui.screen.branches.BranchesViewModel
-import jamgmilk.fuwagit.ui.screen.credentials.CredentialsScreen
-import jamgmilk.fuwagit.ui.screen.credentials.CredentialsStoreViewModel
+import jamgmilk.fuwagit.ui.screen.credentials.CredentialScreen
+import jamgmilk.fuwagit.ui.screen.credentials.CredentialStoreViewModel
 import jamgmilk.fuwagit.ui.screen.history.HistoryScreen
 import jamgmilk.fuwagit.ui.screen.history.HistoryViewModel
 import jamgmilk.fuwagit.ui.screen.myrepos.AddRepositoryScreen
@@ -62,7 +62,7 @@ import jamgmilk.fuwagit.ui.theme.FuwaGitThemeExtras
 import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
-class MainActivity : ComponentActivity() {
+class MainActivity : FragmentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -153,8 +153,8 @@ fun FuwaGitNavHost(
         }
 
         composable(NavRoutes.CREDENTIALS) {
-            val credentialsViewModel: CredentialsStoreViewModel = hiltViewModel()
-            CredentialsScreen(
+            val credentialsViewModel: CredentialStoreViewModel = hiltViewModel()
+            CredentialScreen(
                 viewModel = credentialsViewModel,
                 onBack = { navController.popBackStack() }
             )

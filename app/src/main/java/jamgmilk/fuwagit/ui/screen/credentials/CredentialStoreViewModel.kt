@@ -48,7 +48,7 @@ data class CredentialsStoreUiState(
 )
 
 @HiltViewModel
-class CredentialsStoreViewModel @Inject constructor(
+class CredentialStoreViewModel @Inject constructor(
     private val setupMasterPasswordUseCase: SetupMasterPasswordUseCase,
     private val unlockWithPasswordUseCase: UnlockWithPasswordUseCase,
     private val getHttpsCredentialsUseCase: GetHttpsCredentialsUseCase,
@@ -68,6 +68,10 @@ class CredentialsStoreViewModel @Inject constructor(
 
     private val _uiState = MutableStateFlow(CredentialsStoreUiState())
     val uiState: StateFlow<CredentialsStoreUiState> = _uiState.asStateFlow()
+
+    init {
+        initialize()
+    }
 
     fun initialize() {
         _uiState.update {
@@ -112,9 +116,9 @@ class CredentialsStoreViewModel @Inject constructor(
 
     private fun loadCredentials() {
         viewModelScope.launch {
-            if (!credentialRepository.isUnlocked()) return@launch
-
-            _uiState.update { it.copy(isDecryptionUnlocked = true) }
+            _uiState.update {
+                it.copy(isDecryptionUnlocked = credentialRepository.isUnlocked())
+            }
 
             getHttpsCredentialsUseCase()
                 .onSuccess { credentials ->
@@ -219,7 +223,8 @@ class CredentialsStoreViewModel @Inject constructor(
                 _uiState.update {
                     it.copy(
                         isDecryptionUnlocked = true,
-                        isBiometricEnabled = true
+                        isBiometricEnabled = true,
+                        showUnlockDialog = false
                     )
                 }
                 loadCredentials()
@@ -240,11 +245,7 @@ class CredentialsStoreViewModel @Inject constructor(
     fun lock() {
         credentialRepository.lock()
         _uiState.update {
-            it.copy(
-                isDecryptionUnlocked = false,
-                httpsCredentials = emptyList(),
-                sshKeys = emptyList()
-            )
+            it.copy(isDecryptionUnlocked = false)
         }
     }
 
