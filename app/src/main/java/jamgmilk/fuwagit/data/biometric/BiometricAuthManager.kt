@@ -7,6 +7,7 @@ import androidx.biometric.BiometricManager
 import androidx.biometric.BiometricPrompt
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.FragmentActivity
+import dagger.hilt.android.AndroidEntryPoint
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.suspendCancellableCoroutine
 import javax.inject.Inject
@@ -19,6 +20,7 @@ class BiometricAuthManager @Inject constructor(
 ) {
     sealed class AuthResult {
         data object Success : AuthResult()
+        data class SuccessWithCrypto(val result: BiometricPrompt.AuthenticationResult) : AuthResult()
         data class Error(val code: Int, val message: String) : AuthResult()
         data object Cancelled : AuthResult()
     }
@@ -27,8 +29,6 @@ class BiometricAuthManager @Inject constructor(
         ENABLE,
         UNLOCK
     }
-
-    private var pendingCallback: ((AuthResult) -> Unit)? = null
 
     fun canAuthenticate(): Boolean {
         val biometricManager = BiometricManager.from(context)
@@ -40,27 +40,32 @@ class BiometricAuthManager @Inject constructor(
         action: AuthAction,
         onResult: (AuthResult) -> Unit
     ) {
-        pendingCallback = onResult
+        authenticateWithCrypto(activity, action, null, onResult)
+    }
 
+    fun authenticateWithCrypto(
+        activity: FragmentActivity,
+        action: AuthAction,
+        cryptoObject: BiometricPrompt.CryptoObject?,
+        onResult: (AuthResult) -> Unit
+    ) {
         val executor = ContextCompat.getMainExecutor(activity)
 
         val callback = object : BiometricPrompt.AuthenticationCallback() {
             override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
-                pendingCallback?.invoke(AuthResult.Success)
-                pendingCallback = null
+                onResult(AuthResult.SuccessWithCrypto(result))
             }
 
             override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
                 when {
                     errorCode == BiometricPrompt.ERROR_USER_CANCELED ||
                     errorCode == BiometricPrompt.ERROR_NEGATIVE_BUTTON -> {
-                        pendingCallback?.invoke(AuthResult.Cancelled)
+                        onResult(AuthResult.Cancelled)
                     }
                     else -> {
-                        pendingCallback?.invoke(AuthResult.Error(errorCode, errString.toString()))
+                        onResult(AuthResult.Error(errorCode, errString.toString()))
                     }
                 }
-                pendingCallback = null
             }
 
             override fun onAuthenticationFailed() {
@@ -84,7 +89,11 @@ class BiometricAuthManager @Inject constructor(
                 .build()
         }
 
-        biometricPrompt.authenticate(promptInfo)
+        if (cryptoObject != null) {
+            biometricPrompt.authenticate(promptInfo, cryptoObject)
+        } else {
+            biometricPrompt.authenticate(promptInfo)
+        }
     }
 
     suspend fun authenticateSuspend(
@@ -119,8 +128,10 @@ class BiometricAuthManager @Inject constructor(
     }
 }
 
+@AndroidEntryPoint
 class BiometricActivityResult : FragmentActivity() {
-    private var manager: BiometricAuthManager? = null
+    @Inject
+    lateinit var manager: BiometricAuthManager
 
     override fun onCreate(savedInstanceState: android.os.Bundle?) {
         super.onCreate(savedInstanceState)
@@ -129,10 +140,6 @@ class BiometricActivityResult : FragmentActivity() {
             finish()
             return
         }
-
-        // Note: In production, inject via Hilt. For simplicity, we get it from application
-        val app = application as? BiometricAuthManagerHost
-        manager = app?.biometricAuthManager
 
         val authAction = when (action) {
             BiometricAuthManager.ACTION_ENABLE -> BiometricAuthManager.AuthAction.ENABLE
@@ -143,10 +150,11 @@ class BiometricActivityResult : FragmentActivity() {
             }
         }
 
-        manager?.authenticate(this, authAction) { result ->
+        manager.authenticate(this, authAction) { result ->
             val intent = Intent()
             when (result) {
-                is BiometricAuthManager.AuthResult.Success -> {
+                is BiometricAuthManager.AuthResult.Success,
+                is BiometricAuthManager.AuthResult.SuccessWithCrypto -> {
                     setResult(BiometricAuthManager.RESULT_SUCCESS)
                 }
                 is BiometricAuthManager.AuthResult.Error -> {
@@ -161,8 +169,4 @@ class BiometricActivityResult : FragmentActivity() {
             finish()
         }
     }
-}
-
-interface BiometricAuthManagerHost {
-    val biometricAuthManager: BiometricAuthManager?
 }

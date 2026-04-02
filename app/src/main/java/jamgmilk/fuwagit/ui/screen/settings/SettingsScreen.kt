@@ -81,7 +81,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import jamgmilk.fuwagit.ui.components.FilePickerDialog
 import jamgmilk.fuwagit.ui.components.ScreenTemplate
 import jamgmilk.fuwagit.ui.screen.credentials.ChangeMasterPasswordDialog
-import jamgmilk.fuwagit.ui.screen.credentials.CredentialsStoreViewModel
+import jamgmilk.fuwagit.ui.screen.credentials.CredentialStoreViewModel
 import jamgmilk.fuwagit.ui.screen.credentials.SetupMasterPasswordDialog
 import jamgmilk.fuwagit.ui.screen.credentials.UnlockDialog
 import jamgmilk.fuwagit.ui.theme.FuwaGitThemeExtras
@@ -95,7 +95,7 @@ fun SettingsScreen(
     onNavigateToPermissions: () -> Unit = {},
     onNavigateToCredentials: () -> Unit = {},
     settingsViewModel: SettingsViewModel = hiltViewModel(),
-    credentialsViewModel: CredentialsStoreViewModel = hiltViewModel()
+    credentialsViewModel: CredentialStoreViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
     val activity = context as? FragmentActivity
@@ -108,19 +108,24 @@ fun SettingsScreen(
     var autoSync by rememberSaveable { mutableStateOf(false) }
     var conflictSafeMode by rememberSaveable { mutableStateOf(true) }
     var backupBeforeSync by rememberSaveable { mutableStateOf(true) }
-    var showHiddenFiles by rememberSaveable { mutableStateOf(false) }
     var verboseLogging by rememberSaveable { mutableStateOf(false) }
     var pendingBiometricEnable by rememberSaveable { mutableStateOf(false) }
     val settingsDefaultBranch by settingsViewModel.defaultBranch.collectAsState()
 
-    LaunchedEffect(Unit) {
-        credentialsViewModel.initialize()
+    LaunchedEffect(credentialsUiState.error) {
+        credentialsUiState.error?.let {
+            android.widget.Toast.makeText(context, it, android.widget.Toast.LENGTH_SHORT).show()
+            credentialsViewModel.clearError()
+        }
     }
 
     LaunchedEffect(credentialsUiState.isDecryptionUnlocked, pendingBiometricEnable) {
         Log.d(TAG, "LaunchedEffect: isDecryptionUnlocked=${credentialsUiState.isDecryptionUnlocked}, pendingBiometricEnable=$pendingBiometricEnable")
         if (credentialsUiState.isDecryptionUnlocked && pendingBiometricEnable) {
-            Log.d(TAG, "LaunchedEffect: calling enableBiometric")
+            Log.d(TAG, "LaunchedEffect: calling enableBiometric, activity=$activity")
+            if (activity == null) {
+                Log.e(TAG, "LaunchedEffect: activity is NULL, cannot enable biometric")
+            }
             delay(100)
             pendingBiometricEnable = false
             activity?.let { credentialsViewModel.enableBiometric(it) }
@@ -133,8 +138,6 @@ fun SettingsScreen(
     ) {
         StorageSettingsCard(
             onPermissionsClick = onNavigateToPermissions,
-            showHiddenFiles = showHiddenFiles,
-            onShowHiddenFilesChange = { showHiddenFiles = it },
             modifier = Modifier.fillMaxWidth()
         )
 
@@ -157,14 +160,19 @@ fun SettingsScreen(
             isDecryptionUnlocked = credentialsUiState.isDecryptionUnlocked,
             isMasterPasswordSet = credentialsUiState.isMasterPasswordSet,
             onBiometricEnabledChange = { enabled ->
-                Log.d(TAG, "Switch toggled: enabled=$enabled, isDecryptionUnlocked=${credentialsUiState.isDecryptionUnlocked}")
+                Log.d(TAG, "Switch toggled: enabled=$enabled, isDecryptionUnlocked=${credentialsUiState.isDecryptionUnlocked}, activity=$activity")
                 if (!credentialsUiState.isDecryptionUnlocked) {
+                    Log.d(TAG, "Decryption locked, showing unlock dialog")
                     pendingBiometricEnable = true
                     credentialsViewModel.showUnlockDialog()
                 } else if (enabled) {
                     Log.d(TAG, "Calling enableBiometric directly")
+                    if (activity == null) {
+                        Log.e(TAG, "Activity is NULL in onBiometricEnabledChange")
+                    }
                     activity?.let { credentialsViewModel.enableBiometric(it) }
                 } else {
+                    Log.d(TAG, "Disabling biometric")
                     credentialsViewModel.disableBiometric()
                 }
             },
@@ -210,6 +218,10 @@ fun SettingsScreen(
             onUnlock = { password ->
                 credentialsViewModel.unlockWithPassword(password)
             },
+            biometricEnabled = credentialsUiState.isBiometricEnabled,
+            onUnlockWithBiometric = {
+                activity?.let { credentialsViewModel.unlockWithBiometric(it) }
+            },
             passwordHint = credentialsUiState.passwordHint,
             error = credentialsUiState.error,
             isLoading = credentialsUiState.isLoading
@@ -243,8 +255,6 @@ fun SettingsScreen(
 @Composable
 private fun StorageSettingsCard(
     onPermissionsClick: () -> Unit,
-    showHiddenFiles: Boolean,
-    onShowHiddenFilesChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val uiColors = FuwaGitThemeExtras.colors
@@ -267,16 +277,6 @@ private fun StorageSettingsCard(
                 subtitle = "Manage storage access permissions",
                 icon = Icons.Default.Security,
                 onClick = onPermissionsClick
-            )
-
-            HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
-
-            SettingsSwitchItem(
-                title = "Show Hidden Files",
-                subtitle = "Display files starting with .",
-                icon = Icons.Default.Folder,
-                checked = showHiddenFiles,
-                onCheckedChange = onShowHiddenFilesChange
             )
         }
     }

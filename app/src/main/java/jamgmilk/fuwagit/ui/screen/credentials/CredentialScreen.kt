@@ -32,8 +32,8 @@ private sealed class CredentialDialogState {
 }
 
 @Composable
-fun CredentialsScreen(
-    viewModel: CredentialsStoreViewModel,
+fun CredentialScreen(
+    viewModel: CredentialStoreViewModel,
     onBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -46,10 +46,6 @@ fun CredentialsScreen(
 
     var dialogState by remember { mutableStateOf<CredentialDialogState>(CredentialDialogState.None) }
     var showDeleteConfirm by remember { mutableStateOf<Pair<String, Boolean>?>(null) }
-
-    LaunchedEffect(Unit) {
-        viewModel.initialize()
-    }
 
     SubSettingsTemplate(
         title = "Credentials",
@@ -86,7 +82,13 @@ fun CredentialsScreen(
                             dialogState = CredentialDialogState.ImportCredentials
                         }
                     },
-                    onLock = { viewModel.lock() }
+                    onLockToggle = {
+                        if (uiState.isDecryptionUnlocked) {
+                            viewModel.lock()
+                        } else {
+                            viewModel.showUnlockDialog()
+                        }
+                    }
                 )
 
                 HttpsCredentialsSection(
@@ -128,6 +130,10 @@ fun CredentialsScreen(
             onDismiss = { viewModel.dismissUnlockDialog() },
             onUnlock = { password ->
                 viewModel.unlockWithPassword(password)
+            },
+            biometricEnabled = uiState.isBiometricEnabled,
+            onUnlockWithBiometric = {
+                activity?.let { viewModel.unlockWithBiometric(it) }
             },
             passwordHint = uiState.passwordHint,
             error = uiState.error,

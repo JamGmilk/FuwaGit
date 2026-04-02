@@ -38,9 +38,11 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -131,16 +133,18 @@ fun HttpsCredentialsSection(
                     )
                 }
 
-                IconButton(
+                FilledTonalIconButton(
                     onClick = onAdd,
-                    modifier = Modifier
-                        .size(36.dp)
-                        .background(Sakura80.copy(alpha = 0.15f), RoundedCornerShape(10.dp))
+                    modifier = Modifier.size(36.dp),
+                    shape = RoundedCornerShape(10.dp),
+                    colors = IconButtonDefaults.filledTonalIconButtonColors(
+                        containerColor = Sakura80.copy(alpha = 0.15f),
+                        contentColor = Sakura80
+                    )
                 ) {
                     Icon(
                         Icons.Default.Add,
                         contentDescription = "Add",
-                        tint = Sakura80,
                         modifier = Modifier.size(20.dp)
                     )
                 }
@@ -293,29 +297,33 @@ fun SshKeysSection(
                 }
 
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    IconButton(
+                    FilledTonalIconButton(
                         onClick = onGenerate,
-                        modifier = Modifier
-                            .size(36.dp)
-                            .background(Sakura90.copy(alpha = 0.15f), RoundedCornerShape(10.dp))
+                        modifier = Modifier.size(36.dp),
+                        shape = RoundedCornerShape(10.dp),
+                        colors = IconButtonDefaults.filledTonalIconButtonColors(
+                            containerColor = Sakura90.copy(alpha = 0.15f),
+                            contentColor = Sakura90
+                        )
                     ) {
                         Icon(
-                            Icons.Default.Add,
+                            Icons.Default.Key,
                             contentDescription = "Generate",
-                            tint = Sakura90,
                             modifier = Modifier.size(20.dp)
                         )
                     }
-                    IconButton(
+                    FilledTonalIconButton(
                         onClick = onImport,
-                        modifier = Modifier
-                            .size(36.dp)
-                            .background(Sakura90.copy(alpha = 0.15f), RoundedCornerShape(10.dp))
+                        modifier = Modifier.size(36.dp),
+                        shape = RoundedCornerShape(10.dp),
+                        colors = IconButtonDefaults.filledTonalIconButtonColors(
+                            containerColor = Sakura90.copy(alpha = 0.15f),
+                            contentColor = Sakura90
+                        )
                     ) {
                         Icon(
-                            Icons.Default.Edit,
+                            Icons.Default.Upload,
                             contentDescription = "Import",
-                            tint = Sakura90,
                             modifier = Modifier.size(20.dp)
                         )
                     }
@@ -487,7 +495,7 @@ fun SecuritySettingsSection(
     isDecryptionUnlocked: Boolean,
     onExport: () -> Unit,
     onImport: () -> Unit,
-    onLock: () -> Unit
+    onLockToggle: () -> Unit
 ) {
     val colors = MaterialTheme.colorScheme
     val uiColors = FuwaGitThemeExtras.colors
@@ -580,27 +588,25 @@ fun SecuritySettingsSection(
                     }
                 }
 
-                if (isDecryptionUnlocked) {
-                    HorizontalDivider(color = colors.outline.copy(alpha = 0.1f))
+                HorizontalDivider(color = colors.outline.copy(alpha = 0.1f))
 
                     Button(
-                        onClick = onLock,
+                        onClick = onLockToggle,
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(12.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = colors.error.copy(alpha = 0.1f),
-                            contentColor = colors.error
+                            containerColor = if (isDecryptionUnlocked) colors.error.copy(alpha = 0.1f) else Color(0xFF4CAF50).copy(alpha = 0.15f),
+                            contentColor = if (isDecryptionUnlocked) colors.error else Color(0xFF4CAF50)
                         )
                     ) {
                         Icon(
-                            Icons.Default.Lock,
+                            if (isDecryptionUnlocked) Icons.Default.Lock else Icons.Default.LockOpen,
                             contentDescription = null,
                             modifier = Modifier.size(18.dp)
                         )
                         Spacer(Modifier.width(6.dp))
-                        Text("Lock Vault")
+                        Text(if (isDecryptionUnlocked) "Lock Vault" else "Unlock Vault")
                     }
-                }
             }
         }
     }
