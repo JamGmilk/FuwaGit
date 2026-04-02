@@ -2,6 +2,8 @@ package jamgmilk.fuwagit.data.repository
 
 import jamgmilk.fuwagit.data.jgit.JGitDataSource
 import jamgmilk.fuwagit.domain.model.credential.CloneCredential
+import jamgmilk.fuwagit.domain.model.git.CleanResult
+import jamgmilk.fuwagit.domain.model.git.CloneOptions
 import jamgmilk.fuwagit.domain.model.git.GitBranch
 import jamgmilk.fuwagit.domain.model.git.GitChangeType
 import jamgmilk.fuwagit.domain.model.git.GitCommit
@@ -113,10 +115,10 @@ class GitRepositoryImpl @Inject constructor(
     override suspend fun cloneRepository(
         uri: String,
         localPath: String,
-        branch: String?,
-        credentials: CloneCredential?
+        credentials: CloneCredential?,
+        options: CloneOptions
     ): Result<String> = withContext(Dispatchers.IO) {
-        jGitDataSource.cloneRepository(uri, localPath, branch, credentials)
+        jGitDataSource.cloneRepository(uri, localPath, credentials, options)
     }
 
     override suspend fun getRemotes(repoPath: String): Result<List<GitRemote>> = withContext(Dispatchers.IO) {
@@ -131,7 +133,7 @@ class GitRepositoryImpl @Inject constructor(
         jGitDataSource.renameBranch(repoPath, oldName, newName)
     }
 
-    override suspend fun clean(repoPath: String, dryRun: Boolean): Result<String> = withContext(Dispatchers.IO) {
+    override suspend fun clean(repoPath: String, dryRun: Boolean): Result<CleanResult> = withContext(Dispatchers.IO) {
         jGitDataSource.clean(repoPath, dryRun)
     }
 }

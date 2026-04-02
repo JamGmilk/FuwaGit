@@ -43,6 +43,14 @@ data class PullResult(
     val message: String
 )
 
+data class CleanResult(
+    val files: List<String>,
+    val isDryRun: Boolean
+) {
+    val isEmpty: Boolean get() = files.isEmpty()
+    val count: Int get() = files.size
+}
+
 data class CommitStats(
     val totalCommits: Int,
     val uniqueAuthors: Int,

@@ -196,6 +196,13 @@ fun StatusScreen(
                     onPull = { statusViewModel.pullRepo() },
                     onPush = { statusViewModel.pushRepo() },
                     onFetch = { statusViewModel.fetchRepo() },
+                    httpsCredentials = uiState.httpsCredentials,
+                    sshKeys = uiState.sshKeys,
+                    selectedCredentialUuid = uiState.selectedCredentialUuid,
+                    selectedSshKeyUuid = uiState.selectedSshKeyUuid,
+                    onSelectHttpsCredential = { uuid -> statusViewModel.selectHttpsCredential(uuid) },
+                    onSelectSshKey = { uuid -> statusViewModel.selectSshKey(uuid) },
+                    onLoadCredentials = { statusViewModel.loadCredentials() },
                     modifier = Modifier.fillMaxWidth()
                 )
 

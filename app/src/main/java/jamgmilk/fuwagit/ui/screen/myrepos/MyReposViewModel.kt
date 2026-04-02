@@ -8,6 +8,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import jamgmilk.fuwagit.core.util.PathUtils
 import jamgmilk.fuwagit.data.local.prefs.RepoDataStore
 import jamgmilk.fuwagit.domain.model.credential.CloneCredential
+import jamgmilk.fuwagit.domain.model.git.CloneOptions
 import jamgmilk.fuwagit.domain.model.repo.RepoData
 import jamgmilk.fuwagit.domain.model.credential.HttpsCredential
 import jamgmilk.fuwagit.domain.model.credential.SshKey
@@ -226,7 +227,7 @@ class MyReposViewModel @Inject constructor(
     }
 
     suspend fun cleanRepo(path: String, dryRun: Boolean = false): Result<String> {
-        return cleanUseCase(path, dryRun)
+        return cleanUseCase(path, dryRun).map { it.toString() }
     }
 
     suspend fun getRepoInfo(localPath: String): Map<String, String> {
@@ -323,7 +324,7 @@ class MyReposViewModel @Inject constructor(
                 else -> null
             }
 
-            cloneRepositoryUseCase(uri, localPath, branch, credentials)
+            cloneRepositoryUseCase(uri, localPath, credentials, CloneOptions())
                 .onSuccess { result ->
                     _isLoading.value = false
                     addRepo(localPath, null)
