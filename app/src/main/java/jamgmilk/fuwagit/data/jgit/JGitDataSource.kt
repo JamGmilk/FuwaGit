@@ -1,30 +1,42 @@
 package jamgmilk.fuwagit.data.jgit
 
 import android.util.Log
-import com.jcraft.jsch.JSch
 import jamgmilk.fuwagit.data.local.prefs.GitConfigStore
 import jamgmilk.fuwagit.domain.model.credential.CloneCredential
 import jamgmilk.fuwagit.domain.model.git.CleanResult
 import jamgmilk.fuwagit.domain.model.git.CloneOptions
 import jamgmilk.fuwagit.domain.model.git.GitBranch
+import jamgmilk.fuwagit.domain.model.git.GitPushOptions
 import jamgmilk.fuwagit.domain.model.git.GitChangeType
 import jamgmilk.fuwagit.domain.model.git.GitCommit
+import jamgmilk.fuwagit.domain.model.git.GitConflict
 import jamgmilk.fuwagit.domain.model.git.GitFileStatus
 import jamgmilk.fuwagit.domain.model.git.GitRemote
 import jamgmilk.fuwagit.domain.model.git.GitRepoStatus
 import jamgmilk.fuwagit.domain.model.git.PullResult
+import jamgmilk.fuwagit.domain.model.git.ConflictResult
+import jamgmilk.fuwagit.domain.model.git.ConflictStatus
+import jamgmilk.fuwagit.domain.model.git.GitResetMode
+import jamgmilk.fuwagit.domain.model.git.MergeResultDetail
+import jamgmilk.fuwagit.domain.model.git.MergeStatus
+import jamgmilk.fuwagit.domain.model.git.RebaseResultDetail
+import jamgmilk.fuwagit.domain.model.git.RebaseStatus
+import jamgmilk.fuwagit.domain.model.git.GitCommitFileChange
+import jamgmilk.fuwagit.domain.model.git.GitCommitDetail
 import org.eclipse.jgit.api.Git
 import org.eclipse.jgit.api.ListBranchCommand
+import org.eclipse.jgit.api.RebaseResult
 import org.eclipse.jgit.api.Status
 import org.eclipse.jgit.api.errors.JGitInternalException
 import org.eclipse.jgit.errors.LockFailedException
 import org.eclipse.jgit.lib.ObjectId
+import org.eclipse.jgit.merge.MergeResult
 import org.eclipse.jgit.revwalk.RevCommit
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder
 import org.eclipse.jgit.transport.CredentialsProvider
-import org.eclipse.jgit.transport.TransportGitSsh
 import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider
 import java.io.File
+import java.util.concurrent.atomic.AtomicReference
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -35,6 +47,13 @@ class JGitDataSource @Inject constructor(
 
     companion object {
         private const val TAG = "JGitDataSource"
+
+        private val currentSshKey = AtomicReference<SshKeyInfo?>()
+
+        data class SshKeyInfo(
+            val privateKey: String,
+            val passphrase: String?
+        )
     }
 
     private inline fun <T> withGit(repoPath: String, block: (Git) -> T): Result<T> {
@@ -64,9 +83,24 @@ class JGitDataSource @Inject constructor(
 
             Git.open(File(repoPath)).use { git ->
                 val defaultBranch = gitConfigStore.getConfig().defaultBranch
-                if (defaultBranch.isNotBlank()) {
+                
+                if (defaultBranch.isNotBlank() && defaultBranch != "master") {
+                    // 创建自定义默认分支
                     git.branchCreate().setName(defaultBranch).call()
                     git.checkout().setName(defaultBranch).call()
+                    
+                    // 删除原始的 master 分支
+                    try {
+                        git.branchDelete()
+                            .setBranchNames("master")
+                            .setForce(false)
+                            .call()
+                        Log.d(TAG, "Deleted original master branch")
+                    } catch (e: Exception) {
+                        // master 分支可能不存在或无法删除，忽略错误
+                        Log.w(TAG, "Could not delete master branch: ${e.message}")
+                    }
+                    
                     Log.d(TAG, "Created and checked out default branch: $defaultBranch")
                 }
             }
@@ -182,6 +216,116 @@ class JGitDataSource @Inject constructor(
         }
     }
 
+    /**
+     * 获取 commit 的文件变更列表
+     */
+    fun getCommitFileChanges(repoPath: String, commitHash: String): Result<GitCommitDetail> = withGit(repoPath) { git ->
+        val repository = git.repository
+        val objectId = repository.resolve(commitHash)
+            ?: throw Exception("Commit not found: $commitHash")
+        
+        val revCommit = repository.parseCommit(objectId)
+        
+        val fileChanges = mutableListOf<GitCommitFileChange>()
+        
+        try {
+            // 使用 RevWalk 和 Diff 获取文件变更
+            val revWalk = org.eclipse.jgit.revwalk.RevWalk(repository)
+            try {
+                val commit = revWalk.parseCommit(objectId)
+                val tree = commit.tree
+                
+                // 获取父 commit
+                val parentCommit = if (commit.parentCount > 0) {
+                    revWalk.parseCommit(commit.getParent(0).id)
+                } else {
+                    null
+                }
+                
+                val parentTree = parentCommit?.tree
+                
+                if (parentTree != null) {
+                    // 使用 DiffFormatter 扫描两个树
+                    val outputStream = java.io.ByteArrayOutputStream()
+                    val diffFormatter = org.eclipse.jgit.diff.DiffFormatter(outputStream)
+                    
+                    try {
+                        diffFormatter.setRepository(repository)
+                        val diffEntries = diffFormatter.scan(parentTree.id, tree.id)
+                        
+                        for (diffEntry in diffEntries) {
+                            val changeTypeName = diffEntry.changeType.name
+                            val changeType = when (changeTypeName) {
+                                "ADD" -> GitChangeType.Added
+                                "DELETE" -> GitChangeType.Removed
+                                "MODIFY" -> GitChangeType.Modified
+                                "RENAME" -> GitChangeType.Renamed
+                                else -> GitChangeType.Modified
+                            }
+                            
+                            val path = diffEntry.newPath.ifBlank { diffEntry.oldPath }
+                            val fileName = java.io.File(path).name
+                            
+                            fileChanges.add(
+                                GitCommitFileChange(
+                                    path = path,
+                                    name = fileName,
+                                    changeType = changeType,
+                                    additions = 0,
+                                    deletions = 0
+                                )
+                            )
+                        }
+                    } finally {
+                        diffFormatter.close()
+                    }
+                } else {
+                    // 初始 commit，列出所有文件
+                    val walk = org.eclipse.jgit.treewalk.TreeWalk(repository)
+                    walk.addTree(tree)
+                    walk.isRecursive = true
+                    
+                    while (walk.next()) {
+                        val path = walk.pathString
+                        fileChanges.add(
+                            GitCommitFileChange(
+                                path = path,
+                                name = java.io.File(path).name,
+                                changeType = GitChangeType.Added,
+                                additions = 0,
+                                deletions = 0
+                            )
+                        )
+                    }
+                }
+            } finally {
+                revWalk.dispose()
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to get commit file changes: ${e.message}")
+        }
+        
+        // 获取 commit 详情
+        val author = revCommit.authorIdent
+        val commit = GitCommit(
+            hash = revCommit.id.name(),
+            shortHash = revCommit.id.abbreviate(7).name(),
+            message = revCommit.fullMessage,
+            authorName = author.name,
+            authorEmail = author.emailAddress,
+            timestamp = author.`when`.time,
+            parentHashes = revCommit.parents.map { it.name() }
+        )
+        
+        GitCommitDetail(
+            commit = commit,
+            fileChanges = fileChanges,
+            totalAdditions = 0,
+            totalDeletions = 0,
+            totalFiles = fileChanges.size
+        )
+    }
+
     fun stageAll(repoPath: String): Result<String> = withGit(repoPath) { git ->
         // Use add with update=true to include deletions, and another add for untracked files
         git.add().addFilepattern(".").setUpdate(true).call()
@@ -246,6 +390,26 @@ class JGitDataSource @Inject constructor(
         }
     }
 
+    fun reset(repoPath: String, commitHash: String, mode: GitResetMode): Result<String> = withGit(repoPath) { git ->
+        val resetCommand = git.reset()
+            .setRef(commitHash)
+
+        // 根据模式设置 reset 类型
+        when (mode) {
+            GitResetMode.SOFT -> resetCommand.setMode(org.eclipse.jgit.api.ResetCommand.ResetType.SOFT)
+            GitResetMode.MIXED -> resetCommand.setMode(org.eclipse.jgit.api.ResetCommand.ResetType.MIXED)
+            GitResetMode.HARD -> resetCommand.setMode(org.eclipse.jgit.api.ResetCommand.ResetType.HARD)
+        }
+
+        resetCommand.call()
+
+        when (mode) {
+            GitResetMode.SOFT -> "Reset to $commitHash (soft): HEAD moved, changes kept staged"
+            GitResetMode.MIXED -> "Reset to $commitHash (mixed): HEAD moved, changes unstaged"
+            GitResetMode.HARD -> "Reset to $commitHash (hard): All changes discarded"
+        }
+    }
+
     private fun configureCredentials(
         command: org.eclipse.jgit.api.TransportCommand<*, *>,
         credentials: CloneCredential?
@@ -260,23 +424,48 @@ class JGitDataSource @Inject constructor(
                 )
             }
             is CloneCredential.Ssh -> {
-                try {
-                    val jsch = com.jcraft.jsch.JSch()
-                    jsch.removeAllIdentity()
-                    jsch.addIdentity(
-                        "ssh-key",
-                        credentials.privateKey.toByteArray(),
-                        null,
-                        credentials.passphrase?.toByteArray()
-                    )
-                    com.jcraft.jsch.JSch.setConfig("StrictHostKeyChecking", "no")
-                    com.jcraft.jsch.JSch.setConfig("PreferredAuthentications", "publickey")
-                } catch (e: Exception) {
-                    Log.e(TAG, "Failed to configure SSH", e)
-                }
+                currentSshKey.set(SshKeyInfo(credentials.privateKey, credentials.passphrase))
+                configureSshForCommand(command)
             }
             null -> {}
         }
+    }
+
+    private fun configureSshForCommand(command: org.eclipse.jgit.api.TransportCommand<*, *>) {
+        val sshInfo = currentSshKey.get() ?: return
+        try {
+            com.jcraft.jsch.JSch.setConfig("StrictHostKeyChecking", "no")
+            com.jcraft.jsch.JSch.setConfig("PreferredAuthentications", "publickey")
+
+            command.setTransportConfigCallback { transport ->
+                if (transport is org.eclipse.jgit.transport.SshTransport) {
+                    transport.sshSessionFactory = object : org.eclipse.jgit.transport.ssh.jsch.JschConfigSessionFactory() {
+                        override fun createDefaultJSch(fs: org.eclipse.jgit.util.FS?): com.jcraft.jsch.JSch {
+                            val defaultJsch = super.createDefaultJSch(fs)
+                            try {
+                                defaultJsch.removeAllIdentity()
+                                defaultJsch.addIdentity(
+                                    "fuwa-git-ssh-key",
+                                    sshInfo.privateKey.toByteArray(),
+                                    null,
+                                    sshInfo.passphrase?.toByteArray()
+                                )
+                            } catch (e: Exception) {
+                                Log.w(TAG, "Failed to configure default JSch", e)
+                            }
+                            return defaultJsch
+                        }
+                    }
+                }
+            }
+            Log.d(TAG, "SSH configured for operation with custom key")
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to configure SSH", e)
+        }
+    }
+
+    private fun clearSshCredentials() {
+        currentSshKey.set(null)
     }
 
     fun cloneRepository(
@@ -312,31 +501,135 @@ class JGitDataSource @Inject constructor(
         } catch (e: Exception) {
             Log.e(TAG, "Failed to clone repository", e)
             Result.failure(e)
+        } finally {
+            clearSshCredentials()
         }
     }
 
     fun pull(repoPath: String, credentials: CloneCredential? = null): Result<PullResult> = withGit(repoPath) { git ->
-        val pullCommand = git.pull()
-        configureCredentials(pullCommand, credentials)
-        val pullResult = pullCommand.call()
-        PullResult(
-            isSuccessful = pullResult.isSuccessful,
-            message = if (pullResult.isSuccessful) "Pull successful" else "Pull failed"
-        )
+        try {
+            val pullCommand = git.pull()
+            configureCredentials(pullCommand, credentials)
+            val pullResult = pullCommand.call()
+            
+            // 提取 Merge 结果
+            val mergeResultInfo = pullResult.mergeResult?.let { merge ->
+                val mergeStatusName = merge.mergeStatus.name
+                val commitCount = merge.mergedCommits?.size ?: 0
+                val isFastForward = mergeStatusName == "FAST_FORWARD"
+                val hasConflicts = mergeStatusName == "CONFLICTING"
+                
+                MergeResultDetail(
+                    mergeStatus = when (mergeStatusName) {
+                        "ALREADY_UP_TO_DATE" -> MergeStatus.ALREADY_UP_TO_DATE
+                        "FAST_FORWARD" -> MergeStatus.FAST_FORWARD
+                        "MERGED" -> MergeStatus.MERGED
+                        "FAILED" -> MergeStatus.FAILED
+                        "CONFLICTING" -> MergeStatus.CONFLICTING
+                        "ABORTED" -> MergeStatus.ABORTED
+                        else -> MergeStatus.UNKNOWN
+                    },
+                    commitCount = commitCount,
+                    fastForward = isFastForward,
+                    conflicts = emptyMap()
+                )
+            }
+            
+            // 提取 Rebase 结果（如果使用了 rebase）
+            val rebaseResultInfo = pullResult.rebaseResult?.let { rebase ->
+                val rebaseStatusName = rebase.status.name
+                
+                RebaseResultDetail(
+                    status = when (rebaseStatusName) {
+                        "UP_TO_DATE" -> RebaseStatus.UP_TO_DATE
+                        "FAST_FORWARD" -> RebaseStatus.FAST_FORWARD
+                        "OK" -> RebaseStatus.OK
+                        "CONFLICTING" -> RebaseStatus.CONFLICTING
+                        "ABORTED" -> RebaseStatus.ABORTED
+                        "FAILED" -> RebaseStatus.FAILED
+                        else -> RebaseStatus.UNKNOWN
+                    },
+                    commitCount = 0,
+                    conflicts = emptyList()
+                )
+            }
+            
+            // 构建详细消息
+            val detailMessage = buildString {
+                if (pullResult.isSuccessful) {
+                    append("Pull successful. ")
+                    mergeResultInfo?.let { mr ->
+                        when (mr.mergeStatus) {
+                            MergeStatus.ALREADY_UP_TO_DATE -> append("Already up-to-date.")
+                            MergeStatus.FAST_FORWARD -> append("Fast-forward merge with ${mr.commitCount} commit(s).")
+                            MergeStatus.MERGED -> append("Merged ${mr.commitCount} commit(s).")
+                            MergeStatus.CONFLICTING -> append("Merge conflicts detected: ${mr.conflicts.size} file(s).")
+                            else -> append("Merge status: ${mr.mergeStatus}.")
+                        }
+                    }
+                    rebaseResultInfo?.let { rr ->
+                        append(" Rebase status: ${rr.status}.")
+                    }
+                } else {
+                    append("Pull failed.")
+                }
+            }
+            
+            PullResult(
+                isSuccessful = pullResult.isSuccessful,
+                message = if (pullResult.isSuccessful) "Pull successful" else "Pull failed",
+                mergeResult = mergeResultInfo,
+                rebaseResult = rebaseResultInfo,
+                hasConflicts = mergeResultInfo?.mergeStatus == MergeStatus.CONFLICTING || 
+                            rebaseResultInfo?.status == RebaseStatus.CONFLICTING,
+                detailMessage = detailMessage
+            )
+        } finally {
+            clearSshCredentials()
+        }
     }
 
-    fun push(repoPath: String, credentials: CloneCredential? = null): Result<String> = withGit(repoPath) { git ->
-        val pushCommand = git.push().setPushAll()
-        configureCredentials(pushCommand, credentials)
-        pushCommand.call()
-        "Push completed"
+    fun push(
+        repoPath: String,
+        credentials: CloneCredential? = null,
+        options: GitPushOptions = GitPushOptions.default()
+    ): Result<String> = withGit(repoPath) { git ->
+        try {
+            val pushCommand = git.push().setRemote(options.remote)
+
+            when {
+                options.pushAllBranches -> {
+                    pushCommand.setPushAll()
+                }
+                options.branch != null -> {
+                    pushCommand.add(options.branch)
+                }
+                options.pushCurrentBranch -> {
+                    pushCommand.add(git.repository.branch)
+                }
+            }
+
+            if (options.pushTags) {
+                pushCommand.setPushTags()
+            }
+
+            configureCredentials(pushCommand, credentials)
+            pushCommand.call()
+            "Push completed"
+        } finally {
+            clearSshCredentials()
+        }
     }
 
     fun fetch(repoPath: String, credentials: CloneCredential? = null): Result<String> = withGit(repoPath) { git ->
-        val fetchCommand = git.fetch().setRemoveDeletedRefs(true)
-        configureCredentials(fetchCommand, credentials)
-        fetchCommand.call()
-        "Fetch completed"
+        try {
+            val fetchCommand = git.fetch().setRemoveDeletedRefs(true)
+            configureCredentials(fetchCommand, credentials)
+            fetchCommand.call()
+            "Fetch completed"
+        } finally {
+            clearSshCredentials()
+        }
     }
 
     fun createBranch(repoPath: String, branchName: String): Result<Unit> = withGit(repoPath) { git ->
@@ -388,17 +681,154 @@ class JGitDataSource @Inject constructor(
         Unit
     }
 
-    fun mergeBranch(repoPath: String, branchName: String): Result<Unit> = withGit(repoPath) { git ->
-        git.merge()
-            .include(git.repository.findRef(branchName))
-            .setCommit(true)
-            .call()
+    fun mergeBranch(repoPath: String, branchName: String): Result<ConflictResult> = withGit(repoPath) { git ->
+        try {
+            val mergeResult = git.merge()
+                .include(git.repository.findRef(branchName))
+                .setCommit(true)
+                .call()
+
+            // 检查是否有冲突
+            val conflicts = mergeResult.conflicts
+            val hasConflicts = conflicts != null && conflicts.isNotEmpty()
+            
+            if (hasConflicts) {
+                // 有冲突
+                val conflictFiles = getConflictFiles(git)
+                ConflictResult(
+                    isConflicting = true,
+                    operationType = "MERGE",
+                    conflicts = conflictFiles,
+                    message = "Merge conflict: ${conflictFiles.size} file(s) need resolution"
+                )
+            } else if (mergeResult.mergeStatus.name == "FAST_FORWARD" || mergeResult.mergeStatus.name == "MERGED") {
+                // 成功合并
+                ConflictResult(
+                    isConflicting = false,
+                    operationType = "MERGE",
+                    message = "Merge successful"
+                )
+            } else {
+                ConflictResult(
+                    isConflicting = false,
+                    operationType = "MERGE",
+                    message = "Merge completed: ${mergeResult.mergeStatus.name}"
+                )
+            }
+        } catch (e: Exception) {
+            throw Exception("Merge failed: ${e.message}")
+        }
+    }
+
+    fun rebaseBranch(repoPath: String, branchName: String): Result<ConflictResult> = withGit(repoPath) { git ->
+        try {
+            val rebaseResult = git.rebase()
+                .setUpstream(branchName)
+                .call()
+
+            // 检查是否有冲突
+            val hasConflicts = rebaseResult.status.name == "CONFLICTING"
+            
+            if (hasConflicts) {
+                // 有冲突
+                val conflictFiles = getConflictFiles(git)
+                ConflictResult(
+                    isConflicting = true,
+                    operationType = "REBASE",
+                    conflicts = conflictFiles,
+                    message = "Rebase conflict: ${conflictFiles.size} file(s) need resolution"
+                )
+            } else if (rebaseResult.status.name == "UP_TO_DATE" || 
+                       rebaseResult.status.name == "FAST_FORWARD" || 
+                       rebaseResult.status.name == "OK") {
+                // 成功
+                ConflictResult(
+                    isConflicting = false,
+                    operationType = "REBASE",
+                    message = "Rebase successful"
+                )
+            } else {
+                ConflictResult(
+                    isConflicting = false,
+                    operationType = "REBASE",
+                    message = "Rebase completed: ${rebaseResult.status.name}"
+                )
+            }
+        } catch (e: Exception) {
+            throw Exception("Rebase failed: ${e.message}")
+        }
+    }
+
+    /**
+     * 获取冲突文件列表
+     */
+    private fun getConflictFiles(git: Git): List<GitConflict> {
+        val status = git.status().call()
+        val conflicts = mutableListOf<GitConflict>()
+
+        // JGit 中冲突文件会在 conflicting 列表中
+        status.conflicting.forEach { path ->
+            conflicts.add(
+                GitConflict(
+                    path = path,
+                    name = java.io.File(path).name,
+                    status = ConflictStatus.UNRESOLVED,
+                    description = "Conflict"
+                )
+            )
+        }
+
+        return conflicts
+    }
+
+    /**
+     * 检查当前是否有未解决的冲突
+     */
+    fun getConflictStatus(repoPath: String): Result<ConflictResult> = withGit(repoPath) { git ->
+        val status = git.status().call()
+
+        if (status.conflicting.isNotEmpty()) {
+            // 尝试检测是 merge 还是 rebase
+            val gitDir = git.repository.directory
+            val isMerge = java.io.File(gitDir, "MERGE_HEAD").exists()
+            val isRebase = java.io.File(gitDir, "rebase-apply").exists() || java.io.File(gitDir, "rebase-merge").exists()
+            
+            val operationType = when {
+                isMerge -> "MERGE"
+                isRebase -> "REBASE"
+                else -> "UNKNOWN"
+            }
+            
+            val conflicts = getConflictFiles(git)
+            ConflictResult(
+                isConflicting = true,
+                operationType = operationType,
+                conflicts = conflicts,
+                message = "${conflicts.size} conflict(s) need resolution"
+            )
+        } else {
+            ConflictResult(
+                isConflicting = false,
+                message = "No conflicts"
+            )
+        }
+    }
+
+    /**
+     * 标记冲突文件为已解决（添加到暂存区）
+     */
+    fun markConflictResolved(repoPath: String, filePath: String): Result<Unit> = withGit(repoPath) { git ->
+        // 将文件添加到暂存区表示冲突已解决
+        git.add().addFilepattern(filePath).call()
         Unit
     }
 
-    fun rebaseBranch(repoPath: String, branchName: String): Result<Unit> = withGit(repoPath) { git ->
-        git.rebase().setUpstream(branchName).call()
-        Unit
+    /**
+     * 取消 rebase 操作
+     */
+    fun abortRebase(repoPath: String): Result<String> = withGit(repoPath) { git ->
+        git.rebase().setOperation(org.eclipse.jgit.api.RebaseCommand.Operation.ABORT).call()
+        "Rebase aborted"
     }
 
     fun renameBranch(repoPath: String, oldName: String, newName: String): Result<String> = withGit(repoPath) { git ->
@@ -409,14 +839,17 @@ class JGitDataSource @Inject constructor(
     fun configureRemote(repoPath: String, name: String, url: String): Result<String> = withGit(repoPath) { git ->
         val config = git.repository.config
         val exists = config.getSubsections("remote").contains(name)
+
+        // 设置远程仓库 URL
+        config.setString("remote", name, "url", url)
         
-        if (exists) {
-            config.setString("remote", name, "url", url)
-        } else {
-            config.setString("remote", name, "url", url)
+        // 如果是新远程仓库，同时设置 fetch 配置
+        if (!exists) {
+            config.setString("remote", name, "fetch", "+refs/heads/*:refs/remotes/$name/*")
         }
-        config.save()
         
+        config.save()
+
         if (exists) "Remote $name updated: $url" else "Remote $name added: $url"
     }
 

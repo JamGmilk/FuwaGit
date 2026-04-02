@@ -1,21 +1,23 @@
 package jamgmilk.fuwagit.domain.usecase.git
 
-import jamgmilk.fuwagit.domain.model.credential.CloneCredential
-import jamgmilk.fuwagit.domain.model.git.GitPushOptions
+import jamgmilk.fuwagit.domain.model.git.GitResetMode
 import jamgmilk.fuwagit.domain.repository.GitRepository
 import javax.inject.Inject
 
-class PushUseCase @Inject constructor(
+class ResetUseCase @Inject constructor(
     private val repository: GitRepository
 ) {
     suspend operator fun invoke(
         repoPath: String,
-        credentials: CloneCredential? = null,
-        options: GitPushOptions = GitPushOptions.default()
+        commitHash: String,
+        mode: GitResetMode
     ): Result<String> {
         if (repoPath.isBlank()) {
             return Result.failure(IllegalArgumentException("Repository path cannot be empty"))
         }
-        return repository.push(repoPath, credentials, options)
+        if (commitHash.isBlank()) {
+            return Result.failure(IllegalArgumentException("Commit hash cannot be empty"))
+        }
+        return repository.reset(repoPath, commitHash, mode)
     }
 }

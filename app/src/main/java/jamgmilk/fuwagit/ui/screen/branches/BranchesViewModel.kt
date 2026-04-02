@@ -3,13 +3,17 @@ package jamgmilk.fuwagit.ui.screen.branches
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import jamgmilk.fuwagit.domain.model.git.ConflictResult
 import jamgmilk.fuwagit.domain.model.git.GitBranch
 import jamgmilk.fuwagit.ui.components.DangerousOperationType
 import jamgmilk.fuwagit.ui.components.OperationResult
+import jamgmilk.fuwagit.domain.usecase.git.AbortRebaseUseCase
 import jamgmilk.fuwagit.domain.usecase.git.CheckoutBranchUseCase
 import jamgmilk.fuwagit.domain.usecase.git.CreateBranchUseCase
 import jamgmilk.fuwagit.domain.usecase.git.DeleteBranchUseCase
 import jamgmilk.fuwagit.domain.usecase.git.GetBranchesUseCase
+import jamgmilk.fuwagit.domain.usecase.git.GetConflictStatusUseCase
+import jamgmilk.fuwagit.domain.usecase.git.MarkConflictResolvedUseCase
 import jamgmilk.fuwagit.domain.usecase.git.MergeBranchUseCase
 import jamgmilk.fuwagit.domain.usecase.git.RebaseBranchUseCase
 import jamgmilk.fuwagit.domain.usecase.git.RenameBranchUseCase
@@ -32,7 +36,10 @@ data class BranchesUiState(
     // 危险操作相关状态
     val pendingOperation: DangerousOperationType? = null,
     val pendingOperationTarget: String? = null,
-    val operationResult: OperationResult? = null
+    val operationResult: OperationResult? = null,
+    // 冲突处理相关状态
+    val conflictResult: ConflictResult? = null,
+    val isResolvingConflict: Boolean = false
 )
 
 @HiltViewModel
@@ -44,7 +51,10 @@ class BranchesViewModel @Inject constructor(
     private val deleteBranchUseCase: DeleteBranchUseCase,
     private val mergeBranchUseCase: MergeBranchUseCase,
     private val rebaseBranchUseCase: RebaseBranchUseCase,
-    private val renameBranchUseCase: RenameBranchUseCase
+    private val renameBranchUseCase: RenameBranchUseCase,
+    private val getConflictStatusUseCase: GetConflictStatusUseCase,
+    private val markConflictResolvedUseCase: MarkConflictResolvedUseCase,
+    private val abortRebaseUseCase: AbortRebaseUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(BranchesUiState())
@@ -293,13 +303,44 @@ class BranchesViewModel @Inject constructor(
         }
     }
 
+    fun renameBranch(oldName: String, newName: String) {
+        val path = currentRepoPath ?: return
+
+        viewModelScope.launch {
+            renameBranchUseCase(path, oldName, newName)
+                .onSuccess {
+                    loadBranches()
+                }
+                .onFailure { e ->
+                    _uiState.update { it.copy(error = e.message) }
+                }
+        }
+    }
+
     fun mergeBranch(name: String) {
         val path = currentRepoPath ?: return
 
         viewModelScope.launch {
             mergeBranchUseCase(path, name)
-                .onSuccess {
-                    loadBranches()
+                .onSuccess { result ->
+                    if (result.isConflicting) {
+                        // 有冲突，显示冲突解决 UI
+                        _uiState.update {
+                            it.copy(
+                                conflictResult = result,
+                                isResolvingConflict = true
+                            )
+                        }
+                    } else {
+                        // 合并成功
+                        loadBranches()
+                        _uiState.update {
+                            it.copy(
+                                operationResult = OperationResult.Success(result.message),
+                                conflictResult = null
+                            )
+                        }
+                    }
                 }
                 .onFailure { e ->
                     _uiState.update { it.copy(error = e.message) }
@@ -312,8 +353,25 @@ class BranchesViewModel @Inject constructor(
 
         viewModelScope.launch {
             rebaseBranchUseCase(path, name)
-                .onSuccess {
-                    loadBranches()
+                .onSuccess { result ->
+                    if (result.isConflicting) {
+                        // 有冲突，显示冲突解决 UI
+                        _uiState.update {
+                            it.copy(
+                                conflictResult = result,
+                                isResolvingConflict = true
+                            )
+                        }
+                    } else {
+                        // Rebase 成功
+                        loadBranches()
+                        _uiState.update {
+                            it.copy(
+                                operationResult = OperationResult.Success(result.message),
+                                conflictResult = null
+                            )
+                        }
+                    }
                 }
                 .onFailure { e ->
                     _uiState.update { it.copy(error = e.message) }
@@ -321,12 +379,106 @@ class BranchesViewModel @Inject constructor(
         }
     }
 
-    fun renameBranch(oldName: String, newName: String) {
+    // ============ 冲突处理方法 ============
+
+    /**
+     * 检查当前是否有未解决的冲突
+     */
+    fun checkConflictStatus() {
         val path = currentRepoPath ?: return
 
         viewModelScope.launch {
-            renameBranchUseCase(path, oldName, newName)
+            getConflictStatusUseCase(path)
+                .onSuccess { result ->
+                    if (result.isConflicting) {
+                        _uiState.update {
+                            it.copy(
+                                conflictResult = result,
+                                isResolvingConflict = true
+                            )
+                        }
+                    }
+                }
+                .onFailure { e ->
+                    _uiState.update { it.copy(error = e.message) }
+                }
+        }
+    }
+
+    /**
+     * 标记冲突文件为已解决
+     */
+    fun markConflictResolved(filePath: String) {
+        val path = currentRepoPath ?: return
+
+        viewModelScope.launch {
+            markConflictResolvedUseCase(path, filePath)
                 .onSuccess {
+                    // 重新获取冲突状态
+                    checkConflictStatus()
+                }
+                .onFailure { e ->
+                    _uiState.update { it.copy(error = e.message) }
+                }
+        }
+    }
+
+    /**
+     * 完成冲突解决（所有冲突都已解决后继续操作）
+     */
+    fun finishConflictResolution() {
+        val path = currentRepoPath ?: return
+
+        viewModelScope.launch {
+            // 检查是否所有冲突都已解决
+            getConflictStatusUseCase(path)
+                .onSuccess { result ->
+                    if (result.allResolved || result.allStaged) {
+                        // 所有冲突已解决，可以继续
+                        _uiState.update {
+                            it.copy(
+                                isResolvingConflict = false,
+                                conflictResult = null,
+                                operationResult = OperationResult.Success("Conflicts resolved")
+                            )
+                        }
+                        loadBranches()
+                    }
+                }
+                .onFailure { e ->
+                    _uiState.update { it.copy(error = e.message) }
+                }
+        }
+    }
+
+    /**
+     * 取消冲突解决
+     */
+    fun cancelConflictResolution() {
+        _uiState.update {
+            it.copy(
+                isResolvingConflict = false,
+                conflictResult = null
+            )
+        }
+    }
+
+    /**
+     * 取消 Rebase 操作
+     */
+    fun abortRebase() {
+        val path = currentRepoPath ?: return
+
+        viewModelScope.launch {
+            abortRebaseUseCase(path)
+                .onSuccess { result ->
+                    _uiState.update {
+                        it.copy(
+                            isResolvingConflict = false,
+                            conflictResult = null,
+                            operationResult = OperationResult.Success(result)
+                        )
+                    }
                     loadBranches()
                 }
                 .onFailure { e ->

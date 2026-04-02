@@ -63,7 +63,8 @@ data class RepoFolderItem(
 data class RepoUiState(
     val repoItems: List<RepoFolderItem> = emptyList(),
     val isLoading: Boolean = false,
-    val error: String? = null
+    val error: String? = null,
+    val untrackedFilesForClean: List<String> = emptyList()
 )
 
 data class HttpsCredentialItem(
@@ -131,13 +132,15 @@ class MyReposViewModel @Inject constructor(
     }
 
     private val _repoSizes = mutableStateMapOf<String, Long>()
+    private val _untrackedFilesForClean = MutableStateFlow<List<String>>(emptyList())
 
     val uiState: StateFlow<RepoUiState> = combine(
         _savedRepos,
         currentRepoInfo,
         _isLoading,
-        _error
-    ) { repos, currentRepo, loading, error ->
+        _error,
+        _untrackedFilesForClean
+    ) { repos, currentRepo, loading, error, untrackedFiles ->
         RepoUiState(
             repoItems = repos.map { repo ->
                 RepoFolderItem(
@@ -151,7 +154,8 @@ class MyReposViewModel @Inject constructor(
                 )
             },
             isLoading = loading,
-            error = error
+            error = error,
+            untrackedFilesForClean = untrackedFiles
         )
     }.stateIn(
         scope = viewModelScope,
@@ -227,7 +231,72 @@ class MyReposViewModel @Inject constructor(
     }
 
     suspend fun cleanRepo(path: String, dryRun: Boolean = false): Result<String> {
-        return cleanUseCase(path, dryRun).map { it.toString() }
+        return cleanUseCase(path, dryRun).map { 
+            if (dryRun) {
+                // 更新 untracked files 列表用于预览
+                _untrackedFilesForClean.value = it.files
+            }
+            it.toString()
+        }
+    }
+
+    /**
+     * 请求 Clean 预览：执行 dry-run 获取将要删除的文件列表
+     */
+    fun requestCleanPreview() {
+        val path = currentRepoInfo.value.repoPath ?: return
+        
+        viewModelScope.launch {
+            _isLoading.value = true
+            cleanUseCase(path, dryRun = true).fold(
+                onSuccess = { result ->
+                    _isLoading.value = false
+                    if (result.files.isEmpty()) {
+                        _error.value = "No untracked files to clean"
+                        _untrackedFilesForClean.value = emptyList()
+                    } else {
+                        _untrackedFilesForClean.value = result.files
+                    }
+                },
+                onFailure = { e ->
+                    _isLoading.value = false
+                    _error.value = "Failed to get untracked files: ${e.message}"
+                    _untrackedFilesForClean.value = emptyList()
+                }
+            )
+        }
+    }
+
+    /**
+     * 确认执行 Clean 操作（实际删除文件）
+     */
+    fun confirmCleanUntracked() {
+        val path = currentRepoInfo.value.repoPath ?: return
+        
+        viewModelScope.launch {
+            _isLoading.value = true
+            cleanUseCase(path, dryRun = false).fold(
+                onSuccess = { result ->
+                    _isLoading.value = false
+                    val count = _untrackedFilesForClean.value.size
+                    _untrackedFilesForClean.value = emptyList()
+                    _error.value = null
+                    loadSavedRepos() // 刷新仓库列表（大小可能已变化）
+                },
+                onFailure = { e ->
+                    _isLoading.value = false
+                    _error.value = "Failed to clean: ${e.message}"
+                    _untrackedFilesForClean.value = emptyList()
+                }
+            )
+        }
+    }
+
+    /**
+     * 清除 Clean 预览状态
+     */
+    fun clearCleanPreview() {
+        _untrackedFilesForClean.value = emptyList()
     }
 
     suspend fun getRepoInfo(localPath: String): Map<String, String> {

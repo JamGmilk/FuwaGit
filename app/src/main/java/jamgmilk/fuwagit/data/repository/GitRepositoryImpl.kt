@@ -4,13 +4,17 @@ import jamgmilk.fuwagit.data.jgit.JGitDataSource
 import jamgmilk.fuwagit.domain.model.credential.CloneCredential
 import jamgmilk.fuwagit.domain.model.git.CleanResult
 import jamgmilk.fuwagit.domain.model.git.CloneOptions
+import jamgmilk.fuwagit.domain.model.git.ConflictResult
 import jamgmilk.fuwagit.domain.model.git.GitBranch
 import jamgmilk.fuwagit.domain.model.git.GitChangeType
 import jamgmilk.fuwagit.domain.model.git.GitCommit
+import jamgmilk.fuwagit.domain.model.git.GitCommitDetail
 import jamgmilk.fuwagit.domain.model.git.GitFileStatus
+import jamgmilk.fuwagit.domain.model.git.GitPushOptions
 import jamgmilk.fuwagit.domain.model.git.GitRepoStatus
 import jamgmilk.fuwagit.domain.model.git.GitRemote
 import jamgmilk.fuwagit.domain.model.git.PullResult
+import jamgmilk.fuwagit.domain.model.git.GitResetMode
 import jamgmilk.fuwagit.domain.repository.GitRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -26,6 +30,10 @@ class GitRepositoryImpl @Inject constructor(
 
     override suspend fun getCommitHistory(repoPath: String, maxCount: Int): Result<List<GitCommit>> = withContext(Dispatchers.IO) {
         jGitDataSource.getLog(repoPath, maxCount)
+    }
+
+    override suspend fun getCommitFileChanges(repoPath: String, commitHash: String): Result<GitCommitDetail> = withContext(Dispatchers.IO) {
+        jGitDataSource.getCommitFileChanges(repoPath, commitHash)
     }
 
     override suspend fun getBranches(repoPath: String): Result<List<GitBranch>> = withContext(Dispatchers.IO) {
@@ -64,12 +72,24 @@ class GitRepositoryImpl @Inject constructor(
         jGitDataSource.commit(repoPath, message)
     }
 
+    override suspend fun reset(
+        repoPath: String,
+        commitHash: String,
+        mode: GitResetMode
+    ): Result<String> = withContext(Dispatchers.IO) {
+        jGitDataSource.reset(repoPath, commitHash, mode)
+    }
+
     override suspend fun pull(repoPath: String, credentials: CloneCredential?): Result<PullResult> = withContext(Dispatchers.IO) {
         jGitDataSource.pull(repoPath, credentials)
     }
 
-    override suspend fun push(repoPath: String, credentials: CloneCredential?): Result<String> = withContext(Dispatchers.IO) {
-        jGitDataSource.push(repoPath, credentials)
+    override suspend fun push(
+        repoPath: String,
+        credentials: CloneCredential?,
+        options: GitPushOptions
+    ): Result<String> = withContext(Dispatchers.IO) {
+        jGitDataSource.push(repoPath, credentials, options)
     }
 
     override suspend fun fetch(repoPath: String, credentials: CloneCredential?): Result<String> = withContext(Dispatchers.IO) {
@@ -84,12 +104,24 @@ class GitRepositoryImpl @Inject constructor(
         jGitDataSource.createBranch(repoPath, branchName)
     }
 
-    override suspend fun mergeBranch(repoPath: String, branchName: String): Result<Unit> = withContext(Dispatchers.IO) {
+    override suspend fun mergeBranch(repoPath: String, branchName: String): Result<ConflictResult> = withContext(Dispatchers.IO) {
         jGitDataSource.mergeBranch(repoPath, branchName)
     }
 
-    override suspend fun rebaseBranch(repoPath: String, branchName: String): Result<Unit> = withContext(Dispatchers.IO) {
+    override suspend fun rebaseBranch(repoPath: String, branchName: String): Result<ConflictResult> = withContext(Dispatchers.IO) {
         jGitDataSource.rebaseBranch(repoPath, branchName)
+    }
+
+    override suspend fun getConflictStatus(repoPath: String): Result<ConflictResult> = withContext(Dispatchers.IO) {
+        jGitDataSource.getConflictStatus(repoPath)
+    }
+
+    override suspend fun markConflictResolved(repoPath: String, filePath: String): Result<Unit> = withContext(Dispatchers.IO) {
+        jGitDataSource.markConflictResolved(repoPath, filePath)
+    }
+
+    override suspend fun abortRebase(repoPath: String): Result<String> = withContext(Dispatchers.IO) {
+        jGitDataSource.abortRebase(repoPath)
     }
 
     override suspend fun deleteBranch(repoPath: String, branchName: String, force: Boolean): Result<Unit> = withContext(Dispatchers.IO) {

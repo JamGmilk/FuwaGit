@@ -23,7 +23,15 @@ data class GitConfig(
     @SerialName("user.email")
     val userEmail: String = "",
     @SerialName("init.defaultbranch")
-    val defaultBranch: String = "main"
+    val defaultBranch: String = "main",
+    @SerialName("sync.auto")
+    val autoSync: Boolean = false,
+    @SerialName("sync.conflictSafeMode")
+    val conflictSafeMode: Boolean = true,
+    @SerialName("sync.backupBeforeSync")
+    val backupBeforeSync: Boolean = true,
+    @SerialName("developer.verboseLogging")
+    val verboseLogging: Boolean = false
 )
 
 @Singleton
@@ -81,6 +89,34 @@ class GitConfigStore @Inject constructor(
     suspend fun setDefaultBranch(branch: String) {
         val current = getConfig()
         val updated = current.copy(defaultBranch = branch)
+        saveToFile(updated)
+        _configFlow.value = updated
+    }
+
+    suspend fun setAutoSync(enabled: Boolean) {
+        val current = getConfig()
+        val updated = current.copy(autoSync = enabled)
+        saveToFile(updated)
+        _configFlow.value = updated
+    }
+
+    suspend fun setConflictSafeMode(enabled: Boolean) {
+        val current = getConfig()
+        val updated = current.copy(conflictSafeMode = enabled)
+        saveToFile(updated)
+        _configFlow.value = updated
+    }
+
+    suspend fun setBackupBeforeSync(enabled: Boolean) {
+        val current = getConfig()
+        val updated = current.copy(backupBeforeSync = enabled)
+        saveToFile(updated)
+        _configFlow.value = updated
+    }
+
+    suspend fun setVerboseLogging(enabled: Boolean) {
+        val current = getConfig()
+        val updated = current.copy(verboseLogging = enabled)
         saveToFile(updated)
         _configFlow.value = updated
     }
