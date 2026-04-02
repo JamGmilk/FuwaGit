@@ -11,7 +11,6 @@ import jamgmilk.fuwagit.domain.usecase.git.GetBranchesUseCase
 import jamgmilk.fuwagit.domain.usecase.git.MergeBranchUseCase
 import jamgmilk.fuwagit.domain.usecase.git.RebaseBranchUseCase
 import jamgmilk.fuwagit.domain.usecase.git.RenameBranchUseCase
-import jamgmilk.fuwagit.domain.state.RepoState
 import jamgmilk.fuwagit.domain.state.RepoStateManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -52,7 +51,7 @@ class BranchesViewModel @Inject constructor(
             currentRepoManager.repoInfo.collectLatest { info ->
                 currentRepoPath = info.repoPath
                 _uiState.update { it.copy(repoPath = info.repoPath) }
-                if (info.state == RepoState.REPO_VALID && info.repoPath != null) {
+                if (info.isValidGit) {
                     loadBranches()
                 } else {
                     _uiState.update {

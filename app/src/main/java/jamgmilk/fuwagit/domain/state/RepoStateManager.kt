@@ -4,31 +4,24 @@ import jamgmilk.fuwagit.data.local.prefs.RepoDataStore
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import java.io.File
 import javax.inject.Inject
 import javax.inject.Singleton
 
-enum class RepoState {
-    NO_REPO_SELECTED,
-    CHECKING,
-    REPO_PATH_INVALID,
-    REPO_NOT_GIT,
-    REPO_VALID
-}
-
 data class RepoInfo(
-    val state: RepoState = RepoState.NO_REPO_SELECTED,
     val repoPath: String? = null,
     val repoName: String? = null,
-    val errorMessage: String? = null
-)
+    val isLoading: Boolean = false,
+    val error: String? = null
+) {
+    val isValidGit: Boolean get() = repoPath != null && error == null && !isLoading
+    val isNotGit: Boolean get() = repoPath != null && error == "Not a git repository"
+    val isPathInvalid: Boolean get() = error == "Path does not exist"
+}
 
 @Singleton
 class RepoStateManager @Inject constructor(
@@ -36,9 +29,6 @@ class RepoStateManager @Inject constructor(
 ) {
     private val _repoInfo = MutableStateFlow(RepoInfo())
     val repoInfo: StateFlow<RepoInfo> = _repoInfo.asStateFlow()
-
-    private val _validationRequest = MutableSharedFlow<String?>()
-    val validationRequest: SharedFlow<String?> = _validationRequest.asSharedFlow()
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
 
@@ -61,14 +51,10 @@ class RepoStateManager @Inject constructor(
 
     fun getRepoPath(): String? = _repoInfo.value.repoPath
 
-    fun isRepoReady(): Boolean = _repoInfo.value.state == RepoState.REPO_VALID
+    fun isRepoReady(): Boolean = _repoInfo.value.isValidGit
 
     fun clearRepo() {
-        _repoInfo.value = RepoInfo(
-            state = RepoState.NO_REPO_SELECTED,
-            repoPath = null,
-            repoName = null
-        )
+        _repoInfo.value = RepoInfo()
     }
 
     suspend fun setRepoPath(path: String?) {
@@ -85,33 +71,26 @@ class RepoStateManager @Inject constructor(
         val name = file.name
 
         _repoInfo.value = RepoInfo(
-            state = RepoState.CHECKING,
             repoPath = path,
-            repoName = name
+            repoName = name,
+            isLoading = true
         )
 
-        val isValidGit = file.exists() && hasGitDir(path)
-        val state = when {
-            !file.exists() -> RepoState.REPO_PATH_INVALID
-            !isValidGit -> RepoState.REPO_NOT_GIT
-            else -> RepoState.REPO_VALID
-        }
-
-        val errorMessage = when (state) {
-            RepoState.REPO_PATH_INVALID -> "Path does not exist"
-            RepoState.REPO_NOT_GIT -> "Not a git repository"
+        val error = when {
+            !file.exists() -> "Path does not exist"
+            !hasGitDir(path) -> "Not a git repository"
             else -> null
         }
 
         _repoInfo.value = RepoInfo(
-            state = state,
             repoPath = path,
             repoName = name,
-            errorMessage = errorMessage
+            isLoading = false,
+            error = error
         )
 
         repoDataStore.setCurrentRepo(path)
-        if (state == RepoState.REPO_VALID) {
+        if (error == null) {
             repoDataStore.updateLastAccessed(path)
         }
     }

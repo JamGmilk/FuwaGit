@@ -72,6 +72,8 @@ import jamgmilk.fuwagit.domain.model.credential.HttpsCredential
 import jamgmilk.fuwagit.domain.model.credential.SshKey
 import jamgmilk.fuwagit.ui.components.FilePickerDialog
 import jamgmilk.fuwagit.ui.components.SubSettingsTemplate
+import jamgmilk.fuwagit.ui.screen.credentials.CredentialSelectDialog
+import jamgmilk.fuwagit.ui.screen.credentials.CredentialType
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -284,9 +286,8 @@ private fun CloneContent(
     var selectedHttpsUuid by remember { mutableStateOf<String?>(null) }
     var selectedSshUuid by remember { mutableStateOf<String?>(null) }
 
-    var useAnonymousHttps by remember { mutableStateOf(true) }
-    var useCredential by remember { mutableStateOf(false) }
     var showFolderPicker by remember { mutableStateOf(false) }
+    var showCredentialDialog by remember { mutableStateOf(false) }
 
     var isDirectoryEmptyState by remember { mutableStateOf(true) }
 
@@ -387,11 +388,6 @@ private fun CloneContent(
                         text = validationResult.errorMessage!!,
                         color = MaterialTheme.colorScheme.error
                     )
-                } else if (isHttps && !useCredential && useAnonymousHttps) {
-                    Text(
-                        text = "Anonymous download - no credential required",
-                        color = Color(0xFF4CAF50)
-                    )
                 }
             },
             singleLine = true,
@@ -404,121 +400,22 @@ private fun CloneContent(
             )
         )
 
-        Surface(
-            shape = RoundedCornerShape(10.dp),
-            color = colors.surfaceVariant.copy(alpha = 0.5f)
-        ) {
-            Row(
-                modifier = Modifier.padding(12.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    Icons.Default.Info,
-                    contentDescription = null,
-                    tint = colors.onSurfaceVariant,
-                    modifier = Modifier.size(16.dp)
-                )
-                Spacer(Modifier.width(8.dp))
-                Text(
-                    text = "Supported: https://, http://, git@host:user/repo.git, ssh://",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = colors.onSurfaceVariant
-                )
-            }
+        if (isHttps && httpsCredentials.isNotEmpty()) {
+            val selectedCred = httpsCredentials.find { it.uuid == selectedHttpsUuid }
+            CredentialSelectionButton(
+                label = if (selectedCred != null) "HTTPS: ${selectedCred.username}" else "Select HTTPS Credential",
+                isEnabled = true,
+                onClick = { showCredentialDialog = true }
+            )
         }
 
-        if (showCredentialSection && isHttps) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Checkbox(
-                    checked = useAnonymousHttps,
-                    onCheckedChange = {
-                        useAnonymousHttps = it
-                        if (it) useCredential = false
-                    },
-                    colors = CheckboxDefaults.colors(checkedColor = Color(0xFF4CAF50))
-                )
-                Column {
-                    Text(
-                        text = "Anonymous download",
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                    Text(
-                        text = "For public repositories",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-
-            if (!useAnonymousHttps && hasCredentials) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Checkbox(
-                        checked = useCredential,
-                        onCheckedChange = { useCredential = it },
-                        colors = CheckboxDefaults.colors(checkedColor = Color(0xFF2196F3))
-                    )
-                    Text(
-                        text = "Use saved credentials",
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                }
-            }
-        }
-
-        if (showCredentialSection && isSsh && hasCredentials) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Checkbox(
-                    checked = useCredential,
-                    onCheckedChange = { useCredential = it },
-                    colors = CheckboxDefaults.colors(checkedColor = Color(0xFF2196F3))
-                )
-                Text(
-                    text = "Use saved SSH key",
-                    style = MaterialTheme.typography.bodyMedium
-                )
-            }
-        }
-
-        if (showCredentialSection && useCredential) {
-            if (isHttps && httpsCredentials.isNotEmpty()) {
-                val selectedCred = httpsCredentials.find { it.uuid == selectedHttpsUuid }
-                CredentialSelectionButton(
-                    label = if (selectedCred != null) "Using: ${selectedCred.username}" else "Select HTTPS Credential",
-                    isEnabled = true,
-                    onClick = {
-                        scope.launch {
-                            val selected = myReposViewModel.showHttpsCredentialSelector()
-                            selected?.let { selectedHttpsUuid = it }
-                        }
-                    }
-                )
-            }
-
-            if (isSsh && sshKeys.isNotEmpty()) {
-                val selectedKey = sshKeys.find { it.uuid == selectedSshUuid }
-                CredentialSelectionButton(
-                    label = if (selectedKey != null) "Using: ${selectedKey.name}" else "Select SSH Key",
-                    isEnabled = true,
-                    onClick = {
-                        scope.launch {
-                            val selected = myReposViewModel.showSshKeySelector()
-                            selected?.let { selectedSshUuid = it }
-                        }
-                    }
-                )
-            }
+        if (isSsh && sshKeys.isNotEmpty()) {
+            val selectedKey = sshKeys.find { it.uuid == selectedSshUuid }
+            CredentialSelectionButton(
+                label = if (selectedKey != null) "SSH: ${selectedKey.name}" else "Select SSH Key",
+                isEnabled = true,
+                onClick = { showCredentialDialog = true }
+            )
         }
 
         TargetFolderSelector(
@@ -559,7 +456,8 @@ private fun CloneContent(
             localPath.isNotBlank() &&
             isDirectoryEmptyState &&
             !isLoading &&
-            (!useCredential || (isHttps && selectedHttpsUuid != null) || (isSsh && selectedSshUuid != null) || (isHttps && useAnonymousHttps))
+            (!isSsh || selectedSshUuid != null) &&
+            (!isHttps || httpsCredentials.isEmpty() || selectedHttpsUuid != null)
 
         Button(
             onClick = {
@@ -570,12 +468,8 @@ private fun CloneContent(
                 error = null
                 isLoading = true
 
-                val httpsUuid = if (isHttps && useCredential && !useAnonymousHttps && selectedHttpsUuid != null) {
-                    selectedHttpsUuid
-                } else null
-                val sshUuid = if (isSsh && useCredential && selectedSshUuid != null) {
-                    selectedSshUuid
-                } else null
+                val httpsUuid = if (isHttps) selectedHttpsUuid else null
+                val sshUuid = if (isSsh) selectedSshUuid else null
 
                 myReposViewModel.cloneWithCredentials(
                     uri = cloneUrl,
@@ -591,9 +485,7 @@ private fun CloneContent(
                     }.onFailure { e ->
                         error = e.message
                         if (e.message?.contains("401") == true) {
-                            error = "Authentication failed. Please provide credentials."
-                            useAnonymousHttps = false
-                            useCredential = true
+                            error = "Authentication failed. Please select credentials."
                         }
                     }
                 }
@@ -632,6 +524,23 @@ private fun CloneContent(
             onSelect = { path ->
                 localPath = path
                 showFolderPicker = false
+            }
+        )
+    }
+
+    if (showCredentialDialog) {
+        CredentialSelectDialog(
+            title = "Select Credential",
+            httpsCredentials = httpsCredentials,
+            sshKeys = sshKeys,
+            onDismiss = { showCredentialDialog = false },
+            onSelect = { uuid, type ->
+                when (type) {
+                    CredentialType.HTTPS -> selectedHttpsUuid = uuid
+                    CredentialType.SSH -> selectedSshUuid = uuid
+                    CredentialType.BOTH -> {}
+                }
+                showCredentialDialog = false
             }
         )
     }
