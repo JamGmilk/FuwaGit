@@ -4,8 +4,12 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import jamgmilk.fuwagit.domain.model.git.GitCommit
-import jamgmilk.fuwagit.domain.usecase.git.GetCommitHistoryUseCase
+import jamgmilk.fuwagit.domain.model.git.GitCommitDetail
+import jamgmilk.fuwagit.domain.model.git.GitResetMode
 import jamgmilk.fuwagit.domain.state.RepoStateManager
+import jamgmilk.fuwagit.domain.usecase.git.GetCommitFileChangesUseCase
+import jamgmilk.fuwagit.domain.usecase.git.GetCommitHistoryUseCase
+import jamgmilk.fuwagit.domain.usecase.git.ResetUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -18,13 +22,22 @@ data class HistoryUiState(
     val isLoading: Boolean = false,
     val error: String? = null,
     val repoPath: String? = null,
-    val commits: List<GitCommit> = emptyList()
+    val commits: List<GitCommit> = emptyList(),
+    // Reset 相关状态
+    val pendingResetCommit: GitCommit? = null,
+    val pendingResetMode: GitResetMode? = null,
+    val isResetting: Boolean = false,
+    // Commit 详情相关状态
+    val selectedCommitDetail: GitCommitDetail? = null,
+    val isLoadingCommitDetail: Boolean = false
 )
 
 @HiltViewModel
 class HistoryViewModel @Inject constructor(
     private val currentRepoManager: RepoStateManager,
-    private val getCommitHistoryUseCase: GetCommitHistoryUseCase
+    private val getCommitHistoryUseCase: GetCommitHistoryUseCase,
+    private val resetUseCase: ResetUseCase,
+    private val getCommitFileChangesUseCase: GetCommitFileChangesUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HistoryUiState())
@@ -78,5 +91,105 @@ class HistoryViewModel @Inject constructor(
 
     fun clearError() {
         _uiState.update { it.copy(error = null) }
+    }
+
+    /**
+     * 请求 Reset 操作：设置待处理的 commit 和模式
+     */
+    fun requestReset(commit: GitCommit, mode: GitResetMode) {
+        _uiState.update {
+            it.copy(
+                pendingResetCommit = commit,
+                pendingResetMode = mode
+            )
+        }
+    }
+
+    /**
+     * 确认执行 Reset 操作
+     */
+    fun confirmReset() {
+        val path = currentRepoPath ?: return
+        val commit = _uiState.value.pendingResetCommit ?: return
+        val mode = _uiState.value.pendingResetMode ?: return
+
+        viewModelScope.launch {
+            _uiState.update { it.copy(isResetting = true) }
+            resetUseCase(path, commit.hash, mode).fold(
+                onSuccess = { result ->
+                    _uiState.update {
+                        it.copy(
+                            isResetting = false,
+                            pendingResetCommit = null,
+                            pendingResetMode = null,
+                            error = null
+                        )
+                    }
+                    loadCommitHistory() // 刷新历史记录
+                },
+                onFailure = { e ->
+                    _uiState.update {
+                        it.copy(
+                            isResetting = false,
+                            pendingResetCommit = null,
+                            pendingResetMode = null,
+                            error = e.message
+                        )
+                    }
+                }
+            )
+        }
+    }
+
+    /**
+     * 取消 Reset 操作
+     */
+    fun cancelReset() {
+        _uiState.update {
+            it.copy(
+                pendingResetCommit = null,
+                pendingResetMode = null
+            )
+        }
+    }
+
+    /**
+     * 加载 commit 详情（包含文件变更列表）
+     */
+    fun loadCommitDetail(commit: GitCommit) {
+        val path = currentRepoPath ?: return
+
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoadingCommitDetail = true) }
+            getCommitFileChangesUseCase(path, commit.hash).fold(
+                onSuccess = { detail ->
+                    _uiState.update {
+                        it.copy(
+                            selectedCommitDetail = detail,
+                            isLoadingCommitDetail = false
+                        )
+                    }
+                },
+                onFailure = { e ->
+                    _uiState.update {
+                        it.copy(
+                            isLoadingCommitDetail = false,
+                            error = e.message
+                        )
+                    }
+                }
+            )
+        }
+    }
+
+    /**
+     * 清除 commit 详情
+     */
+    fun clearCommitDetail() {
+        _uiState.update {
+            it.copy(
+                selectedCommitDetail = null
+            )
+        }
     }
 }

@@ -2,6 +2,7 @@ package jamgmilk.fuwagit.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,17 +17,36 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.DeleteForever
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Replay
 import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ElevatedCard
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -43,8 +63,14 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import jamgmilk.fuwagit.domain.model.git.ConflictResult
+import jamgmilk.fuwagit.domain.model.git.ConflictStatus
+import jamgmilk.fuwagit.domain.model.git.GitCommit
+import jamgmilk.fuwagit.domain.model.git.GitConflict
+import jamgmilk.fuwagit.domain.model.git.GitResetMode
 
 /**
  * 危险操作类型
@@ -229,6 +255,185 @@ fun TwoStepConfirmDialog(
 }
 
 /**
+ * Reset 确认对话框
+ */
+@Composable
+fun ResetConfirmDialog(
+    commit: GitCommit,
+    mode: GitResetMode,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    val colors = MaterialTheme.colorScheme
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        icon = {
+            Box(
+                modifier = Modifier
+                    .size(56.dp)
+                    .background(
+                        when (mode) {
+                            GitResetMode.SOFT -> Color(0xFF4CAF50)
+                            GitResetMode.MIXED -> Color(0xFFFF9800)
+                            GitResetMode.HARD -> Color(0xFFF44336)
+                        }.copy(alpha = 0.15f),
+                        CircleShape
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = when (mode) {
+                        GitResetMode.SOFT -> Icons.Default.ArrowUpward
+                        GitResetMode.MIXED -> Icons.Default.Replay
+                        GitResetMode.HARD -> Icons.Default.DeleteForever
+                    },
+                    contentDescription = null,
+                    tint = when (mode) {
+                        GitResetMode.SOFT -> Color(0xFF4CAF50)
+                        GitResetMode.MIXED -> Color(0xFFFF9800)
+                        GitResetMode.HARD -> Color(0xFFF44336)
+                    },
+                    modifier = Modifier.size(28.dp)
+                )
+            }
+        },
+        title = {
+            Text(
+                text = "Confirm ${when (mode) {
+                    GitResetMode.SOFT -> "Soft"
+                    GitResetMode.MIXED -> "Mixed"
+                    GitResetMode.HARD -> "Hard"
+                }} Reset",
+                fontWeight = FontWeight.Bold,
+                style = MaterialTheme.typography.titleLarge
+            )
+        },
+        text = {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier.verticalScroll(rememberScrollState())
+            ) {
+                Text(
+                    text = "Reset current branch to commit:",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = colors.onSurfaceVariant
+                )
+
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = colors.surfaceVariant.copy(alpha = 0.3f),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(
+                        modifier = Modifier.padding(10.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Row {
+                            Text(
+                                text = "Hash: ",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = colors.onSurfaceVariant
+                            )
+                            Text(
+                                text = commit.shortHash,
+                                style = MaterialTheme.typography.bodySmall,
+                                fontFamily = FontFamily.Monospace,
+                                color = colors.onSurfaceVariant
+                            )
+                        }
+                        Text(
+                            text = commit.message,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = colors.onSurfaceVariant,
+                            maxLines = 2
+                        )
+                    }
+                }
+
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = when (mode) {
+                        GitResetMode.SOFT -> Color(0xFF4CAF50).copy(alpha = 0.1f)
+                        GitResetMode.MIXED -> Color(0xFFFF9800).copy(alpha = 0.1f)
+                        GitResetMode.HARD -> Color(0xFFF44336).copy(alpha = 0.1f)
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(
+                        modifier = Modifier.padding(10.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Text(
+                            text = when (mode) {
+                                GitResetMode.SOFT -> "Soft Reset: Move HEAD only"
+                                GitResetMode.MIXED -> "Mixed Reset: Move HEAD and unstage changes"
+                                GitResetMode.HARD -> "Hard Reset: Discard ALL changes"
+                            },
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = when (mode) {
+                                GitResetMode.SOFT -> Color(0xFF2E7D32)
+                                GitResetMode.MIXED -> Color(0xFFE65100)
+                                GitResetMode.HARD -> Color(0xFFC62828)
+                            }
+                        )
+                        Text(
+                            text = mode.description,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = colors.onSurfaceVariant
+                        )
+
+                        if (mode == GitResetMode.HARD) {
+                            Spacer(Modifier.height(4.dp))
+                            Text(
+                                text = "⚠️ Warning: This will permanently discard all uncommitted changes!",
+                                style = MaterialTheme.typography.bodySmall,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFFC62828)
+                            )
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = onConfirm,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = when (mode) {
+                        GitResetMode.SOFT -> Color(0xFF4CAF50)
+                        GitResetMode.MIXED -> Color(0xFFFF9800)
+                        GitResetMode.HARD -> Color(0xFFF44336)
+                    }
+                ),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Icon(
+                    imageVector = when (mode) {
+                        GitResetMode.SOFT -> Icons.Default.ArrowUpward
+                        GitResetMode.MIXED -> Icons.Default.Replay
+                        GitResetMode.HARD -> Icons.Default.DeleteForever
+                    },
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(Modifier.width(6.dp))
+                Text("Reset ${when (mode) {
+                    GitResetMode.SOFT -> "Soft"
+                    GitResetMode.MIXED -> "Mixed"
+                    GitResetMode.HARD -> "Hard"
+                }}")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        },
+        shape = RoundedCornerShape(24.dp)
+    )
+}/**
  * 操作结果对话框 - 显示成功、失败或冲突信息
  */
 @Composable
@@ -472,4 +677,272 @@ fun CleanPreviewDialog(
         },
         shape = RoundedCornerShape(24.dp)
     )
+}
+
+/**
+ * 冲突解决对话框
+ */
+@Composable
+fun ConflictResolutionDialog(
+    conflictResult: ConflictResult,
+    onResolveConflict: (String) -> Unit,
+    onFinish: () -> Unit,
+    onAbort: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    val colors = MaterialTheme.colorScheme
+    var expandedConflict by remember { mutableStateOf<String?>(null) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        icon = {
+            Box(
+                modifier = Modifier
+                    .size(56.dp)
+                    .background(Color(0xFFFF9800).copy(alpha = 0.15f), CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    Icons.Default.Warning,
+                    contentDescription = null,
+                    tint = Color(0xFFFF9800),
+                    modifier = Modifier.size(28.dp)
+                )
+            }
+        },
+        title = {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Text(
+                    text = "${conflictResult.operationType} Conflicts",
+                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.titleLarge
+                )
+                Text(
+                    text = "${conflictResult.unresolvedCount} conflict(s) need resolution",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = colors.onSurfaceVariant
+                )
+            }
+        },
+        text = {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier.verticalScroll(rememberScrollState())
+            ) {
+                // 操作说明
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = colors.surfaceVariant.copy(alpha = 0.3f),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(
+                        modifier = Modifier.padding(10.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Text(
+                            text = "How to resolve:",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = colors.onSurfaceVariant
+                        )
+                        Text(
+                            text = "1. Edit each file to resolve conflict markers (<<<<<<, ======, >>>>>>)",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = colors.onSurfaceVariant
+                        )
+                        Text(
+                            text = "2. Click 'Mark as Resolved' for each file after editing",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = colors.onSurfaceVariant
+                        )
+                        Text(
+                            text = "3. Click 'Finish' when all conflicts are resolved",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = colors.onSurfaceVariant
+                        )
+                    }
+                }
+
+                // 冲突文件列表
+                Text(
+                    text = "Conflicting Files:",
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = colors.onSurfaceVariant
+                )
+
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    conflictResult.conflicts.forEach { conflict ->
+                        ConflictFileItem(
+                            conflict = conflict,
+                            isExpanded = expandedConflict == conflict.path,
+                            onExpand = { expandedConflict = if (expandedConflict == conflict.path) null else conflict.path },
+                            onMarkResolved = { onResolveConflict(conflict.path) }
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = onFinish,
+                enabled = conflictResult.allResolved || conflictResult.allStaged,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (conflictResult.allResolved || conflictResult.allStaged) {
+                        Color(0xFF4CAF50)
+                    } else {
+                        colors.primary.copy(alpha = 0.5f)
+                    }
+                ),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Icon(
+                    Icons.Default.Check,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(Modifier.width(6.dp))
+                Text("Finish")
+            }
+        },
+        dismissButton = {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                TextButton(onClick = onAbort) {
+                    Text("Abort ${conflictResult.operationType}")
+                }
+                TextButton(onClick = onDismiss) {
+                    Text("Cancel")
+                }
+            }
+        },
+        shape = RoundedCornerShape(24.dp)
+    )
+}
+
+@Composable
+private fun ConflictFileItem(
+    conflict: GitConflict,
+    isExpanded: Boolean,
+    onExpand: () -> Unit,
+    onMarkResolved: () -> Unit
+) {
+    val colors = MaterialTheme.colorScheme
+    val isResolved = conflict.status != ConflictStatus.UNRESOLVED
+
+    ElevatedCard(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.elevatedCardColors(
+            containerColor = if (isResolved) {
+                Color(0xFF4CAF50).copy(alpha = 0.1f)
+            } else {
+                colors.surface
+            }
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { onExpand() }
+                .padding(12.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    modifier = Modifier.weight(1f),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = if (isResolved) Icons.Default.CheckCircle else Icons.Default.Warning,
+                        contentDescription = null,
+                        tint = if (isResolved) Color(0xFF4CAF50) else Color(0xFFFF9800),
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Column {
+                        Text(
+                            text = conflict.name,
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Medium,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Text(
+                            text = conflict.path,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = colors.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            fontFamily = FontFamily.Monospace
+                        )
+                    }
+                }
+                IconButton(
+                    onClick = { onExpand() },
+                    modifier = Modifier.size(28.dp)
+                ) {
+                    Icon(
+                        imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                        contentDescription = null,
+                        tint = colors.onSurfaceVariant,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+            }
+
+            AnimatedVisibility(
+                visible = isExpanded,
+                enter = expandVertically(tween(200)) + fadeIn(tween(200)),
+                exit = shrinkVertically(tween(200)) + fadeOut(tween(200))
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    HorizontalDivider()
+
+                    Text(
+                        text = "Status: ${when (conflict.status) {
+                            ConflictStatus.UNRESOLVED -> "Unresolved"
+                            ConflictStatus.RESOLVED -> "Resolved"
+                            ConflictStatus.STAGED -> "Staged"
+                        }}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = when (conflict.status) {
+                            ConflictStatus.UNRESOLVED -> Color(0xFFFF9800)
+                            ConflictStatus.RESOLVED -> Color(0xFF4CAF50)
+                            ConflictStatus.STAGED -> Color(0xFF2196F3)
+                        }
+                    )
+
+                    if (!isResolved) {
+                        Button(
+                            onClick = onMarkResolved,
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50)),
+                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Icon(
+                                Icons.Default.Check,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(Modifier.width(6.dp))
+                            Text("Mark as Resolved")
+                        }
+                    }
+                }
+            }
+        }
+    }
 }

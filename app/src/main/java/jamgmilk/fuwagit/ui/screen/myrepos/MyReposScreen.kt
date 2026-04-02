@@ -53,7 +53,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.SheetState
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -78,6 +77,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import jamgmilk.fuwagit.ui.components.CleanPreviewDialog
 import androidx.compose.ui.unit.sp
 import jamgmilk.fuwagit.ui.components.ConfigureRemoteDialog
 import jamgmilk.fuwagit.ui.components.ScreenTemplate
@@ -233,91 +233,67 @@ fun MyReposScreen(
         )
     }
 
-    if (showCleanDialog) {
-        var dryRun by remember { mutableStateOf(true) }
+    // Clean 预览对话框：显示将要删除的文件列表
+    val untrackedFiles = uiState.untrackedFilesForClean
+    if (untrackedFiles.isNotEmpty()) {
+        CleanPreviewDialog(
+            untrackedFiles = untrackedFiles,
+            onConfirm = { myReposViewModel.confirmCleanUntracked() },
+            onDismiss = { myReposViewModel.clearCleanPreview() }
+        )
+    }
 
+    // Clean 确认对话框：请求预览
+    if (showCleanDialog && untrackedFiles.isEmpty()) {
         AlertDialog(
             onDismissRequest = { showCleanDialog = false },
             icon = {
                 Box(
                     modifier = Modifier
                         .size(56.dp)
-                        .background(Color(0xFFF44336).copy(alpha = 0.15f), CircleShape),
+                        .background(Color(0xFFFF9800).copy(alpha = 0.15f), CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        Icons.Default.Delete,
+                        Icons.Default.CleaningServices,
                         contentDescription = null,
-                        tint = Color(0xFFF44336),
+                        tint = Color(0xFFFF9800),
                         modifier = Modifier.size(28.dp)
                     )
                 }
             },
             title = {
                 Text(
-                    text = "Clean Repository",
+                    text = "Clean Untracked Files",
                     fontWeight = FontWeight.Bold,
                     style = MaterialTheme.typography.titleLarge
                 )
             },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text(
-                        text = "Remove untracked files from the working directory. This action cannot be undone.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "Dry run (preview only)",
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                        Switch(
-                            checked = dryRun,
-                            onCheckedChange = { dryRun = it }
-                        )
-                    }
-
-                    if (dryRun) {
-                        Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = Color(0xFFFFF3E0)
-                        ) {
-                            Text(
-                                text = "Preview mode: No files will be deleted",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = Color(0xFFE65100),
-                                modifier = Modifier.padding(12.dp)
-                            )
-                        }
-                    }
-                }
+                Text(
+                    text = "Remove untracked files from the working directory. This action cannot be undone. Click 'Preview' to see which files will be deleted.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             },
             confirmButton = {
                 Button(
                     onClick = {
-                        scope.launch {
-                            currentRepoInfo.repoPath?.let { path ->
-                                myReposViewModel.cleanRepo(path, dryRun)
-                            }
+                        currentRepoInfo.repoPath?.let { path ->
+                            myReposViewModel.requestCleanPreview()
                         }
                         showCleanDialog = false
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF44336)),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2196F3)),
                     shape = RoundedCornerShape(12.dp)
                 ) {
                     Icon(
-                        Icons.Default.Delete,
+                        Icons.Default.CleaningServices,
                         contentDescription = null,
                         modifier = Modifier.size(18.dp)
                     )
                     Spacer(Modifier.width(6.dp))
-                    Text(if (dryRun) "Preview" else "Clean")
+                    Text("Preview")
                 }
             },
             dismissButton = {

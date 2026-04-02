@@ -1,5 +1,6 @@
 package jamgmilk.fuwagit.ui.screen.branches
 
+import android.widget.Toast
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -57,15 +58,17 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import jamgmilk.fuwagit.domain.model.git.GitBranch
 import jamgmilk.fuwagit.ui.components.ScreenTemplate
+import jamgmilk.fuwagit.ui.components.TwoStepConfirmDialog
 import jamgmilk.fuwagit.ui.components.DangerousOperationType
 import jamgmilk.fuwagit.ui.components.OperationResultDialog
-import jamgmilk.fuwagit.ui.components.TwoStepConfirmDialog
+import jamgmilk.fuwagit.ui.components.ConflictResolutionDialog
 import jamgmilk.fuwagit.ui.theme.FuwaGitThemeExtras
 
 @Composable
@@ -79,6 +82,7 @@ fun BranchesScreen(
     val currentBranch = uiState.currentBranch?.name
     val colors = MaterialTheme.colorScheme
     val uiColors = FuwaGitThemeExtras.colors
+    val context = LocalContext.current
 
     var showCreateDialog by remember { mutableStateOf(false) }
     var showRenameDialog by remember { mutableStateOf(false) }
@@ -293,6 +297,28 @@ fun BranchesScreen(
         }
     }
 
+    // 冲突解决对话框
+    val conflictResult = uiState.conflictResult
+    if (conflictResult != null && uiState.isResolvingConflict) {
+        ConflictResolutionDialog(
+            conflictResult = conflictResult,
+            onResolveConflict = { filePath ->
+                branchesViewModel.markConflictResolved(filePath)
+            },
+            onFinish = {
+                branchesViewModel.finishConflictResolution()
+            },
+            onAbort = {
+                if (conflictResult.operationType == "REBASE") {
+                    branchesViewModel.abortRebase()
+                } else {
+                    branchesViewModel.cancelConflictResolution()
+                }
+            },
+            onDismiss = { branchesViewModel.cancelConflictResolution() }
+        )
+    }
+
     // 操作结果反馈对话框
     val operationResult = uiState.operationResult
     if (operationResult != null) {
@@ -409,10 +435,10 @@ private fun BranchListContent(
                     branch = branch,
                     isCurrent = branch.name == currentBranch,
                     onCheckout = { branchesViewModel.checkoutBranch(branch.name) },
-                    onMerge = { branchesViewModel.mergeBranch(branch.name) },
-                    onRebase = { },
-                    onRename = { },
-                    onDelete = { },
+                    onMerge = null,
+                    onRebase = null,
+                    onRename = null,
+                    onDelete = null,
                     isRemote = true
                 )
             }
@@ -477,15 +503,16 @@ private fun BranchItem(
     branch: GitBranch,
     isCurrent: Boolean,
     onCheckout: () -> Unit,
-    onMerge: () -> Unit,
-    onRebase: () -> Unit,
-    onRename: () -> Unit,
-    onDelete: () -> Unit,
+    onMerge: (() -> Unit)?,
+    onRebase: (() -> Unit)?,
+    onRename: (() -> Unit)?,
+    onDelete: (() -> Unit)?,
     isRemote: Boolean = false
 ) {
     var expanded by remember { mutableStateOf(false) }
     var showMenu by remember { mutableStateOf(false) }
     val colors = MaterialTheme.colorScheme
+    val context = LocalContext.current
 
     val accentColor = if (isRemote) Color(0xFF2196F3) else Color(0xFF4CAF50)
 
@@ -582,7 +609,9 @@ private fun BranchItem(
                     DropdownMenuItem(
                         text = { Text("Merge into current") },
                         onClick = {
-                            onMerge()
+                            onMerge?.invoke() ?: run {
+                                Toast.makeText(context, "Merge is only available for local branches", Toast.LENGTH_SHORT).show()
+                            }
                             showMenu = false
                         },
                         leadingIcon = {
@@ -592,7 +621,9 @@ private fun BranchItem(
                     DropdownMenuItem(
                         text = { Text("Rebase onto current") },
                         onClick = {
-                            onRebase()
+                            onRebase?.invoke() ?: run {
+                                Toast.makeText(context, "Rebase is only available for local branches", Toast.LENGTH_SHORT).show()
+                            }
                             showMenu = false
                         },
                         leadingIcon = {
@@ -604,7 +635,9 @@ private fun BranchItem(
                     DropdownMenuItem(
                         text = { Text("Delete") },
                         onClick = {
-                            onDelete()
+                            onDelete?.invoke() ?: run {
+                                Toast.makeText(context, "Delete is only available for local branches", Toast.LENGTH_SHORT).show()
+                            }
                             showMenu = false
                         },
                         leadingIcon = {
@@ -614,12 +647,40 @@ private fun BranchItem(
                     DropdownMenuItem(
                         text = { Text("Rename") },
                         onClick = {
-                            onRename()
+                            onRename?.invoke() ?: run {
+                                Toast.makeText(context, "Rename is only available for local branches", Toast.LENGTH_SHORT).show()
+                            }
                             showMenu = false
                         },
                         leadingIcon = {
                             Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(18.dp))
                         }
+                    )
+                }
+                
+                // 远程分支的提示菜单项
+                if (isRemote) {
+                    DropdownMenuItem(
+                        text = { Text("Merge into current") },
+                        onClick = {
+                            Toast.makeText(context, "Merge is only available for local branches", Toast.LENGTH_SHORT).show()
+                            showMenu = false
+                        },
+                        leadingIcon = {
+                            Icon(Icons.AutoMirrored.Filled.MergeType, contentDescription = null, modifier = Modifier.size(18.dp))
+                        },
+                        enabled = false
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Rebase onto current") },
+                        onClick = {
+                            Toast.makeText(context, "Rebase is only available for local branches", Toast.LENGTH_SHORT).show()
+                            showMenu = false
+                        },
+                        leadingIcon = {
+                            Icon(Icons.Default.ImportExport, contentDescription = null, modifier = Modifier.size(18.dp))
+                        },
+                        enabled = false
                     )
                 }
             }

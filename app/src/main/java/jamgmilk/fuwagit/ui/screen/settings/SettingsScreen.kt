@@ -41,14 +41,25 @@ import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material.icons.filled.Terminal
+import androidx.compose.material.icons.filled.Business
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
@@ -74,6 +85,9 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.core.content.pm.PackageInfoCompat
 import androidx.core.net.toUri
 import androidx.fragment.app.FragmentActivity
@@ -102,15 +116,23 @@ fun SettingsScreen(
     val credentialsUiState by credentialsViewModel.uiState.collectAsState()
     val settingsUserName by settingsViewModel.userName.collectAsState()
     val settingsUserEmail by settingsViewModel.userEmail.collectAsState()
+    val applyResult by settingsViewModel.applyResult.collectAsState()
 
     var showFilePicker by rememberSaveable { mutableStateOf(false) }
 
-    var autoSync by rememberSaveable { mutableStateOf(false) }
-    var conflictSafeMode by rememberSaveable { mutableStateOf(true) }
-    var backupBeforeSync by rememberSaveable { mutableStateOf(true) }
-    var verboseLogging by rememberSaveable { mutableStateOf(false) }
+    val autoSync by settingsViewModel.autoSync.collectAsState()
+    val conflictSafeMode by settingsViewModel.conflictSafeMode.collectAsState()
+    val backupBeforeSync by settingsViewModel.backupBeforeSync.collectAsState()
+    val verboseLogging by settingsViewModel.verboseLogging.collectAsState()
     var pendingBiometricEnable by rememberSaveable { mutableStateOf(false) }
     val settingsDefaultBranch by settingsViewModel.defaultBranch.collectAsState()
+
+    // 显示应用配置结果
+    LaunchedEffect(applyResult) {
+        applyResult?.let {
+            // 结果对话框会在 GlobalConfigCard 中显示
+        }
+    }
 
     LaunchedEffect(credentialsUiState.error) {
         credentialsUiState.error?.let {
@@ -145,9 +167,14 @@ fun SettingsScreen(
             userName = settingsUserName,
             userEmail = settingsUserEmail,
             defaultBranch = settingsDefaultBranch,
+            applyResult = applyResult,
             onUserConfigSave = { name, email -> settingsViewModel.saveUserConfig(name, email) },
             onDefaultBranchSave = { settingsViewModel.saveDefaultBranch(it) },
             onReload = { settingsViewModel.reloadUserConfig() },
+            onApplyToAllRepos = { name, email, alsoToGlobal ->
+                settingsViewModel.applyConfigToAllRepos(name, email, alsoToGlobal)
+            },
+            onClearApplyResult = { settingsViewModel.clearApplyResult() },
             modifier = Modifier.fillMaxWidth()
         )
 
@@ -185,17 +212,17 @@ fun SettingsScreen(
 
         SyncSettingsCard(
             autoSync = autoSync,
-            onAutoSyncChange = { autoSync = it },
+            onAutoSyncChange = { settingsViewModel.saveAutoSync(it) },
             conflictSafeMode = conflictSafeMode,
-            onConflictSafeModeChange = { conflictSafeMode = it },
+            onConflictSafeModeChange = { settingsViewModel.saveConflictSafeMode(it) },
             backupBeforeSync = backupBeforeSync,
-            onBackupBeforeSyncChange = { backupBeforeSync = it },
+            onBackupBeforeSyncChange = { settingsViewModel.saveBackupBeforeSync(it) },
             modifier = Modifier.fillMaxWidth()
         )
 
         DeveloperOptionsCard(
             verboseLogging = verboseLogging,
-            onVerboseLoggingChange = { verboseLogging = it },
+            onVerboseLoggingChange = { settingsViewModel.saveVerboseLogging(it) },
             onTestFilePicker = { showFilePicker = true },
             modifier = Modifier.fillMaxWidth()
         )
@@ -521,9 +548,12 @@ private fun GlobalConfigCard(
     userName: String,
     userEmail: String,
     defaultBranch: String,
+    applyResult: ApplyConfigResult?,
     onUserConfigSave: (String, String) -> Unit,
     onDefaultBranchSave: (String) -> Unit,
     onReload: suspend () -> Unit,
+    onApplyToAllRepos: (String, String, Boolean) -> Unit,
+    onClearApplyResult: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val uiColors = FuwaGitThemeExtras.colors
@@ -531,6 +561,7 @@ private fun GlobalConfigCard(
 
     var userConfigExpanded by rememberSaveable { mutableStateOf(false) }
     var branchConfigExpanded by rememberSaveable { mutableStateOf(false) }
+    var showApplyToAllReposDialog by remember { mutableStateOf(false) }
 
     var userConfigKey by rememberSaveable { mutableStateOf(0) }
     var branchConfigKey by rememberSaveable { mutableStateOf(0) }
@@ -635,7 +666,8 @@ private fun GlobalConfigCard(
                             Text("Cancel")
                         }
                         Spacer(Modifier.width(8.dp))
-                        Button(
+                        // 仅应用到 App 内保存
+                        OutlinedButton(
                             onClick = {
                                 scope.launch {
                                     onUserConfigSave(localUserName, localUserEmail)
@@ -645,10 +677,50 @@ private fun GlobalConfigCard(
                             },
                             shape = RoundedCornerShape(12.dp)
                         ) {
-                            Text("Save")
+                            Text("Save to App")
+                        }
+                        Spacer(Modifier.width(8.dp))
+                        // 应用到所有仓库
+                        Button(
+                            onClick = {
+                                showApplyToAllReposDialog = true
+                            },
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color(0xFF2196F3)
+                            )
+                        ) {
+                            Icon(
+                                Icons.Default.Business,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(Modifier.width(6.dp))
+                            Text("Apply to All")
                         }
                     }
                 }
+            }
+
+            // 显示应用到所有仓库对话框
+            if (showApplyToAllReposDialog) {
+                ApplyToAllReposDialog(
+                    name = localUserName,
+                    email = localUserEmail,
+                    onApply = { alsoToGlobal ->
+                        onApplyToAllRepos(localUserName, localUserEmail, alsoToGlobal)
+                        showApplyToAllReposDialog = false
+                    },
+                    onDismiss = { showApplyToAllReposDialog = false }
+                )
+            }
+
+            // 显示应用配置结果对话框
+            if (applyResult != null) {
+                ApplyConfigResultDialog(
+                    result = applyResult,
+                    onDismiss = { onClearApplyResult() }
+                )
             }
 
             HorizontalDivider(
@@ -808,7 +880,229 @@ private fun SettingsNavigationItem(
     }
 }
 
+/**
+ * 应用到所有仓库对话框
+ */
 @Composable
+private fun ApplyToAllReposDialog(
+    name: String,
+    email: String,
+    onApply: (Boolean) -> Unit,
+    onDismiss: () -> Unit
+) {
+    var applyToGlobal by remember { mutableStateOf(false) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        icon = {
+            Box(
+                modifier = Modifier
+                    .size(56.dp)
+                    .background(Color(0xFF2196F3).copy(alpha = 0.15f), CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    Icons.Default.Business,
+                    contentDescription = null,
+                    tint = Color(0xFF2196F3),
+                    modifier = Modifier.size(28.dp)
+                )
+            }
+        },
+        title = {
+            Text(
+                text = "Apply to All Repositories",
+                fontWeight = FontWeight.Bold,
+                style = MaterialTheme.typography.titleLarge
+            )
+        },
+        text = {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Text(
+                    text = "This will apply the following settings to all saved repositories:",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(
+                        modifier = Modifier.padding(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                Icons.Default.Person,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Text(
+                                text = "user.name: $name",
+                                style = MaterialTheme.typography.bodySmall,
+                                fontFamily = FontFamily.Monospace
+                            )
+                        }
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                Icons.Default.Email,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Text(
+                                text = "user.email: $email",
+                                style = MaterialTheme.typography.bodySmall,
+                                fontFamily = FontFamily.Monospace
+                            )
+                        }
+                    }
+                }
+
+                HorizontalDivider()
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Also apply to Global Config",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            text = "This will update ~/.gitconfig",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Checkbox(
+                        checked = applyToGlobal,
+                        onCheckedChange = { applyToGlobal = it }
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = { onApply(applyToGlobal) },
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Icon(
+                    Icons.Default.Check,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(Modifier.width(6.dp))
+                Text("Apply")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        },
+        shape = RoundedCornerShape(24.dp)
+    )
+}
+
+/**
+ * 应用配置结果对话框
+ */
+@Composable
+private fun ApplyConfigResultDialog(
+    result: ApplyConfigResult,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        icon = {
+            Box(
+                modifier = Modifier
+                    .size(56.dp)
+                    .background(
+                        if (result.allSuccess) Color(0xFF4CAF50) else Color(0xFFFF9800),
+                        CircleShape
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    if (result.allSuccess) Icons.Default.CheckCircle else Icons.Default.Warning,
+                    contentDescription = null,
+                    tint = if (result.allSuccess) Color(0xFF4CAF50) else Color(0xFFFF9800),
+                    modifier = Modifier.size(28.dp)
+                )
+            }
+        },
+        title = {
+            Text(
+                text = if (result.allSuccess) "Success" else "Completed with Issues",
+                fontWeight = FontWeight.Bold,
+                style = MaterialTheme.typography.titleLarge
+            )
+        },
+        text = {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Text(
+                    text = "${result.successCount}/${result.totalCount} repositories updated successfully",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                if (result.failures.isNotEmpty()) {
+                    Text(
+                        text = "Failed repositories:",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.error
+                    )
+
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                        modifier = Modifier.verticalScroll(rememberScrollState())
+                    ) {
+                        result.failures.forEach { (path, error) ->
+                            Surface(
+                                shape = RoundedCornerShape(6.dp),
+                                color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.2f)
+                            ) {
+                                Text(
+                                    text = "$path: $error",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    modifier = Modifier.padding(8.dp),
+                                    fontFamily = FontFamily.Monospace
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = onDismiss,
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Text("OK")
+            }
+        },
+        shape = RoundedCornerShape(24.dp)
+    )
+}@Composable
 private fun SettingsSwitchItem(
     title: String,
     subtitle: String,
