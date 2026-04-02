@@ -42,6 +42,7 @@ data class RepoFolderItem(
     val isRemote: Boolean,
     val isActive: Boolean,
     val lastModified: Long = 0L,
+    val size: Long = 0L
 ) {
     val shortPath: String
         get() {
@@ -50,6 +51,16 @@ data class RepoFolderItem(
                 "/External${path.removePrefix(externalStorageDirPrefix)}"
             } else {
                 path
+            }
+        }
+
+    val formattedSize: String
+        get() {
+            return when {
+                size < 1024 -> "$size B"
+                size < 1024 * 1024 -> "${size / 1024} KB"
+                size < 1024 * 1024 * 1024 -> "${size / (1024 * 1024)} MB"
+                else -> String.format("%.1f GB", size / (1024.0 * 1024 * 1024))
             }
         }
 }
@@ -99,6 +110,31 @@ class MyReposViewModel @Inject constructor(
 
     private val _savedRepos = MutableStateFlow<List<RepoData>>(emptyList())
 
+    private fun calculateFolderSize(path: String): Long {
+        return try {
+            val file = File(path)
+            if (!file.exists()) return 0L
+            if (!file.isDirectory) return file.length()
+
+            var size = 0L
+            val queue = ArrayDeque<File>()
+            queue.add(file)
+            while (queue.isNotEmpty()) {
+                val current = queue.removeFirst()
+                current.listFiles()?.forEach { child ->
+                    if (child.isDirectory) {
+                        queue.add(child)
+                    } else {
+                        size += child.length()
+                    }
+                }
+            }
+            size
+        } catch (e: Exception) {
+            0L
+        }
+    }
+
     val uiState: StateFlow<RepoUiState> = combine(
         _savedRepos,
         currentRepoInfo,
@@ -113,7 +149,8 @@ class MyReposViewModel @Inject constructor(
                     isGitRepo = File(repo.path, ".git").exists(),
                     isRemote = false,
                     isActive = repo.path == currentRepo.repoPath,
-                    lastModified = repo.lastAccessedAt
+                    lastModified = repo.lastAccessedAt,
+                    size = calculateFolderSize(repo.path)
                 )
             },
             isLoading = loading,

@@ -13,6 +13,7 @@ import jamgmilk.fuwagit.domain.usecase.git.FetchUseCase
 import jamgmilk.fuwagit.domain.usecase.git.GetDetailedStatusUseCase
 import jamgmilk.fuwagit.domain.usecase.git.GetBranchesUseCase
 import jamgmilk.fuwagit.domain.usecase.git.HasGitDirUseCase
+import jamgmilk.fuwagit.domain.usecase.git.InitRepoUseCase
 import jamgmilk.fuwagit.domain.usecase.git.PullUseCase
 import jamgmilk.fuwagit.domain.usecase.git.PushUseCase
 import jamgmilk.fuwagit.domain.usecase.git.StageAllUseCase
@@ -33,6 +34,7 @@ import javax.inject.Inject
 
 data class StatusUiState(
     val isLoading: Boolean = false,
+    val isCheckingRepo: Boolean = false,
     val error: String? = null,
     val repoPath: String? = null,
     val repoName: String? = null,
@@ -49,6 +51,7 @@ data class StatusUiState(
 class StatusViewModel @Inject constructor(
     private val currentRepoManager: RepoStateManager,
     private val hasGitDirUseCase: HasGitDirUseCase,
+    private val initRepoUseCase: InitRepoUseCase,
     private val getDetailedStatusUseCase: GetDetailedStatusUseCase,
     private val getBranchesUseCase: GetBranchesUseCase,
     private val stageAllUseCase: StageAllUseCase,
@@ -101,12 +104,31 @@ class StatusViewModel @Inject constructor(
         refreshWorkspace()
     }
 
+    fun initRepo() {
+        val path = currentRepoPath ?: return
+
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true) }
+            initRepoUseCase(path).fold(
+                onSuccess = { result ->
+                    appendTerminalLog("git init", result)
+                    refreshAll()
+                },
+                onFailure = { e ->
+                    appendTerminalLog("git init", "Error: ${e.message}")
+                    _uiState.update { it.copy(isLoading = false, error = e.message) }
+                }
+            )
+        }
+    }
+
     private fun checkRepoStatus() {
         val path = currentRepoPath
         if (path == null) {
             _uiState.update {
                 it.copy(
                     isGitRepo = false,
+                    isCheckingRepo = false,
                     statusMessage = "Select a target repo path"
                 )
             }
@@ -114,10 +136,12 @@ class StatusViewModel @Inject constructor(
         }
 
         viewModelScope.launch {
+            _uiState.update { it.copy(isCheckingRepo = true) }
             val isGitRepo = hasGitDirUseCase(path)
             _uiState.update {
                 it.copy(
                     isGitRepo = isGitRepo,
+                    isCheckingRepo = false,
                     statusMessage = if (isGitRepo) "Git repository" else "Not a git repository"
                 )
             }

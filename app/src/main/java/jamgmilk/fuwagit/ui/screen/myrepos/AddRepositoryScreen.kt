@@ -269,6 +269,7 @@ private fun CloneContent(
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    val colors = MaterialTheme.colorScheme
 
     var cloneUrl by remember { mutableStateOf("") }
     var debouncedUrl by remember { mutableStateOf("") }
@@ -356,7 +357,6 @@ private fun CloneContent(
             value = cloneUrl,
             onValueChange = { cloneUrl = it },
             label = { Text("Repository URL") },
-            placeholder = { Text("https://github.com/user/repo.git or git@github.com:user/repo.git") },
             leadingIcon = {
                 Icon(
                     Icons.Default.Link,
@@ -403,6 +403,29 @@ private fun CloneContent(
                 cursorColor = Color(0xFF2196F3)
             )
         )
+
+        Surface(
+            shape = RoundedCornerShape(10.dp),
+            color = colors.surfaceVariant.copy(alpha = 0.5f)
+        ) {
+            Row(
+                modifier = Modifier.padding(12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    Icons.Default.Info,
+                    contentDescription = null,
+                    tint = colors.onSurfaceVariant,
+                    modifier = Modifier.size(16.dp)
+                )
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    text = "Supported: https://, http://, git@host:user/repo.git, ssh://",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = colors.onSurfaceVariant
+                )
+            }
+        }
 
         if (showCredentialSection && isHttps) {
             Row(

@@ -473,11 +473,12 @@ fun RepoItemCard(
                     if (!item.isGitRepo) {
                         Row(
                             modifier = Modifier
-                                .padding(horizontal = 8.dp, vertical = 3.dp)
+                                .padding(start = 4.dp)
                                 .background(
                                     color = accentColor.copy(alpha = 0.15f),
                                     shape = RoundedCornerShape(6.dp)
-                                ),
+                                )
+                                .padding(horizontal = 8.dp, vertical = 4.dp),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
@@ -485,7 +486,7 @@ fun RepoItemCard(
                                 Icons.Default.Warning,
                                 contentDescription = null,
                                 tint = accentColor,
-                                modifier = Modifier.size(12.dp)
+                                modifier = Modifier.size(11.dp)
                             )
                             Text(
                                 text = "Not a Git",
@@ -496,7 +497,6 @@ fun RepoItemCard(
                         }
 
                     }
-
 
                 }
 
@@ -521,15 +521,15 @@ fun RepoItemCard(
                         horizontalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
                         Icon(
-                            imageVector = if (item.isGitRepo) Icons.Default.CheckCircle else Icons.Default.Warning,
+                            imageVector = Icons.Default.Source,
                             contentDescription = null,
-                            tint = accentColor,
+                            tint = colors.onSurfaceVariant,
                             modifier = Modifier.size(13.dp)
                         )
                         Text(
-                            text = if (item.isGitRepo) "Git repository" else "Not a git repo",
+                            text = item.formattedSize,
                             style = MaterialTheme.typography.labelSmall,
-                            color = accentColor
+                            color = colors.onSurfaceVariant
                         )
                     }
 
