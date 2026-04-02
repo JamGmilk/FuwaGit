@@ -1,12 +1,19 @@
 package jamgmilk.fuwagit.ui.screen.settings
 
 import android.content.Intent
+import android.util.Log
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -14,8 +21,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.AccountTree
 import androidx.compose.material.icons.filled.Backup
 import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.Build
@@ -33,46 +42,51 @@ import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material.icons.filled.Terminal
 import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material3.Button
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
-import android.util.Log
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.content.pm.PackageInfoCompat
-import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.core.net.toUri
-import jamgmilk.fuwagit.ui.biometric.BiometricActivity
+import androidx.fragment.app.FragmentActivity
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import jamgmilk.fuwagit.ui.components.FilePickerDialog
 import jamgmilk.fuwagit.ui.components.ScreenTemplate
+import jamgmilk.fuwagit.ui.screen.credentials.ChangeMasterPasswordDialog
 import jamgmilk.fuwagit.ui.screen.credentials.CredentialsStoreViewModel
+import jamgmilk.fuwagit.ui.screen.credentials.SetupMasterPasswordDialog
 import jamgmilk.fuwagit.ui.screen.credentials.UnlockDialog
 import jamgmilk.fuwagit.ui.theme.FuwaGitThemeExtras
-import androidx.compose.material3.Text
-import androidx.fragment.app.FragmentActivity
 import kotlinx.coroutines.delay
-import jamgmilk.fuwagit.ui.screen.credentials.ChangeMasterPasswordDialog
-import jamgmilk.fuwagit.ui.screen.credentials.SetupMasterPasswordDialog
+import kotlinx.coroutines.launch
 
 private const val TAG = "SettingsScreen"
 @Composable
@@ -86,6 +100,8 @@ fun SettingsScreen(
     val context = LocalContext.current
     val activity = context as? FragmentActivity
     val credentialsUiState by credentialsViewModel.uiState.collectAsState()
+    val settingsUserName by settingsViewModel.userName.collectAsState()
+    val settingsUserEmail by settingsViewModel.userEmail.collectAsState()
 
     var showFilePicker by rememberSaveable { mutableStateOf(false) }
 
@@ -95,6 +111,7 @@ fun SettingsScreen(
     var showHiddenFiles by rememberSaveable { mutableStateOf(false) }
     var verboseLogging by rememberSaveable { mutableStateOf(false) }
     var pendingBiometricEnable by rememberSaveable { mutableStateOf(false) }
+    val settingsDefaultBranch by settingsViewModel.defaultBranch.collectAsState()
 
     LaunchedEffect(Unit) {
         credentialsViewModel.initialize()
@@ -118,6 +135,16 @@ fun SettingsScreen(
             onPermissionsClick = onNavigateToPermissions,
             showHiddenFiles = showHiddenFiles,
             onShowHiddenFilesChange = { showHiddenFiles = it },
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        GlobalConfigCard(
+            userName = settingsUserName,
+            userEmail = settingsUserEmail,
+            defaultBranch = settingsDefaultBranch,
+            onUserConfigSave = { name, email -> settingsViewModel.saveUserConfig(name, email) },
+            onDefaultBranchSave = { settingsViewModel.saveDefaultBranch(it) },
+            onReload = { settingsViewModel.reloadUserConfig() },
             modifier = Modifier.fillMaxWidth()
         )
 
@@ -486,6 +513,205 @@ private fun AboutCard(
 }
 
 @Composable
+private fun GlobalConfigCard(
+    userName: String,
+    userEmail: String,
+    defaultBranch: String,
+    onUserConfigSave: (String, String) -> Unit,
+    onDefaultBranchSave: (String) -> Unit,
+    onReload: suspend () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val uiColors = FuwaGitThemeExtras.colors
+    val scope = rememberCoroutineScope()
+
+    var userConfigExpanded by rememberSaveable { mutableStateOf(false) }
+    var branchConfigExpanded by rememberSaveable { mutableStateOf(false) }
+
+    var userConfigKey by rememberSaveable { mutableStateOf(0) }
+    var branchConfigKey by rememberSaveable { mutableStateOf(0) }
+
+    var localUserName by remember(userConfigKey) { mutableStateOf(userName) }
+    var localUserEmail by remember(userConfigKey) { mutableStateOf(userEmail) }
+    var localDefaultBranch by remember(branchConfigKey) { mutableStateOf(defaultBranch) }
+
+    LaunchedEffect(userConfigExpanded) {
+        if (userConfigExpanded) {
+            onReload()
+        } else {
+            userConfigKey++
+        }
+    }
+
+    LaunchedEffect(userConfigExpanded, userName, userEmail) {
+        if (userConfigExpanded) {
+            localUserName = userName
+            localUserEmail = userEmail
+        }
+    }
+
+    LaunchedEffect(branchConfigExpanded) {
+        if (branchConfigExpanded) {
+            onReload()
+        } else {
+            branchConfigKey++
+        }
+    }
+
+    LaunchedEffect(branchConfigExpanded, defaultBranch) {
+        if (branchConfigExpanded) {
+            localDefaultBranch = defaultBranch
+        }
+    }
+
+    ElevatedCard(
+        modifier = modifier.border(1.dp, uiColors.cardBorder, RoundedCornerShape(24.dp)),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.elevatedCardColors(containerColor = uiColors.cardContainer),
+        elevation = CardDefaults.elevatedCardElevation(0.dp)
+    ) {
+        Column(modifier = Modifier.fillMaxWidth()) {
+            SettingsSectionHeader(
+                title = "Configuration",
+                icon = Icons.Default.Code,
+                color = Color(0xFF00BCD4)
+            )
+
+            ExpandableSettingsItem(
+                title = "User & Email",
+                subtitle = "Set global author information for commits",
+                icon = Icons.Default.CreditCard,
+                expanded = userConfigExpanded,
+                onExpandedChange = { userConfigExpanded = it }
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp)
+                        .padding(bottom = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Text(
+                        text = "Set the global author information for Git commits.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    OutlinedTextField(
+                        value = localUserName,
+                        onValueChange = { localUserName = it },
+                        label = { Text("user.name") },
+                        placeholder = { Text("Your Name") },
+                        singleLine = true,
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.fillMaxWidth(),
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next)
+                    )
+
+                    OutlinedTextField(
+                        value = localUserEmail,
+                        onValueChange = { localUserEmail = it },
+                        label = { Text("user.email") },
+                        placeholder = { Text("your.email@example.com") },
+                        singleLine = true,
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.fillMaxWidth(),
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Email,
+                            imeAction = ImeAction.Done
+                        )
+                    )
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.End,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        TextButton(onClick = { userConfigExpanded = false }) {
+                            Text("Cancel")
+                        }
+                        Spacer(Modifier.width(8.dp))
+                        Button(
+                            onClick = {
+                                scope.launch {
+                                    onUserConfigSave(localUserName, localUserEmail)
+                                }.invokeOnCompletion {
+                                    userConfigExpanded = false
+                                }
+                            },
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Text("Save")
+                        }
+                    }
+                }
+            }
+
+            HorizontalDivider(
+                modifier = Modifier.padding(horizontal = 16.dp),
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
+            )
+
+            ExpandableSettingsItem(
+                title = "Default Branch",
+                subtitle = "init.defaultBranch = ${defaultBranch.ifBlank { "main" }}",
+                icon = Icons.Default.AccountTree,
+                expanded = branchConfigExpanded,
+                onExpandedChange = { branchConfigExpanded = it }
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp)
+                        .padding(bottom = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Text(
+                        text = "Set the default branch name for new repositories.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    OutlinedTextField(
+                        value = localDefaultBranch,
+                        onValueChange = { localDefaultBranch = it },
+                        label = { Text("init.defaultbranch") },
+                        placeholder = { Text("main") },
+                        singleLine = true,
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.fillMaxWidth(),
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done)
+                    )
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.End,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        TextButton(onClick = { branchConfigExpanded = false }) {
+                            Text("Cancel")
+                        }
+                        Spacer(Modifier.width(8.dp))
+                        Button(
+                            onClick = {
+                                scope.launch {
+                                    onDefaultBranchSave(localDefaultBranch.ifBlank { "main" })
+                                }.invokeOnCompletion {
+                                    branchConfigExpanded = false
+                                }
+                            },
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Text("Save")
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
 private fun SettingsSectionHeader(
     title: String,
     icon: ImageVector,
@@ -641,6 +867,90 @@ private fun SettingsSwitchItem(
                 checkedTrackColor = colors.primary.copy(alpha = 0.5f)
             )
         )
+    }
+}
+
+@Composable
+private fun ExpandableSettingsItem(
+    title: String,
+    subtitle: String,
+    icon: ImageVector,
+    expanded: Boolean,
+    onExpandedChange: (Boolean) -> Unit,
+    modifier: Modifier = Modifier,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    val colors = MaterialTheme.colorScheme
+
+    Column(modifier = modifier) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable {
+                    if (expanded) {
+                        onExpandedChange(false)
+                    } else {
+                        onExpandedChange(true)
+                    }
+                }
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .background(
+                        if (expanded) colors.primary.copy(alpha = 0.12f)
+                        else colors.surfaceVariant.copy(alpha = 0.5f),
+                        RoundedCornerShape(12.dp)
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = if (expanded) colors.primary else colors.onSurfaceVariant,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+
+            Spacer(Modifier.width(12.dp))
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Medium,
+                    color = if (expanded) colors.primary else colors.onSurface
+                )
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (expanded) colors.primary.copy(alpha = 0.7f) else colors.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                contentDescription = null,
+                tint = if (expanded) colors.primary else colors.onSurfaceVariant.copy(alpha = 0.5f),
+                modifier = Modifier
+                    .size(20.dp)
+                    .graphicsLayer {
+                        rotationZ = if (expanded) 90f else 0f
+                    }
+            )
+        }
+
+        AnimatedVisibility(
+            visible = expanded,
+            enter = expandVertically() + fadeIn(),
+            exit = shrinkVertically() + fadeOut()
+        ) {
+            Column(content = content)
+        }
     }
 }
 

@@ -149,7 +149,19 @@ fun StatusScreen(
         )
 
         AnimatedVisibility(
-            visible = isRepo,
+            visible = !isRepo && uiState.repoPath != null && !uiState.isCheckingRepo,
+            enter = fadeIn() + expandVertically(),
+            exit = fadeOut() + shrinkVertically()
+        ) {
+            InitRepositoryCard(
+                onInit = { statusViewModel.initRepo() },
+                isLoading = uiState.isLoading,
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+
+        AnimatedVisibility(
+            visible = isRepo && !uiState.isCheckingRepo,
             enter = fadeIn() + expandVertically(),
             exit = fadeOut() + shrinkVertically()
         ) {
@@ -172,7 +184,7 @@ fun StatusScreen(
         }
 
         AnimatedVisibility(
-            visible = isRepo,
+            visible = isRepo && !uiState.isCheckingRepo,
             enter = fadeIn() + expandVertically(),
             exit = fadeOut() + shrinkVertically()
         ) {
@@ -211,7 +223,7 @@ fun StatusScreen(
         }
 
         AnimatedVisibility(
-            visible = isRepo,
+            visible = isRepo && !uiState.isCheckingRepo,
             enter = fadeIn() + expandVertically(),
             exit = fadeOut() + shrinkVertically()
         ) {
@@ -230,7 +242,7 @@ fun StatusScreen(
         }
 
         AnimatedVisibility(
-            visible = isRepo,
+            visible = isRepo && !uiState.isCheckingRepo,
             enter = fadeIn() + expandVertically(),
             exit = fadeOut() + shrinkVertically()
         ) {
