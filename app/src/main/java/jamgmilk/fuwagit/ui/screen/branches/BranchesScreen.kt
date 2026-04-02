@@ -63,6 +63,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import jamgmilk.fuwagit.domain.model.git.GitBranch
 import jamgmilk.fuwagit.ui.components.ScreenTemplate
+import jamgmilk.fuwagit.ui.components.DangerousOperationType
+import jamgmilk.fuwagit.ui.components.OperationResultDialog
+import jamgmilk.fuwagit.ui.components.TwoStepConfirmDialog
 import jamgmilk.fuwagit.ui.theme.FuwaGitThemeExtras
 
 @Composable
@@ -247,6 +250,59 @@ fun BranchesScreen(
             shape = RoundedCornerShape(24.dp)
         )
     }
+
+    // 危险操作双确认对话框
+    val pendingOperation = uiState.pendingOperation
+    val pendingTarget = uiState.pendingOperationTarget
+    if (pendingOperation != null && pendingTarget != null) {
+        when (pendingOperation) {
+            DangerousOperationType.DELETE_BRANCH -> {
+                TwoStepConfirmDialog(
+                    operationType = DangerousOperationType.DELETE_BRANCH,
+                    targetName = pendingTarget,
+                    description = "You are about to delete the branch:",
+                    warningMessage = "All commits unique to this branch will be lost. This action cannot be undone.",
+                    confirmText = "DELETE",
+                    onConfirm = { branchesViewModel.confirmDeleteBranch(force = false) },
+                    onDismiss = { branchesViewModel.cancelPendingOperation() }
+                )
+            }
+            DangerousOperationType.MERGE -> {
+                TwoStepConfirmDialog(
+                    operationType = DangerousOperationType.MERGE,
+                    targetName = pendingTarget,
+                    description = "You are about to merge into the current branch:",
+                    warningMessage = "This may cause conflicts or change your working directory. Make sure you have committed your changes.",
+                    confirmText = "MERGE",
+                    onConfirm = { branchesViewModel.confirmMergeBranch() },
+                    onDismiss = { branchesViewModel.cancelPendingOperation() }
+                )
+            }
+            DangerousOperationType.REBASE -> {
+                TwoStepConfirmDialog(
+                    operationType = DangerousOperationType.REBASE,
+                    targetName = pendingTarget,
+                    description = "You are about to rebase the current branch onto:",
+                    warningMessage = "Rebase rewrites commit history. Do not rebase branches that have been shared with others.",
+                    confirmText = "REBASE",
+                    onConfirm = { branchesViewModel.confirmRebaseBranch() },
+                    onDismiss = { branchesViewModel.cancelPendingOperation() }
+                )
+            }
+            else -> {}
+        }
+    }
+
+    // 操作结果反馈对话框
+    val operationResult = uiState.operationResult
+    if (operationResult != null) {
+        val operationType = pendingOperation ?: DangerousOperationType.DELETE_BRANCH
+        OperationResultDialog(
+            result = operationResult,
+            operationType = operationType,
+            onDismiss = { branchesViewModel.clearOperationResult() }
+        )
+    }
 }
 
 @Composable
@@ -318,12 +374,12 @@ private fun BranchListContent(
                     branch = branch,
                     isCurrent = branch.name == currentBranch,
                     onCheckout = { branchesViewModel.checkoutBranch(branch.name) },
-                    onMerge = { branchesViewModel.mergeBranch(branch.name) },
-                    onRebase = { branchesViewModel.rebaseBranch(branch.name) },
+                    onMerge = { branchesViewModel.requestMergeBranch(branch.name) },
+                    onRebase = { branchesViewModel.requestRebaseBranch(branch.name) },
                     onRename = {
                         onRenameRequest(branch.name)
                     },
-                    onDelete = { branchesViewModel.deleteBranch(branch.name) }
+                    onDelete = { branchesViewModel.requestDeleteBranch(branch.name) }
                 )
             }
         }
@@ -507,7 +563,12 @@ private fun BranchItem(
             ) {
                 if (!isCurrent) {
                     DropdownMenuItem(
-                        text = { Text("Checkout") },
+                        text = { 
+                            Text(
+                                if (isRemote) "Checkout & Create Local Branch" 
+                                else "Checkout"
+                            ) 
+                        },
                         onClick = {
                             onCheckout()
                             showMenu = false

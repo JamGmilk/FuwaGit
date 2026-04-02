@@ -8,6 +8,7 @@
 /.idea/navEditor.xml
 /.idea/assetWizardSettings.xml
 .kotlin
+/.qwen
 *.iml
 .DS_Store
 .externalNativeBuild

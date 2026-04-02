@@ -32,11 +32,11 @@ interface GitRepository {
     
     suspend fun commit(repoPath: String, message: String): Result<String>
     
-    suspend fun pull(repoPath: String): Result<PullResult>
-    
-    suspend fun push(repoPath: String): Result<String>
+    suspend fun pull(repoPath: String, credentials: CloneCredential? = null): Result<PullResult>
 
-    suspend fun fetch(repoPath: String): Result<String>
+    suspend fun push(repoPath: String, credentials: CloneCredential? = null): Result<String>
+
+    suspend fun fetch(repoPath: String, credentials: CloneCredential? = null): Result<String>
 
     suspend fun checkoutBranch(repoPath: String, branchName: String): Result<Unit>
     

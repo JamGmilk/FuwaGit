@@ -7,6 +7,8 @@ sealed class AppResult<out T> {
     val isSuccess: Boolean get() = this is Success
     val isError: Boolean get() = this is Error
 
+    val message: String? get() = (this as? Error)?.exception?.message
+
     fun getOrNull(): T? = when (this) {
         is Success -> data
         is Error -> null
@@ -55,6 +57,8 @@ sealed class AppException : Exception() {
     data class PasswordMismatch(override val message: String = "Passwords do not match") : AppException()
 
     data class BiometricNotEnabled(override val message: String = "Biometric authentication not enabled") : AppException()
+
+    data class BiometricError(override val message: String) : AppException()
 
     data class ImportFailed(override val message: String = "Failed to import credentials") : AppException()
 
