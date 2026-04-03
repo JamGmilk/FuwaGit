@@ -21,7 +21,7 @@ data class RepoInfo(
 ) {
     val isValidGit: Boolean get() = repoPath != null && error == null && !isLoading
     val isNotGit: Boolean get() = repoPath != null && error == "Not a git repository"
-    val isPathInvalid: Boolean get() = error == "Path does not exist"
+    val isPathInvalid: Boolean get() = repoPath != null && error == "Path does not exist"
 }
 
 @Singleton
@@ -88,8 +88,6 @@ class RepoStateManager @Inject constructor(
                 repoName = result.name
             )
             is ValidateRepoUseCase.ValidationResult.Error -> RepoInfo(
-                repoPath = path,
-                repoName = name,
                 error = result.message
             )
             ValidateRepoUseCase.ValidationResult.Cleared -> RepoInfo()

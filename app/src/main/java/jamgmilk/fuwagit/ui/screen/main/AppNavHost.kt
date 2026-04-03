@@ -27,6 +27,8 @@ import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
@@ -115,7 +117,6 @@ fun AppNavHost(
                     onAddRepository = { path, alias ->
                         scope.launch {
                             myReposViewModel.addRepo(path, alias)
-                            myReposViewModel.setCurrentRepo(path)
                         }
                         navController.popBackStack()
                     }
@@ -162,10 +163,13 @@ fun MainScreen(
     val scope = rememberCoroutineScope()
 
     val pagerState = rememberPagerState(pageCount = { navItems.size })
+    val currentPage by remember { derivedStateOf { pagerState.currentPage } }
 
-    fun navigateToPage(index: Int) {
-        scope.launch {
-            pagerState.animateScrollToPage(index)
+    val navigateToPage: (Int) -> Unit = remember {
+        { index ->
+            scope.launch {
+                pagerState.animateScrollToPage(index)
+            }
         }
     }
 
@@ -181,7 +185,7 @@ fun MainScreen(
             ) {
                 navItems.forEachIndexed { index, item ->
                     NavigationRailItem(
-                        selected = pagerState.currentPage == index,
+                        selected = currentPage == index,
                         onClick = { navigateToPage(index) },
                         icon = item.icon,
                         label = { Text(item.title) }
@@ -242,7 +246,7 @@ fun MainScreen(
                 ) {
                     navItems.forEachIndexed { index, item ->
                         NavigationBarItem(
-                            selected = pagerState.currentPage == index,
+                            selected = currentPage == index,
                             onClick = { navigateToPage(index) },
                             icon = item.icon,
                             label = { Text(item.title) },
