@@ -1,6 +1,7 @@
 package jamgmilk.fuwagit.data.jgit
 
 import android.util.Log
+import kotlin.text.Charsets
 import kotlinx.coroutines.flow.first
 import org.eclipse.jgit.api.Git
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder
@@ -172,6 +173,7 @@ class JGitCoreDataSource @Inject constructor(
     private fun configureSshForCommand(command: org.eclipse.jgit.api.TransportCommand<*, *>) {
         val sshInfo = currentSshKey.get() ?: return
         try {
+            // Set global JSch defaults
             com.jcraft.jsch.JSch.setConfig("StrictHostKeyChecking", "no")
             com.jcraft.jsch.JSch.setConfig("PreferredAuthentications", "publickey")
 
@@ -179,19 +181,19 @@ class JGitCoreDataSource @Inject constructor(
                 if (transport is org.eclipse.jgit.transport.SshTransport) {
                     transport.sshSessionFactory = object : org.eclipse.jgit.transport.ssh.jsch.JschConfigSessionFactory() {
                         override fun createDefaultJSch(fs: org.eclipse.jgit.util.FS?): com.jcraft.jsch.JSch {
-                            val defaultJsch = super.createDefaultJSch(fs)
+                            val jsch = super.createDefaultJSch(fs)
                             try {
-                                defaultJsch.removeAllIdentity()
-                                defaultJsch.addIdentity(
+                                jsch.removeAllIdentity()
+                                jsch.addIdentity(
                                     "fuwa-git-ssh-key",
-                                    sshInfo.privateKey.toByteArray(),
-                                    null,
-                                    sshInfo.passphrase?.toByteArray()
+                                    sshInfo.privateKey.toByteArray(Charsets.UTF_8),
+                                    null, // public key can be null as it's extracted from private key
+                                    sshInfo.passphrase?.toByteArray(Charsets.UTF_8)
                                 )
                             } catch (e: Exception) {
-                                Log.w(TAG, "Failed to configure default JSch", e)
+                                Log.e(TAG, "Failed to add SSH identity", e)
                             }
-                            return defaultJsch
+                            return jsch
                         }
                     }
                 }

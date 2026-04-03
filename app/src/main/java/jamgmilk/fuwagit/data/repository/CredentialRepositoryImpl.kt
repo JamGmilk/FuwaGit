@@ -178,7 +178,15 @@ class CredentialRepositoryImpl @Inject constructor(
     override suspend fun getSshPassphrase(uuid: String): AppResult<String?> {
         return AppResult.catching {
             val key = getMasterKey()
-            secureStore.getSshPassphrase(uuid, key)
+            val result = secureStore.getSshPassphrase(uuid, key)
+            if (result == null) {
+                // If it's null, check if it was supposed to be there
+                val keyData = secureStore.getPublicSshKeys().find { it.uuid == uuid }
+                if (keyData?.passphrase != null) {
+                    throw AppException.DecryptionFailed()
+                }
+            }
+            result
         }
     }
 

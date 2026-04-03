@@ -15,7 +15,8 @@ class GitStatusFacade @Inject constructor(
     private val branchUseCase: BranchUseCase,
     private val stageUseCase: StageUseCase,
     private val discardChangesUseCase: DiscardChangesUseCase,
-    private val commitUseCase: CommitUseCase
+    private val commitUseCase: CommitUseCase,
+    private val getRemoteUrlUseCase: GetRemoteUrlUseCase
 ) {
     suspend fun hasGitDir(repoPath: String): Boolean = hasGitDirUseCase(repoPath)
 
@@ -42,4 +43,7 @@ class GitStatusFacade @Inject constructor(
 
     suspend fun commit(repoPath: String, message: String): Result<String> =
         commitUseCase(repoPath, message)
+
+    suspend fun getRemoteUrl(repoPath: String, remoteName: String = "origin"): String? =
+        getRemoteUrlUseCase(repoPath, remoteName)
 }

@@ -31,6 +31,9 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+import androidx.compose.runtime.Stable
+
+@Stable
 data class CredentialsStoreUiState(
     val isMasterPasswordSet: Boolean = false,
     val isBiometricEnabled: Boolean = false,

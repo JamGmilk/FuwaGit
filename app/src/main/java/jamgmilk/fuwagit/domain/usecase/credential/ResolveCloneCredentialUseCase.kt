@@ -22,7 +22,8 @@ class ResolveCloneCredentialUseCase @Inject constructor(
         selectedCredentialUuid: String?,
         selectedSshKeyUuid: String?,
         httpsCredentials: List<HttpsCredential>,
-        sshKeys: List<SshKey>
+        sshKeys: List<SshKey>,
+        remoteUrl: String? = null
     ): CloneCredential? {
         return when {
             selectedCredentialUuid != null -> {
@@ -32,7 +33,7 @@ class ResolveCloneCredentialUseCase @Inject constructor(
                 resolveSshCredential(selectedSshKeyUuid, sshKeys)
             }
             else -> {
-                resolveAutoSelectCredential(httpsCredentials, sshKeys)
+                resolveAutoSelectCredential(httpsCredentials, sshKeys, remoteUrl)
             }
         }
     }
@@ -57,13 +58,43 @@ class ResolveCloneCredentialUseCase @Inject constructor(
 
     private suspend fun resolveAutoSelectCredential(
         httpsCredentials: List<HttpsCredential>,
-        sshKeys: List<SshKey>
+        sshKeys: List<SshKey>,
+        remoteUrl: String? = null
     ): CloneCredential? {
-        return if (httpsCredentials.isNotEmpty()) {
-            resolveHttpsCredential(httpsCredentials.first().uuid, httpsCredentials)
-        } else if (sshKeys.isNotEmpty()) {
-            resolveSshCredential(sshKeys.first().uuid, sshKeys)
-        } else {
+        // 1. 如果有 HTTPS 凭据，尝试匹配 host
+        if (httpsCredentials.isNotEmpty()) {
+            if (remoteUrl != null) {
+                val host = extractHostFromUrl(remoteUrl)
+                if (host != null) {
+                    val matched = httpsCredentials.find { it.host.contains(host, ignoreCase = true) }
+                    if (matched != null) {
+                        return resolveHttpsCredential(matched.uuid, httpsCredentials)
+                    }
+                }
+            }
+            return resolveHttpsCredential(httpsCredentials.first().uuid, httpsCredentials)
+        }
+        
+        // 2. 如果有 SSH 密钥，直接尝试第一个
+        if (sshKeys.isNotEmpty()) {
+            return resolveSshCredential(sshKeys.first().uuid, sshKeys)
+        }
+        
+        return null
+    }
+
+    private fun extractHostFromUrl(url: String): String? {
+        return try {
+            if (url.startsWith("https://")) {
+                url.substringAfter("https://").substringBefore("/")
+            } else if (url.startsWith("git@")) {
+                url.substringAfter("git@").substringBefore(":")
+            } else if (url.startsWith("ssh://")) {
+                url.substringAfter("ssh://").substringAfter("@").substringBefore("/")
+            } else {
+                null
+            }
+        } catch (e: Exception) {
             null
         }
     }

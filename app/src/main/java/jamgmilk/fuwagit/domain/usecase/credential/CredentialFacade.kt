@@ -41,13 +41,15 @@ class CredentialFacade @Inject constructor(
         selectedCredentialUuid: String?,
         selectedSshKeyUuid: String?,
         httpsCredentials: List<HttpsCredential>,
-        sshKeys: List<SshKey>
+        sshKeys: List<SshKey>,
+        remoteUrl: String? = null
     ): CloneCredential? {
         return resolveCloneCredentialUseCase(
             selectedCredentialUuid,
             selectedSshKeyUuid,
             httpsCredentials,
-            sshKeys
+            sshKeys,
+            remoteUrl
         )
     }
 }

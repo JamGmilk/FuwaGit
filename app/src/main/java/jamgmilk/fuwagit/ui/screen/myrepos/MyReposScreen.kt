@@ -79,6 +79,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import jamgmilk.fuwagit.ui.components.CleanPreviewDialog
 import jamgmilk.fuwagit.ui.components.CleanResultDialog
+import jamgmilk.fuwagit.ui.components.CleanLoadingDialog
+import jamgmilk.fuwagit.ui.components.CleanMessageDialog
 import androidx.compose.ui.unit.sp
 import jamgmilk.fuwagit.ui.components.ConfigureRemoteDialog
 import jamgmilk.fuwagit.ui.components.ScreenTemplate
@@ -119,7 +121,6 @@ fun MyReposScreen(
 
     LaunchedEffect(Unit) {
         myReposViewModel.initializeStorage(context)
-        myReposViewModel.loadSavedRepos()
     }
 
     Box(modifier = modifier.fillMaxSize()) {
@@ -238,7 +239,17 @@ fun MyReposScreen(
 
     // Clean 预览对话框：显示将要删除的文件列表
     val untrackedFiles = uiState.untrackedFilesForClean
-    if (untrackedFiles.isNotEmpty()) {
+    val isCleanPreviewing = uiState.isCleanPreviewing
+    val cleanMessage = uiState.cleanMessage
+
+    if (isCleanPreviewing) {
+        CleanLoadingDialog()
+    } else if (cleanMessage != null && untrackedFiles.isEmpty()) {
+        CleanMessageDialog(
+            message = cleanMessage,
+            onDismiss = { myReposViewModel.clearCleanPreview() }
+        )
+    } else if (untrackedFiles.isNotEmpty()) {
         CleanPreviewDialog(
             untrackedFiles = untrackedFiles,
             onConfirm = { myReposViewModel.confirmCleanUntracked() },

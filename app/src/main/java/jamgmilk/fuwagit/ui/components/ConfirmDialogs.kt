@@ -39,6 +39,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -1086,4 +1087,110 @@ private fun ConflictFileItem(
             }
         }
     }
+}
+
+@Composable
+fun CleanLoadingDialog() {
+    val colors = MaterialTheme.colorScheme
+
+    AlertDialog(
+        onDismissRequest = {},
+        icon = {
+            Box(
+                modifier = Modifier
+                    .size(56.dp)
+                    .background(Color(0xFF2196F3).copy(alpha = 0.15f), CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(28.dp),
+                    color = Color(0xFF2196F3),
+                    strokeWidth = 2.5.dp
+                )
+            }
+        },
+        title = {
+            Text(
+                text = "Scanning Files",
+                fontWeight = FontWeight.Bold,
+                style = MaterialTheme.typography.titleLarge
+            )
+        },
+        text = {
+            Text(
+                text = "Analyzing untracked files in working directory...",
+                style = MaterialTheme.typography.bodyMedium,
+                color = colors.onSurfaceVariant
+            )
+        },
+        confirmButton = {},
+        shape = RoundedCornerShape(24.dp)
+    )
+}
+
+@Composable
+fun CleanMessageDialog(
+    message: String,
+    onDismiss: () -> Unit
+) {
+    val colors = MaterialTheme.colorScheme
+    val isError = message.startsWith("Failed") || message.contains("error", ignoreCase = true)
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        icon = {
+            Box(
+                modifier = Modifier
+                    .size(56.dp)
+                    .background(
+                        if (isError) Color(0xFFE53935).copy(alpha = 0.15f) else Color(0xFFFF9800).copy(alpha = 0.15f),
+                        CircleShape
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    if (isError) Icons.Default.Warning else Icons.Default.Info,
+                    contentDescription = null,
+                    tint = if (isError) Color(0xFFE53935) else Color(0xFFFF9800),
+                    modifier = Modifier.size(28.dp)
+                )
+            }
+        },
+        title = {
+            Text(
+                text = if (isError) "Clean Failed" else "Clean Info",
+                fontWeight = FontWeight.Bold,
+                style = MaterialTheme.typography.titleLarge
+            )
+        },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(
+                    text = message,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = if (isError) colors.error else colors.onSurfaceVariant
+                )
+
+                if (!isError) {
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = colors.surfaceVariant.copy(alpha = 0.5f)
+                    ) {
+                        Text(
+                            text = "The repository is already clean — no untracked files found.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = colors.onSurfaceVariant,
+                            modifier = Modifier.padding(12.dp)
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(onClick = onDismiss, shape = RoundedCornerShape(12.dp)) {
+                Text("OK")
+            }
+        },
+        shape = RoundedCornerShape(24.dp)
+    )
 }

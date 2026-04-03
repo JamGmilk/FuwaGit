@@ -23,6 +23,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccountTree
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.CloudDownload
@@ -48,6 +49,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -70,6 +72,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import jamgmilk.fuwagit.domain.model.credential.HttpsCredential
 import jamgmilk.fuwagit.domain.model.credential.SshKey
+import jamgmilk.fuwagit.domain.model.git.CloneOptions
 import jamgmilk.fuwagit.ui.components.FilePickerDialog
 import jamgmilk.fuwagit.ui.components.SubSettingsTemplate
 import jamgmilk.fuwagit.ui.screen.credentials.CredentialSelectDialog
@@ -291,6 +294,10 @@ private fun CloneContent(
 
     var isDirectoryEmptyState by remember { mutableStateOf(true) }
 
+    var cloneAllBranches by remember { mutableStateOf(true) }
+    var enableShallowClone by remember { mutableStateOf(false) }
+    var shallowDepth by remember { mutableStateOf("50") }
+
     LaunchedEffect(Unit) {
         httpsCredentials = myReposViewModel.getHttpsCredentials()
         sshKeys = myReposViewModel.getSshKeys()
@@ -425,6 +432,18 @@ private fun CloneContent(
             onPickFolder = { showFolderPicker = true }
         )
 
+        CloneOptionsSection(
+            cloneAllBranches = cloneAllBranches,
+            onCloneAllBranchesChange = { cloneAllBranches = it },
+            enableShallowClone = enableShallowClone,
+            onEnableShallowCloneChange = {
+                enableShallowClone = it
+                if (!it) shallowDepth = "50"
+            },
+            shallowDepth = shallowDepth,
+            onShallowDepthChange = { shallowDepth = it }
+        )
+
         if (error != null) {
             Surface(
                 shape = RoundedCornerShape(8.dp),
@@ -471,12 +490,19 @@ private fun CloneContent(
                 val httpsUuid = if (isHttps) selectedHttpsUuid else null
                 val sshUuid = if (isSsh) selectedSshUuid else null
 
+                val options = CloneOptions(
+                    branch = null,
+                    cloneAllBranches = cloneAllBranches,
+                    depth = if (enableShallowClone) shallowDepth.toIntOrNull()?.takeIf { it > 0 } else null
+                )
+
                 myReposViewModel.cloneWithCredentials(
                     uri = cloneUrl,
                     localPath = fullPath,
                     branch = null,
                     httpsCredentialUuid = httpsUuid,
-                    sshKeyUuid = sshUuid
+                    sshKeyUuid = sshUuid,
+                    cloneOptions = options
                 ) { result ->
                     isLoading = false
                     result.onSuccess {
@@ -1213,6 +1239,125 @@ private fun RepositoryInfoCard(
                         color = colors.onSurfaceVariant
                     )
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun CloneOptionsSection(
+    cloneAllBranches: Boolean,
+    onCloneAllBranchesChange: (Boolean) -> Unit,
+    enableShallowClone: Boolean,
+    onEnableShallowCloneChange: (Boolean) -> Unit,
+    shallowDepth: String,
+    onShallowDepthChange: (String) -> Unit
+) {
+    val colors = MaterialTheme.colorScheme
+
+    Surface(
+        shape = RoundedCornerShape(12.dp),
+        color = colors.surfaceVariant.copy(alpha = 0.5f)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    Icons.Default.AccountTree,
+                    contentDescription = null,
+                    tint = Color(0xFF2196F3),
+                    modifier = Modifier.size(16.dp)
+                )
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    text = "Clone Options",
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Medium,
+                    color = colors.onSurface
+                )
+            }
+
+            HorizontalDivider(color = colors.outline.copy(alpha = 0.15f))
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onCloneAllBranchesChange(!cloneAllBranches) }
+                    .padding(vertical = 4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Checkbox(
+                    checked = cloneAllBranches,
+                    onCheckedChange = onCloneAllBranchesChange,
+                    colors = CheckboxDefaults.colors(checkedColor = Color(0xFF2196F3))
+                )
+                Spacer(Modifier.width(8.dp))
+                Column {
+                    Text(
+                        text = "Clone all branches",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Text(
+                        text = "Download entire remote history. Uncheck for single-branch clone.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = colors.onSurfaceVariant
+                    )
+                }
+            }
+
+            HorizontalDivider(color = colors.outline.copy(alpha = 0.1f))
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onEnableShallowCloneChange(!enableShallowClone) }
+                    .padding(vertical = 4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Checkbox(
+                    checked = enableShallowClone,
+                    onCheckedChange = onEnableShallowCloneChange,
+                    colors = CheckboxDefaults.colors(checkedColor = Color(0xFF9C27B0))
+                )
+                Spacer(Modifier.width(8.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Shallow clone",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Text(
+                        text = "Only download the latest commits to save time and space.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = colors.onSurfaceVariant
+                    )
+                }
+            }
+
+            if (enableShallowClone) {
+                OutlinedTextField(
+                    value = shallowDepth,
+                    onValueChange = { newValue ->
+                        if (newValue.isEmpty() || newValue.all { it.isDigit() }) {
+                            onShallowDepthChange(newValue)
+                        }
+                    },
+                    label = { Text("Depth (number of commits)") },
+                    singleLine = true,
+                    shape = RoundedCornerShape(10.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Color(0xFF9C27B0),
+                        focusedLabelColor = Color(0xFF9C27B0),
+                        cursorColor = Color(0xFF9C27B0)
+                    )
+                )
             }
         }
     }

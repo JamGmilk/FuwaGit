@@ -18,6 +18,9 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+import androidx.compose.runtime.Stable
+
+@Stable
 data class HistoryUiState(
     val isLoading: Boolean = false,
     val error: String? = null,

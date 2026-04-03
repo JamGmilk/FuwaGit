@@ -27,6 +27,9 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import javax.inject.Inject
 
+import androidx.compose.runtime.Stable
+
+@Stable
 data class StatusUiState(
     val isLoading: Boolean = false,
     val isCheckingRepo: Boolean = false,
@@ -65,6 +68,7 @@ class StatusViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
+            loadCredentials()
             currentRepoManager.repoInfo.collectLatest { info ->
                 currentRepoPath = info.repoPath
                 _uiState.update {
@@ -94,6 +98,7 @@ class StatusViewModel @Inject constructor(
     fun refreshAll() {
         checkRepoStatus()
         refreshWorkspace()
+        loadCredentials()
     }
 
     fun initRepo() {
@@ -299,7 +304,8 @@ class StatusViewModel @Inject constructor(
 
         viewModelScope.launch {
             appendTerminalLog("git pull", "Attempting pull. Remote auth may be required")
-            val credentials = loadSelectedCredentials()
+            val remoteUrl = gitStatus.getRemoteUrl(path)
+            val credentials = loadSelectedCredentials(remoteUrl)
             gitSync.pull(path, credentials).fold(
                 onSuccess = { result ->
                     appendTerminalLog("git pull", result.toString())
@@ -317,7 +323,8 @@ class StatusViewModel @Inject constructor(
 
         viewModelScope.launch {
             appendTerminalLog("git push", "Attempting push. Remote auth may be required")
-            val credentials = loadSelectedCredentials()
+            val remoteUrl = gitStatus.getRemoteUrl(path)
+            val credentials = loadSelectedCredentials(remoteUrl)
             gitSync.push(path, credentials).fold(
                 onSuccess = { result ->
                     appendTerminalLog("git push", result)
@@ -334,7 +341,8 @@ class StatusViewModel @Inject constructor(
 
         viewModelScope.launch {
             appendTerminalLog("git fetch", "Fetching from remote...")
-            val credentials = loadSelectedCredentials()
+            val remoteUrl = gitStatus.getRemoteUrl(path)
+            val credentials = loadSelectedCredentials(remoteUrl)
             gitSync.fetch(path, credentials).fold(
                 onSuccess = { result ->
                     appendTerminalLog("git fetch", result)
@@ -351,16 +359,20 @@ class StatusViewModel @Inject constructor(
 
     fun loadCredentials() {
         viewModelScope.launch {
-            withContext(Dispatchers.IO) {
-                val httpsCreds = credential.getHttpsCredentials().getOrNull() ?: emptyList()
-                val sshKeyList = credential.getSshKeys().getOrNull() ?: emptyList()
-                withContext(Dispatchers.Main) {
-                    _uiState.update {
-                        it.copy(
-                            httpsCredentials = httpsCreds,
-                            sshKeys = sshKeyList
-                        )
-                    }
+            refreshCredentials()
+        }
+    }
+
+    private suspend fun refreshCredentials() {
+        withContext(Dispatchers.IO) {
+            val httpsCreds = credential.getHttpsCredentials().getOrNull() ?: emptyList()
+            val sshKeyList = credential.getSshKeys().getOrNull() ?: emptyList()
+            withContext(Dispatchers.Main) {
+                _uiState.update {
+                    it.copy(
+                        httpsCredentials = httpsCreds,
+                        sshKeys = sshKeyList
+                    )
                 }
             }
         }
@@ -384,13 +396,20 @@ class StatusViewModel @Inject constructor(
         }
     }
 
-    private suspend fun loadSelectedCredentials(): CloneCredential? {
-        val state = _uiState.value
+    private suspend fun loadSelectedCredentials(remoteUrl: String? = null): CloneCredential? {
+        var state = _uiState.value
+        // 如果当前列表为空，尝试同步刷新一下
+        if (state.httpsCredentials.isEmpty() && state.sshKeys.isEmpty()) {
+            refreshCredentials()
+            state = _uiState.value
+        }
+        
         return credential.resolveCredentials(
             state.selectedCredentialUuid,
             state.selectedSshKeyUuid,
             state.httpsCredentials,
-            state.sshKeys
+            state.sshKeys,
+            remoteUrl
         )
     }
 

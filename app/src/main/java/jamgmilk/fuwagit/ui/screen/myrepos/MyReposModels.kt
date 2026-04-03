@@ -2,6 +2,7 @@ package jamgmilk.fuwagit.ui.screen.myrepos
 
 import androidx.compose.runtime.Stable
 import jamgmilk.fuwagit.core.util.PathUtils
+import jamgmilk.fuwagit.domain.model.repo.RepoData
 
 @Stable
 data class RepoFolderItem(
@@ -27,12 +28,17 @@ data class RepoFolderItem(
         }
 }
 
+@Stable
 data class RepoUiState(
     val repoItems: List<RepoFolderItem> = emptyList(),
     val isLoading: Boolean = false,
     val error: String? = null,
     val untrackedFilesForClean: List<String> = emptyList(),
-    val cleanedFilesForResult: List<String> = emptyList()
+    val cleanedFilesForResult: List<String> = emptyList(),
+    val savedRepos: List<RepoData> = emptyList(),
+    val repoSizes: Map<String, Long> = emptyMap(),
+    val isCleanPreviewing: Boolean = false,
+    val cleanMessage: String? = null
 )
 
 data class HttpsCredentialItem(

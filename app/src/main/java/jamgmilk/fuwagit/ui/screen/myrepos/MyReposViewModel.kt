@@ -18,10 +18,9 @@ import jamgmilk.fuwagit.domain.usecase.git.GitRepoFacade
 import jamgmilk.fuwagit.domain.usecase.credential.CredentialFacade
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -36,12 +35,10 @@ class MyReposViewModel @Inject constructor(
     private val credential: CredentialFacade
 ) : ViewModel() {
 
-    private val _isLoading = MutableStateFlow(false)
-    private val _error = MutableStateFlow<String?>(null)
+    private val _uiState = MutableStateFlow(RepoUiState())
+    val uiState: StateFlow<RepoUiState> = _uiState.asStateFlow()
 
     val currentRepoInfo: StateFlow<RepoInfo> = currentRepoManager.repoInfo
-
-    private val _savedRepos = MutableStateFlow<List<RepoData>>(emptyList())
 
     private fun calculateFolderSize(path: String): Long {
         return try {
@@ -68,80 +65,67 @@ class MyReposViewModel @Inject constructor(
         }
     }
 
-    private val _repoSizes = MutableStateFlow<Map<String, Long>>(emptyMap())
-    private val _untrackedFilesForClean = MutableStateFlow<List<String>>(emptyList())
-    private val _cleanedFilesForResult = MutableStateFlow<List<String>>(emptyList())
-
-    val uiState: StateFlow<RepoUiState> = combine(
-        _savedRepos,
-        currentRepoInfo,
-        _isLoading,
-        _error,
-        _untrackedFilesForClean,
-        _cleanedFilesForResult,
-        _repoSizes
-    ) { values: Array<Any?> ->
-        @Suppress("UNCHECKED_CAST")
-        val repos = values[0] as List<RepoData>
-        @Suppress("UNCHECKED_CAST")
-        val currentRepo = values[1] as RepoInfo
-        @Suppress("UNCHECKED_CAST")
-        val loading = values[2] as Boolean
-        @Suppress("UNCHECKED_CAST")
-        val error = values[3] as String?
-        @Suppress("UNCHECKED_CAST")
-        val untrackedFiles = values[4] as List<String>
-        @Suppress("UNCHECKED_CAST")
-        val cleanedFiles = values[5] as List<String>
-        @Suppress("UNCHECKED_CAST")
-        val repoSizes = values[6] as Map<String, Long>
-
-        RepoUiState(
-            repoItems = repos.map { repo ->
-                RepoFolderItem(
-                    path = repo.path,
-                    alias = repo.displayName,
-                    isGitRepo = File(repo.path, ".git").exists(),
-                    isRemote = false,
-                    isActive = repo.path == currentRepo.repoPath,
-                    lastModified = repo.lastAccessedAt,
-                    size = repoSizes[repo.path] ?: 0L
-                )
-            },
-            isLoading = loading,
-            error = error,
-            untrackedFilesForClean = untrackedFiles,
-            cleanedFilesForResult = cleanedFiles
-        )
-    }.stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5000),
-        initialValue = RepoUiState()
-    )
-
     private var storageInitialized = false
 
-    fun loadSavedRepos() {
+    init {
         viewModelScope.launch {
-            val repos = repoDataStore.getAllRepos()
-            _savedRepos.value = repos
-            val currentSizes = _repoSizes.value
+            repoDataStore.getSavedReposFlow().collectLatest { repos ->
+                val currentPath = currentRepoManager.getRepoPath()
+                val currentSizes = _uiState.value.repoSizes
+                val items = repos.map { repo ->
+                    RepoFolderItem(
+                        path = repo.path,
+                        alias = repo.displayName,
+                        isGitRepo = File(repo.path, ".git").exists(),
+                        isRemote = false,
+                        isActive = repo.path == currentPath,
+                        lastModified = repo.lastAccessedAt,
+                        size = currentSizes[repo.path] ?: 0L
+                    )
+                }
+                _uiState.update { it.copy(savedRepos = repos, repoItems = items) }
+                items.forEach { item ->
+                    if (!currentSizes.containsKey(item.path)) {
+                        calculateSizeAsync(item.path)
+                    }
+                }
+            }
+        }
 
-            // Background size calculation
-            repos.forEach { repo ->
-                if (!currentSizes.containsKey(repo.path)) {
-                    calculateSizeAsync(repo.path)
+        viewModelScope.launch {
+            currentRepoManager.repoInfo.collectLatest { info ->
+                val currentPath = info.repoPath
+                if (currentPath != null) {
+                    _uiState.update { state ->
+                        state.copy(repoItems = state.repoItems.map { item ->
+                            item.copy(isActive = item.path == currentPath)
+                        })
+                    }
                 }
             }
         }
     }
 
-    private fun calculateSizeAsync(path: String) {
-        viewModelScope.launch(Dispatchers.IO) {
-            val size = calculateFolderSize(path)
-            withContext(Dispatchers.Main) {
-                _repoSizes.update { currentSizes ->
-                    currentSizes + (path to size)
+    fun loadSavedRepos() {
+        viewModelScope.launch {
+            val repos = repoDataStore.getAllRepos()
+            val currentPath = currentRepoManager.getRepoPath()
+            val currentSizes = _uiState.value.repoSizes
+            val items = repos.map { repo ->
+                RepoFolderItem(
+                    path = repo.path,
+                    alias = repo.displayName,
+                    isGitRepo = File(repo.path, ".git").exists(),
+                    isRemote = false,
+                    isActive = repo.path == currentPath,
+                    lastModified = repo.lastAccessedAt,
+                    size = currentSizes[repo.path] ?: 0L
+                )
+            }
+            _uiState.update { it.copy(savedRepos = repos, repoItems = items) }
+            items.forEach { item ->
+                if (!currentSizes.containsKey(item.path)) {
+                    calculateSizeAsync(item.path)
                 }
             }
         }
@@ -150,7 +134,22 @@ class MyReposViewModel @Inject constructor(
     fun initializeStorage(context: Context) {
         if (storageInitialized) return
         storageInitialized = true
-        loadSavedRepos()
+    }
+
+    private fun calculateSizeAsync(path: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val size = calculateFolderSize(path)
+            withContext(Dispatchers.Main) {
+                _uiState.update { state ->
+                    state.copy(
+                        repoSizes = state.repoSizes + (path to size),
+                        repoItems = state.repoItems.map { item ->
+                            if (item.path == path) item.copy(size = size) else item
+                        }
+                    )
+                }
+            }
+        }
     }
 
     suspend fun addRepo(path: String, alias: String? = null): Boolean {
@@ -160,17 +159,12 @@ class MyReposViewModel @Inject constructor(
             if (currentRepoManager.getRepoPath() == null) {
                 currentRepoManager.setRepoPath(path)
             }
-            loadSavedRepos()
         }
         return result
     }
 
     suspend fun removeRepo(repo: RepoData): Boolean {
-        val result = repoDataStore.removeRepo(repo.path)
-        if (result) {
-            loadSavedRepos()
-        }
-        return result
+        return repoDataStore.removeRepo(repo.path)
     }
 
     suspend fun removeRepo(item: RepoFolderItem) {
@@ -178,7 +172,6 @@ class MyReposViewModel @Inject constructor(
         if (currentRepoManager.getRepoPath() == item.path) {
             currentRepoManager.clearRepo()
         }
-        loadSavedRepos()
     }
 
     suspend fun setCurrentRepo(path: String?) {
@@ -190,12 +183,12 @@ class MyReposViewModel @Inject constructor(
     }
 
     suspend fun cleanRepo(path: String, dryRun: Boolean = false): Result<String> {
-        return gitRepo.clean(path, dryRun).map {
+        return gitRepo.clean(path, dryRun).map { result ->
             if (dryRun) {
                 // 更新 untracked files 列表用于预览
-                _untrackedFilesForClean.value = it.files
+                _uiState.update { it.copy(untrackedFilesForClean = result.files) }
             }
-            it.toString()
+            result.toString()
         }
     }
 
@@ -206,21 +199,25 @@ class MyReposViewModel @Inject constructor(
         val path = currentRepoInfo.value.repoPath ?: return
 
         viewModelScope.launch {
-            _isLoading.value = true
+            _uiState.update { it.copy(isCleanPreviewing = true, cleanMessage = null, untrackedFilesForClean = emptyList()) }
             gitRepo.clean(path, dryRun = true).fold(
                 onSuccess = { result ->
-                    _isLoading.value = false
-                    if (result.files.isEmpty()) {
-                        _error.value = "No untracked files to clean"
-                        _untrackedFilesForClean.value = emptyList()
-                    } else {
-                        _untrackedFilesForClean.value = result.files
+                    _uiState.update {
+                        it.copy(
+                            isCleanPreviewing = false,
+                            cleanMessage = if (result.files.isEmpty()) "No untracked files to clean" else null,
+                            untrackedFilesForClean = result.files
+                        )
                     }
                 },
                 onFailure = { e ->
-                    _isLoading.value = false
-                    _error.value = "Failed to get untracked files: ${e.message}"
-                    _untrackedFilesForClean.value = emptyList()
+                    _uiState.update {
+                        it.copy(
+                            isCleanPreviewing = false,
+                            cleanMessage = "Failed to get untracked files: ${e.message}",
+                            untrackedFilesForClean = emptyList()
+                        )
+                    }
                 }
             )
         }
@@ -231,32 +228,42 @@ class MyReposViewModel @Inject constructor(
      */
     fun confirmCleanUntracked() {
         val path = currentRepoInfo.value.repoPath ?: return
-        val filesToClean = _untrackedFilesForClean.value
+        val filesToClean = _uiState.value.untrackedFilesForClean
 
         viewModelScope.launch {
-            // 先执行 dry-run 获取实际会被删除的文件
+            _uiState.update { it.copy(isCleanPreviewing = true, cleanMessage = null) }
             gitRepo.clean(path, dryRun = true).fold(
                 onSuccess = { dryRunResult ->
-                    // 然后执行实际清理
                     gitRepo.clean(path, dryRun = false).fold(
                         onSuccess = {
-                            _isLoading.value = false
-                            _cleanedFilesForResult.value = dryRunResult.files
-                            _untrackedFilesForClean.value = emptyList()
-                            _error.value = null
-                            loadSavedRepos() // 刷新仓库列表（大小可能已变化）
+                            _uiState.update {
+                                it.copy(
+                                    isCleanPreviewing = false,
+                                    cleanedFilesForResult = dryRunResult.files,
+                                    untrackedFilesForClean = emptyList(),
+                                    cleanMessage = null
+                                )
+                            }
                         },
                         onFailure = { e ->
-                            _isLoading.value = false
-                            _error.value = "Failed to clean: ${e.message}"
-                            _untrackedFilesForClean.value = emptyList()
+                            _uiState.update {
+                                it.copy(
+                                    isCleanPreviewing = false,
+                                    cleanMessage = "Failed to clean: ${e.message}",
+                                    untrackedFilesForClean = emptyList()
+                                )
+                            }
                         }
                     )
                 },
                 onFailure = { e ->
-                    _isLoading.value = false
-                    _error.value = "Failed to get file list: ${e.message}"
-                    _untrackedFilesForClean.value = emptyList()
+                    _uiState.update {
+                        it.copy(
+                            isCleanPreviewing = false,
+                            cleanMessage = "Failed to get file list: ${e.message}",
+                            untrackedFilesForClean = emptyList()
+                        )
+                    }
                 }
             )
         }
@@ -266,14 +273,14 @@ class MyReposViewModel @Inject constructor(
      * 清除 Clean 预览状态
      */
     fun clearCleanPreview() {
-        _untrackedFilesForClean.value = emptyList()
+        _uiState.update { it.copy(untrackedFilesForClean = emptyList(), isCleanPreviewing = false, cleanMessage = null) }
     }
 
     /**
      * 清除 Clean 结果状态
      */
     fun clearCleanResult() {
-        _cleanedFilesForResult.value = emptyList()
+        _uiState.update { it.copy(cleanedFilesForResult = emptyList(), cleanMessage = null) }
     }
 
     suspend fun getRepoInfo(localPath: String): Map<String, String> {
@@ -347,10 +354,11 @@ class MyReposViewModel @Inject constructor(
         branch: String? = null,
         httpsCredentialUuid: String? = null,
         sshKeyUuid: String? = null,
+        cloneOptions: CloneOptions = CloneOptions(),
         onResult: (Result<String>) -> Unit
     ) {
         viewModelScope.launch {
-            _isLoading.value = true
+            _uiState.update { it.copy(isLoading = true) }
 
             val httpsCreds = getHttpsCredentials()
             val sshKeys = getSshKeys()
@@ -359,24 +367,29 @@ class MyReposViewModel @Inject constructor(
                 httpsCredentialUuid,
                 sshKeyUuid,
                 httpsCreds,
-                sshKeys
+                sshKeys,
+                uri
             )
 
-            gitRepo.clone(uri, localPath, credentials, CloneOptions())
+            gitRepo.clone(uri, localPath, credentials, cloneOptions)
                 .onSuccess { result ->
-                    _isLoading.value = false
+                    _uiState.update { it.copy(isLoading = false) }
                     addRepo(localPath, null)
                     onResult(Result.success(result))
                 }
                 .onFailure { e ->
-                    _isLoading.value = false
-                    _error.value = e.message
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            error = e.message
+                        )
+                    }
                     onResult(Result.failure(e))
                 }
         }
     }
 
     fun clearError() {
-        _error.value = null
+        _uiState.update { it.copy(error = null) }
     }
 }
