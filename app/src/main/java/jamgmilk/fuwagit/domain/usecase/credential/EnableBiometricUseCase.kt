@@ -10,23 +10,25 @@ class EnableBiometricUseCase @Inject constructor(
     private val credentialRepository: CredentialRepository,
     private val masterKeyManager: MasterKeyManager
 ) {
-    operator fun invoke(activity: FragmentActivity): AppResult<Unit> {
+    operator fun invoke(
+        activity: FragmentActivity,
+        onResult: (AppResult<Unit>) -> Unit
+    ) {
         val masterKey = credentialRepository.getCachedMasterKey()
-            ?: return AppResult.Error(jamgmilk.fuwagit.core.result.AppException.MasterKeyNotUnlocked())
-
-        var result: AppResult<Unit> = AppResult.Error(jamgmilk.fuwagit.core.result.AppException.Unknown(""))
+            ?: run {
+                onResult(AppResult.Error(jamgmilk.fuwagit.core.result.AppException.MasterKeyNotUnlocked()))
+                return
+            }
 
         masterKeyManager.enableBiometric(
             activity = activity,
             masterKey = masterKey,
             onSuccess = {
-                result = AppResult.Success(Unit)
+                onResult(AppResult.Success(Unit))
             },
             onError = { message ->
-                result = AppResult.Error(jamgmilk.fuwagit.core.result.AppException.BiometricError(message))
+                onResult(AppResult.Error(jamgmilk.fuwagit.core.result.AppException.BiometricError(message)))
             }
         )
-
-        return result
     }
 }

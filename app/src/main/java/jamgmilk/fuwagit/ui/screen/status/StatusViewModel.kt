@@ -3,6 +3,7 @@ package jamgmilk.fuwagit.ui.screen.status
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import jamgmilk.fuwagit.core.result.AppResult
 import jamgmilk.fuwagit.domain.state.RepoStateManager
 import jamgmilk.fuwagit.domain.model.git.GitBranch
 import jamgmilk.fuwagit.domain.model.git.GitFileStatus
@@ -11,25 +12,9 @@ import jamgmilk.fuwagit.domain.model.credential.HttpsCredential
 import jamgmilk.fuwagit.domain.model.credential.SshKey
 import jamgmilk.fuwagit.ui.components.DangerousOperationType
 import jamgmilk.fuwagit.ui.components.OperationResult
-import jamgmilk.fuwagit.domain.usecase.git.CommitUseCase
-import jamgmilk.fuwagit.domain.usecase.git.DiscardChangesUseCase
-import jamgmilk.fuwagit.domain.usecase.git.FetchUseCase
-import jamgmilk.fuwagit.domain.usecase.git.GetDetailedStatusUseCase
-import jamgmilk.fuwagit.domain.usecase.git.GetBranchesUseCase
-import jamgmilk.fuwagit.domain.usecase.git.HasGitDirUseCase
-import jamgmilk.fuwagit.domain.usecase.git.InitRepoUseCase
-import jamgmilk.fuwagit.domain.usecase.git.PullUseCase
-import jamgmilk.fuwagit.domain.usecase.git.PushUseCase
-import jamgmilk.fuwagit.domain.usecase.git.StageAllUseCase
-import jamgmilk.fuwagit.domain.usecase.git.StageFileUseCase
-import jamgmilk.fuwagit.domain.usecase.git.UnstageAllUseCase
-import jamgmilk.fuwagit.domain.usecase.git.UnstageFileUseCase
-import jamgmilk.fuwagit.domain.usecase.git.CleanUseCase
-import jamgmilk.fuwagit.domain.usecase.credential.GetHttpsCredentialsUseCase
-import jamgmilk.fuwagit.domain.usecase.credential.GetHttpsPasswordUseCase
-import jamgmilk.fuwagit.domain.usecase.credential.GetSshKeysUseCase
-import jamgmilk.fuwagit.domain.usecase.credential.GetSshPrivateKeyUseCase
-import jamgmilk.fuwagit.domain.usecase.credential.GetSshPassphraseUseCase
+import jamgmilk.fuwagit.domain.usecase.git.GitStatusFacade
+import jamgmilk.fuwagit.domain.usecase.git.GitSyncFacade
+import jamgmilk.fuwagit.domain.usecase.credential.CredentialFacade
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -58,7 +43,6 @@ data class StatusUiState(
     val pendingOperation: DangerousOperationType? = null,
     val pendingOperationTarget: String? = null,
     val operationResult: OperationResult? = null,
-    val untrackedFilesForClean: List<String> = emptyList(),
     // 凭据相关状态
     val selectedCredentialUuid: String? = null,
     val selectedSshKeyUuid: String? = null,
@@ -69,26 +53,9 @@ data class StatusUiState(
 @HiltViewModel
 class StatusViewModel @Inject constructor(
     private val currentRepoManager: RepoStateManager,
-    private val hasGitDirUseCase: HasGitDirUseCase,
-    private val initRepoUseCase: InitRepoUseCase,
-    private val getDetailedStatusUseCase: GetDetailedStatusUseCase,
-    private val getBranchesUseCase: GetBranchesUseCase,
-    private val stageAllUseCase: StageAllUseCase,
-    private val unstageAllUseCase: UnstageAllUseCase,
-    private val stageFileUseCase: StageFileUseCase,
-    private val unstageFileUseCase: UnstageFileUseCase,
-    private val discardChangesUseCase: DiscardChangesUseCase,
-    private val cleanUseCase: CleanUseCase,
-    private val commitUseCase: CommitUseCase,
-    private val pullUseCase: PullUseCase,
-    private val pushUseCase: PushUseCase,
-    private val fetchUseCase: FetchUseCase,
-    // 凭据相关
-    private val getHttpsCredentialsUseCase: GetHttpsCredentialsUseCase,
-    private val getHttpsPasswordUseCase: GetHttpsPasswordUseCase,
-    private val getSshKeysUseCase: GetSshKeysUseCase,
-    private val getSshPrivateKeyUseCase: GetSshPrivateKeyUseCase,
-    private val getSshPassphraseUseCase: GetSshPassphraseUseCase
+    private val gitStatus: GitStatusFacade,
+    private val gitSync: GitSyncFacade,
+    private val credential: CredentialFacade
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(StatusUiState())
@@ -134,7 +101,7 @@ class StatusViewModel @Inject constructor(
 
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
-            initRepoUseCase(path).fold(
+            gitStatus.initRepo(path).fold(
                 onSuccess = { result ->
                     appendTerminalLog("git init", result)
                     refreshAll()
@@ -162,7 +129,7 @@ class StatusViewModel @Inject constructor(
 
         viewModelScope.launch {
             _uiState.update { it.copy(isCheckingRepo = true) }
-            val isGitRepo = hasGitDirUseCase(path)
+            val isGitRepo = gitStatus.hasGitDir(path)
             _uiState.update {
                 it.copy(
                     isGitRepo = isGitRepo,
@@ -179,8 +146,8 @@ class StatusViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
 
-            val filesResult = withContext(Dispatchers.IO) { getDetailedStatusUseCase(path) }
-            val branchesResult = withContext(Dispatchers.IO) { getBranchesUseCase(path) }
+            val filesResult = withContext(Dispatchers.IO) { gitStatus.getDetailedStatus(path) }
+            val branchesResult = withContext(Dispatchers.IO) { gitStatus.getBranches(path) }
 
             filesResult.fold(
                 onSuccess = { files ->
@@ -212,7 +179,7 @@ class StatusViewModel @Inject constructor(
         val path = currentRepoPath ?: return
 
         viewModelScope.launch {
-            stageAllUseCase(path).fold(
+            gitStatus.stageAll(path).fold(
                 onSuccess = { result ->
                     appendTerminalLog("git add -A", result)
                     refreshWorkspace()
@@ -228,7 +195,7 @@ class StatusViewModel @Inject constructor(
         val path = currentRepoPath ?: return
 
         viewModelScope.launch {
-            unstageAllUseCase(path).fold(
+            gitStatus.unstageAll(path).fold(
                 onSuccess = { result ->
                     appendTerminalLog("git reset", result)
                     refreshWorkspace()
@@ -244,7 +211,7 @@ class StatusViewModel @Inject constructor(
         val path = currentRepoPath ?: return
 
         viewModelScope.launch {
-            stageFileUseCase(path, filePath).fold(
+            gitStatus.stageFile(path, filePath).fold(
                 onSuccess = { refreshWorkspace() },
                 onFailure = { e ->
                     appendTerminalLog("git add $filePath", "Error: ${e.message}")
@@ -257,7 +224,7 @@ class StatusViewModel @Inject constructor(
         val path = currentRepoPath ?: return
 
         viewModelScope.launch {
-            unstageFileUseCase(path, filePath).fold(
+            gitStatus.unstageFile(path, filePath).fold(
                 onSuccess = { refreshWorkspace() },
                 onFailure = { e ->
                     appendTerminalLog("git reset $filePath", "Error: ${e.message}")
@@ -277,28 +244,6 @@ class StatusViewModel @Inject constructor(
         }
     }
 
-    fun requestCleanUntracked() {
-        val path = currentRepoPath ?: return
-        val untrackedFiles = _uiState.value.workspaceFiles
-            .filter { it.changeType == jamgmilk.fuwagit.domain.model.git.GitChangeType.Untracked }
-            .map { it.path }
-
-        if (untrackedFiles.isEmpty()) {
-            _uiState.update {
-                it.copy(
-                    operationResult = OperationResult.Failure("No untracked files to clean", "")
-                )
-            }
-            return
-        }
-
-        _uiState.update {
-            it.copy(
-                untrackedFilesForClean = untrackedFiles
-            )
-        }
-    }
-
     // ============ 危险操作：执行 ============
 
     fun confirmDiscardChanges() {
@@ -306,7 +251,7 @@ class StatusViewModel @Inject constructor(
         val filePath = _uiState.value.pendingOperationTarget ?: return
 
         viewModelScope.launch {
-            discardChangesUseCase(path, filePath).fold(
+            gitStatus.discardChanges(path, filePath).fold(
                 onSuccess = {
                     _uiState.update {
                         it.copy(
@@ -333,45 +278,11 @@ class StatusViewModel @Inject constructor(
         }
     }
 
-    fun confirmCleanUntracked() {
-        val path = currentRepoPath ?: return
-
-        viewModelScope.launch {
-            cleanUseCase(path, dryRun = false).fold(
-                onSuccess = {
-                    val count = _uiState.value.untrackedFilesForClean.size
-                    _uiState.update {
-                        it.copy(
-                            operationResult = OperationResult.Success("$count untracked file(s) cleaned"),
-                            pendingOperation = null,
-                            pendingOperationTarget = null,
-                            untrackedFilesForClean = emptyList()
-                        )
-                    }
-                    refreshWorkspace()
-                },
-                onFailure = { e ->
-                    _uiState.update {
-                        it.copy(
-                            operationResult = OperationResult.Failure(
-                                e.message ?: "Unknown error",
-                                "Some files may be locked or in use. Close any open files and try again."
-                            ),
-                            pendingOperation = null,
-                            pendingOperationTarget = null,
-                            untrackedFilesForClean = emptyList()
-                        )
-                    }
-                }
-            )
-        }
-    }
-
     fun commitChanges(message: String) {
         val path = currentRepoPath ?: return
 
         viewModelScope.launch {
-            commitUseCase(path, message).fold(
+            gitStatus.commit(path, message).fold(
                 onSuccess = { result ->
                     appendTerminalLog("git commit -m \"${message.trim()}\"", result)
                     refreshWorkspace()
@@ -389,7 +300,7 @@ class StatusViewModel @Inject constructor(
         viewModelScope.launch {
             appendTerminalLog("git pull", "Attempting pull. Remote auth may be required")
             val credentials = loadSelectedCredentials()
-            pullUseCase(path, credentials).fold(
+            gitSync.pull(path, credentials).fold(
                 onSuccess = { result ->
                     appendTerminalLog("git pull", result.toString())
                     refreshWorkspace()
@@ -407,7 +318,7 @@ class StatusViewModel @Inject constructor(
         viewModelScope.launch {
             appendTerminalLog("git push", "Attempting push. Remote auth may be required")
             val credentials = loadSelectedCredentials()
-            pushUseCase(path, credentials).fold(
+            gitSync.push(path, credentials).fold(
                 onSuccess = { result ->
                     appendTerminalLog("git push", result)
                 },
@@ -424,7 +335,7 @@ class StatusViewModel @Inject constructor(
         viewModelScope.launch {
             appendTerminalLog("git fetch", "Fetching from remote...")
             val credentials = loadSelectedCredentials()
-            fetchUseCase(path, credentials).fold(
+            gitSync.fetch(path, credentials).fold(
                 onSuccess = { result ->
                     appendTerminalLog("git fetch", result)
                     refreshAll()
@@ -441,8 +352,10 @@ class StatusViewModel @Inject constructor(
     fun loadCredentials() {
         viewModelScope.launch {
             withContext(Dispatchers.IO) {
-                val httpsCreds = getHttpsCredentialsUseCase().getOrNull() ?: emptyList()
-                val sshKeyList = getSshKeysUseCase().getOrNull() ?: emptyList()
+                val httpsResult = credential.getHttpsCredentials()
+                val sshResult = credential.getSshKeys()
+                val httpsCreds = if (httpsResult is AppResult.Success) httpsResult.data else emptyList()
+                val sshKeyList = if (sshResult is AppResult.Success) sshResult.data else emptyList()
                 withContext(Dispatchers.Main) {
                     _uiState.update {
                         it.copy(
@@ -475,35 +388,12 @@ class StatusViewModel @Inject constructor(
 
     private suspend fun loadSelectedCredentials(): CloneCredential? {
         val state = _uiState.value
-        return when {
-            state.selectedCredentialUuid != null -> {
-                val uuid = state.selectedCredentialUuid!!
-                val cred = state.httpsCredentials.find { it.uuid == uuid } ?: return null
-                val password = getHttpsPasswordUseCase(uuid).getOrNull() ?: return null
-                CloneCredential.Https(cred.username, password)
-            }
-            state.selectedSshKeyUuid != null -> {
-                val uuid = state.selectedSshKeyUuid!!
-                val privateKey = getSshPrivateKeyUseCase(uuid).getOrNull() ?: return null
-                val passphrase = getSshPassphraseUseCase(uuid).getOrNull()
-                CloneCredential.Ssh(privateKey, passphrase)
-            }
-            else -> {
-                // 自动选择第一个可用的凭据
-                if (state.httpsCredentials.isNotEmpty()) {
-                    val cred = state.httpsCredentials.first()
-                    val password = getHttpsPasswordUseCase(cred.uuid).getOrNull() ?: return null
-                    CloneCredential.Https(cred.username, password)
-                } else if (state.sshKeys.isNotEmpty()) {
-                    val key = state.sshKeys.first()
-                    val privateKey = getSshPrivateKeyUseCase(key.uuid).getOrNull() ?: return null
-                    val passphrase = getSshPassphraseUseCase(key.uuid).getOrNull()
-                    CloneCredential.Ssh(privateKey, passphrase)
-                } else {
-                    null
-                }
-            }
-        }
+        return credential.resolveCredentials(
+            state.selectedCredentialUuid,
+            state.selectedSshKeyUuid,
+            state.httpsCredentials,
+            state.sshKeys
+        )
     }
 
     private fun appendTerminalLog(command: String, result: String) {
@@ -532,12 +422,6 @@ class StatusViewModel @Inject constructor(
                 pendingOperation = null,
                 pendingOperationTarget = null
             )
-        }
-    }
-
-    fun clearCleanPreview() {
-        _uiState.update {
-            it.copy(untrackedFilesForClean = emptyList())
         }
     }
 }

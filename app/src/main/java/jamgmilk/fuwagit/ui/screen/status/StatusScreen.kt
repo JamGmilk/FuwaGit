@@ -31,7 +31,6 @@ import androidx.compose.material.icons.automirrored.filled.Undo
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ChevronRight
-import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.CloudDownload
 import androidx.compose.material.icons.filled.CloudUpload
 import androidx.compose.material.icons.filled.Code
@@ -80,7 +79,6 @@ import jamgmilk.fuwagit.ui.components.ScreenTemplate
 import jamgmilk.fuwagit.ui.components.DangerousOperationType
 import jamgmilk.fuwagit.ui.components.OperationResultDialog
 import jamgmilk.fuwagit.ui.components.TwoStepConfirmDialog
-import jamgmilk.fuwagit.ui.components.CleanPreviewDialog
 import jamgmilk.fuwagit.ui.theme.AppColors
 import jamgmilk.fuwagit.ui.theme.FuwaGitThemeExtras
 import jamgmilk.fuwagit.ui.theme.Sakura50
@@ -134,30 +132,15 @@ fun StatusScreen(
         title = "Status",
         modifier = modifier,
         actions = {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                // Clean 按钮
-                if (statusStats.untracked > 0) {
-                    FilledTonalIconButton(
-                        onClick = { statusViewModel.requestCleanUntracked() },
-                        modifier = Modifier.size(36.dp)
-                    ) {
-                        Icon(
-                            Icons.Default.Clear,
-                            contentDescription = "Clean untracked files",
-                            modifier = Modifier.size(18.dp)
-                        )
-                    }
-                }
-                FilledTonalIconButton(
-                    onClick = { statusViewModel.refreshWorkspace() },
-                    modifier = Modifier.size(36.dp)
-                ) {
-                    Icon(
-                        Icons.Default.Refresh,
-                        contentDescription = "Refresh",
-                        modifier = Modifier.size(18.dp)
-                    )
-                }
+            FilledTonalIconButton(
+                onClick = { statusViewModel.refreshWorkspace() },
+                modifier = Modifier.size(36.dp)
+            ) {
+                Icon(
+                    Icons.Default.Refresh,
+                    contentDescription = "Refresh",
+                    modifier = Modifier.size(18.dp)
+                )
             }
         }
     ) {
@@ -302,16 +285,6 @@ fun StatusScreen(
             }
             else -> {}
         }
-    }
-
-    // Clean 预览对话框
-    val untrackedFiles = uiState.untrackedFilesForClean
-    if (untrackedFiles.isNotEmpty()) {
-        CleanPreviewDialog(
-            untrackedFiles = untrackedFiles,
-            onConfirm = { statusViewModel.confirmCleanUntracked() },
-            onDismiss = { statusViewModel.clearCleanPreview() }
-        )
     }
 
     // 操作结果反馈对话框

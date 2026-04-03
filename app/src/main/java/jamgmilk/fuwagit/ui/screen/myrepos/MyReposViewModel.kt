@@ -7,6 +7,7 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import jamgmilk.fuwagit.core.util.PathUtils
 import jamgmilk.fuwagit.data.local.prefs.RepoDataStore
+import jamgmilk.fuwagit.core.result.AppResult
 import jamgmilk.fuwagit.domain.model.credential.CloneCredential
 import jamgmilk.fuwagit.domain.model.git.CloneOptions
 import jamgmilk.fuwagit.domain.model.repo.RepoData
@@ -15,17 +16,8 @@ import jamgmilk.fuwagit.domain.model.credential.SshKey
 import jamgmilk.fuwagit.domain.state.RepoInfo
 import jamgmilk.fuwagit.domain.state.RepoStateManager
 import jamgmilk.fuwagit.domain.usecase.CurrentRepoUseCase
-import jamgmilk.fuwagit.domain.usecase.credential.GetHttpsCredentialsUseCase
-import jamgmilk.fuwagit.domain.usecase.credential.GetHttpsPasswordUseCase
-import jamgmilk.fuwagit.domain.usecase.credential.GetSshKeysUseCase
-import jamgmilk.fuwagit.domain.usecase.credential.GetSshPrivateKeyUseCase
-import jamgmilk.fuwagit.domain.usecase.git.CleanUseCase
-import jamgmilk.fuwagit.domain.usecase.git.CloneRepositoryUseCase
-import jamgmilk.fuwagit.domain.usecase.git.ConfigureRemoteUseCase
-import jamgmilk.fuwagit.domain.usecase.git.GetRemotesUseCase
-import jamgmilk.fuwagit.domain.usecase.git.GetRemoteUrlUseCase
-import jamgmilk.fuwagit.domain.usecase.git.GetRepoInfoUseCase
-import jamgmilk.fuwagit.domain.usecase.git.InitRepoUseCase
+import jamgmilk.fuwagit.domain.usecase.git.GitRepoFacade
+import jamgmilk.fuwagit.domain.usecase.credential.CredentialFacade
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -64,7 +56,8 @@ data class RepoUiState(
     val repoItems: List<RepoFolderItem> = emptyList(),
     val isLoading: Boolean = false,
     val error: String? = null,
-    val untrackedFilesForClean: List<String> = emptyList()
+    val untrackedFilesForClean: List<String> = emptyList(),
+    val cleanedFilesForResult: List<String> = emptyList()
 )
 
 data class HttpsCredentialItem(
@@ -86,17 +79,8 @@ class MyReposViewModel @Inject constructor(
     private val repoDataStore: RepoDataStore,
     private val currentRepoManager: RepoStateManager,
     private val currentRepoUseCase: CurrentRepoUseCase,
-    private val cleanUseCase: CleanUseCase,
-    private val cloneRepositoryUseCase: CloneRepositoryUseCase,
-    private val configureRemoteUseCase: ConfigureRemoteUseCase,
-    private val getRepoInfoUseCase: GetRepoInfoUseCase,
-    private val getRemoteUrlUseCase: GetRemoteUrlUseCase,
-    private val getHttpsCredentialsUseCase: GetHttpsCredentialsUseCase,
-    private val getHttpsPasswordUseCase: GetHttpsPasswordUseCase,
-    private val getSshKeysUseCase: GetSshKeysUseCase,
-    private val getSshPrivateKeyUseCase: GetSshPrivateKeyUseCase,
-    private val initRepoUseCase: InitRepoUseCase,
-    private val getRemotesUseCase: GetRemotesUseCase
+    private val gitRepo: GitRepoFacade,
+    private val credential: CredentialFacade
 ) : ViewModel() {
 
     private val _isLoading = MutableStateFlow(false)
@@ -133,14 +117,25 @@ class MyReposViewModel @Inject constructor(
 
     private val _repoSizes = mutableStateMapOf<String, Long>()
     private val _untrackedFilesForClean = MutableStateFlow<List<String>>(emptyList())
+    private val _cleanedFilesForResult = MutableStateFlow<List<String>>(emptyList())
 
     val uiState: StateFlow<RepoUiState> = combine(
-        _savedRepos,
-        currentRepoInfo,
-        _isLoading,
-        _error,
-        _untrackedFilesForClean
-    ) { repos, currentRepo, loading, error, untrackedFiles ->
+        listOf(
+            _savedRepos,
+            currentRepoInfo,
+            _isLoading,
+            _error,
+            _untrackedFilesForClean,
+            _cleanedFilesForResult
+        )
+    ) { values ->
+        val repos = values[0] as List<RepoData>
+        val currentRepo = values[1] as RepoInfo
+        val loading = values[2] as Boolean
+        val error = values[3] as String?
+        val untrackedFiles = values[4] as List<String>
+        val cleanedFiles = values[5] as List<String>
+        
         RepoUiState(
             repoItems = repos.map { repo ->
                 RepoFolderItem(
@@ -155,7 +150,8 @@ class MyReposViewModel @Inject constructor(
             },
             isLoading = loading,
             error = error,
-            untrackedFilesForClean = untrackedFiles
+            untrackedFilesForClean = untrackedFiles,
+            cleanedFilesForResult = cleanedFiles
         )
     }.stateIn(
         scope = viewModelScope,
@@ -231,7 +227,7 @@ class MyReposViewModel @Inject constructor(
     }
 
     suspend fun cleanRepo(path: String, dryRun: Boolean = false): Result<String> {
-        return cleanUseCase(path, dryRun).map { 
+        return gitRepo.clean(path, dryRun).map {
             if (dryRun) {
                 // 更新 untracked files 列表用于预览
                 _untrackedFilesForClean.value = it.files
@@ -245,10 +241,10 @@ class MyReposViewModel @Inject constructor(
      */
     fun requestCleanPreview() {
         val path = currentRepoInfo.value.repoPath ?: return
-        
+
         viewModelScope.launch {
             _isLoading.value = true
-            cleanUseCase(path, dryRun = true).fold(
+            gitRepo.clean(path, dryRun = true).fold(
                 onSuccess = { result ->
                     _isLoading.value = false
                     if (result.files.isEmpty()) {
@@ -272,20 +268,31 @@ class MyReposViewModel @Inject constructor(
      */
     fun confirmCleanUntracked() {
         val path = currentRepoInfo.value.repoPath ?: return
-        
+        val filesToClean = _untrackedFilesForClean.value
+
         viewModelScope.launch {
-            _isLoading.value = true
-            cleanUseCase(path, dryRun = false).fold(
-                onSuccess = { result ->
-                    _isLoading.value = false
-                    val count = _untrackedFilesForClean.value.size
-                    _untrackedFilesForClean.value = emptyList()
-                    _error.value = null
-                    loadSavedRepos() // 刷新仓库列表（大小可能已变化）
+            // 先执行 dry-run 获取实际会被删除的文件
+            gitRepo.clean(path, dryRun = true).fold(
+                onSuccess = { dryRunResult ->
+                    // 然后执行实际清理
+                    gitRepo.clean(path, dryRun = false).fold(
+                        onSuccess = {
+                            _isLoading.value = false
+                            _cleanedFilesForResult.value = dryRunResult.files
+                            _untrackedFilesForClean.value = emptyList()
+                            _error.value = null
+                            loadSavedRepos() // 刷新仓库列表（大小可能已变化）
+                        },
+                        onFailure = { e ->
+                            _isLoading.value = false
+                            _error.value = "Failed to clean: ${e.message}"
+                            _untrackedFilesForClean.value = emptyList()
+                        }
+                    )
                 },
                 onFailure = { e ->
                     _isLoading.value = false
-                    _error.value = "Failed to clean: ${e.message}"
+                    _error.value = "Failed to get file list: ${e.message}"
                     _untrackedFilesForClean.value = emptyList()
                 }
             )
@@ -299,27 +306,35 @@ class MyReposViewModel @Inject constructor(
         _untrackedFilesForClean.value = emptyList()
     }
 
+    /**
+     * 清除 Clean 结果状态
+     */
+    fun clearCleanResult() {
+        _cleanedFilesForResult.value = emptyList()
+    }
+
     suspend fun getRepoInfo(localPath: String): Map<String, String> {
-        return getRepoInfoUseCase(localPath)
+        return gitRepo.getRepoInfo(localPath)
     }
 
     suspend fun getRemotes(localPath: String): List<Pair<String, String>> {
-        return getRemotesUseCase(localPath)
-            .map { remotes -> remotes.map { it.name to it.fetchUrl } }
-            .getOrNull() ?: emptyList()
+        return gitRepo.getRemotes(localPath)
+            .getOrNull()
+            ?.map { it.name to it.fetchUrl }
+            ?: emptyList()
     }
 
     suspend fun getRemoteUrl(localPath: String, name: String = "origin"): String? {
-        return getRemoteUrlUseCase(localPath, name)
+        return gitRepo.getRemoteUrl(localPath, name)
     }
 
     suspend fun addLocalRepository(path: String, alias: String?, remoteUrl: String?) {
         withContext(Dispatchers.IO) {
             val gitDir = File(path, ".git")
             if (!gitDir.exists()) {
-                initRepoUseCase(path).getOrThrow()
+                gitRepo.initRepo(path).getOrThrow()
                 if (!remoteUrl.isNullOrBlank()) {
-                    configureRemoteUseCase(path, "origin", remoteUrl)
+                    gitRepo.configureRemote(path, "origin", remoteUrl).getOrThrow()
                 }
             }
         }
@@ -328,7 +343,7 @@ class MyReposViewModel @Inject constructor(
 
     fun configureRemote(localPath: String, name: String, url: String) {
         viewModelScope.launch {
-            configureRemoteUseCase(localPath, name, url)
+            gitRepo.configureRemote(localPath, name, url)
         }
     }
 
@@ -340,21 +355,23 @@ class MyReposViewModel @Inject constructor(
     }
 
     suspend fun getHttpsCredentials(): List<HttpsCredential> {
-        return getHttpsCredentialsUseCase()
-            .getOrNull() ?: emptyList()
+        val result = credential.getHttpsCredentials()
+        return if (result is AppResult.Success) result.data else emptyList()
     }
 
     suspend fun getHttpsPassword(uuid: String): String? {
-        return getHttpsPasswordUseCase(uuid).getOrNull()
+        val result = credential.getHttpsPassword(uuid)
+        return if (result is AppResult.Success) result.data else null
     }
 
     suspend fun getSshKeys(): List<SshKey> {
-        return getSshKeysUseCase()
-            .getOrNull() ?: emptyList()
+        val result = credential.getSshKeys()
+        return if (result is AppResult.Success) result.data else emptyList()
     }
 
     suspend fun getSshPrivateKey(uuid: String): String? {
-        return getSshPrivateKeyUseCase(uuid).getOrNull()
+        val result = credential.getSshPrivateKey(uuid)
+        return if (result is AppResult.Success) result.data else null
     }
 
     suspend fun showHttpsCredentialSelector(): String? {
@@ -376,24 +393,17 @@ class MyReposViewModel @Inject constructor(
         viewModelScope.launch {
             _isLoading.value = true
 
-            val credentials: CloneCredential? = when {
-                httpsCredentialUuid != null -> {
-                    val httpsCred = getHttpsCredentials().find { it.uuid == httpsCredentialUuid }
-                    val password = getHttpsPassword(httpsCredentialUuid)
-                    if (httpsCred != null && password != null) {
-                        CloneCredential.Https(httpsCred.username, password)
-                    } else null
-                }
-                sshKeyUuid != null -> {
-                    val privateKey = getSshPrivateKey(sshKeyUuid)
-                    if (privateKey != null) {
-                        CloneCredential.Ssh(privateKey, null)
-                    } else null
-                }
-                else -> null
-            }
+            val httpsCreds = getHttpsCredentials()
+            val sshKeys = getSshKeys()
 
-            cloneRepositoryUseCase(uri, localPath, credentials, CloneOptions())
+            val credentials: CloneCredential? = credential.resolveCredentials(
+                httpsCredentialUuid,
+                sshKeyUuid,
+                httpsCreds,
+                sshKeys
+            )
+
+            gitRepo.clone(uri, localPath, credentials, CloneOptions())
                 .onSuccess { result ->
                     _isLoading.value = false
                     addRepo(localPath, null)
