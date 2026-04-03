@@ -51,7 +51,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -100,7 +100,7 @@ fun StatusScreen(
     statusViewModel: StatusViewModel,
     modifier: Modifier = Modifier
 ) {
-    val uiState by statusViewModel.uiState.collectAsState()
+    val uiState by statusViewModel.uiState.collectAsStateWithLifecycle()
     val files = uiState.workspaceFiles
     val staged = remember(files) { files.filter { it.isStaged } }
     val workspace = remember(files) { files.filter { !it.isStaged } }

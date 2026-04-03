@@ -50,7 +50,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -1641,7 +1641,7 @@ fun ExportCredentialsDialog(
     val colors = MaterialTheme.colorScheme
     val scope = rememberCoroutineScope()
     val clipboardManager = LocalClipboardManager.current
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var isLoading by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {

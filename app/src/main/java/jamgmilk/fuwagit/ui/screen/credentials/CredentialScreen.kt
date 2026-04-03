@@ -6,7 +6,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -46,7 +46,7 @@ fun CredentialScreen(
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { androidx.compose.material3.SnackbarHostState() }
 
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     var dialogState by remember { mutableStateOf<CredentialDialogState>(CredentialDialogState.None) }
     var showDeleteConfirm by remember { mutableStateOf<Pair<String, Boolean>?>(null) }

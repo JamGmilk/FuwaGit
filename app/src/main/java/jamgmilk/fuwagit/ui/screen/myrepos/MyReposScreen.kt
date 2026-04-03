@@ -58,7 +58,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -100,8 +100,8 @@ fun MyReposScreen(
     onNavigateToAddRepository: () -> Unit = {}
 ) {
     val context = LocalContext.current
-    val uiState by myReposViewModel.uiState.collectAsState()
-    val currentRepoInfo by myReposViewModel.currentRepoInfo.collectAsState()
+    val uiState by myReposViewModel.uiState.collectAsStateWithLifecycle()
+    val currentRepoInfo by myReposViewModel.currentRepoInfo.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
 
     val folders = uiState.repoItems
@@ -353,9 +353,10 @@ fun RepoListContent(
 
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+            contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = 8.dp)
         ) {
-            items(folders, key = { it.path }) { item ->
+            items(folders, key = { it.path }, contentType = { "repo_item" }) { item ->
                 RepoItemCard(
                     item = item,
                     isSelected = item.path == selectedTarget,
@@ -876,7 +877,7 @@ fun RepoInfoDialog(
                     modifier = Modifier.height(if (isGitRepo) 340.dp else 200.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    items(repoInfo.toList()) { (key, value) ->
+                    items(repoInfo.toList(), key = { it.first }, contentType = { "info_item" }) { (key, value) ->
                         RepoInfoItem(
                             icon = getInfoIcon(key),
                             label = key,

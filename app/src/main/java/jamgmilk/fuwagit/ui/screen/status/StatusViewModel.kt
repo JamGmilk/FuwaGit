@@ -352,10 +352,8 @@ class StatusViewModel @Inject constructor(
     fun loadCredentials() {
         viewModelScope.launch {
             withContext(Dispatchers.IO) {
-                val httpsResult = credential.getHttpsCredentials()
-                val sshResult = credential.getSshKeys()
-                val httpsCreds = if (httpsResult is AppResult.Success) httpsResult.data else emptyList()
-                val sshKeyList = if (sshResult is AppResult.Success) sshResult.data else emptyList()
+                val httpsCreds = credential.getHttpsCredentials().getOrNull() ?: emptyList()
+                val sshKeyList = credential.getSshKeys().getOrNull() ?: emptyList()
                 withContext(Dispatchers.Main) {
                     _uiState.update {
                         it.copy(

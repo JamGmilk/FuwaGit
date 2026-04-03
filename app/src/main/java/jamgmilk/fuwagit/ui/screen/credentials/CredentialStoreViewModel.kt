@@ -323,17 +323,11 @@ class CredentialStoreViewModel @Inject constructor(
     }
 
     suspend fun getHttpsPassword(uuid: String): String? {
-        return when (val result = getHttpsPasswordUseCase(uuid)) {
-            is AppResult.Success -> result.data
-            is AppResult.Error -> null
-        }
+        return getHttpsPasswordUseCase(uuid).getOrNull()
     }
 
     suspend fun getSshPrivateKey(uuid: String): String? {
-        return when (val result = getSshPrivateKeyUseCase(uuid)) {
-            is AppResult.Success -> result.data
-            is AppResult.Error -> null
-        }
+        return getSshPrivateKeyUseCase(uuid).getOrNull()
     }
 
     private inline fun executeWithLoading(crossinline block: suspend () -> AppResult<*>) {

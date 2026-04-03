@@ -18,12 +18,12 @@ import javax.inject.Singleton
  */
 @Singleton
 class JGitCommitDataSource @Inject constructor(
-    private val core: JGitCoreDataSource
-) {
+    private val core: GitCoreDataSource
+) : GitCommitDataSource {
     /**
      * Gets the commit log.
      */
-    fun getLog(repoPath: String, maxCount: Int = 100): Result<List<GitCommit>> =
+    override fun getLog(repoPath: String, maxCount: Int): Result<List<GitCommit>> =
         core.withGit(repoPath) { git ->
             git.log().setMaxCount(maxCount).call().map { revCommit ->
                 val author = revCommit.authorIdent
@@ -42,7 +42,7 @@ class JGitCommitDataSource @Inject constructor(
     /**
      * Gets detailed information about a specific commit including file changes.
      */
-    fun getCommitFileChanges(repoPath: String, commitHash: String): Result<GitCommitDetail> =
+    override fun getCommitFileChanges(repoPath: String, commitHash: String): Result<GitCommitDetail> =
         core.withGit(repoPath) { git ->
             val repository = git.repository
             val objectId = repository.resolve(commitHash)
@@ -138,36 +138,38 @@ class JGitCommitDataSource @Inject constructor(
     /**
      * Creates a commit with the given message.
      */
-    suspend fun commit(repoPath: String, message: String): Result<String> = core.withGit(repoPath) { git ->
-        try {
+    override suspend fun commit(repoPath: String, message: String): Result<String> {
+        return try {
             val config = core.gitConfigDataStore.configFlow.first()
-            if (config.userName.isNotBlank() || config.userEmail.isNotBlank()) {
+            core.withGit(repoPath) { git ->
                 val storedConfig = git.repository.config
-                if (config.userName.isNotBlank()) {
-                    storedConfig.setString("user", null, "name", config.userName)
+                if (config.userName.isNotBlank() || config.userEmail.isNotBlank()) {
+                    if (config.userName.isNotBlank()) {
+                        storedConfig.setString("user", null, "name", config.userName)
+                    }
+                    if (config.userEmail.isNotBlank()) {
+                        storedConfig.setString("user", null, "email", config.userEmail)
+                    }
+                    storedConfig.save()
                 }
-                if (config.userEmail.isNotBlank()) {
-                    storedConfig.setString("user", null, "email", config.userEmail)
-                }
-                storedConfig.save()
-            }
 
-            val commit = git.commit()
-                .setMessage(message)
-                .setAllowEmpty(false)
-                .call()
-            commit.id.name()
-        } catch (e: LockFailedException) {
-            throw Exception("Cannot commit: repository lock failed.")
-        } catch (e: JGitInternalException) {
-            throw Exception("Git error: ${e.message}")
+                val commit = git.commit()
+                    .setMessage(message)
+                    .setAllowEmpty(false)
+                    .call()
+                commit.id.name()
+            }
+        } catch (e: org.eclipse.jgit.errors.LockFailedException) {
+            Result.failure(Exception("Cannot commit: repository lock failed."))
+        } catch (e: org.eclipse.jgit.api.errors.JGitInternalException) {
+            Result.failure(Exception("Git error: ${e.message}"))
         }
     }
 
     /**
      * Resets the repository to a specific commit.
      */
-    fun reset(repoPath: String, commitHash: String, mode: GitResetMode): Result<String> =
+    override fun reset(repoPath: String, commitHash: String, mode: GitResetMode): Result<String> =
         core.withGit(repoPath) { git ->
             val resetCommand = git.reset().setRef(commitHash)
             when (mode) {

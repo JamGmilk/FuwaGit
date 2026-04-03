@@ -25,7 +25,7 @@ import androidx.compose.material3.NavigationRailItem
 import androidx.compose.material3.Text
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
@@ -124,7 +124,7 @@ fun AppNavHost(
 
             composable(NavRoutes.PERMISSIONS) {
                 val settingsViewModel: SettingsViewModel = hiltViewModel()
-                val settingsUiState by settingsViewModel.uiState.collectAsState()
+                val settingsUiState by settingsViewModel.uiState.collectAsStateWithLifecycle()
                 PermissionsScreen(
                     savedReposCount = settingsUiState.savedReposCount,
                     onBack = { navController.popBackStack() }
@@ -200,7 +200,7 @@ fun MainScreen(
         Column(modifier = Modifier.weight(1f)) {
             HorizontalPager(
                 state = pagerState,
-                beyondViewportPageCount = 0,
+                beyondViewportPageCount = 1,
                 key = { it },
                 modifier = Modifier
                     .weight(1f)

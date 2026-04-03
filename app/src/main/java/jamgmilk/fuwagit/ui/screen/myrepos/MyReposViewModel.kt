@@ -14,7 +14,6 @@ import jamgmilk.fuwagit.domain.model.credential.HttpsCredential
 import jamgmilk.fuwagit.domain.model.credential.SshKey
 import jamgmilk.fuwagit.ui.state.RepoInfo
 import jamgmilk.fuwagit.ui.state.RepoStateManager
-import jamgmilk.fuwagit.ui.usecase.CurrentRepoUseCase
 import jamgmilk.fuwagit.domain.usecase.git.GitRepoFacade
 import jamgmilk.fuwagit.domain.usecase.credential.CredentialFacade
 import kotlinx.coroutines.Dispatchers
@@ -29,56 +28,10 @@ import kotlinx.coroutines.withContext
 import java.io.File
 import javax.inject.Inject
 
-data class RepoFolderItem(
-    val path: String,
-    val alias: String,
-    val isGitRepo: Boolean,
-    val isRemote: Boolean,
-    val isActive: Boolean,
-    val lastModified: Long = 0L,
-    val size: Long = 0L
-) {
-    val shortPath: String
-        get() = PathUtils.getShortPath(path)
-
-    val formattedSize: String
-        get() {
-            return when {
-                size < 1024 -> "$size B"
-                size < 1024 * 1024 -> "${size / 1024} KB"
-                size < 1024 * 1024 * 1024 -> "${size / (1024 * 1024)} MB"
-                else -> String.format("%.1f GB", size / (1024.0 * 1024 * 1024))
-            }
-        }
-}
-
-data class RepoUiState(
-    val repoItems: List<RepoFolderItem> = emptyList(),
-    val isLoading: Boolean = false,
-    val error: String? = null,
-    val untrackedFilesForClean: List<String> = emptyList(),
-    val cleanedFilesForResult: List<String> = emptyList()
-)
-
-data class HttpsCredentialItem(
-    val uuid: String,
-    val host: String,
-    val username: String,
-    val displayName: String
-)
-
-data class SshKeyItem(
-    val uuid: String,
-    val name: String,
-    val fingerprint: String,
-    val displayName: String
-)
-
 @HiltViewModel
 class MyReposViewModel @Inject constructor(
     private val repoDataStore: RepoDataStore,
     private val currentRepoManager: RepoStateManager,
-    private val currentRepoUseCase: CurrentRepoUseCase,
     private val gitRepo: GitRepoFacade,
     private val credential: CredentialFacade
 ) : ViewModel() {
@@ -120,22 +73,27 @@ class MyReposViewModel @Inject constructor(
     private val _cleanedFilesForResult = MutableStateFlow<List<String>>(emptyList())
 
     val uiState: StateFlow<RepoUiState> = combine(
-        listOf(
-            _savedRepos,
-            currentRepoInfo,
-            _isLoading,
-            _error,
-            _untrackedFilesForClean,
-            _cleanedFilesForResult,
-            _repoSizes
-        )
-    ) { values ->
+        _savedRepos,
+        currentRepoInfo,
+        _isLoading,
+        _error,
+        _untrackedFilesForClean,
+        _cleanedFilesForResult,
+        _repoSizes
+    ) { values: Array<Any?> ->
+        @Suppress("UNCHECKED_CAST")
         val repos = values[0] as List<RepoData>
+        @Suppress("UNCHECKED_CAST")
         val currentRepo = values[1] as RepoInfo
+        @Suppress("UNCHECKED_CAST")
         val loading = values[2] as Boolean
+        @Suppress("UNCHECKED_CAST")
         val error = values[3] as String?
+        @Suppress("UNCHECKED_CAST")
         val untrackedFiles = values[4] as List<String>
+        @Suppress("UNCHECKED_CAST")
         val cleanedFiles = values[5] as List<String>
+        @Suppress("UNCHECKED_CAST")
         val repoSizes = values[6] as Map<String, Long>
 
         RepoUiState(
@@ -360,23 +318,19 @@ class MyReposViewModel @Inject constructor(
     }
 
     suspend fun getHttpsCredentials(): List<HttpsCredential> {
-        val result = credential.getHttpsCredentials()
-        return if (result is AppResult.Success) result.data else emptyList()
+        return credential.getHttpsCredentials().getOrNull() ?: emptyList()
     }
 
     suspend fun getHttpsPassword(uuid: String): String? {
-        val result = credential.getHttpsPassword(uuid)
-        return if (result is AppResult.Success) result.data else null
+        return credential.getHttpsPassword(uuid).getOrNull()
     }
 
     suspend fun getSshKeys(): List<SshKey> {
-        val result = credential.getSshKeys()
-        return if (result is AppResult.Success) result.data else emptyList()
+        return credential.getSshKeys().getOrNull() ?: emptyList()
     }
 
     suspend fun getSshPrivateKey(uuid: String): String? {
-        val result = credential.getSshPrivateKey(uuid)
-        return if (result is AppResult.Success) result.data else null
+        return credential.getSshPrivateKey(uuid).getOrNull()
     }
 
     suspend fun showHttpsCredentialSelector(): String? {
