@@ -54,11 +54,14 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ElevatedCard
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
@@ -79,6 +82,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -124,6 +128,7 @@ fun SettingsScreen(
     val conflictSafeMode by settingsViewModel.conflictSafeMode.collectAsState()
     val backupBeforeSync by settingsViewModel.backupBeforeSync.collectAsState()
     val verboseLogging by settingsViewModel.verboseLogging.collectAsState()
+    val darkMode by settingsViewModel.darkMode.collectAsState()
     var pendingBiometricEnable by rememberSaveable { mutableStateOf(false) }
     val settingsDefaultBranch by settingsViewModel.defaultBranch.collectAsState()
 
@@ -207,6 +212,12 @@ fun SettingsScreen(
                     }
                 }
             },
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        AppearanceSettingsCard(
+            darkMode = darkMode,
+            onDarkModeChange = { mode -> settingsViewModel.saveDarkMode(mode) },
             modifier = Modifier.fillMaxWidth()
         )
 
@@ -1072,8 +1083,7 @@ private fun ApplyConfigResultDialog(
                     )
 
                     Column(
-                        verticalArrangement = Arrangement.spacedBy(4.dp),
-                        modifier = Modifier.verticalScroll(rememberScrollState())
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
                         result.failures.forEach { (path, error) ->
                             Surface(
@@ -1382,5 +1392,80 @@ private fun SettingsLinkItem(
             tint = colors.onSurfaceVariant.copy(alpha = 0.5f),
             modifier = Modifier.size(20.dp)
         )
+    }
+}
+
+@Composable
+private fun AppearanceSettingsCard(
+    darkMode: String,
+    onDarkModeChange: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val uiColors = FuwaGitThemeExtras.colors
+    var showDarkModeMenu by remember { mutableStateOf(false) }
+
+    val darkModeLabel = when (darkMode) {
+        "always_on" -> "Always On"
+        "always_off" -> "Always Off"
+        else -> "Follow System"
+    }
+
+    ElevatedCard(
+        modifier = modifier.border(1.dp, uiColors.cardBorder, RoundedCornerShape(24.dp)),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.elevatedCardColors(containerColor = uiColors.cardContainer),
+        elevation = CardDefaults.elevatedCardElevation(0.dp)
+    ) {
+        Column(modifier = Modifier.fillMaxWidth()) {
+            SettingsSectionHeader(
+                title = "Appearance",
+                icon = Icons.Default.Build,
+                color = Color(0xFF9C27B0)
+            )
+
+            Box {
+                SettingsClickableItem(
+                    title = "Dark Mode",
+                    subtitle = darkModeLabel,
+                    icon = Icons.Default.Build,
+                    onClick = { showDarkModeMenu = true }
+                )
+
+                DropdownMenu(
+                    expanded = showDarkModeMenu,
+                    onDismissRequest = { showDarkModeMenu = false }
+                ) {
+                    val options = listOf(
+                        "system" to "Follow System",
+                        "always_on" to "Always On",
+                        "always_off" to "Always Off"
+                    )
+
+                    options.forEach { (value, label) ->
+                        DropdownMenuItem(
+                            text = {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    RadioButton(
+                                        selected = darkMode == value,
+                                        onClick = {
+                                            onDarkModeChange(value)
+                                            showDarkModeMenu = false
+                                        }
+                                    )
+                                    Text(text = label)
+                                }
+                            },
+                            onClick = {
+                                onDarkModeChange(value)
+                                showDarkModeMenu = false
+                            }
+                        )
+                    }
+                }
+            }
+        }
     }
 }

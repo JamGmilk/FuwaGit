@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -148,8 +149,7 @@ fun TwoStepConfirmDialog(
         },
         text = {
             Column(
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-                modifier = Modifier.verticalScroll(rememberScrollState())
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 // 操作描述
                 Text(
@@ -311,8 +311,7 @@ fun ResetConfirmDialog(
         },
         text = {
             Column(
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-                modifier = Modifier.verticalScroll(rememberScrollState())
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 Text(
                     text = "Reset current branch to commit:",
@@ -444,13 +443,11 @@ fun OperationResultDialog(
 ) {
     val colors = MaterialTheme.colorScheme
 
-    val (iconAndColor, title) = when (result) {
-        is OperationResult.Success -> (Icons.Default.Clear to Color(0xFF4CAF50)) to "Operation Successful"
-        is OperationResult.Failure -> (Icons.Default.Warning to Color(0xFFFF5722)) to "Operation Failed"
-        is OperationResult.Conflict -> (Icons.Default.Warning to Color(0xFFFF9800)) to "Merge Conflicts Detected"
+    val (icon, iconColor, title) = when (result) {
+        is OperationResult.Success -> Triple(Icons.Default.CheckCircle, Color(0xFF4CAF50), "Operation Successful")
+        is OperationResult.Failure -> Triple(Icons.Default.Warning, Color(0xFFFF5722), "Operation Failed")
+        is OperationResult.Conflict -> Triple(Icons.Default.Warning, Color(0xFFFF9800), "Merge Conflicts Detected")
     }
-    val icon = iconAndColor.first
-    val iconColor = iconAndColor.second
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -478,8 +475,7 @@ fun OperationResultDialog(
         },
         text = {
             Column(
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-                modifier = Modifier.verticalScroll(rememberScrollState())
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 when (result) {
                     is OperationResult.Success -> {
@@ -601,8 +597,7 @@ fun CleanPreviewDialog(
         },
         text = {
             Column(
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-                modifier = Modifier.verticalScroll(rememberScrollState())
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 Text(
                     text = "The following ${untrackedFiles.size} untracked file(s) will be permanently deleted:",
@@ -613,6 +608,7 @@ fun CleanPreviewDialog(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
+                        .heightIn(max = 300.dp)
                         .background(colors.surfaceVariant.copy(alpha = 0.3f), RoundedCornerShape(8.dp))
                         .padding(10.dp)
                 ) {
@@ -680,6 +676,114 @@ fun CleanPreviewDialog(
 }
 
 /**
+ * Clean 操作结果对话框 - 显示已删除的文件列表
+ */
+@Composable
+fun CleanResultDialog(
+    cleanedFiles: List<String>,
+    onSuccess: () -> Unit = {},
+    onDismiss: () -> Unit
+) {
+    val colors = MaterialTheme.colorScheme
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        icon = {
+            Box(
+                modifier = Modifier
+                    .size(56.dp)
+                    .background(Color(0xFF4CAF50).copy(alpha = 0.15f), CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    Icons.Default.CheckCircle,
+                    contentDescription = null,
+                    tint = Color(0xFF4CAF50),
+                    modifier = Modifier.size(28.dp)
+                )
+            }
+        },
+        title = {
+            Text(
+                text = "Clean Completed",
+                fontWeight = FontWeight.Bold,
+                style = MaterialTheme.typography.titleLarge
+            )
+        },
+        text = {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Text(
+                    text = "Successfully deleted ${cleanedFiles.size} file(s):",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = colors.onSurfaceVariant
+                )
+
+                if (cleanedFiles.isNotEmpty()) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(max = 300.dp)
+                            .background(colors.surfaceVariant.copy(alpha = 0.3f), RoundedCornerShape(8.dp))
+                            .padding(10.dp)
+                    ) {
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(6.dp),
+                            modifier = Modifier.verticalScroll(rememberScrollState())
+                        ) {
+                            cleanedFiles.forEach { file ->
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        Icons.Default.DeleteForever,
+                                        contentDescription = null,
+                                        tint = colors.error,
+                                        modifier = Modifier.size(14.dp)
+                                    )
+                                    Spacer(Modifier.width(6.dp))
+                                    Text(
+                                        text = file,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        fontFamily = FontFamily.Monospace,
+                                        color = colors.onSurfaceVariant
+                                    )
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(colors.surfaceVariant.copy(alpha = 0.3f), RoundedCornerShape(8.dp))
+                            .padding(16.dp)
+                    ) {
+                        Text(
+                            text = "No files were deleted",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = colors.onSurfaceVariant,
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    onSuccess()
+                    onDismiss()
+                },
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Text("OK")
+            }
+        },
+        shape = RoundedCornerShape(24.dp)
+    )
+}
+
+/**
  * 冲突解决对话框
  */
 @Composable
@@ -728,8 +832,7 @@ fun ConflictResolutionDialog(
         },
         text = {
             Column(
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-                modifier = Modifier.verticalScroll(rememberScrollState())
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 // 操作说明
                 Surface(

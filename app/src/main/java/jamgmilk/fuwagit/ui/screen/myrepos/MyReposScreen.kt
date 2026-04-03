@@ -78,6 +78,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import jamgmilk.fuwagit.ui.components.CleanPreviewDialog
+import jamgmilk.fuwagit.ui.components.CleanResultDialog
 import androidx.compose.ui.unit.sp
 import jamgmilk.fuwagit.ui.components.ConfigureRemoteDialog
 import jamgmilk.fuwagit.ui.components.ScreenTemplate
@@ -240,6 +241,16 @@ fun MyReposScreen(
             untrackedFiles = untrackedFiles,
             onConfirm = { myReposViewModel.confirmCleanUntracked() },
             onDismiss = { myReposViewModel.clearCleanPreview() }
+        )
+    }
+
+    // Clean 结果对话框：显示已删除的文件列表
+    val cleanedFiles = uiState.cleanedFilesForResult
+    if (cleanedFiles.isNotEmpty()) {
+        CleanResultDialog(
+            cleanedFiles = cleanedFiles,
+            onSuccess = { myReposViewModel.loadSavedRepos() },
+            onDismiss = { myReposViewModel.clearCleanResult() }
         )
     }
 

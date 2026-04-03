@@ -4,7 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import jamgmilk.fuwagit.data.jgit.GitConfigManager
-import jamgmilk.fuwagit.data.local.prefs.GitConfigStore
+import jamgmilk.fuwagit.data.local.prefs.GitConfigDataStore
+import jamgmilk.fuwagit.data.local.prefs.AppPreferencesStore
 import jamgmilk.fuwagit.data.local.prefs.RepoDataStore
 import jamgmilk.fuwagit.domain.usecase.git.ApplyGitConfigToAllRepos
 import jamgmilk.fuwagit.domain.usecase.git.ApplyGitConfigToGlobal
@@ -31,7 +32,8 @@ data class ApplyConfigResult(
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
     private val repoDataStore: RepoDataStore,
-    private val gitConfigStore: GitConfigStore,
+    private val gitConfigDataStore: GitConfigDataStore,
+    private val appPreferencesStore: AppPreferencesStore,
     private val gitConfigManager: GitConfigManager,
     private val applyGitConfigToRepo: ApplyGitConfigToRepo,
     private val applyGitConfigToGlobal: ApplyGitConfigToGlobal,
@@ -47,7 +49,7 @@ class SettingsViewModel @Inject constructor(
             initialValue = 0
         )
 
-    val userName: StateFlow<String> = gitConfigStore.configFlow
+    val userName: StateFlow<String> = gitConfigDataStore.configFlow
         .map { it.userName }
         .stateIn(
             scope = viewModelScope,
@@ -55,7 +57,7 @@ class SettingsViewModel @Inject constructor(
             initialValue = ""
         )
 
-    val userEmail: StateFlow<String> = gitConfigStore.configFlow
+    val userEmail: StateFlow<String> = gitConfigDataStore.configFlow
         .map { it.userEmail }
         .stateIn(
             scope = viewModelScope,
@@ -63,7 +65,7 @@ class SettingsViewModel @Inject constructor(
             initialValue = ""
         )
 
-    val defaultBranch: StateFlow<String> = gitConfigStore.configFlow
+    val defaultBranch: StateFlow<String> = gitConfigDataStore.configFlow
         .map { it.defaultBranch }
         .stateIn(
             scope = viewModelScope,
@@ -71,7 +73,7 @@ class SettingsViewModel @Inject constructor(
             initialValue = "main"
         )
 
-    val autoSync: StateFlow<Boolean> = gitConfigStore.configFlow
+    val autoSync: StateFlow<Boolean> = appPreferencesStore.preferencesFlow
         .map { it.autoSync }
         .stateIn(
             scope = viewModelScope,
@@ -79,7 +81,7 @@ class SettingsViewModel @Inject constructor(
             initialValue = false
         )
 
-    val conflictSafeMode: StateFlow<Boolean> = gitConfigStore.configFlow
+    val conflictSafeMode: StateFlow<Boolean> = appPreferencesStore.preferencesFlow
         .map { it.conflictSafeMode }
         .stateIn(
             scope = viewModelScope,
@@ -87,7 +89,7 @@ class SettingsViewModel @Inject constructor(
             initialValue = true
         )
 
-    val backupBeforeSync: StateFlow<Boolean> = gitConfigStore.configFlow
+    val backupBeforeSync: StateFlow<Boolean> = appPreferencesStore.preferencesFlow
         .map { it.backupBeforeSync }
         .stateIn(
             scope = viewModelScope,
@@ -95,12 +97,20 @@ class SettingsViewModel @Inject constructor(
             initialValue = true
         )
 
-    val verboseLogging: StateFlow<Boolean> = gitConfigStore.configFlow
+    val verboseLogging: StateFlow<Boolean> = appPreferencesStore.preferencesFlow
         .map { it.verboseLogging }
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
             initialValue = false
+        )
+
+    val darkMode: StateFlow<String> = appPreferencesStore.preferencesFlow
+        .map { it.darkMode }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = "system"
         )
 
     // Global config 状态
@@ -130,42 +140,48 @@ class SettingsViewModel @Inject constructor(
 
     fun saveUserConfig(name: String, email: String) {
         viewModelScope.launch {
-            gitConfigStore.setUserConfig(name, email)
+            gitConfigDataStore.setUserConfig(name, email)
         }
     }
 
     fun saveDefaultBranch(branch: String) {
         viewModelScope.launch {
-            gitConfigStore.setDefaultBranch(branch)
+            gitConfigDataStore.setDefaultBranch(branch)
         }
     }
 
     fun saveAutoSync(enabled: Boolean) {
         viewModelScope.launch {
-            gitConfigStore.setAutoSync(enabled)
+            appPreferencesStore.setAutoSync(enabled)
         }
     }
 
     fun saveConflictSafeMode(enabled: Boolean) {
         viewModelScope.launch {
-            gitConfigStore.setConflictSafeMode(enabled)
+            appPreferencesStore.setConflictSafeMode(enabled)
         }
     }
 
     fun saveBackupBeforeSync(enabled: Boolean) {
         viewModelScope.launch {
-            gitConfigStore.setBackupBeforeSync(enabled)
+            appPreferencesStore.setBackupBeforeSync(enabled)
         }
     }
 
     fun saveVerboseLogging(enabled: Boolean) {
         viewModelScope.launch {
-            gitConfigStore.setVerboseLogging(enabled)
+            appPreferencesStore.setVerboseLogging(enabled)
+        }
+    }
+
+    fun saveDarkMode(mode: String) {
+        viewModelScope.launch {
+            appPreferencesStore.setDarkMode(mode)
         }
     }
 
     suspend fun reloadUserConfig() {
-        gitConfigStore.reloadFromFile()
+        // DataStore automatically reloads from disk when needed
     }
 
     /**

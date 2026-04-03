@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -541,7 +542,7 @@ private fun CommitDetails(
             } else {
                 Column(
                     verticalArrangement = Arrangement.spacedBy(4.dp),
-                    modifier = Modifier.verticalScroll(rememberScrollState())
+                    modifier = Modifier.heightIn(max = 200.dp)
                 ) {
                     commitDetail.fileChanges.forEach { fileChange ->
                         FileChangeItem(fileChange = fileChange)
@@ -712,8 +713,7 @@ private fun HardResetWarningDialog(
         },
         text = {
             Column(
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-                modifier = Modifier.verticalScroll(rememberScrollState())
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 Text(
                     text = "Resetting to commit ${commit.shortHash} will:",

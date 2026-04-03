@@ -1,7 +1,11 @@
 package jamgmilk.fuwagit.ui.theme
 
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.animation.animateColor
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.updateTransition
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.getValue
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
@@ -120,12 +124,47 @@ fun FuwaGitTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     content: @Composable () -> Unit
 ) {
-    val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
+    val targetColorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
     val extraColors = if (darkTheme) DarkExtraColors else LightExtraColors
+
+    // 使用 updateTransition 统一管理所有颜色动画
+    val transition = updateTransition(
+        targetState = darkTheme,
+        label = "ThemeTransition"
+    )
+
+    // 只动画关键背景色，其余颜色直接切换
+    val animatedBackground by transition.animateColor(
+        transitionSpec = { tween(durationMillis = 400) },
+        label = "Background"
+    ) { isDark ->
+        if (isDark) DarkColorScheme.background else LightColorScheme.background
+    }
+
+    val animatedSurface by transition.animateColor(
+        transitionSpec = { tween(durationMillis = 400) },
+        label = "Surface"
+    ) { isDark ->
+        if (isDark) DarkColorScheme.surface else LightColorScheme.surface
+    }
+
+    val animatedSurfaceVariant by transition.animateColor(
+        transitionSpec = { tween(durationMillis = 400) },
+        label = "SurfaceVariant"
+    ) { isDark ->
+        if (isDark) DarkColorScheme.surfaceVariant else LightColorScheme.surfaceVariant
+    }
+
+    // 构建动画后的 ColorScheme
+    val animatedColorScheme = targetColorScheme.copy(
+        background = animatedBackground,
+        surface = animatedSurface,
+        surfaceVariant = animatedSurfaceVariant,
+    )
 
     CompositionLocalProvider(LocalExtraColors provides extraColors) {
         MaterialTheme(
-            colorScheme = colorScheme,
+            colorScheme = animatedColorScheme,
             typography = Typography,
             shapes = AppShapes,
             content = content
