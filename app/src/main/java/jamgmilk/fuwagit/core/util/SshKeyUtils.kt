@@ -1,4 +1,4 @@
-package jamgmilk.fuwagit.ui.screen.credentials
+package jamgmilk.fuwagit.core.util
 
 import android.util.Log
 import java.io.ByteArrayOutputStream

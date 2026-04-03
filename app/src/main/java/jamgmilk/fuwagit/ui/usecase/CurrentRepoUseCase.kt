@@ -1,8 +1,8 @@
-package jamgmilk.fuwagit.domain.usecase
+package jamgmilk.fuwagit.ui.usecase
 
 import jamgmilk.fuwagit.data.local.prefs.RepoDataStore
-import jamgmilk.fuwagit.domain.state.RepoInfo
-import jamgmilk.fuwagit.domain.state.RepoStateManager
+import jamgmilk.fuwagit.ui.state.RepoInfo
+import jamgmilk.fuwagit.ui.state.RepoStateManager
 import jamgmilk.fuwagit.domain.usecase.git.HasGitDirUseCase
 import java.io.File
 import javax.inject.Inject

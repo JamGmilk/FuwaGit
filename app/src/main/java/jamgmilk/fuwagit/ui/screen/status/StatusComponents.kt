@@ -78,6 +78,9 @@ import jamgmilk.fuwagit.ui.theme.Sakura50
 import jamgmilk.fuwagit.ui.theme.Sakura80
 import jamgmilk.fuwagit.ui.theme.Sakura90
 
+import androidx.compose.ui.tooling.preview.Preview
+import jamgmilk.fuwagit.ui.theme.FuwaGitTheme
+
 @Composable
 internal fun ActionToolbar(
     stats: StatusStats,
@@ -567,39 +570,38 @@ private fun StatChipsRow(stats: StatusStats) {
                 .fillMaxHeight()
         )
 
-        Column(
+        Surface(
+            shape = RoundedCornerShape(12.dp),
+            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
             modifier = Modifier
                 .weight(1f)
                 .fillMaxHeight()
-                .clip(RoundedCornerShape(12.dp))
-                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
-                .padding(4.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
-            MiniStatChip(
-                label = "Modified",
-                count = stats.modified,
-                color = AppColors.GitBlue,
+            Column(
                 modifier = Modifier
-                    .weight(1f)
                     .fillMaxWidth()
-            )
-            MiniStatChip(
-                label = "Added",
-                count = stats.added,
-                color = AppColors.GitGreen,
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth()
-            )
-            MiniStatChip(
-                label = "Removed",
-                count = stats.removed,
-                color = AppColors.GitRed,
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth()
-            )
+                    .padding(horizontal = 8.dp, vertical = 4.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                MiniStatChip(
+                    label = "Modified",
+                    count = stats.modified,
+                    color = AppColors.GitBlue,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                MiniStatChip(
+                    label = "Added",
+                    count = stats.added,
+                    color = AppColors.GitGreen,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                MiniStatChip(
+                    label = "Removed",
+                    count = stats.removed,
+                    color = AppColors.GitRed,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
         }
     }
 }
@@ -616,13 +618,13 @@ private fun StatChip(
         modifier = modifier
             .clip(RoundedCornerShape(12.dp))
             .background(color.copy(alpha = 0.1f))
-            .padding(horizontal = 8.dp, vertical = 8.dp),
+            .padding(horizontal = 8.dp, vertical = 6.dp),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
             text = count.toString(),
-            style = MaterialTheme.typography.titleLarge,
+            style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold,
             color = color
         )
@@ -643,23 +645,25 @@ private fun MiniStatChip(
 ) {
     Row(
         modifier = modifier
-            .clip(RoundedCornerShape(8.dp))
+            .clip(RoundedCornerShape(6.dp))
             .background(color.copy(alpha = 0.1f))
-            .padding(horizontal = 4.dp, vertical = 4.dp),
-        horizontalArrangement = Arrangement.Center,
+            .padding(horizontal = 6.dp, vertical = 3.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
             text = count.toString(),
-            style = MaterialTheme.typography.titleMedium,
+            style = MaterialTheme.typography.labelMedium,
             fontWeight = FontWeight.Bold,
-            color = color
+            color = color,
+            modifier = Modifier.weight(1f)
         )
-        Spacer(Modifier.width(8.dp))
         Text(
             text = label,
             style = MaterialTheme.typography.labelSmall,
-            color = color.copy(alpha = 0.8f)
+            color = color.copy(alpha = 0.7f),
+            modifier = Modifier.weight(1f),
+            textAlign = androidx.compose.ui.text.style.TextAlign.End
         )
     }
 }

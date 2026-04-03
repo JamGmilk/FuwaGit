@@ -385,12 +385,50 @@ fun ResetConfirmDialog(
 
                         if (mode == GitResetMode.HARD) {
                             Spacer(Modifier.height(4.dp))
+
                             Text(
-                                text = "⚠️ Warning: This will permanently discard all uncommitted changes!",
-                                style = MaterialTheme.typography.bodySmall,
+                                text = "This will:",
+                                style = MaterialTheme.typography.labelMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = Color(0xFFC62828)
                             )
+
+                            Column(
+                                verticalArrangement = Arrangement.spacedBy(4.dp),
+                                modifier = Modifier.padding(start = 8.dp)
+                            ) {
+                                Text(
+                                    text = "• Discard ALL uncommitted changes",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = Color(0xFFC62828)
+                                )
+                                Text(
+                                    text = "• Remove ALL staged changes",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = Color(0xFFC62828)
+                                )
+                                Text(
+                                    text = "• Reset working directory to match the selected commit",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = colors.onSurfaceVariant
+                                )
+                            }
+
+                            Spacer(Modifier.height(4.dp))
+
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = Color(0xFFF44336).copy(alpha = 0.1f),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text(
+                                    text = "⚠️ This action CANNOT be undone!",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFFC62828),
+                                    modifier = Modifier.padding(8.dp)
+                                )
+                            }
                         }
                     }
                 }

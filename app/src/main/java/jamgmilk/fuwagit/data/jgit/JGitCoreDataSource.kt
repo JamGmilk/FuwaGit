@@ -2,7 +2,6 @@ package jamgmilk.fuwagit.data.jgit
 
 import android.util.Log
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.runBlocking
 import org.eclipse.jgit.api.Git
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder
 import java.io.File
@@ -47,7 +46,7 @@ class JGitCoreDataSource @Inject constructor(
     /**
      * Initializes a new Git repository at the specified path.
      */
-    fun initRepo(repoPath: String): Result<String> {
+    suspend fun initRepo(repoPath: String): Result<String> {
         return try {
             val repoDir = File(repoPath)
             if (!repoDir.exists() && !repoDir.mkdirs()) {
@@ -62,7 +61,7 @@ class JGitCoreDataSource @Inject constructor(
                 }
 
             Git.open(File(repoPath)).use { git ->
-                val defaultBranch = runBlocking { gitConfigDataStore.configFlow.first().defaultBranch }
+                val defaultBranch = gitConfigDataStore.configFlow.first().defaultBranch
 
                 if (defaultBranch.isNotBlank() && defaultBranch != "master") {
                     git.branchCreate().setName(defaultBranch).call()

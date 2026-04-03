@@ -6,7 +6,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import jamgmilk.fuwagit.domain.model.git.GitCommit
 import jamgmilk.fuwagit.domain.model.git.GitCommitDetail
 import jamgmilk.fuwagit.domain.model.git.GitResetMode
-import jamgmilk.fuwagit.domain.state.RepoStateManager
+import jamgmilk.fuwagit.ui.state.RepoStateManager
 import jamgmilk.fuwagit.domain.usecase.git.GetCommitFileChangesUseCase
 import jamgmilk.fuwagit.domain.usecase.git.GetCommitHistoryUseCase
 import jamgmilk.fuwagit.domain.usecase.git.ResetUseCase

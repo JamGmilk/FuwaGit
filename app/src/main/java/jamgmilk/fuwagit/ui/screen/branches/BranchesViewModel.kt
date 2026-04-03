@@ -7,17 +7,9 @@ import jamgmilk.fuwagit.domain.model.git.ConflictResult
 import jamgmilk.fuwagit.domain.model.git.GitBranch
 import jamgmilk.fuwagit.ui.components.DangerousOperationType
 import jamgmilk.fuwagit.ui.components.OperationResult
-import jamgmilk.fuwagit.domain.usecase.git.AbortRebaseUseCase
-import jamgmilk.fuwagit.domain.usecase.git.CheckoutBranchUseCase
-import jamgmilk.fuwagit.domain.usecase.git.CreateBranchUseCase
-import jamgmilk.fuwagit.domain.usecase.git.DeleteBranchUseCase
-import jamgmilk.fuwagit.domain.usecase.git.GetBranchesUseCase
-import jamgmilk.fuwagit.domain.usecase.git.GetConflictStatusUseCase
-import jamgmilk.fuwagit.domain.usecase.git.MarkConflictResolvedUseCase
-import jamgmilk.fuwagit.domain.usecase.git.MergeBranchUseCase
-import jamgmilk.fuwagit.domain.usecase.git.RebaseBranchUseCase
-import jamgmilk.fuwagit.domain.usecase.git.RenameBranchUseCase
-import jamgmilk.fuwagit.domain.state.RepoStateManager
+import jamgmilk.fuwagit.domain.usecase.git.BranchUseCase
+import jamgmilk.fuwagit.domain.usecase.git.MergeUseCase
+import jamgmilk.fuwagit.ui.state.RepoStateManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -45,16 +37,8 @@ data class BranchesUiState(
 @HiltViewModel
 class BranchesViewModel @Inject constructor(
     private val currentRepoManager: RepoStateManager,
-    private val getBranchesUseCase: GetBranchesUseCase,
-    private val checkoutBranchUseCase: CheckoutBranchUseCase,
-    private val createBranchUseCase: CreateBranchUseCase,
-    private val deleteBranchUseCase: DeleteBranchUseCase,
-    private val mergeBranchUseCase: MergeBranchUseCase,
-    private val rebaseBranchUseCase: RebaseBranchUseCase,
-    private val renameBranchUseCase: RenameBranchUseCase,
-    private val getConflictStatusUseCase: GetConflictStatusUseCase,
-    private val markConflictResolvedUseCase: MarkConflictResolvedUseCase,
-    private val abortRebaseUseCase: AbortRebaseUseCase
+    private val branchUseCase: BranchUseCase,
+    private val mergeUseCase: MergeUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(BranchesUiState())
@@ -96,7 +80,7 @@ class BranchesViewModel @Inject constructor(
 
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
-            getBranchesUseCase(path)
+            branchUseCase.list(path)
                 .onSuccess { branches ->
                     val local = branches.filter { !it.isRemote }
                     val remote = branches.filter { it.isRemote }
@@ -159,7 +143,7 @@ class BranchesViewModel @Inject constructor(
         val branchName = _uiState.value.pendingOperationTarget ?: return
 
         viewModelScope.launch {
-            deleteBranchUseCase(path, branchName, force)
+            branchUseCase.delete(path, branchName, force)
                 .onSuccess {
                     _uiState.update {
                         it.copy(
@@ -194,7 +178,7 @@ class BranchesViewModel @Inject constructor(
         val branchName = _uiState.value.pendingOperationTarget ?: return
 
         viewModelScope.launch {
-            mergeBranchUseCase(path, branchName)
+            mergeUseCase.merge(path, branchName)
                 .onSuccess {
                     _uiState.update {
                         it.copy(
@@ -229,7 +213,7 @@ class BranchesViewModel @Inject constructor(
         val branchName = _uiState.value.pendingOperationTarget ?: return
 
         viewModelScope.launch {
-            rebaseBranchUseCase(path, branchName)
+            mergeUseCase.rebase(path, branchName)
                 .onSuccess {
                     _uiState.update {
                         it.copy(
@@ -265,7 +249,7 @@ class BranchesViewModel @Inject constructor(
         val path = currentRepoPath ?: return
 
         viewModelScope.launch {
-            checkoutBranchUseCase(path, name)
+            branchUseCase.checkout(path, name)
                 .onSuccess {
                     loadBranches()
                 }
@@ -279,7 +263,7 @@ class BranchesViewModel @Inject constructor(
         val path = currentRepoPath ?: return
 
         viewModelScope.launch {
-            createBranchUseCase(path, name)
+            branchUseCase.create(path, name)
                 .onSuccess {
                     loadBranches()
                 }
@@ -293,7 +277,7 @@ class BranchesViewModel @Inject constructor(
         val path = currentRepoPath ?: return
 
         viewModelScope.launch {
-            deleteBranchUseCase(path, name, force)
+            branchUseCase.delete(path, name, force)
                 .onSuccess {
                     loadBranches()
                 }
@@ -307,7 +291,7 @@ class BranchesViewModel @Inject constructor(
         val path = currentRepoPath ?: return
 
         viewModelScope.launch {
-            renameBranchUseCase(path, oldName, newName)
+            branchUseCase.rename(path, oldName, newName)
                 .onSuccess {
                     loadBranches()
                 }
@@ -321,7 +305,7 @@ class BranchesViewModel @Inject constructor(
         val path = currentRepoPath ?: return
 
         viewModelScope.launch {
-            mergeBranchUseCase(path, name)
+            mergeUseCase.merge(path, name)
                 .onSuccess { result ->
                     if (result.isConflicting) {
                         // 有冲突，显示冲突解决 UI
@@ -352,7 +336,7 @@ class BranchesViewModel @Inject constructor(
         val path = currentRepoPath ?: return
 
         viewModelScope.launch {
-            rebaseBranchUseCase(path, name)
+            mergeUseCase.rebase(path, name)
                 .onSuccess { result ->
                     if (result.isConflicting) {
                         // 有冲突，显示冲突解决 UI
@@ -388,7 +372,7 @@ class BranchesViewModel @Inject constructor(
         val path = currentRepoPath ?: return
 
         viewModelScope.launch {
-            getConflictStatusUseCase(path)
+            mergeUseCase.getConflicts(path)
                 .onSuccess { result ->
                     if (result.isConflicting) {
                         _uiState.update {
@@ -412,7 +396,7 @@ class BranchesViewModel @Inject constructor(
         val path = currentRepoPath ?: return
 
         viewModelScope.launch {
-            markConflictResolvedUseCase(path, filePath)
+            mergeUseCase.resolveConflict(path, filePath)
                 .onSuccess {
                     // 重新获取冲突状态
                     checkConflictStatus()
@@ -431,7 +415,7 @@ class BranchesViewModel @Inject constructor(
 
         viewModelScope.launch {
             // 检查是否所有冲突都已解决
-            getConflictStatusUseCase(path)
+            mergeUseCase.getConflicts(path)
                 .onSuccess { result ->
                     if (result.allResolved || result.allStaged) {
                         // 所有冲突已解决，可以继续
@@ -470,7 +454,7 @@ class BranchesViewModel @Inject constructor(
         val path = currentRepoPath ?: return
 
         viewModelScope.launch {
-            abortRebaseUseCase(path)
+            mergeUseCase.abortRebase(path)
                 .onSuccess { result ->
                     _uiState.update {
                         it.copy(

@@ -83,8 +83,10 @@ import androidx.compose.ui.unit.sp
 import jamgmilk.fuwagit.ui.components.ConfigureRemoteDialog
 import jamgmilk.fuwagit.ui.components.ScreenTemplate
 import jamgmilk.fuwagit.ui.theme.AppShapes
-import jamgmilk.fuwagit.ui.theme.FuwaGitThemeExtras
 import jamgmilk.fuwagit.ui.theme.Sakura80
+import androidx.compose.ui.tooling.preview.Preview
+import jamgmilk.fuwagit.ui.theme.FuwaGitTheme
+import jamgmilk.fuwagit.ui.theme.FuwaGitThemeExtras
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
