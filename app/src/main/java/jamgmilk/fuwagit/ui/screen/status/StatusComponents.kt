@@ -801,7 +801,11 @@ internal fun FileSectionCard(
                         .padding(8.dp),
                     verticalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    items(files, key = { "${it.path}:${it.isStaged}" }) { file ->
+                    items(
+                        items = files,
+                        key = { "${it.path}:${it.isStaged}" },
+                        contentType = { "file_status" }
+                    ) { file ->
                         FileStatusItem(
                             file = file,
                             accentColor = accentColor,
@@ -1215,7 +1219,7 @@ internal fun TerminalLogsCard(
                         state = listState,
                         modifier = Modifier.fillMaxSize()
                     ) {
-                        items(logs) { log ->
+                        items(logs, key = { it.hashCode() }, contentType = { "terminal_log" }) { log ->
                             Text(
                                 text = log,
                                 color = uiColors.terminalText,

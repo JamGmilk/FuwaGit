@@ -1,10 +1,10 @@
 package jamgmilk.fuwagit.data.repository
 
-import jamgmilk.fuwagit.data.jgit.JGitCoreDataSource
-import jamgmilk.fuwagit.data.jgit.JGitStatusDataSource
-import jamgmilk.fuwagit.data.jgit.JGitCommitDataSource
-import jamgmilk.fuwagit.data.jgit.JGitRemoteDataSource
-import jamgmilk.fuwagit.data.jgit.JGitMergeDataSource
+import jamgmilk.fuwagit.data.jgit.GitCommitDataSource
+import jamgmilk.fuwagit.data.jgit.GitCoreDataSource
+import jamgmilk.fuwagit.data.jgit.GitMergeDataSource
+import jamgmilk.fuwagit.data.jgit.GitRemoteDataSource
+import jamgmilk.fuwagit.data.jgit.GitStatusDataSource
 import jamgmilk.fuwagit.domain.model.credential.CloneCredential
 import jamgmilk.fuwagit.domain.model.git.*
 import jamgmilk.fuwagit.domain.repository.GitRepository
@@ -13,11 +13,11 @@ import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 class GitRepositoryImpl @Inject constructor(
-    private val core: JGitCoreDataSource,
-    private val status: JGitStatusDataSource,
-    private val commit: JGitCommitDataSource,
-    private val remote: JGitRemoteDataSource,
-    private val merge: JGitMergeDataSource
+    private val core: GitCoreDataSource,
+    private val status: GitStatusDataSource,
+    private val commit: GitCommitDataSource,
+    private val remote: GitRemoteDataSource,
+    private val merge: GitMergeDataSource
 ) : GitRepository {
 
     override suspend fun getStatus(repoPath: String): Result<GitRepoStatus> =

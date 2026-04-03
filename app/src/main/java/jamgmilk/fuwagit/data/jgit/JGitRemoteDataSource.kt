@@ -12,16 +12,16 @@ import javax.inject.Singleton
  */
 @Singleton
 class JGitRemoteDataSource @Inject constructor(
-    private val core: JGitCoreDataSource
-) {
+    private val core: GitCoreDataSource
+) : GitRemoteDataSource {
     /**
      * Clones a remote repository.
      */
-    fun cloneRepository(
+    override fun cloneRepository(
         uri: String,
         localPath: String,
-        credentials: CloneCredential? = null,
-        options: CloneOptions = CloneOptions()
+        credentials: CloneCredential?,
+        options: CloneOptions
     ): Result<String> {
         return try {
             val cloneCommand = Git.cloneRepository()
@@ -56,7 +56,7 @@ class JGitRemoteDataSource @Inject constructor(
     /**
      * Pulls changes from the remote repository.
      */
-    fun pull(repoPath: String, credentials: CloneCredential? = null): Result<PullResult> =
+    override fun pull(repoPath: String, credentials: CloneCredential?): Result<PullResult> =
         core.withGit(repoPath) { git ->
             try {
                 val pullCommand = git.pull()
@@ -130,10 +130,10 @@ class JGitRemoteDataSource @Inject constructor(
     /**
      * Pushes changes to the remote repository.
      */
-    fun push(
+    override fun push(
         repoPath: String,
-        credentials: CloneCredential? = null,
-        options: GitPushOptions = GitPushOptions.default()
+        credentials: CloneCredential?,
+        options: GitPushOptions
     ): Result<String> = core.withGit(repoPath) { git ->
         try {
             val pushCommand = git.push().setRemote(options.remote)
@@ -154,7 +154,7 @@ class JGitRemoteDataSource @Inject constructor(
     /**
      * Fetches changes from the remote repository.
      */
-    fun fetch(repoPath: String, credentials: CloneCredential? = null): Result<String> =
+    override fun fetch(repoPath: String, credentials: CloneCredential?): Result<String> =
         core.withGit(repoPath) { git ->
             try {
                 val fetchCommand = git.fetch().setRemoveDeletedRefs(true)
@@ -169,7 +169,7 @@ class JGitRemoteDataSource @Inject constructor(
     /**
      * Configures a remote repository.
      */
-    fun configureRemote(repoPath: String, name: String, url: String): Result<String> =
+    override fun configureRemote(repoPath: String, name: String, url: String): Result<String> =
         core.withGit(repoPath) { git ->
             val config = git.repository.config
             val exists = config.getSubsections("remote").contains(name)
@@ -184,7 +184,7 @@ class JGitRemoteDataSource @Inject constructor(
     /**
      * Deletes a remote configuration.
      */
-    fun deleteRemote(repoPath: String, remoteName: String): Result<String> =
+    override fun deleteRemote(repoPath: String, remoteName: String): Result<String> =
         core.withGit(repoPath) { git ->
             git.remoteRemove().setRemoteName(remoteName).call()
             "Remote $remoteName removed"
@@ -193,7 +193,7 @@ class JGitRemoteDataSource @Inject constructor(
     /**
      * Lists all configured remotes.
      */
-    fun getRemotes(repoPath: String): Result<List<GitRemote>> =
+    override fun getRemotes(repoPath: String): Result<List<GitRemote>> =
         core.withGit(repoPath) { git ->
             git.remoteList().call().map { remote ->
                 GitRemote(
@@ -207,7 +207,7 @@ class JGitRemoteDataSource @Inject constructor(
     /**
      * Gets the URL of a specific remote.
      */
-    fun getRemoteUrl(repoPath: String, name: String = "origin"): String? {
+    override fun getRemoteUrl(repoPath: String, name: String): String? {
         return try {
             Git.open(java.io.File(repoPath)).use { git ->
                 git.repository.config.getString("remote", name, "url")

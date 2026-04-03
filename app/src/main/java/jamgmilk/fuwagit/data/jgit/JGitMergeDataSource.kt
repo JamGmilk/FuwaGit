@@ -13,12 +13,12 @@ import javax.inject.Singleton
  */
 @Singleton
 class JGitMergeDataSource @Inject constructor(
-    private val core: JGitCoreDataSource
-) {
+    private val core: GitCoreDataSource
+) : GitMergeDataSource {
     /**
      * Merges a branch into the current branch.
      */
-    fun mergeBranch(repoPath: String, branchName: String): Result<ConflictResult> =
+    override fun mergeBranch(repoPath: String, branchName: String): Result<ConflictResult> =
         core.withGit(repoPath) { git ->
             try {
                 val mergeResult = git.merge()
@@ -58,7 +58,7 @@ class JGitMergeDataSource @Inject constructor(
     /**
      * Rebases the current branch onto another branch.
      */
-    fun rebaseBranch(repoPath: String, branchName: String): Result<ConflictResult> =
+    override fun rebaseBranch(repoPath: String, branchName: String): Result<ConflictResult> =
         core.withGit(repoPath) { git ->
             try {
                 val rebaseResult = git.rebase().setUpstream(branchName).call()
@@ -95,7 +95,7 @@ class JGitMergeDataSource @Inject constructor(
     /**
      * Gets the current conflict status.
      */
-    fun getConflictStatus(repoPath: String): Result<ConflictResult> =
+    override fun getConflictStatus(repoPath: String): Result<ConflictResult> =
         core.withGit(repoPath) { git ->
             val status = git.status().call()
             if (status.conflicting.isNotEmpty()) {
@@ -123,7 +123,7 @@ class JGitMergeDataSource @Inject constructor(
     /**
      * Marks a conflict file as resolved (adds to staging area).
      */
-    fun markConflictResolved(repoPath: String, filePath: String): Result<Unit> =
+    override fun markConflictResolved(repoPath: String, filePath: String): Result<Unit> =
         core.withGit(repoPath) { git ->
             git.add().addFilepattern(filePath).call()
             Unit
@@ -132,7 +132,7 @@ class JGitMergeDataSource @Inject constructor(
     /**
      * Aborts an ongoing rebase operation.
      */
-    fun abortRebase(repoPath: String): Result<String> =
+    override fun abortRebase(repoPath: String): Result<String> =
         core.withGit(repoPath) { git ->
             git.rebase().setOperation(org.eclipse.jgit.api.RebaseCommand.Operation.ABORT).call()
             "Rebase aborted"
@@ -141,7 +141,7 @@ class JGitMergeDataSource @Inject constructor(
     /**
      * Cleans untracked files from the working directory.
      */
-    fun clean(repoPath: String, dryRun: Boolean = false): Result<CleanResult> =
+    override fun clean(repoPath: String, dryRun: Boolean): Result<CleanResult> =
         core.withGit(repoPath) { git ->
             val cleanedPaths = git.clean()
                 .setCleanDirectories(true)

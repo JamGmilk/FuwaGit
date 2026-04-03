@@ -69,7 +69,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -114,8 +114,8 @@ fun SettingsScreen(
 ) {
     val context = LocalContext.current
     val activity = context as? FragmentActivity
-    val settingsUiState by settingsViewModel.uiState.collectAsState()
-    val credentialsUiState by credentialsViewModel.uiState.collectAsState()
+    val settingsUiState by settingsViewModel.uiState.collectAsStateWithLifecycle()
+    val credentialsUiState by credentialsViewModel.uiState.collectAsStateWithLifecycle()
     val applyResult = settingsUiState.applyResult
 
     var showFilePicker by rememberSaveable { mutableStateOf(false) }

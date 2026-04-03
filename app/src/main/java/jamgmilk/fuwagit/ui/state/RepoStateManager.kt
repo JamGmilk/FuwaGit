@@ -1,6 +1,7 @@
 package jamgmilk.fuwagit.ui.state
 
 import jamgmilk.fuwagit.data.local.prefs.RepoDataStore
+import jamgmilk.fuwagit.domain.usecase.repo.ValidateRepoUseCase
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -25,7 +26,8 @@ data class RepoInfo(
 
 @Singleton
 class RepoStateManager @Inject constructor(
-    private val repoDataStore: RepoDataStore
+    private val repoDataStore: RepoDataStore,
+    private val validateRepoUseCase: ValidateRepoUseCase
 ) {
     private val _repoInfo = MutableStateFlow(RepoInfo())
     val repoInfo: StateFlow<RepoInfo> = _repoInfo.asStateFlow()
@@ -55,12 +57,14 @@ class RepoStateManager @Inject constructor(
 
     fun clearRepo() {
         _repoInfo.value = RepoInfo()
+        scope.launch {
+            validateRepoUseCase(null)
+        }
     }
 
     suspend fun setRepoPath(path: String?) {
         if (path == null) {
             clearRepo()
-            repoDataStore.setCurrentRepo(null)
             return
         }
         validateRepo(path)
@@ -76,28 +80,19 @@ class RepoStateManager @Inject constructor(
             isLoading = true
         )
 
-        val error = when {
-            !file.exists() -> "Path does not exist"
-            !hasGitDir(path) -> "Not a git repository"
-            else -> null
+        val result = validateRepoUseCase(path)
+
+        _repoInfo.value = when (result) {
+            is ValidateRepoUseCase.ValidationResult.Success -> RepoInfo(
+                repoPath = result.path,
+                repoName = result.name
+            )
+            is ValidateRepoUseCase.ValidationResult.Error -> RepoInfo(
+                repoPath = path,
+                repoName = name,
+                error = result.message
+            )
+            ValidateRepoUseCase.ValidationResult.Cleared -> RepoInfo()
         }
-
-        _repoInfo.value = RepoInfo(
-            repoPath = path,
-            repoName = name,
-            isLoading = false,
-            error = error
-        )
-
-        if (error == null) {
-            repoDataStore.setCurrentRepo(path)
-            repoDataStore.updateLastAccessed(path)
-        } else {
-            repoDataStore.setCurrentRepo(null)
-        }
-    }
-
-    private fun hasGitDir(path: String): Boolean {
-        return File(path, ".git").exists()
     }
 }

@@ -15,9 +15,8 @@ import javax.inject.Singleton
 @Singleton
 class JGitCoreDataSource @Inject constructor(
     configDataStore: jamgmilk.fuwagit.data.local.prefs.GitConfigDataStore
-) {
-    // Expose for use by other data sources
-    val gitConfigDataStore = configDataStore
+) : GitCoreDataSource {
+    override val gitConfigDataStore: jamgmilk.fuwagit.data.local.prefs.GitConfigDataStore = configDataStore
     companion object {
         private const val TAG = "JGitCoreDataSource"
 
@@ -32,7 +31,7 @@ class JGitCoreDataSource @Inject constructor(
     /**
      * Executes a Git operation within a scoped Git instance.
      */
-    internal inline fun <T> withGit(repoPath: String, block: (Git) -> T): Result<T> {
+    override fun <T> withGit(repoPath: String, block: (Git) -> T): Result<T> {
         return try {
             Git.open(File(repoPath)).use { git ->
                 Result.success(block(git))
@@ -46,7 +45,7 @@ class JGitCoreDataSource @Inject constructor(
     /**
      * Initializes a new Git repository at the specified path.
      */
-    suspend fun initRepo(repoPath: String): Result<String> {
+    override suspend fun initRepo(repoPath: String): Result<String> {
         return try {
             val repoDir = File(repoPath)
             if (!repoDir.exists() && !repoDir.mkdirs()) {
@@ -91,7 +90,7 @@ class JGitCoreDataSource @Inject constructor(
     /**
      * Checks if a directory contains a .git folder.
      */
-    fun hasGitDir(path: String?): Boolean {
+    override fun hasGitDir(path: String?): Boolean {
         if (path == null) return false
         return try {
             val gitDir = File(path, ".git")
@@ -104,7 +103,7 @@ class JGitCoreDataSource @Inject constructor(
     /**
      * Validates if a path is a valid Git repository.
      */
-    fun isValidRepository(repoPath: String): Boolean {
+    override fun isValidRepository(repoPath: String): Boolean {
         return try {
             FileRepositoryBuilder()
                 .setGitDir(File(repoPath, ".git"))
@@ -120,7 +119,7 @@ class JGitCoreDataSource @Inject constructor(
     /**
      * Gets basic repository information.
      */
-    fun getRepoInfo(repoPath: String): Map<String, String> {
+    override fun getRepoInfo(repoPath: String): Map<String, String> {
         val info = mutableMapOf<String, String>()
         try {
             Git.open(File(repoPath)).use { git ->
@@ -149,7 +148,7 @@ class JGitCoreDataSource @Inject constructor(
 
     // ========== SSH Credential Helpers ==========
 
-    internal fun configureCredentials(
+    override fun configureCredentials(
         command: org.eclipse.jgit.api.TransportCommand<*, *>,
         credentials: jamgmilk.fuwagit.domain.model.credential.CloneCredential?
     ) {
@@ -203,7 +202,7 @@ class JGitCoreDataSource @Inject constructor(
         }
     }
 
-    internal fun clearSshCredentials() {
+    override fun clearSshCredentials() {
         currentSshKey.set(null)
     }
 }

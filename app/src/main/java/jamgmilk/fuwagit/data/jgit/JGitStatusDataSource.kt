@@ -13,12 +13,12 @@ import javax.inject.Singleton
  */
 @Singleton
 class JGitStatusDataSource @Inject constructor(
-    private val core: JGitCoreDataSource
-) {
+    private val core: GitCoreDataSource
+) : GitStatusDataSource {
     /**
      * Reads the current repository status.
      */
-    fun readRepoStatus(repoPath: String): Result<jamgmilk.fuwagit.domain.model.git.GitRepoStatus> =
+    override fun readRepoStatus(repoPath: String): Result<jamgmilk.fuwagit.domain.model.git.GitRepoStatus> =
         core.withGit(repoPath) { git ->
             val status = git.status().call()
             val repository = git.repository
@@ -35,7 +35,7 @@ class JGitStatusDataSource @Inject constructor(
     /**
      * Gets detailed file status including staged and unstaged changes.
      */
-    fun getDetailedStatus(repoPath: String): Result<List<GitFileStatus>> =
+    override fun getDetailedStatus(repoPath: String): Result<List<GitFileStatus>> =
         core.withGit(repoPath) { git ->
             val status = git.status().call()
             val allFiles = mutableListOf<GitFileStatus>()
@@ -69,7 +69,7 @@ class JGitStatusDataSource @Inject constructor(
     /**
      * Stages all changes including deletions.
      */
-    fun stageAll(repoPath: String): Result<String> = core.withGit(repoPath) { git ->
+    override fun stageAll(repoPath: String): Result<String> = core.withGit(repoPath) { git ->
         git.add().addFilepattern(".").setUpdate(true).call()
         git.add().addFilepattern(".").call()
         "All changes staged"
@@ -78,7 +78,7 @@ class JGitStatusDataSource @Inject constructor(
     /**
      * Unstages all changes.
      */
-    fun unstageAll(repoPath: String): Result<String> = core.withGit(repoPath) { git ->
+    override fun unstageAll(repoPath: String): Result<String> = core.withGit(repoPath) { git ->
         try {
             git.reset().setRef("HEAD").call()
         } catch (e: Exception) {
@@ -90,7 +90,7 @@ class JGitStatusDataSource @Inject constructor(
     /**
      * Stages a specific file.
      */
-    fun stageFile(repoPath: String, filePath: String): Result<Unit> = core.withGit(repoPath) { git ->
+    override fun stageFile(repoPath: String, filePath: String): Result<Unit> = core.withGit(repoPath) { git ->
         val status = git.status().addPath(filePath).call()
         if (status.missing.contains(filePath) || status.removed.contains(filePath)) {
             git.rm().addFilepattern(filePath).call()
@@ -103,7 +103,7 @@ class JGitStatusDataSource @Inject constructor(
     /**
      * Unstages a specific file.
      */
-    fun unstageFile(repoPath: String, filePath: String): Result<Unit> = core.withGit(repoPath) { git ->
+    override fun unstageFile(repoPath: String, filePath: String): Result<Unit> = core.withGit(repoPath) { git ->
         git.reset().setRef("HEAD").addPath(filePath).call()
         Unit
     }
@@ -111,7 +111,7 @@ class JGitStatusDataSource @Inject constructor(
     /**
      * Discards changes to a specific file.
      */
-    fun discardChanges(repoPath: String, filePath: String): Result<Unit> = core.withGit(repoPath) { git ->
+    override fun discardChanges(repoPath: String, filePath: String): Result<Unit> = core.withGit(repoPath) { git ->
         git.checkout().addPath(filePath).call()
         Unit
     }
@@ -119,7 +119,7 @@ class JGitStatusDataSource @Inject constructor(
     /**
      * Lists all branches.
      */
-    fun getBranches(repoPath: String): Result<List<GitBranch>> = core.withGit(repoPath) { git ->
+    override fun getBranches(repoPath: String): Result<List<GitBranch>> = core.withGit(repoPath) { git ->
         val branchList = git.branchList().setListMode(ListBranchCommand.ListMode.ALL).call()
         val currentBranch = git.repository.fullBranch
 
@@ -143,7 +143,7 @@ class JGitStatusDataSource @Inject constructor(
     /**
      * Creates a new branch.
      */
-    fun createBranch(repoPath: String, branchName: String): Result<Unit> = core.withGit(repoPath) { git ->
+    override fun createBranch(repoPath: String, branchName: String): Result<Unit> = core.withGit(repoPath) { git ->
         git.branchCreate().setName(branchName).call()
         Unit
     }
@@ -151,7 +151,7 @@ class JGitStatusDataSource @Inject constructor(
     /**
      * Checks out a branch (supports remote tracking branches).
      */
-    fun checkoutBranch(repoPath: String, branchName: String): Result<Unit> = core.withGit(repoPath) { git ->
+    override fun checkoutBranch(repoPath: String, branchName: String): Result<Unit> = core.withGit(repoPath) { git ->
         val remoteBranchRegex = Regex("^([^/]+)/(.+)$")
         val matchResult = remoteBranchRegex.find(branchName)
 
@@ -186,7 +186,7 @@ class JGitStatusDataSource @Inject constructor(
     /**
      * Deletes a branch.
      */
-    fun deleteBranch(repoPath: String, branchName: String, force: Boolean = false): Result<Unit> =
+    override fun deleteBranch(repoPath: String, branchName: String, force: Boolean): Result<Unit> =
         core.withGit(repoPath) { git ->
             git.branchDelete().setBranchNames(branchName).setForce(force).call()
             Unit
@@ -195,7 +195,7 @@ class JGitStatusDataSource @Inject constructor(
     /**
      * Renames a branch.
      */
-    fun renameBranch(repoPath: String, oldName: String, newName: String): Result<String> =
+    override fun renameBranch(repoPath: String, oldName: String, newName: String): Result<String> =
         core.withGit(repoPath) { git ->
             git.branchRename().setOldName(oldName).setNewName(newName).call()
             "Branch renamed to $newName"

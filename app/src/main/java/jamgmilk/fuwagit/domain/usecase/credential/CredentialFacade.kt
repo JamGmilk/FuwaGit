@@ -15,7 +15,8 @@ class CredentialFacade @Inject constructor(
     private val getHttpsPasswordUseCase: GetHttpsPasswordUseCase,
     private val getSshKeysUseCase: GetSshKeysUseCase,
     private val getSshPrivateKeyUseCase: GetSshPrivateKeyUseCase,
-    private val getSshPassphraseUseCase: GetSshPassphraseUseCase
+    private val getSshPassphraseUseCase: GetSshPassphraseUseCase,
+    private val resolveCloneCredentialUseCase: ResolveCloneCredentialUseCase
 ) {
     suspend fun getHttpsCredentials(): AppResult<List<HttpsCredential>> =
         getHttpsCredentialsUseCase()
@@ -34,6 +35,7 @@ class CredentialFacade @Inject constructor(
 
     /**
      * Resolves credentials based on selected UUIDs.
+     * Delegates to ResolveCloneCredentialUseCase.
      */
     suspend fun resolveCredentials(
         selectedCredentialUuid: String?,
@@ -41,42 +43,11 @@ class CredentialFacade @Inject constructor(
         httpsCredentials: List<HttpsCredential>,
         sshKeys: List<SshKey>
     ): CloneCredential? {
-        return when {
-            selectedCredentialUuid != null -> {
-                val cred = httpsCredentials.find { it.uuid == selectedCredentialUuid } ?: return null
-                val password = getHttpsPassword(cred.uuid)
-                if (password is AppResult.Success) {
-                    CloneCredential.Https(cred.username, password.data)
-                } else null
-            }
-            selectedSshKeyUuid != null -> {
-                val privateKey = getSshPrivateKey(selectedSshKeyUuid)
-                if (privateKey is AppResult.Success) {
-                    val passphrase = getSshPassphrase(selectedSshKeyUuid)
-                    val passphraseData = if (passphrase is AppResult.Success) passphrase.data else null
-                    CloneCredential.Ssh(privateKey.data, passphraseData)
-                } else null
-            }
-            else -> {
-                // Auto-select first available credential
-                if (httpsCredentials.isNotEmpty()) {
-                    val cred = httpsCredentials.first()
-                    val password = getHttpsPassword(cred.uuid)
-                    if (password is AppResult.Success) {
-                        CloneCredential.Https(cred.username, password.data)
-                    } else null
-                } else if (sshKeys.isNotEmpty()) {
-                    val key = sshKeys.first()
-                    val privateKey = getSshPrivateKey(key.uuid)
-                    if (privateKey is AppResult.Success) {
-                        val passphrase = getSshPassphrase(key.uuid)
-                        val passphraseData = if (passphrase is AppResult.Success) passphrase.data else null
-                        CloneCredential.Ssh(privateKey.data, passphraseData)
-                    } else null
-                } else {
-                    null
-                }
-            }
-        }
+        return resolveCloneCredentialUseCase(
+            selectedCredentialUuid,
+            selectedSshKeyUuid,
+            httpsCredentials,
+            sshKeys
+        )
     }
 }

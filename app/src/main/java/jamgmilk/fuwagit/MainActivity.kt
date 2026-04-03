@@ -7,7 +7,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
@@ -29,7 +29,7 @@ class MainActivity : FragmentActivity() {
         enableEdgeToEdge()
         setContent {
             val settingsViewModel: SettingsViewModel = hiltViewModel()
-            val settingsUiState by settingsViewModel.uiState.collectAsState()
+            val settingsUiState by settingsViewModel.uiState.collectAsStateWithLifecycle()
             val darkMode = settingsUiState.darkMode
 
             val isDarkTheme = when (darkMode) {

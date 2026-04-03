@@ -59,7 +59,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -92,7 +92,7 @@ fun HistoryScreen(
     historyViewModel: HistoryViewModel,
     modifier: Modifier = Modifier
 ) {
-    val uiState by historyViewModel.uiState.collectAsState()
+    val uiState by historyViewModel.uiState.collectAsStateWithLifecycle()
     val history = uiState.commits
     val colors = MaterialTheme.colorScheme
     val uiColors = FuwaGitThemeExtras.colors
@@ -184,7 +184,11 @@ private fun CommitTimelineList(
         modifier = modifier.padding(vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
-        items(commits, key = { it.hash }) { commit ->
+        items(
+            items = commits,
+            key = { it.hash },
+            contentType = { "commit_timeline" }
+        ) { commit ->
             CommitTimelineItem(
                 commit = commit,
                 isLast = commit == commits.last(),
@@ -440,7 +444,7 @@ private fun CommitDetails(
 ) {
     val colors = MaterialTheme.colorScheme
     val uiColors = FuwaGitThemeExtras.colors
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val commitDetail = uiState.selectedCommitDetail
     val isLoadingDetail = uiState.isLoadingCommitDetail
 

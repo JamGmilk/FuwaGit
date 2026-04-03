@@ -49,7 +49,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -79,7 +79,7 @@ fun BranchesScreen(
     branchesViewModel: BranchesViewModel,
     modifier: Modifier = Modifier
 ) {
-    val uiState by branchesViewModel.uiState.collectAsState()
+    val uiState by branchesViewModel.uiState.collectAsStateWithLifecycle()
     val local = uiState.localBranches
     val remote = uiState.remoteBranches
     val currentBranch = uiState.currentBranch?.name
@@ -377,14 +377,15 @@ private fun BranchListContent(
     modifier: Modifier = Modifier
 ) {
     val colors = MaterialTheme.colorScheme
-    val uiState by branchesViewModel.uiState.collectAsState()
+    val uiState by branchesViewModel.uiState.collectAsStateWithLifecycle()
     val currentBranch = uiState.currentBranch?.name
 
     LazyColumn(
         modifier = modifier.padding(12.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = 4.dp)
     ) {
-        item {
+        item(contentType = "header") {
             SectionHeader(
                 title = "Local Branches",
                 subtitle = "${localBranches.size} branches",
@@ -398,7 +399,7 @@ private fun BranchListContent(
                 EmptySectionMessage("No local branches")
             }
         } else {
-            items(localBranches, key = { "local:${it.name}" }) { branch ->
+            items(localBranches, key = { "local:${it.name}" }, contentType = { "branch_item" }) { branch ->
                 BranchItem(
                     branch = branch,
                     isCurrent = branch.name == currentBranch,
