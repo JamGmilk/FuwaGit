@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -28,24 +29,23 @@ import androidx.compose.material.icons.filled.AccountTree
 import androidx.compose.material.icons.filled.Backup
 import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.Build
+import androidx.compose.material.icons.filled.Business
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.CloudSync
 import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.CreditCard
+import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Fingerprint
-import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material.icons.filled.Terminal
-import androidx.compose.material.icons.filled.Business
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Email
-import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.AlertDialog
@@ -53,9 +53,9 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
-import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -78,20 +78,17 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.rememberScrollState
 import androidx.core.content.pm.PackageInfoCompat
 import androidx.core.net.toUri
 import androidx.fragment.app.FragmentActivity
@@ -117,20 +114,12 @@ fun SettingsScreen(
 ) {
     val context = LocalContext.current
     val activity = context as? FragmentActivity
+    val settingsUiState by settingsViewModel.uiState.collectAsState()
     val credentialsUiState by credentialsViewModel.uiState.collectAsState()
-    val settingsUserName by settingsViewModel.userName.collectAsState()
-    val settingsUserEmail by settingsViewModel.userEmail.collectAsState()
-    val applyResult by settingsViewModel.applyResult.collectAsState()
+    val applyResult = settingsUiState.applyResult
 
     var showFilePicker by rememberSaveable { mutableStateOf(false) }
-
-    val autoSync by settingsViewModel.autoSync.collectAsState()
-    val conflictSafeMode by settingsViewModel.conflictSafeMode.collectAsState()
-    val backupBeforeSync by settingsViewModel.backupBeforeSync.collectAsState()
-    val verboseLogging by settingsViewModel.verboseLogging.collectAsState()
-    val darkMode by settingsViewModel.darkMode.collectAsState()
     var pendingBiometricEnable by rememberSaveable { mutableStateOf(false) }
-    val settingsDefaultBranch by settingsViewModel.defaultBranch.collectAsState()
 
     // 显示应用配置结果
     LaunchedEffect(applyResult) {
@@ -169,9 +158,9 @@ fun SettingsScreen(
         )
 
         GlobalConfigCard(
-            userName = settingsUserName,
-            userEmail = settingsUserEmail,
-            defaultBranch = settingsDefaultBranch,
+            userName = settingsUiState.userName,
+            userEmail = settingsUiState.userEmail,
+            defaultBranch = settingsUiState.defaultBranch,
             applyResult = applyResult,
             onUserConfigSave = { name, email -> settingsViewModel.saveUserConfig(name, email) },
             onDefaultBranchSave = { settingsViewModel.saveDefaultBranch(it) },
@@ -216,23 +205,23 @@ fun SettingsScreen(
         )
 
         AppearanceSettingsCard(
-            darkMode = darkMode,
+            darkMode = settingsUiState.darkMode,
             onDarkModeChange = { mode -> settingsViewModel.saveDarkMode(mode) },
             modifier = Modifier.fillMaxWidth()
         )
 
         SyncSettingsCard(
-            autoSync = autoSync,
+            autoSync = settingsUiState.autoSync,
             onAutoSyncChange = { settingsViewModel.saveAutoSync(it) },
-            conflictSafeMode = conflictSafeMode,
+            conflictSafeMode = settingsUiState.conflictSafeMode,
             onConflictSafeModeChange = { settingsViewModel.saveConflictSafeMode(it) },
-            backupBeforeSync = backupBeforeSync,
+            backupBeforeSync = settingsUiState.backupBeforeSync,
             onBackupBeforeSyncChange = { settingsViewModel.saveBackupBeforeSync(it) },
             modifier = Modifier.fillMaxWidth()
         )
 
         DeveloperOptionsCard(
-            verboseLogging = verboseLogging,
+            verboseLogging = settingsUiState.verboseLogging,
             onVerboseLoggingChange = { settingsViewModel.saveVerboseLogging(it) },
             onTestFilePicker = { showFilePicker = true },
             modifier = Modifier.fillMaxWidth()
@@ -572,7 +561,6 @@ private fun GlobalConfigCard(
 
     var userConfigExpanded by rememberSaveable { mutableStateOf(false) }
     var branchConfigExpanded by rememberSaveable { mutableStateOf(false) }
-    var showApplyToAllReposDialog by remember { mutableStateOf(false) }
 
     var userConfigKey by rememberSaveable { mutableStateOf(0) }
     var branchConfigKey by rememberSaveable { mutableStateOf(0) }
@@ -638,7 +626,7 @@ private fun GlobalConfigCard(
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     Text(
-                        text = "Set the global author information for Git commits.",
+                        text = "Set the default author information. This saves to the global Git config (~/.gitconfig).\nWhen cloning or initializing a repo, you can choose to copy this to the repository's local config.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -677,8 +665,7 @@ private fun GlobalConfigCard(
                             Text("Cancel")
                         }
                         Spacer(Modifier.width(8.dp))
-                        // 仅应用到 App 内保存
-                        OutlinedButton(
+                        Button(
                             onClick = {
                                 scope.launch {
                                     onUserConfigSave(localUserName, localUserEmail)
@@ -688,42 +675,10 @@ private fun GlobalConfigCard(
                             },
                             shape = RoundedCornerShape(12.dp)
                         ) {
-                            Text("Save to App")
-                        }
-                        Spacer(Modifier.width(8.dp))
-                        // 应用到所有仓库
-                        Button(
-                            onClick = {
-                                showApplyToAllReposDialog = true
-                            },
-                            shape = RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = Color(0xFF2196F3)
-                            )
-                        ) {
-                            Icon(
-                                Icons.Default.Business,
-                                contentDescription = null,
-                                modifier = Modifier.size(18.dp)
-                            )
-                            Spacer(Modifier.width(6.dp))
-                            Text("Apply to All")
+                            Text("Save")
                         }
                     }
                 }
-            }
-
-            // 显示应用到所有仓库对话框
-            if (showApplyToAllReposDialog) {
-                ApplyToAllReposDialog(
-                    name = localUserName,
-                    email = localUserEmail,
-                    onApply = { alsoToGlobal ->
-                        onApplyToAllRepos(localUserName, localUserEmail, alsoToGlobal)
-                        showApplyToAllReposDialog = false
-                    },
-                    onDismiss = { showApplyToAllReposDialog = false }
-                )
             }
 
             // 显示应用配置结果对话框

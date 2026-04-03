@@ -1,7 +1,6 @@
 package jamgmilk.fuwagit.ui.screen.myrepos
 
 import android.content.Context
-import androidx.compose.runtime.mutableStateMapOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -13,9 +12,9 @@ import jamgmilk.fuwagit.domain.model.git.CloneOptions
 import jamgmilk.fuwagit.domain.model.repo.RepoData
 import jamgmilk.fuwagit.domain.model.credential.HttpsCredential
 import jamgmilk.fuwagit.domain.model.credential.SshKey
-import jamgmilk.fuwagit.domain.state.RepoInfo
-import jamgmilk.fuwagit.domain.state.RepoStateManager
-import jamgmilk.fuwagit.domain.usecase.CurrentRepoUseCase
+import jamgmilk.fuwagit.ui.state.RepoInfo
+import jamgmilk.fuwagit.ui.state.RepoStateManager
+import jamgmilk.fuwagit.ui.usecase.CurrentRepoUseCase
 import jamgmilk.fuwagit.domain.usecase.git.GitRepoFacade
 import jamgmilk.fuwagit.domain.usecase.credential.CredentialFacade
 import kotlinx.coroutines.Dispatchers
@@ -24,6 +23,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -115,7 +115,7 @@ class MyReposViewModel @Inject constructor(
         }
     }
 
-    private val _repoSizes = mutableStateMapOf<String, Long>()
+    private val _repoSizes = MutableStateFlow<Map<String, Long>>(emptyMap())
     private val _untrackedFilesForClean = MutableStateFlow<List<String>>(emptyList())
     private val _cleanedFilesForResult = MutableStateFlow<List<String>>(emptyList())
 
@@ -126,7 +126,8 @@ class MyReposViewModel @Inject constructor(
             _isLoading,
             _error,
             _untrackedFilesForClean,
-            _cleanedFilesForResult
+            _cleanedFilesForResult,
+            _repoSizes
         )
     ) { values ->
         val repos = values[0] as List<RepoData>
@@ -135,7 +136,8 @@ class MyReposViewModel @Inject constructor(
         val error = values[3] as String?
         val untrackedFiles = values[4] as List<String>
         val cleanedFiles = values[5] as List<String>
-        
+        val repoSizes = values[6] as Map<String, Long>
+
         RepoUiState(
             repoItems = repos.map { repo ->
                 RepoFolderItem(
@@ -145,7 +147,7 @@ class MyReposViewModel @Inject constructor(
                     isRemote = false,
                     isActive = repo.path == currentRepo.repoPath,
                     lastModified = repo.lastAccessedAt,
-                    size = _repoSizes[repo.path] ?: 0L
+                    size = repoSizes[repo.path] ?: 0L
                 )
             },
             isLoading = loading,
@@ -165,10 +167,11 @@ class MyReposViewModel @Inject constructor(
         viewModelScope.launch {
             val repos = repoDataStore.getAllRepos()
             _savedRepos.value = repos
-            
+            val currentSizes = _repoSizes.value
+
             // Background size calculation
             repos.forEach { repo ->
-                if (!_repoSizes.containsKey(repo.path)) {
+                if (!currentSizes.containsKey(repo.path)) {
                     calculateSizeAsync(repo.path)
                 }
             }
@@ -179,7 +182,9 @@ class MyReposViewModel @Inject constructor(
         viewModelScope.launch(Dispatchers.IO) {
             val size = calculateFolderSize(path)
             withContext(Dispatchers.Main) {
-                _repoSizes[path] = size
+                _repoSizes.update { currentSizes ->
+                    currentSizes + (path to size)
+                }
             }
         }
     }

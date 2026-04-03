@@ -7,7 +7,6 @@ import jamgmilk.fuwagit.domain.model.git.GitCommitDetail
 import jamgmilk.fuwagit.domain.model.git.GitCommitFileChange
 import jamgmilk.fuwagit.domain.model.git.GitResetMode
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.runBlocking
 import org.eclipse.jgit.api.Git
 import org.eclipse.jgit.errors.LockFailedException
 import org.eclipse.jgit.api.errors.JGitInternalException
@@ -139,9 +138,9 @@ class JGitCommitDataSource @Inject constructor(
     /**
      * Creates a commit with the given message.
      */
-    fun commit(repoPath: String, message: String): Result<String> = core.withGit(repoPath) { git ->
+    suspend fun commit(repoPath: String, message: String): Result<String> = core.withGit(repoPath) { git ->
         try {
-            val config = runBlocking { core.gitConfigDataStore.configFlow.first() }
+            val config = core.gitConfigDataStore.configFlow.first()
             if (config.userName.isNotBlank() || config.userEmail.isNotBlank()) {
                 val storedConfig = git.repository.config
                 if (config.userName.isNotBlank()) {

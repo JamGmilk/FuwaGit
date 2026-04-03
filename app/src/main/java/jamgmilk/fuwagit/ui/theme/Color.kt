@@ -2,6 +2,23 @@ package jamgmilk.fuwagit.ui.theme
 
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
+
+@Preview(showBackground = true, name = "Color Palette")
+@Composable
+fun ColorPalettePreview() {
+    Column(modifier = Modifier.padding(16.dp)) {
+        Text("Color Palette Preview", style = MaterialTheme.typography.headlineMedium)
+        // Add color swatches here if desired
+    }
+}
 
 // Sakura Series (Light theme base)
 val Sakura10 = Color(0xFFFFF7FA)

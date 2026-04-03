@@ -12,11 +12,8 @@ class GitStatusFacade @Inject constructor(
     private val hasGitDirUseCase: HasGitDirUseCase,
     private val initRepoUseCase: InitRepoUseCase,
     private val getDetailedStatusUseCase: GetDetailedStatusUseCase,
-    private val getBranchesUseCase: GetBranchesUseCase,
-    private val stageAllUseCase: StageAllUseCase,
-    private val unstageAllUseCase: UnstageAllUseCase,
-    private val stageFileUseCase: StageFileUseCase,
-    private val unstageFileUseCase: UnstageFileUseCase,
+    private val branchUseCase: BranchUseCase,
+    private val stageUseCase: StageUseCase,
     private val discardChangesUseCase: DiscardChangesUseCase,
     private val commitUseCase: CommitUseCase
 ) {
@@ -28,17 +25,17 @@ class GitStatusFacade @Inject constructor(
         getDetailedStatusUseCase(repoPath)
 
     suspend fun getBranches(repoPath: String): Result<List<GitBranch>> =
-        getBranchesUseCase(repoPath)
+        branchUseCase.list(repoPath)
 
-    suspend fun stageAll(repoPath: String): Result<String> = stageAllUseCase(repoPath)
+    suspend fun stageAll(repoPath: String): Result<String> = stageUseCase.all(repoPath)
 
-    suspend fun unstageAll(repoPath: String): Result<String> = unstageAllUseCase(repoPath)
+    suspend fun unstageAll(repoPath: String): Result<String> = stageUseCase.unstageAll(repoPath)
 
     suspend fun stageFile(repoPath: String, filePath: String): Result<Unit> =
-        stageFileUseCase(repoPath, filePath)
+        stageUseCase.file(repoPath, filePath)
 
     suspend fun unstageFile(repoPath: String, filePath: String): Result<Unit> =
-        unstageFileUseCase(repoPath, filePath)
+        stageUseCase.unstageFile(repoPath, filePath)
 
     suspend fun discardChanges(repoPath: String, filePath: String): Result<Unit> =
         discardChangesUseCase(repoPath, filePath)

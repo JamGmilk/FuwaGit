@@ -14,6 +14,34 @@ import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Text
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
+
+@Preview(showBackground = true, name = "Light Theme")
+@Composable
+fun LightThemePreview() {
+    FuwaGitTheme(darkTheme = false) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text("Light Theme Preview", style = MaterialTheme.typography.headlineMedium)
+            Text("This is a sample text.", style = MaterialTheme.typography.bodyLarge)
+        }
+    }
+}
+
+@Preview(showBackground = true, name = "Dark Theme")
+@Composable
+fun DarkThemePreview() {
+    FuwaGitTheme(darkTheme = true) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text("Dark Theme Preview", style = MaterialTheme.typography.headlineMedium)
+            Text("This is a sample text.", style = MaterialTheme.typography.bodyLarge)
+        }
+    }
+}
 
 private val DarkColorScheme = darkColorScheme(
     primary = Sakura60,

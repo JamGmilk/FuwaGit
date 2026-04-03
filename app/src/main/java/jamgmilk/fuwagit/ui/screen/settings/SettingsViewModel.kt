@@ -15,10 +15,25 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+
+data class SettingsUiState(
+    val savedReposCount: Int = 0,
+    val userName: String = "",
+    val userEmail: String = "",
+    val defaultBranch: String = "main",
+    val autoSync: Boolean = false,
+    val conflictSafeMode: Boolean = true,
+    val backupBeforeSync: Boolean = true,
+    val verboseLogging: Boolean = false,
+    val darkMode: String = "system",
+    val globalUserName: String? = null,
+    val globalUserEmail: String? = null,
+    val applyResult: ApplyConfigResult? = null
+)
 
 data class ApplyConfigResult(
     val successCount: Int,
@@ -41,87 +56,47 @@ class SettingsViewModel @Inject constructor(
     private val getGlobalUserConfig: GetGlobalUserConfig
 ) : ViewModel() {
 
-    val savedReposCount: StateFlow<Int> = repoDataStore.getSavedReposFlow()
-        .map { it.size }
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = 0
-        )
-
-    val userName: StateFlow<String> = gitConfigDataStore.configFlow
-        .map { it.userName }
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = ""
-        )
-
-    val userEmail: StateFlow<String> = gitConfigDataStore.configFlow
-        .map { it.userEmail }
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = ""
-        )
-
-    val defaultBranch: StateFlow<String> = gitConfigDataStore.configFlow
-        .map { it.defaultBranch }
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = "main"
-        )
-
-    val autoSync: StateFlow<Boolean> = appPreferencesStore.preferencesFlow
-        .map { it.autoSync }
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = false
-        )
-
-    val conflictSafeMode: StateFlow<Boolean> = appPreferencesStore.preferencesFlow
-        .map { it.conflictSafeMode }
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = true
-        )
-
-    val backupBeforeSync: StateFlow<Boolean> = appPreferencesStore.preferencesFlow
-        .map { it.backupBeforeSync }
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = true
-        )
-
-    val verboseLogging: StateFlow<Boolean> = appPreferencesStore.preferencesFlow
-        .map { it.verboseLogging }
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = false
-        )
-
-    val darkMode: StateFlow<String> = appPreferencesStore.preferencesFlow
-        .map { it.darkMode }
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = "system"
-        )
-
-    // Global config 状态
     private val _globalUserName = MutableStateFlow<String?>(null)
     private val _globalUserEmail = MutableStateFlow<String?>(null)
-    val globalUserName: StateFlow<String?> = _globalUserName.asStateFlow()
-    val globalUserEmail: StateFlow<String?> = _globalUserEmail.asStateFlow()
-
-    // 应用配置结果
     private val _applyResult = MutableStateFlow<ApplyConfigResult?>(null)
-    val applyResult: StateFlow<ApplyConfigResult?> = _applyResult.asStateFlow()
+
+    // Unified UI state combining all flows
+    val uiState: StateFlow<SettingsUiState> = combine(
+        listOf(
+            repoDataStore.getSavedReposFlow(),
+            gitConfigDataStore.configFlow,
+            appPreferencesStore.preferencesFlow,
+            _globalUserName,
+            _globalUserEmail,
+            _applyResult
+        )
+    ) { values ->
+        val repos = values[0] as List<jamgmilk.fuwagit.domain.model.repo.RepoData>
+        val gitConfig = values[1] as jamgmilk.fuwagit.data.local.prefs.GitConfig
+        val appPrefs = values[2] as jamgmilk.fuwagit.data.local.prefs.AppPreferences
+        val globalName = values[3] as String?
+        val globalEmail = values[4] as String?
+        val applyRes = values[5] as ApplyConfigResult?
+
+        SettingsUiState(
+            savedReposCount = repos.size,
+            userName = gitConfig.userName,
+            userEmail = gitConfig.userEmail,
+            defaultBranch = gitConfig.defaultBranch,
+            autoSync = appPrefs.autoSync,
+            conflictSafeMode = appPrefs.conflictSafeMode,
+            backupBeforeSync = appPrefs.backupBeforeSync,
+            verboseLogging = appPrefs.verboseLogging,
+            darkMode = appPrefs.darkMode,
+            globalUserName = globalName,
+            globalUserEmail = globalEmail,
+            applyResult = applyRes
+        )
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = SettingsUiState()
+    )
 
     init {
         loadGlobalConfig()
@@ -184,37 +159,25 @@ class SettingsViewModel @Inject constructor(
         // DataStore automatically reloads from disk when needed
     }
 
-    /**
-     * 将用户配置应用到 global git config
-     */
     fun applyConfigToGlobal(name: String, email: String) {
         viewModelScope.launch {
             applyGitConfigToGlobal(name, email)
-                .onSuccess {
-                    loadGlobalConfig()
-                }
+                .onSuccess { loadGlobalConfig() }
         }
     }
 
-    /**
-     * 将用户配置应用到指定仓库
-     */
     fun applyConfigToRepo(repoPath: String, name: String, email: String) {
         viewModelScope.launch {
             applyGitConfigToRepo(repoPath, name, email)
         }
     }
 
-    /**
-     * 将用户配置应用到所有仓库
-     */
     fun applyConfigToAllRepos(name: String, email: String, alsoApplyToGlobal: Boolean) {
         viewModelScope.launch {
             val repos = repoDataStore.getAllRepos()
             val repoPaths = repos.map { it.path }
-            
             val result = applyGitConfigToAllRepos(repoPaths, name, email, alsoApplyToGlobal)
-            
+
             _applyResult.value = ApplyConfigResult(
                 successCount = result.successCount,
                 failureCount = result.failureCount,
@@ -228,9 +191,6 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
-    /**
-     * 清除应用配置结果
-     */
     fun clearApplyResult() {
         _applyResult.value = null
     }

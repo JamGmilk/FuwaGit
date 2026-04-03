@@ -28,26 +28,25 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.MergeType
 import androidx.compose.material.icons.filled.AccountTree
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.Code
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.DeleteForever
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
-import androidx.compose.material.icons.automirrored.filled.MergeType
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Replay
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.outlined.Commit
-import androidx.compose.material.icons.filled.ArrowUpward
-import androidx.compose.material.icons.filled.Replay
-import androidx.compose.material.icons.filled.DeleteForever
-import androidx.compose.material.icons.filled.Warning
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ElevatedCard
@@ -55,9 +54,9 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -72,17 +71,16 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.rememberScrollState
 import jamgmilk.fuwagit.domain.model.git.GitCommit
 import jamgmilk.fuwagit.domain.model.git.GitResetMode
-import jamgmilk.fuwagit.ui.components.ScreenTemplate
 import jamgmilk.fuwagit.ui.components.ResetConfirmDialog
+import jamgmilk.fuwagit.ui.components.ScreenTemplate
 import jamgmilk.fuwagit.ui.theme.AppColors
+import jamgmilk.fuwagit.ui.theme.FuwaGitTheme
 import jamgmilk.fuwagit.ui.theme.FuwaGitThemeExtras
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -271,22 +269,26 @@ private fun CommitTimelineItem(
 
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth()
                     ) {
                         CommitMetaItem(
                             icon = Icons.Default.Code,
                             text = commit.shortHash,
-                            color = colors.secondary
+                            color = colors.secondary,
+                            modifier = Modifier.weight(1f)
                         )
                         CommitMetaItem(
                             icon = Icons.Default.Person,
                             text = commit.authorName,
-                            color = colors.onSurfaceVariant
+                            color = colors.onSurfaceVariant,
+                            modifier = Modifier.weight(1f)
                         )
                         CommitMetaItem(
                             icon = Icons.Default.Schedule,
                             text = relativeTime,
-                            color = colors.onSurfaceVariant
+                            color = colors.onSurfaceVariant,
+                            modifier = Modifier.weight(1f)
                         )
                     }
                 }
@@ -405,9 +407,11 @@ private fun MergeBadge() {
 private fun CommitMetaItem(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     text: String,
-    color: Color
+    color: Color,
+    modifier: Modifier = Modifier
 ) {
     Row(
+        modifier = modifier,
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(3.dp)
     ) {
@@ -436,7 +440,6 @@ private fun CommitDetails(
 ) {
     val colors = MaterialTheme.colorScheme
     val uiColors = FuwaGitThemeExtras.colors
-    var showResetDialog by remember { mutableStateOf(false) }
     val uiState by viewModel.uiState.collectAsState()
     val commitDetail = uiState.selectedCommitDetail
     val isLoadingDetail = uiState.isLoadingCommitDetail
@@ -504,7 +507,7 @@ private fun CommitDetails(
             // 变更统计摘要
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
+                horizontalArrangement = Arrangement.SpaceEvenly
             ) {
                 StatChip(
                     value = "${commitDetail.totalFiles}",
@@ -552,233 +555,82 @@ private fun CommitDetails(
         }
 
         // Reset 操作按钮
-        HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
-        Text(
-            text = "Reset to this commit",
-            style = MaterialTheme.typography.labelMedium,
-            color = colors.onSurfaceVariant,
-            fontWeight = FontWeight.Bold
-        )
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            // Soft Reset
+        var showResetMenu by remember { mutableStateOf(false) }
+        Box(modifier = Modifier.fillMaxWidth()) {
             Button(
-                onClick = { viewModel.requestReset(commit, GitResetMode.SOFT) },
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50)),
+                onClick = { showResetMenu = true },
                 shape = RoundedCornerShape(8.dp),
-                contentPadding = ButtonDefaults.ButtonWithIconContentPadding,
-                modifier = Modifier.weight(1f)
-            ) {
-                Icon(
-                    Icons.Default.ArrowUpward,
-                    contentDescription = null,
-                    modifier = Modifier.size(16.dp)
-                )
-                Spacer(Modifier.width(4.dp))
-                Text("Soft", style = MaterialTheme.typography.labelMedium)
-            }
-
-            // Mixed Reset
-            Button(
-                onClick = { viewModel.requestReset(commit, GitResetMode.MIXED) },
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF9800)),
-                shape = RoundedCornerShape(8.dp),
-                contentPadding = ButtonDefaults.ButtonWithIconContentPadding,
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.fillMaxWidth()
             ) {
                 Icon(
                     Icons.Default.Replay,
                     contentDescription = null,
-                    modifier = Modifier.size(16.dp)
+                    modifier = Modifier.size(18.dp)
                 )
-                Spacer(Modifier.width(4.dp))
-                Text("Mixed", style = MaterialTheme.typography.labelMedium)
-            }
-
-            // Hard Reset
-            Button(
-                onClick = { showResetDialog = true },
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF44336)),
-                shape = RoundedCornerShape(8.dp),
-                contentPadding = ButtonDefaults.ButtonWithIconContentPadding,
-                modifier = Modifier.weight(1f)
-            ) {
+                Spacer(Modifier.width(8.dp))
+                Text("Reset to this commit", style = MaterialTheme.typography.labelLarge)
+                Spacer(Modifier.width(8.dp))
                 Icon(
-                    Icons.Default.DeleteForever,
-                    contentDescription = null,
-                    modifier = Modifier.size(16.dp)
-                )
-                Spacer(Modifier.width(4.dp))
-                Text("Hard", style = MaterialTheme.typography.labelMedium)
-            }
-        }
-
-        // Reset 模式说明
-        Surface(
-            shape = RoundedCornerShape(8.dp),
-            color = colors.surfaceVariant.copy(alpha = 0.3f),
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Column(
-                modifier = Modifier.padding(8.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                ResetModeDescription(mode = GitResetMode.SOFT)
-                ResetModeDescription(mode = GitResetMode.MIXED)
-                ResetModeDescription(mode = GitResetMode.HARD)
-            }
-        }
-    }
-
-    // Hard Reset 确认对话框
-    if (showResetDialog) {
-        HardResetWarningDialog(
-            commit = commit,
-            onConfirm = {
-                showResetDialog = false
-                viewModel.requestReset(commit, GitResetMode.HARD)
-            },
-            onDismiss = { showResetDialog = false }
-        )
-    }
-}
-
-@Composable
-private fun ResetModeDescription(mode: GitResetMode) {
-    val colors = MaterialTheme.colorScheme
-    Row(
-        verticalAlignment = Alignment.Top,
-        horizontalArrangement = Arrangement.spacedBy(6.dp)
-    ) {
-        Text(
-            text = "•",
-            style = MaterialTheme.typography.bodySmall,
-            color = colors.onSurfaceVariant
-        )
-        Column {
-            Text(
-                text = when (mode) {
-                    GitResetMode.SOFT -> "Soft"
-                    GitResetMode.MIXED -> "Mixed"
-                    GitResetMode.HARD -> "Hard"
-                },
-                style = MaterialTheme.typography.labelSmall,
-                fontWeight = FontWeight.Bold,
-                color = colors.onSurfaceVariant
-            )
-            Text(
-                text = mode.description,
-                style = MaterialTheme.typography.bodySmall,
-                color = colors.onSurfaceVariant.copy(alpha = 0.7f)
-            )
-        }
-    }
-}
-
-@Composable
-private fun HardResetWarningDialog(
-    commit: GitCommit,
-    onConfirm: () -> Unit,
-    onDismiss: () -> Unit
-) {
-    val colors = MaterialTheme.colorScheme
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        icon = {
-            Box(
-                modifier = Modifier
-                    .size(56.dp)
-                    .background(Color(0xFFF44336).copy(alpha = 0.15f), CircleShape),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    Icons.Default.Warning,
-                    contentDescription = null,
-                    tint = Color(0xFFF44336),
-                    modifier = Modifier.size(28.dp)
-                )
-            }
-        },
-        title = {
-            Text(
-                text = "Hard Reset Warning",
-                fontWeight = FontWeight.Bold,
-                style = MaterialTheme.typography.titleLarge
-            )
-        },
-        text = {
-            Column(
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                Text(
-                    text = "Resetting to commit ${commit.shortHash} will:",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = colors.onSurfaceVariant
-                )
-
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
-                    modifier = Modifier.padding(start = 8.dp)
-                ) {
-                    Text(
-                        text = "• Discard ALL uncommitted changes",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = colors.error
-                    )
-                    Text(
-                        text = "• Remove ALL staged changes",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = colors.error
-                    )
-                    Text(
-                        text = "• Reset working directory to match the selected commit",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = colors.onSurfaceVariant
-                    )
-                }
-
-                Surface(
-                    shape = RoundedCornerShape(8.dp),
-                    color = colors.errorContainer.copy(alpha = 0.2f),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(
-                        text = "⚠️ This action CANNOT be undone!",
-                        style = MaterialTheme.typography.bodySmall,
-                        fontWeight = FontWeight.Bold,
-                        color = colors.onErrorContainer,
-                        modifier = Modifier.padding(8.dp)
-                    )
-                }
-            }
-        },
-        confirmButton = {
-            Button(
-                onClick = onConfirm,
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF44336)),
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Icon(
-                    Icons.Default.DeleteForever,
+                    Icons.Default.ExpandMore,
                     contentDescription = null,
                     modifier = Modifier.size(18.dp)
                 )
-                Spacer(Modifier.width(6.dp))
-                Text("Reset Hard")
             }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancel")
+
+            DropdownMenu(
+                expanded = showResetMenu,
+                onDismissRequest = { showResetMenu = false }
+            ) {
+                DropdownMenuItem(
+                    text = { Text("Soft Reset", color = Color(0xFF4CAF50)) },
+                    leadingIcon = {
+                        Icon(
+                            Icons.Default.ArrowUpward,
+                            contentDescription = null,
+                            tint = Color(0xFF4CAF50),
+                            modifier = Modifier.size(18.dp)
+                        )
+                    },
+                    onClick = {
+                        showResetMenu = false
+                        viewModel.requestReset(commit, GitResetMode.SOFT)
+                    }
+                )
+                DropdownMenuItem(
+                    text = { Text("Mixed Reset", color = Color(0xFFFF9800)) },
+                    leadingIcon = {
+                        Icon(
+                            Icons.Default.Replay,
+                            contentDescription = null,
+                            tint = Color(0xFFFF9800),
+                            modifier = Modifier.size(18.dp)
+                        )
+                    },
+                    onClick = {
+                        showResetMenu = false
+                        viewModel.requestReset(commit, GitResetMode.MIXED)
+                    }
+                )
+                DropdownMenuItem(
+                    text = { Text("Hard Reset", color = Color(0xFFF44336)) },
+                    leadingIcon = {
+                        Icon(
+                            Icons.Default.DeleteForever,
+                            contentDescription = null,
+                            tint = Color(0xFFF44336),
+                            modifier = Modifier.size(18.dp)
+                        )
+                    },
+                    onClick = {
+                        showResetMenu = false
+                        viewModel.requestReset(commit, GitResetMode.HARD)
+                    }
+                )
             }
-        },
-        shape = RoundedCornerShape(24.dp)
-    )
+        }
+    }
 }
 
 @Composable

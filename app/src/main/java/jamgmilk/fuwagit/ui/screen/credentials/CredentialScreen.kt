@@ -3,6 +3,7 @@ package jamgmilk.fuwagit.ui.screen.credentials
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -15,6 +16,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.fragment.app.FragmentActivity
+import jamgmilk.fuwagit.core.util.calculateFingerprint
+import jamgmilk.fuwagit.core.util.detectSshKeyType
+import jamgmilk.fuwagit.core.util.generateSshKeyPair
 import jamgmilk.fuwagit.domain.model.credential.HttpsCredential
 import jamgmilk.fuwagit.domain.model.credential.SshKey
 import jamgmilk.fuwagit.ui.components.SubSettingsTemplate

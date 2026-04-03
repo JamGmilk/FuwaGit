@@ -1,4 +1,4 @@
-package jamgmilk.fuwagit.domain.state
+package jamgmilk.fuwagit.ui.state
 
 import jamgmilk.fuwagit.data.local.prefs.RepoDataStore
 import kotlinx.coroutines.CoroutineScope

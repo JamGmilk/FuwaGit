@@ -61,6 +61,8 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 
 import jamgmilk.fuwagit.ui.components.SubSettingsTemplate
+import androidx.compose.ui.tooling.preview.Preview
+import jamgmilk.fuwagit.ui.theme.FuwaGitTheme
 import jamgmilk.fuwagit.ui.theme.FuwaGitThemeExtras
 import jamgmilk.fuwagit.ui.theme.Sakura50
 import jamgmilk.fuwagit.ui.theme.Sakura80
