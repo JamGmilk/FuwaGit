@@ -99,9 +99,7 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
-    /**
-     * 鍔犺浇 global git config
-     */
+
     fun loadGlobalConfig() {
         viewModelScope.launch {
             val (name, email) = getGlobalUserConfig()

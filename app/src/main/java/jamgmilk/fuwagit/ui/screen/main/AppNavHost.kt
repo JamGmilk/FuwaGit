@@ -22,18 +22,18 @@ import androidx.compose.material3.NavigationBarDefaults
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationRail
 import androidx.compose.material3.NavigationRailItem
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -57,15 +57,10 @@ import jamgmilk.fuwagit.ui.theme.FuwaGitThemeExtras
 import kotlinx.coroutines.launch
 
 @Composable
-fun AppNavHost(
-    navController: NavHostController
-) {
-    val uiColors = FuwaGitThemeExtras.colors
+fun AppNavHost(navController: NavHostController) {
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(uiColors.backgroundBrush)
+    Surface(
+        modifier = Modifier.fillMaxSize()
     ) {
         NavHost(
             navController = navController,
@@ -127,6 +122,7 @@ fun AppNavHost(
                 val settingsViewModel: SettingsViewModel = hiltViewModel()
                 val settingsUiState by settingsViewModel.uiState.collectAsStateWithLifecycle()
                 PermissionsScreen(
+                    // TODO: 这个可删掉喵~ savedReposCount
                     savedReposCount = settingsUiState.savedReposCount,
                     onBack = { navController.popBackStack() }
                 )
@@ -143,7 +139,6 @@ fun AppNavHost(
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun MainScreen(
     onNavigateToAddRepository: () -> Unit,
@@ -173,14 +168,10 @@ fun MainScreen(
         }
     }
 
-    Row(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(FuwaGitThemeExtras.colors.backgroundBrush)
-    ) {
+    Row(modifier = Modifier.fillMaxSize()) {
         if (isLandscape) {
             NavigationRail(
-                containerColor = FuwaGitThemeExtras.colors.navBarContainer,
+                //containerColor = FuwaGitThemeExtras.colors.navBarContainer,
                 modifier = Modifier.fillMaxHeight()
             ) {
                 navItems.forEachIndexed { index, item ->
@@ -197,7 +188,7 @@ fun MainScreen(
                 modifier = Modifier
                     .fillMaxHeight()
                     .width(1.dp),
-                color = FuwaGitThemeExtras.colors.cardBorder
+                //color = FuwaGitThemeExtras.colors.cardBorder
             )
         }
 
@@ -242,7 +233,7 @@ fun MainScreen(
             if (!isLandscape) {
                 NavigationBar(
                     windowInsets = NavigationBarDefaults.windowInsets,
-                    containerColor = FuwaGitThemeExtras.colors.navBarContainer
+                    //containerColor = FuwaGitThemeExtras.colors.navBarContainer
                 ) {
                     navItems.forEachIndexed { index, item ->
                         NavigationBarItem(
