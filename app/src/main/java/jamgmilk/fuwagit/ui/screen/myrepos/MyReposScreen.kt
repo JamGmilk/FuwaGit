@@ -121,6 +121,7 @@ fun MyReposScreen(
 
     LaunchedEffect(Unit) {
         myReposViewModel.initializeStorage(context)
+        myReposViewModel.loadCredentials()
     }
 
     Box(modifier = modifier.fillMaxSize()) {
@@ -208,12 +209,14 @@ fun MyReposScreen(
         ConfigureRemoteDialog(
             repoName = item.alias.ifBlank { item.path.substringAfterLast("/") },
             currentUrl = remoteUrlState,
+            httpsCredentials = uiState.httpsCredentials,
+            sshKeys = uiState.sshKeys,
             onDismiss = {
                 showRemoteDialog = null
                 remoteUrlState = ""
             },
-            onSave = { newUrl ->
-                myReposViewModel.configureRemote(item.path, "origin", newUrl)
+            onSave = { newUrl, httpsUuid, sshUuid ->
+                myReposViewModel.configureRemote(item.path, "origin", newUrl, httpsUuid, sshUuid)
                 showRemoteDialog = null
                 remoteUrlState = ""
             }

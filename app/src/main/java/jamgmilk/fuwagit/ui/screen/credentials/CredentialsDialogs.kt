@@ -114,7 +114,7 @@ fun SetupPasswordDialog(
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 Text(
-                    text = "Create a master password to protect your sensitive credentials. You'll need this password to view passwords and private keys.",
+                    text = "Create a master password to protect your sensitive credentials.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -875,7 +875,7 @@ fun SetupMasterPasswordContent(
         Spacer(Modifier.height(16.dp))
         
         Text(
-            text = "Create a master password to protect your sensitive credentials. You'll need this password to view passwords and private keys.",
+            text = "Create a master password to protect your sensitive credentials.",
             style = MaterialTheme.typography.bodyMedium,
             color = colors.onSurfaceVariant,
             textAlign = androidx.compose.ui.text.style.TextAlign.Center

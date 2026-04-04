@@ -1,16 +1,13 @@
 package jamgmilk.fuwagit.ui.screen.status
 
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -29,7 +26,6 @@ import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.CloudDownload
 import androidx.compose.material.icons.filled.CloudUpload
 import androidx.compose.material.icons.filled.Code
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Pending
@@ -55,9 +51,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.CornerRadius
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontFamily
@@ -78,9 +71,6 @@ import jamgmilk.fuwagit.ui.theme.Sakura50
 import jamgmilk.fuwagit.ui.theme.Sakura80
 import jamgmilk.fuwagit.ui.theme.Sakura90
 
-import androidx.compose.ui.tooling.preview.Preview
-import jamgmilk.fuwagit.ui.theme.FuwaGitTheme
-
 @Composable
 internal fun ActionToolbar(
     stats: StatusStats,
@@ -89,23 +79,9 @@ internal fun ActionToolbar(
     onPull: () -> Unit,
     onPush: () -> Unit,
     onFetch: () -> Unit,
-    httpsCredentials: List<HttpsCredential> = emptyList(),
-    sshKeys: List<SshKey> = emptyList(),
-    selectedCredentialUuid: String? = null,
-    selectedSshKeyUuid: String? = null,
-    onSelectHttpsCredential: (String?) -> Unit = {},
-    onSelectSshKey: (String?) -> Unit = {},
-    onLoadCredentials: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val uiColors = FuwaGitThemeExtras.colors
-    var showCredentialMenu by remember { mutableStateOf(false) }
-    var showSshKeyMenu by remember { mutableStateOf(false) }
-
-    // 加载凭据
-    LaunchedEffect(Unit) {
-        onLoadCredentials()
-    }
 
     ElevatedCard(
         modifier = modifier.border(1.dp, uiColors.cardBorder, RoundedCornerShape(20.dp)),
@@ -117,154 +93,6 @@ internal fun ActionToolbar(
             modifier = Modifier.padding(12.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            // 凭据选择行
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "Credentials:",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = uiColors.cardBorder
-                )
-                
-                // HTTPS 凭据选择
-                Box(
-                    modifier = Modifier.weight(1f)
-                ) {
-                    OutlinedButton(
-                        onClick = { showCredentialMenu = true },
-                        modifier = Modifier.fillMaxWidth(),
-                        enabled = httpsCredentials.isNotEmpty()
-                    ) {
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(4.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                Icons.Default.CheckCircle,
-                                contentDescription = null,
-                                modifier = Modifier.size(16.dp),
-                                tint = if (selectedCredentialUuid != null) AppColors.GitGreen else MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Text(
-                                text = if (selectedCredentialUuid != null) {
-                                    httpsCredentials.find { it.uuid == selectedCredentialUuid }?.username ?: "HTTPS"
-                                } else "HTTPS",
-                                style = MaterialTheme.typography.labelMedium,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                            Icon(
-                                Icons.Default.ChevronRight,
-                                contentDescription = null,
-                                modifier = Modifier.size(16.dp)
-                            )
-                        }
-                    }
-                    
-                    DropdownMenu(
-                        expanded = showCredentialMenu,
-                        onDismissRequest = { showCredentialMenu = false }
-                    ) {
-                        DropdownMenuItem(
-                            text = { Text("None") },
-                            onClick = {
-                                onSelectHttpsCredential(null)
-                                showCredentialMenu = false
-                            }
-                        )
-                        httpsCredentials.forEach { cred ->
-                            DropdownMenuItem(
-                                text = { Text("${cred.username}@${cred.host}") },
-                                onClick = {
-                                    onSelectHttpsCredential(cred.uuid)
-                                    showCredentialMenu = false
-                                },
-                                leadingIcon = {
-                                    if (cred.uuid == selectedCredentialUuid) {
-                                        Icon(
-                                            Icons.Default.Check,
-                                            contentDescription = null,
-                                            modifier = Modifier.size(16.dp)
-                                        )
-                                    }
-                                }
-                            )
-                        }
-                    }
-                }
-                
-                // SSH Key 选择
-                Box(
-                    modifier = Modifier.weight(1f)
-                ) {
-                    OutlinedButton(
-                        onClick = { showSshKeyMenu = true },
-                        modifier = Modifier.fillMaxWidth(),
-                        enabled = sshKeys.isNotEmpty()
-                    ) {
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(4.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                Icons.Default.Code,
-                                contentDescription = null,
-                                modifier = Modifier.size(16.dp),
-                                tint = if (selectedSshKeyUuid != null) AppColors.GitPurple else MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Text(
-                                text = if (selectedSshKeyUuid != null) {
-                                    sshKeys.find { it.uuid == selectedSshKeyUuid }?.name ?: "SSH"
-                                } else "SSH",
-                                style = MaterialTheme.typography.labelMedium,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                            Icon(
-                                Icons.Default.ChevronRight,
-                                contentDescription = null,
-                                modifier = Modifier.size(16.dp)
-                            )
-                        }
-                    }
-                    
-                    DropdownMenu(
-                        expanded = showSshKeyMenu,
-                        onDismissRequest = { showSshKeyMenu = false }
-                    ) {
-                        DropdownMenuItem(
-                            text = { Text("None") },
-                            onClick = {
-                                onSelectSshKey(null)
-                                showSshKeyMenu = false
-                            }
-                        )
-                        sshKeys.forEach { key ->
-                            DropdownMenuItem(
-                                text = { Text("${key.name} (${key.fingerprint.take(16)}...)") },
-                                onClick = {
-                                    onSelectSshKey(key.uuid)
-                                    showSshKeyMenu = false
-                                },
-                                leadingIcon = {
-                                    if (key.uuid == selectedSshKeyUuid) {
-                                        Icon(
-                                            Icons.Default.Check,
-                                            contentDescription = null,
-                                            modifier = Modifier.size(16.dp)
-                                        )
-                                    }
-                                }
-                            )
-                        }
-                    }
-                }
-            }
-            
-            // 远程操作按钮行
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -369,9 +197,9 @@ internal fun RepositoryStatusCard(
     repoName: String?,
     targetPath: String?,
     currentBranch: GitBranch?,
+    modifier: Modifier = Modifier,
     isLoading: Boolean = false,
-    error: String? = null,
-    modifier: Modifier = Modifier
+    error: String? = null
 ) {
     val colors = MaterialTheme.colorScheme
     val uiColors = FuwaGitThemeExtras.colors
@@ -489,222 +317,6 @@ internal fun RepositoryStatusCard(
     }
 }
 
-@Composable
-internal fun ChangesOverviewCard(
-    stats: StatusStats,
-    modifier: Modifier = Modifier
-) {
-    val colors = MaterialTheme.colorScheme
-    val uiColors = FuwaGitThemeExtras.colors
-
-    ElevatedCard(
-        modifier = modifier.border(1.dp, uiColors.cardBorder, RoundedCornerShape(20.dp)),
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.elevatedCardColors(containerColor = uiColors.cardContainer),
-        elevation = CardDefaults.elevatedCardElevation(0.dp)
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "Changes Overview",
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold
-                )
-                Surface(
-                    shape = RoundedCornerShape(8.dp),
-                    color = colors.primary.copy(alpha = 0.1f)
-                ) {
-                    Text(
-                        text = "${stats.totalChanges} files",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = colors.primary,
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
-                    )
-                }
-            }
-
-            StatChipsRow(stats = stats)
-
-            if (stats.totalChanges > 0) {
-                ChangeTypeBarChart(
-                    stats = stats,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(10.dp)
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun StatChipsRow(stats: StatusStats) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(IntrinsicSize.Min),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        StatChip(
-            label = "Workspace",
-            count = stats.unstaged,
-            color = Sakura80,
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxHeight()
-        )
-
-        StatChip(
-            label = "Staged",
-            count = stats.staged,
-            color = AppColors.GitGreen,
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxHeight()
-        )
-
-        Surface(
-            shape = RoundedCornerShape(12.dp),
-            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxHeight()
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 8.dp, vertical = 4.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                MiniStatChip(
-                    label = "Modified",
-                    count = stats.modified,
-                    color = AppColors.GitBlue,
-                    modifier = Modifier.fillMaxWidth()
-                )
-                MiniStatChip(
-                    label = "Added",
-                    count = stats.added,
-                    color = AppColors.GitGreen,
-                    modifier = Modifier.fillMaxWidth()
-                )
-                MiniStatChip(
-                    label = "Removed",
-                    count = stats.removed,
-                    color = AppColors.GitRed,
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
-        }
-    }
-}
-
-
-@Composable
-private fun StatChip(
-    label: String,
-    count: Int,
-    color: Color,
-    modifier: Modifier = Modifier
-) {
-    Column(
-        modifier = modifier
-            .clip(RoundedCornerShape(12.dp))
-            .background(color.copy(alpha = 0.1f))
-            .padding(horizontal = 8.dp, vertical = 6.dp),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text(
-            text = count.toString(),
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
-            color = color
-        )
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelSmall,
-            color = color.copy(alpha = 0.8f)
-        )
-    }
-}
-
-@Composable
-private fun MiniStatChip(
-    label: String,
-    count: Int,
-    color: Color,
-    modifier: Modifier = Modifier
-) {
-    Row(
-        modifier = modifier
-            .clip(RoundedCornerShape(6.dp))
-            .background(color.copy(alpha = 0.1f))
-            .padding(horizontal = 6.dp, vertical = 3.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(
-            text = count.toString(),
-            style = MaterialTheme.typography.labelMedium,
-            fontWeight = FontWeight.Bold,
-            color = color,
-            modifier = Modifier.weight(1f)
-        )
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelSmall,
-            color = color.copy(alpha = 0.7f),
-            modifier = Modifier.weight(1f),
-            textAlign = androidx.compose.ui.text.style.TextAlign.End
-        )
-    }
-}
-
-@Composable
-private fun ChangeTypeBarChart(
-    stats: StatusStats,
-    modifier: Modifier = Modifier
-) {
-    val total = stats.totalChanges.toFloat().coerceAtLeast(1f)
-    val addedRatio = stats.added / total
-    val modifiedRatio = stats.modified / total
-    val removedRatio = stats.removed / total
-    val untrackedRatio = stats.untracked / total
-
-    Canvas(modifier = modifier) {
-        val cornerRadius = 5.dp.toPx()
-        var currentX = 0f
-        val gap = 2.dp.toPx()
-
-        val segments = listOf(
-            addedRatio to AppColors.GitGreen,
-            modifiedRatio to AppColors.GitBlue,
-            removedRatio to AppColors.GitRed,
-            untrackedRatio to AppColors.GitBlueGrey
-        )
-
-        segments.forEach { (ratio, color) ->
-            if (ratio > 0.01f) {
-                val width = (size.width - gap * 3) * ratio
-                drawRoundRect(
-                    color = color,
-                    topLeft = Offset(currentX, 0f),
-                    size = Size(width, size.height),
-                    cornerRadius = CornerRadius(cornerRadius, cornerRadius)
-                )
-                currentX += width + gap
-            }
-        }
-    }
-}
 
 @Composable
 internal fun FileSectionCard(

@@ -5,25 +5,6 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
-
-@Preview(showBackground = true, name = "Typography")
-@Composable
-fun TypographyPreview() {
-    Column(modifier = Modifier.padding(16.dp)) {
-        Text("Typography Preview", style = MaterialTheme.typography.headlineMedium)
-        Text("Title Large", style = MaterialTheme.typography.titleLarge)
-        Text("Body Large", style = MaterialTheme.typography.bodyLarge)
-        Text("Body Small", style = MaterialTheme.typography.bodySmall)
-    }
-}
 
 val Typography = Typography(
     titleLarge = TextStyle(

@@ -1,7 +1,7 @@
 package jamgmilk.fuwagit.core.util
 
 import android.os.Environment
-import java.io.File
+import java.nio.file.Paths
 
 object PathUtils {
     fun getShortPath(path: String): String {
@@ -14,6 +14,6 @@ object PathUtils {
     }
 
     fun getFileName(path: String): String {
-        return File(path).name
+        return Paths.get(path).fileName.toString()
     }
 }
