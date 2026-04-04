@@ -1,84 +1,88 @@
 package jamgmilk.fuwagit.ui.theme
 
+import android.app.Activity
+import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.dynamicDarkColorScheme
+import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.ui.graphics.Brush
+import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
-import jamgmilk.fuwagit.ui.theme.GitColors.GitRed
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
+import androidx.core.view.WindowCompat
 
-// --- Light Scheme ---
-private val SakuraLightColorScheme = lightColorScheme(
-    primary = Sakura80,
-    onPrimary = Sakura40,
-    primaryContainer = Sakura90,
-    onPrimaryContainer = Sakura40,
-
-    secondary = Sakura70,
-    onSecondary = Color.White,
-
-    tertiary = MintAccent,
-    onTertiary = Sakura40,
-
-    background = CatCream,
-    onBackground = Sakura10,
-
-    surface = Sakura95,
-    onSurface = Sakura10,
-
-    error = GitRed,
-    onError = Color.White,
-
-    outline = Sakura70
+private val LightColorScheme = lightColorScheme(
+    primary = MizuiroPrimaryLight,
+    onPrimary = MizuiroOnPrimaryLight,
+    primaryContainer = MizuiroPrimaryContainerLight,
+    onPrimaryContainer = MizuiroOnPrimaryContainerLight,
+    secondary = MizuiroSecondaryLight,
+    onSecondary = MizuiroOnSecondaryLight,
+    secondaryContainer = MizuiroSecondaryContainerLight,
+    onSecondaryContainer = MizuiroOnSecondaryContainerLight,
+    tertiary = MizuiroTertiaryLight,
+    onTertiary = MizuiroOnTertiaryLight,
+    tertiaryContainer = MizuiroTertiaryContainerLight,
+    onTertiaryContainer = MizuiroOnTertiaryContainerLight,
+    background = MizuiroBackgroundLight,
+    onBackground = MizuiroOnBackgroundLight,
+    surface = MizuiroSurfaceLight,
+    onSurface = MizuiroOnSurfaceLight
 )
 
-// --- Dark Scheme (Yozakura Vibe) ---
-private val SakuraDarkColorScheme = darkColorScheme(
-    primary = Sakura80,
-    onPrimary = Sakura40,
-    primaryContainer = Sakura40,
-    onPrimaryContainer = Sakura90,
-
-    secondary = Sakura70,
-    onSecondary = Sakura10,
-
-    tertiary = MintAccent,
-    onTertiary = Color(0xFF003919),
-
-    background = SakuraDarkBackground,
-    onBackground = SakuraDarkOnSurface,
-
-    surface = SakuraDarkSurface,
-    onSurface = SakuraDarkOnSurface,
-
-    error = GitRed,
-    onError = Color.Black,
-
-    outline = Sakura40
+private val DarkColorScheme = darkColorScheme(
+    primary = MizuiroPrimaryDark,
+    onPrimary = MizuiroOnPrimaryDark,
+    primaryContainer = MizuiroPrimaryContainerDark,
+    onPrimaryContainer = MizuiroOnPrimaryContainerDark,
+    secondary = MizuiroSecondaryDark,
+    onSecondary = MizuiroOnSecondaryDark,
+    secondaryContainer = MizuiroSecondaryContainerDark,
+    onSecondaryContainer = MizuiroOnSecondaryContainerDark,
+    tertiary = MizuiroTertiaryDark,
+    onTertiary = MizuiroOnTertiaryDark,
+    tertiaryContainer = MizuiroTertiaryContainerDark,
+    onTertiaryContainer = MizuiroOnTertiaryContainerDark,
+    background = MizuiroBackgroundDark,
+    onBackground = MizuiroOnBackgroundDark,
+    surface = MizuiroSurfaceDark,
+    onSurface = MizuiroOnSurfaceDark
 )
 
 @Composable
-fun SakuraTheme(
+fun MizuiroTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
+    dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
-    val colorScheme = if (darkTheme) SakuraDarkColorScheme else SakuraLightColorScheme
+    val colorScheme = when {
+        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
+            val context = LocalContext.current
+            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+        }
+        darkTheme -> DarkColorScheme
+        else -> LightColorScheme
+    }
 
-    val extraColors = ExtraColors(
-        catCream = if (darkTheme) Color(0xFF2D2621) else CatCream,
-        sakuraGlow = if (darkTheme) Sakura80 else Sakura70,
-        backgroundBrush = Brush.verticalGradient(
-            if (darkTheme) listOf(SakuraDarkBackground, SakuraDarkSurface)
-            else listOf(CatCream, Sakura95)
-        ),
-        cuteGradientBrush = Brush.horizontalGradient(
-            if (darkTheme) listOf(SakuraDarkPrimary, Sakura70)
-            else listOf(Sakura80, Sakura70)
-        )
-    )
+    val extraColors = remember(darkTheme) {
+        if (darkTheme) DarkExtraColors else LightExtraColors
+    }
+
+    val view = LocalView.current
+    if (!view.isInEditMode) {
+        SideEffect {
+            val window = (view.context as Activity).window
+            window.statusBarColor = colorScheme.primary.toArgb()
+            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !darkTheme
+        }
+    }
 
     CompositionLocalProvider(LocalExtraColors provides extraColors) {
         MaterialTheme(
@@ -88,6 +92,56 @@ fun SakuraTheme(
             content = content
         )
     }
-
-
 }
+
+private val LightExtraColors = ExtraColors(
+    mizuiroAccent = MizuiroPrimaryLight,
+    mizuiroAccentLight = MizuiroSecondaryLight,
+    mizuiroAccentDark = MizuiroTertiaryLight,
+    cardContainer = MizuiroSurfaceLight,
+    cardBorder = MizuiroPrimaryLight.copy(alpha = 0.3f),
+    terminalBackground = Color(0xFF1E1E1E),
+    terminalText = Color(0xFFD4D4D4),
+    navBarContainer = MizuiroSurfaceLight.copy(alpha = 0.8f),
+    backgroundBrush = androidx.compose.ui.graphics.Brush.linearGradient(
+        listOf(MizuiroBackgroundLight, MizuiroPrimaryContainerLight.copy(alpha = 0.1f))
+    ),
+    cuteGradientBrush = androidx.compose.ui.graphics.Brush.linearGradient(
+        listOf(MizuiroPrimaryLight, MizuiroSecondaryLight, MizuiroTertiaryLight)
+    ),
+    gitAdded = GitColors.GitGreen,
+    gitAddedLight = GitColors.GitGreen.copy(alpha = 0.15f),
+    gitModified = GitColors.GitOrange,
+    gitModifiedLight = GitColors.GitOrange.copy(alpha = 0.15f),
+    gitDeleted = GitColors.GitRed,
+    gitDeletedLight = GitColors.GitRed.copy(alpha = 0.15f),
+    gitUntracked = GitColors.GitBlueGrey,
+    gitConflicting = GitColors.GitDarkPink,
+    softShadow = Color(0x1A000000)
+)
+
+private val DarkExtraColors = ExtraColors(
+    mizuiroAccent = MizuiroPrimaryDark,
+    mizuiroAccentLight = MizuiroSecondaryDark,
+    mizuiroAccentDark = MizuiroTertiaryDark,
+    cardContainer = MizuiroSurfaceDark,
+    cardBorder = MizuiroPrimaryDark.copy(alpha = 0.3f),
+    terminalBackground = Color(0xFF121212),
+    terminalText = Color(0xFFE0E0E0),
+    navBarContainer = MizuiroSurfaceDark.copy(alpha = 0.8f),
+    backgroundBrush = androidx.compose.ui.graphics.Brush.linearGradient(
+        listOf(MizuiroBackgroundDark, MizuiroPrimaryContainerDark.copy(alpha = 0.1f))
+    ),
+    cuteGradientBrush = androidx.compose.ui.graphics.Brush.linearGradient(
+        listOf(MizuiroPrimaryDark, MizuiroSecondaryDark, MizuiroTertiaryDark)
+    ),
+    gitAdded = GitColors.GitGreen,
+    gitAddedLight = GitColors.GitGreen.copy(alpha = 0.15f),
+    gitModified = GitColors.GitOrange,
+    gitModifiedLight = GitColors.GitOrange.copy(alpha = 0.15f),
+    gitDeleted = GitColors.GitRed,
+    gitDeletedLight = GitColors.GitRed.copy(alpha = 0.15f),
+    gitUntracked = GitColors.GitBlueGrey,
+    gitConflicting = GitColors.GitDarkPink,
+    softShadow = Color(0x4D000000)
+)

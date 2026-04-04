@@ -38,6 +38,7 @@ import androidx.compose.material.icons.filled.CreditCard
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Fingerprint
 import androidx.compose.material.icons.filled.FolderOpen
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
@@ -50,7 +51,6 @@ import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
@@ -59,7 +59,6 @@ import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Surface
@@ -69,7 +68,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -78,7 +76,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -93,6 +90,7 @@ import androidx.core.content.pm.PackageInfoCompat
 import androidx.core.net.toUri
 import androidx.fragment.app.FragmentActivity
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import jamgmilk.fuwagit.ui.components.FilePickerDialog
 import jamgmilk.fuwagit.ui.components.ScreenTemplate
 import jamgmilk.fuwagit.ui.screen.credentials.ChangeMasterPasswordDialog
@@ -121,10 +119,10 @@ fun SettingsScreen(
     var showFilePicker by rememberSaveable { mutableStateOf(false) }
     var pendingBiometricEnable by rememberSaveable { mutableStateOf(false) }
 
-    // 显示应用配置结果
+    // 鏄剧ず搴旂敤閰嶇疆缁撴灉
     LaunchedEffect(applyResult) {
         applyResult?.let {
-            // 结果对话框会在 GlobalConfigCard 中显示
+            // 缁撴灉瀵硅瘽妗嗕細锟?GlobalConfigCard 涓樉锟?
         }
     }
 
@@ -152,6 +150,8 @@ fun SettingsScreen(
         title = "Settings",
         modifier = modifier
     ) {
+        BetaWarningCard(modifier = Modifier.fillMaxWidth())
+
         StorageSettingsCard(
             onPermissionsClick = onNavigateToPermissions,
             modifier = Modifier.fillMaxWidth()
@@ -279,6 +279,81 @@ fun SettingsScreen(
                 error = credentialsUiState.changePasswordError,
                 isLoading = credentialsUiState.isLoading
             )
+        }
+    }
+}
+
+@Composable
+private fun BetaWarningCard(
+    modifier: Modifier = Modifier
+) {
+    val uiColors = FuwaGitThemeExtras.colors
+    val colors = MaterialTheme.colorScheme
+
+    ElevatedCard(
+        modifier = modifier.border(1.dp, MaterialTheme.colorScheme.tertiary.copy(alpha = 0.5f), RoundedCornerShape(24.dp)),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.elevatedCardColors(containerColor = Color(0xFFFFCC80).copy(alpha = 0.3f)),
+        elevation = CardDefaults.elevatedCardElevation(0.dp)
+    ) {
+        Column(modifier = Modifier.fillMaxWidth()) {
+            SettingsSectionHeader(
+                title = "Beta Version Notice",
+                icon = Icons.Default.Warning,
+                color = FuwaGitThemeExtras.colors.mizuiroAccentLight
+            )
+
+            HorizontalDivider(color = colors.outline.copy(alpha = 0.15f))
+
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                // Warning message
+                Row(
+                    verticalAlignment = Alignment.Top,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Info,
+                        contentDescription = null,
+                        tint = FuwaGitThemeExtras.colors.mizuiroAccentLight,
+                        modifier = Modifier
+                            .size(20.dp)
+                            .align(Alignment.CenterVertically)
+                    )
+                    Text(
+                        text = "This application is currently in beta testing. Some features may be unstable or change in future updates.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = colors.onSurface
+                    )
+                }
+
+                // Backup reminder
+                Row(
+                    verticalAlignment = Alignment.Top,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Backup,
+                        contentDescription = null,
+                        tint = FuwaGitThemeExtras.colors.mizuiroAccentLight,
+                        modifier = Modifier
+                            .size(20.dp)
+                            .align(Alignment.CenterVertically)
+                    )
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text(
+                            text = "Important: Please backup your repositories and credentials.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = colors.onSurface
+                        )
+                    }
+                }
+            }
         }
     }
 }
@@ -681,7 +756,7 @@ private fun GlobalConfigCard(
                 }
             }
 
-            // 显示应用配置结果对话框
+            // 鏄剧ず搴旂敤閰嶇疆缁撴灉瀵硅瘽锟?
             if (applyResult != null) {
                 ApplyConfigResultDialog(
                     result = applyResult,
@@ -847,7 +922,7 @@ private fun SettingsNavigationItem(
 }
 
 /**
- * 应用到所有仓库对话框
+ * 搴旂敤鍒版墍鏈変粨搴撳璇濇
  */
 @Composable
 private fun ApplyToAllReposDialog(
@@ -986,7 +1061,7 @@ private fun ApplyToAllReposDialog(
 }
 
 /**
- * 应用配置结果对话框
+ * 搴旂敤閰嶇疆缁撴灉瀵硅瘽锟?
  */
 @Composable
 private fun ApplyConfigResultDialog(

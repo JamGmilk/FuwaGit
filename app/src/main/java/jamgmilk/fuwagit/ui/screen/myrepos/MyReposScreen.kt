@@ -86,7 +86,6 @@ import jamgmilk.fuwagit.ui.components.ConfigureRemoteDialog
 import jamgmilk.fuwagit.ui.components.ScreenTemplate
 import jamgmilk.fuwagit.ui.theme.AppShapes
 import jamgmilk.fuwagit.ui.theme.FuwaGitThemeExtras
-import jamgmilk.fuwagit.ui.theme.Sakura80
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -238,7 +237,7 @@ fun MyReposScreen(
         )
     }
 
-    // Clean 预览对话框：显示将要删除的文件列表
+    // Clean 棰?瑙堝璇濇??細鏄剧ず灏?瑕佸垹闄ょ?鏂?浠跺垪琛?
     val untrackedFiles = uiState.untrackedFilesForClean
     val isCleanPreviewing = uiState.isCleanPreviewing
     val cleanMessage = uiState.cleanMessage
@@ -258,7 +257,7 @@ fun MyReposScreen(
         )
     }
 
-    // Clean 结果对话框：显示已删除的文件列表
+    // Clean 缁撴灉瀵硅瘽妗??細鏄剧ず宸插?闄ょ?鏂?浠跺垪琛?
     val cleanedFiles = uiState.cleanedFilesForResult
     if (cleanedFiles.isNotEmpty()) {
         CleanResultDialog(
@@ -268,7 +267,7 @@ fun MyReposScreen(
         )
     }
 
-    // Clean 确认对话框：请求预览
+    // Clean 纭瀵硅瘽妗??細璇锋眰棰?瑙?
     if (showCleanDialog && untrackedFiles.isEmpty()) {
         AlertDialog(
             onDismissRequest = { showCleanDialog = false },
@@ -410,12 +409,12 @@ fun RepoItemCard(
             )
             .border(
                 width = if (isSelected) 2.dp else 1.dp,
-                color = if (isSelected) Sakura80 else uiColors.cardBorder,
+                color = if (isSelected) FuwaGitThemeExtras.colors.mizuiroAccent else uiColors.cardBorder,
                 shape = RoundedCornerShape(16.dp)
             ),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.elevatedCardColors(
-            containerColor = if (isSelected) Sakura80.copy(alpha = 0.08f) else colors.surface.copy(alpha = 0.5f)
+            containerColor = if (isSelected) FuwaGitThemeExtras.colors.mizuiroAccent.copy(alpha = 0.08f) else colors.surface.copy(alpha = 0.5f)
         ),
         elevation = CardDefaults.elevatedCardElevation(0.dp)
     ) {
@@ -427,7 +426,7 @@ fun RepoItemCard(
         ) {
             Surface(
                 shape = RoundedCornerShape(12.dp),
-                color = if (isSelected) Sakura80 else accentColor.copy(alpha = 0.15f),
+                color = if (isSelected) FuwaGitThemeExtras.colors.mizuiroAccent else accentColor.copy(alpha = 0.15f),
                 modifier = Modifier.size(48.dp)
             ) {
                 Box(contentAlignment = Alignment.Center) {
@@ -459,7 +458,7 @@ fun RepoItemCard(
                     if (isSelected) {
                         Surface(
                             shape = RoundedCornerShape(6.dp),
-                            color = Sakura80
+                            color = FuwaGitThemeExtras.colors.mizuiroAccent
                         ) {
                             Text(
                                 text = "ACTIVE",
@@ -560,14 +559,14 @@ fun EmptyReposState(modifier: Modifier = Modifier) {
         ) {
             Surface(
                 shape = RoundedCornerShape(20.dp),
-                color = Sakura80.copy(alpha = 0.1f),
+                color = FuwaGitThemeExtras.colors.mizuiroAccent.copy(alpha = 0.1f),
                 modifier = Modifier.size(72.dp)
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Icon(
                         Icons.Outlined.FolderOpen,
                         contentDescription = null,
-                        tint = Sakura80.copy(alpha = 0.6f),
+                        tint = FuwaGitThemeExtras.colors.mizuiroAccent.copy(alpha = 0.6f),
                         modifier = Modifier.size(36.dp)
                     )
                 }
@@ -695,7 +694,7 @@ private fun RepoHeader(
         modifier = Modifier
             .fillMaxWidth()
             .background(
-                color = Sakura80.copy(alpha = 0.12f),
+                color = FuwaGitThemeExtras.colors.mizuiroAccent.copy(alpha = 0.12f),
                 shape = RoundedCornerShape(16.dp)
             )
             .padding(16.dp),
@@ -998,6 +997,7 @@ private fun getInfoIcon(key: String): ImageVector {
     }
 }
 
+@Composable
 private fun getInfoColor(key: String): Color {
     return when {
         key.contains("Branch", ignoreCase = true) -> Color(0xFF2196F3)
@@ -1008,7 +1008,7 @@ private fun getInfoColor(key: String): Color {
         key.contains("Status", ignoreCase = true) -> Color(0xFF4CAF50)
         key.contains("Hash", ignoreCase = true) -> Color(0xFF795548)
         key.contains("Error", ignoreCase = true) -> Color(0xFFE53935)
-        else -> Sakura80
+        else -> FuwaGitThemeExtras.colors.mizuiroAccent
     }
 }
 
@@ -1019,7 +1019,7 @@ fun RepoSpeedDial(
 ) {
     FloatingActionButton(
         onClick = onAddRepository,
-        containerColor = Sakura80,
+        containerColor = FuwaGitThemeExtras.colors.mizuiroAccent,
         elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 0.dp),
         shape = AppShapes.medium,
         modifier = modifier

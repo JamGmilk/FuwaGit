@@ -7,8 +7,8 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * 验证仓库路径并更新持久化存储。
- * 属于 Domain 层，负责业务逻辑和数据写入。
+ * 楠岃瘉浠撳簱璺緞骞舵洿鏂版寔涔呭寲瀛樺偍銆?
+ * 灞炰簬 Domain 灞傦紝璐熻矗涓氬姟閫昏緫鍜屾暟鎹啓鍏ャ€?
  */
 @Singleton
 class ValidateRepoUseCase @Inject constructor(

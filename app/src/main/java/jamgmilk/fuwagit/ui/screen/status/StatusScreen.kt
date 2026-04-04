@@ -29,8 +29,8 @@ import jamgmilk.fuwagit.ui.components.DangerousOperationType
 import jamgmilk.fuwagit.ui.components.OperationResultDialog
 import jamgmilk.fuwagit.ui.components.ScreenTemplate
 import jamgmilk.fuwagit.ui.components.TwoStepConfirmDialog
+import jamgmilk.fuwagit.ui.theme.FuwaGitThemeExtras
 import jamgmilk.fuwagit.ui.theme.GitColors
-import jamgmilk.fuwagit.ui.theme.Sakura80
 
 
 data class StatusStats(
@@ -148,7 +148,7 @@ fun StatusScreen(
                     subtitle = "Unstaged changes",
                     files = workspace,
                     modifier = Modifier.weight(1f),
-                    accentColor = Sakura80,
+                    accentColor = FuwaGitThemeExtras.colors.mizuiroAccent,
                     onFileAction = { file ->
                         statusViewModel.stageFile(file.path)
                     },
@@ -203,7 +203,7 @@ fun StatusScreen(
         }
     }
 
-    // 危险操作双确认对话框
+    // 鍗遍櫓鎿嶄綔鍙岀‘璁ゅ璇濇
     val pendingOperation = uiState.pendingOperation
     val pendingTarget = uiState.pendingOperationTarget
     if (pendingOperation != null && pendingTarget != null) {
@@ -223,7 +223,7 @@ fun StatusScreen(
         }
     }
 
-    // 操作结果反馈对话框
+    // 鎿嶄綔缁撴灉鍙嶉瀵硅瘽妗?
     val operationResult = uiState.operationResult
     if (operationResult != null) {
         val operationType = pendingOperation ?: DangerousOperationType.DISCARD_CHANGES

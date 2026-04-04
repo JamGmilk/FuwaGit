@@ -61,7 +61,7 @@ class ResolveCloneCredentialUseCase @Inject constructor(
         sshKeys: List<SshKey>,
         remoteUrl: String? = null
     ): CloneCredential? {
-        // 1. 如果有 HTTPS 凭据，尝试匹配 host
+        // 1. 濡傛灉鏈?HTTPS 鍑嵁锛屽皾璇曞尮閰?host
         if (httpsCredentials.isNotEmpty()) {
             if (remoteUrl != null) {
                 val host = extractHostFromUrl(remoteUrl)
@@ -75,7 +75,7 @@ class ResolveCloneCredentialUseCase @Inject constructor(
             return resolveHttpsCredential(httpsCredentials.first().uuid, httpsCredentials)
         }
         
-        // 2. 如果有 SSH 密钥，直接尝试第一个
+        // 2. 濡傛灉鏈?SSH 瀵嗛挜锛岀洿鎺ュ皾璇曠涓€涓?
         if (sshKeys.isNotEmpty()) {
             return resolveSshCredential(sshKeys.first().uuid, sshKeys)
         }

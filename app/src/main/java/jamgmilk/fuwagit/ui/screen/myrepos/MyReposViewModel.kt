@@ -185,7 +185,7 @@ class MyReposViewModel @Inject constructor(
     suspend fun cleanRepo(path: String, dryRun: Boolean = false): Result<String> {
         return gitRepo.clean(path, dryRun).map { result ->
             if (dryRun) {
-                // 更新 untracked files 列表用于预览
+                // 鏇存柊 untracked files 鍒楄〃鐢ㄤ簬棰勮
                 _uiState.update { it.copy(untrackedFilesForClean = result.files) }
             }
             result.toString()
@@ -193,7 +193,7 @@ class MyReposViewModel @Inject constructor(
     }
 
     /**
-     * 请求 Clean 预览：执行 dry-run 获取将要删除的文件列表
+     * 璇锋眰 Clean 棰勮锛氭墽琛?dry-run 鑾峰彇灏嗚鍒犻櫎鐨勬枃浠跺垪琛?
      */
     fun requestCleanPreview() {
         val path = currentRepoInfo.value.repoPath ?: return
@@ -224,7 +224,7 @@ class MyReposViewModel @Inject constructor(
     }
 
     /**
-     * 确认执行 Clean 操作（实际删除文件）
+     * 纭鎵ц Clean 鎿嶄綔锛堝疄闄呭垹闄ゆ枃浠讹級
      */
     fun confirmCleanUntracked() {
         val path = currentRepoInfo.value.repoPath ?: return
@@ -270,14 +270,14 @@ class MyReposViewModel @Inject constructor(
     }
 
     /**
-     * 清除 Clean 预览状态
+     * 娓呴櫎 Clean 棰勮鐘舵€?
      */
     fun clearCleanPreview() {
         _uiState.update { it.copy(untrackedFilesForClean = emptyList(), isCleanPreviewing = false, cleanMessage = null) }
     }
 
     /**
-     * 清除 Clean 结果状态
+     * 娓呴櫎 Clean 缁撴灉鐘舵€?
      */
     fun clearCleanResult() {
         _uiState.update { it.copy(cleanedFilesForResult = emptyList(), cleanMessage = null) }

@@ -77,8 +77,6 @@ import androidx.compose.ui.unit.sp
 import jamgmilk.fuwagit.domain.model.credential.HttpsCredential
 import jamgmilk.fuwagit.domain.model.credential.SshKey
 import jamgmilk.fuwagit.ui.theme.FuwaGitThemeExtras
-import jamgmilk.fuwagit.ui.theme.Sakura80
-import jamgmilk.fuwagit.ui.theme.Sakura90
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -105,7 +103,7 @@ fun HttpsCredentialsSection(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(Sakura80.copy(alpha = 0.08f))
+                    .background(FuwaGitThemeExtras.colors.mizuiroAccent.copy(alpha = 0.08f))
                     .padding(horizontal = 16.dp, vertical = 12.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
@@ -114,13 +112,13 @@ fun HttpsCredentialsSection(
                     Box(
                         modifier = Modifier
                             .size(32.dp)
-                            .background(Sakura80.copy(alpha = 0.15f), RoundedCornerShape(10.dp)),
+                            .background(FuwaGitThemeExtras.colors.mizuiroAccent.copy(alpha = 0.15f), RoundedCornerShape(10.dp)),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             Icons.Default.Link,
                             contentDescription = null,
-                            tint = Sakura80,
+                            tint = FuwaGitThemeExtras.colors.mizuiroAccent,
                             modifier = Modifier.size(18.dp)
                         )
                     }
@@ -129,7 +127,7 @@ fun HttpsCredentialsSection(
                         text = "HTTPS Credentials",
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
-                        color = Sakura80
+                        color = FuwaGitThemeExtras.colors.mizuiroAccent
                     )
                 }
 
@@ -138,8 +136,8 @@ fun HttpsCredentialsSection(
                     modifier = Modifier.size(36.dp),
                     shape = RoundedCornerShape(10.dp),
                     colors = IconButtonDefaults.filledTonalIconButtonColors(
-                        containerColor = Sakura80.copy(alpha = 0.15f),
-                        contentColor = Sakura80
+                        containerColor = FuwaGitThemeExtras.colors.mizuiroAccent.copy(alpha = 0.15f),
+                        contentColor = FuwaGitThemeExtras.colors.mizuiroAccent
                     )
                 ) {
                     Icon(
@@ -197,13 +195,13 @@ fun HttpsCredentialItem(
         Box(
             modifier = Modifier
                 .size(42.dp)
-                .background(Sakura80.copy(alpha = 0.1f), RoundedCornerShape(12.dp)),
+                .background(FuwaGitThemeExtras.colors.mizuiroAccent.copy(alpha = 0.1f), RoundedCornerShape(12.dp)),
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 Icons.Default.Link,
                 contentDescription = null,
-                tint = Sakura80,
+                tint = FuwaGitThemeExtras.colors.mizuiroAccent,
                 modifier = Modifier.size(22.dp)
             )
         }
@@ -239,7 +237,7 @@ fun HttpsCredentialItem(
             Icon(
                 Icons.Default.Info,
                 contentDescription = "Info",
-                tint = Sakura80,
+                tint = FuwaGitThemeExtras.colors.mizuiroAccent,
                 modifier = Modifier.size(20.dp)
             )
         }
@@ -268,7 +266,7 @@ fun SshKeysSection(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(Sakura90.copy(alpha = 0.08f))
+                    .background(FuwaGitThemeExtras.colors.mizuiroAccentDark.copy(alpha = 0.08f))
                     .padding(horizontal = 16.dp, vertical = 12.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
@@ -277,13 +275,13 @@ fun SshKeysSection(
                     Box(
                         modifier = Modifier
                             .size(32.dp)
-                            .background(Sakura90.copy(alpha = 0.15f), RoundedCornerShape(10.dp)),
+                            .background(FuwaGitThemeExtras.colors.mizuiroAccentDark.copy(alpha = 0.15f), RoundedCornerShape(10.dp)),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             Icons.Default.Key,
                             contentDescription = null,
-                            tint = Sakura90,
+                            tint = FuwaGitThemeExtras.colors.mizuiroAccentDark,
                             modifier = Modifier.size(18.dp)
                         )
                     }
@@ -292,7 +290,7 @@ fun SshKeysSection(
                         text = "SSH Keys",
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
-                        color = Sakura90
+                        color = FuwaGitThemeExtras.colors.mizuiroAccentDark
                     )
                 }
 
@@ -302,8 +300,8 @@ fun SshKeysSection(
                         modifier = Modifier.size(36.dp),
                         shape = RoundedCornerShape(10.dp),
                         colors = IconButtonDefaults.filledTonalIconButtonColors(
-                            containerColor = Sakura90.copy(alpha = 0.15f),
-                            contentColor = Sakura90
+                            containerColor = FuwaGitThemeExtras.colors.mizuiroAccentDark.copy(alpha = 0.15f),
+                            contentColor = FuwaGitThemeExtras.colors.mizuiroAccentDark
                         )
                     ) {
                         Icon(
@@ -317,8 +315,8 @@ fun SshKeysSection(
                         modifier = Modifier.size(36.dp),
                         shape = RoundedCornerShape(10.dp),
                         colors = IconButtonDefaults.filledTonalIconButtonColors(
-                            containerColor = Sakura90.copy(alpha = 0.15f),
-                            contentColor = Sakura90
+                            containerColor = FuwaGitThemeExtras.colors.mizuiroAccentDark.copy(alpha = 0.15f),
+                            contentColor = FuwaGitThemeExtras.colors.mizuiroAccentDark
                         )
                     ) {
                         Icon(
@@ -377,13 +375,13 @@ fun SshKeyItem(
         Box(
             modifier = Modifier
                 .size(42.dp)
-                .background(Sakura90.copy(alpha = 0.1f), RoundedCornerShape(12.dp)),
+                .background(FuwaGitThemeExtras.colors.mizuiroAccentDark.copy(alpha = 0.1f), RoundedCornerShape(12.dp)),
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 Icons.Default.Key,
                 contentDescription = null,
-                tint = Sakura90,
+                tint = FuwaGitThemeExtras.colors.mizuiroAccentDark,
                 modifier = Modifier.size(22.dp)
             )
         }
@@ -406,7 +404,7 @@ fun SshKeyItem(
                 Box(
                     modifier = Modifier
                         .background(
-                            Sakura90.copy(alpha = 0.15f),
+                            FuwaGitThemeExtras.colors.mizuiroAccentDark.copy(alpha = 0.15f),
                             RoundedCornerShape(4.dp)
                         )
                         .padding(horizontal = 6.dp, vertical = 2.dp)
@@ -414,7 +412,7 @@ fun SshKeyItem(
                     Text(
                         text = key.type,
                         style = MaterialTheme.typography.labelSmall,
-                        color = Sakura90,
+                        color = FuwaGitThemeExtras.colors.mizuiroAccentDark,
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Medium
                     )
@@ -436,7 +434,7 @@ fun SshKeyItem(
             Icon(
                 Icons.Default.Info,
                 contentDescription = "Info",
-                tint = Sakura90,
+                tint = FuwaGitThemeExtras.colors.mizuiroAccentDark,
                 modifier = Modifier.size(20.dp)
             )
         }
@@ -648,7 +646,7 @@ fun SensitiveInfoRow(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = if (isSensitive && !isRevealed) "••••••••••••" else value,
+                text = if (isSensitive && !isRevealed) "\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022" else value,
                 style = MaterialTheme.typography.bodyMedium,
                 color = valueColor,
                 fontFamily = if (isMonospace) FontFamily.Monospace else FontFamily.Default,

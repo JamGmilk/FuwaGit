@@ -42,11 +42,11 @@ data class StatusUiState(
     val branches: List<GitBranch> = emptyList(),
     val workspaceFiles: List<GitFileStatus> = emptyList(),
     val terminalOutput: List<String> = emptyList(),
-    // 危险操作相关状态
+    // 鍗遍櫓鎿嶄綔鐩稿叧鐘舵€?
     val pendingOperation: DangerousOperationType? = null,
     val pendingOperationTarget: String? = null,
     val operationResult: OperationResult? = null,
-    // 凭据相关状态
+    // 鍑嵁鐩稿叧鐘舵€?
     val selectedCredentialUuid: String? = null,
     val selectedSshKeyUuid: String? = null,
     val httpsCredentials: List<HttpsCredential> = emptyList(),
@@ -238,7 +238,7 @@ class StatusViewModel @Inject constructor(
         }
     }
 
-    // ============ 危险操作：请求确认 ============
+    // ============ 鍗遍櫓鎿嶄綔锛氳姹傜‘璁?============
 
     fun requestDiscardChanges(filePath: String) {
         _uiState.update {
@@ -249,7 +249,7 @@ class StatusViewModel @Inject constructor(
         }
     }
 
-    // ============ 危险操作：执行 ============
+    // ============ 鍗遍櫓鎿嶄綔锛氭墽琛?============
 
     fun confirmDiscardChanges() {
         val path = currentRepoPath ?: return
@@ -355,7 +355,7 @@ class StatusViewModel @Inject constructor(
         }
     }
 
-    // ============ 凭据管理 ============
+    // ============ 鍑嵁绠＄悊 ============
 
     fun loadCredentials() {
         viewModelScope.launch {
@@ -398,7 +398,7 @@ class StatusViewModel @Inject constructor(
 
     private suspend fun loadSelectedCredentials(remoteUrl: String? = null): CloneCredential? {
         var state = _uiState.value
-        // 如果当前列表为空，尝试同步刷新一下
+        // 濡傛灉褰撳墠鍒楄〃涓虹┖锛屽皾璇曞悓姝ュ埛鏂颁竴涓?
         if (state.httpsCredentials.isEmpty() && state.sshKeys.isEmpty()) {
             refreshCredentials()
             state = _uiState.value

@@ -48,6 +48,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.Composable
@@ -77,6 +79,7 @@ import jamgmilk.fuwagit.ui.components.FilePickerDialog
 import jamgmilk.fuwagit.ui.components.SubSettingsTemplate
 import jamgmilk.fuwagit.ui.screen.credentials.CredentialSelectDialog
 import jamgmilk.fuwagit.ui.screen.credentials.CredentialType
+import jamgmilk.fuwagit.ui.theme.FuwaGitThemeExtras
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -166,7 +169,7 @@ private fun AddRepoTabSelector(
             label = "Clone Remote",
             icon = Icons.Default.CloudDownload,
             selected = selectedTab is AddRepoTab.Clone,
-            accentColor = Color(0xFF2196F3),
+            accentColor = FuwaGitThemeExtras.colors.mizuiroAccent,
             onClick = { onTabSelected(AddRepoTab.Clone) },
             modifier = Modifier.weight(1f)
         )
@@ -175,7 +178,7 @@ private fun AddRepoTabSelector(
             label = "Add Local",
             icon = Icons.Default.Folder,
             selected = selectedTab is AddRepoTab.Local,
-            accentColor = Color(0xFF4CAF50),
+            accentColor = FuwaGitThemeExtras.colors.mizuiroAccent,
             onClick = { onTabSelected(AddRepoTab.Local) },
             modifier = Modifier.weight(1f)
         )
@@ -340,7 +343,7 @@ private fun CloneContent(
                 .size(64.dp)
                 .align(Alignment.CenterHorizontally)
                 .background(
-                    color = Color(0xFF2196F3).copy(alpha = 0.12f),
+                    color = FuwaGitThemeExtras.colors.mizuiroAccent.copy(alpha = 0.12f),
                     shape = CircleShape
                 ),
             contentAlignment = Alignment.Center
@@ -348,7 +351,7 @@ private fun CloneContent(
             Icon(
                 Icons.Default.CloudDownload,
                 contentDescription = null,
-                tint = Color(0xFF2196F3),
+                tint = FuwaGitThemeExtras.colors.mizuiroAccent,
                 modifier = Modifier.size(32.dp)
             )
         }
@@ -376,12 +379,12 @@ private fun CloneContent(
                 if (showCredentialSection) {
                     Surface(
                         shape = RoundedCornerShape(6.dp),
-                        color = if (isHttps) Color(0xFF4CAF50).copy(alpha = 0.15f) else Color(0xFF2196F3).copy(alpha = 0.15f)
+                        color = if (isHttps) FuwaGitThemeExtras.colors.mizuiroAccent.copy(alpha = 0.15f) else FuwaGitThemeExtras.colors.mizuiroAccent.copy(alpha = 0.15f)
                     ) {
                         Text(
                             text = if (isHttps) "HTTPS" else "SSH",
                             style = MaterialTheme.typography.labelSmall,
-                            color = if (isHttps) Color(0xFF4CAF50) else Color(0xFF2196F3),
+                            color = if (isHttps) FuwaGitThemeExtras.colors.mizuiroAccent else FuwaGitThemeExtras.colors.mizuiroAccent,
                             fontWeight = FontWeight.Bold,
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                         )
@@ -401,9 +404,9 @@ private fun CloneContent(
             shape = RoundedCornerShape(12.dp),
             modifier = Modifier.fillMaxWidth(),
             colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = Color(0xFF2196F3),
-                focusedLabelColor = Color(0xFF2196F3),
-                cursorColor = Color(0xFF2196F3)
+                focusedBorderColor = FuwaGitThemeExtras.colors.mizuiroAccent,
+                focusedLabelColor = FuwaGitThemeExtras.colors.mizuiroAccent,
+                cursorColor = FuwaGitThemeExtras.colors.mizuiroAccent
             )
         )
 
@@ -447,7 +450,7 @@ private fun CloneContent(
         if (error != null) {
             Surface(
                 shape = RoundedCornerShape(8.dp),
-                color = Color(0xFFE53935).copy(alpha = 0.1f)
+                color = FuwaGitThemeExtras.colors.mizuiroAccentLight.copy(alpha = 0.1f)
             ) {
                 Row(
                     modifier = Modifier.padding(12.dp),
@@ -456,14 +459,14 @@ private fun CloneContent(
                     Icon(
                         Icons.Default.Error,
                         contentDescription = null,
-                        tint = Color(0xFFE53935),
+                        tint = FuwaGitThemeExtras.colors.mizuiroAccentLight,
                         modifier = Modifier.size(16.dp)
                     )
                     Spacer(Modifier.width(8.dp))
                     Text(
                         text = error!!,
                         style = MaterialTheme.typography.bodySmall,
-                        color = Color(0xFFE53935)
+                        color = FuwaGitThemeExtras.colors.mizuiroAccentLight
                     )
                 }
             }
@@ -521,7 +524,7 @@ private fun CloneContent(
                 .fillMaxWidth()
                 .height(50.dp),
             shape = RoundedCornerShape(12.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2196F3))
+            colors = ButtonDefaults.buttonColors(containerColor = FuwaGitThemeExtras.colors.mizuiroAccent)
         ) {
             if (isLoading) {
                 CircularProgressIndicator(
@@ -585,7 +588,7 @@ private fun CredentialSelectionButton(
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(
             containerColor = if (isEnabled) {
-                Color(0xFF2196F3).copy(alpha = 0.1f)
+                FuwaGitThemeExtras.colors.mizuiroAccent.copy(alpha = 0.1f)
             } else {
                 MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
             }
@@ -602,7 +605,7 @@ private fun CredentialSelectionButton(
                 Icon(
                     if (label.startsWith("Using:")) Icons.Default.CheckCircle else Icons.Default.Key,
                     contentDescription = null,
-                    tint = if (isEnabled) Color(0xFF2196F3) else MaterialTheme.colorScheme.onSurfaceVariant,
+                    tint = if (isEnabled) FuwaGitThemeExtras.colors.mizuiroAccent else MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(20.dp)
                 )
                 Spacer(Modifier.width(12.dp))
@@ -620,7 +623,7 @@ private fun CredentialSelectionButton(
                 Icon(
                     Icons.Default.FolderOpen,
                     contentDescription = null,
-                    tint = Color(0xFF2196F3),
+                    tint = FuwaGitThemeExtras.colors.mizuiroAccent,
                     modifier = Modifier.size(20.dp)
                 )
             }
@@ -685,7 +688,7 @@ private fun LocalContent(
                 .size(64.dp)
                 .align(Alignment.CenterHorizontally)
                 .background(
-                    color = Color(0xFF4CAF50).copy(alpha = 0.12f),
+                    color = FuwaGitThemeExtras.colors.mizuiroAccent.copy(alpha = 0.12f),
                     shape = CircleShape
                 ),
             contentAlignment = Alignment.Center
@@ -693,7 +696,7 @@ private fun LocalContent(
             Icon(
                 Icons.Default.Folder,
                 contentDescription = null,
-                tint = Color(0xFF4CAF50),
+                tint = FuwaGitThemeExtras.colors.mizuiroAccent,
                 modifier = Modifier.size(32.dp)
             )
         }
@@ -738,7 +741,7 @@ private fun LocalContent(
                 if (showNonEmptyWarning) {
                     Surface(
                         shape = RoundedCornerShape(12.dp),
-                        color = Color(0xFFFF9800).copy(alpha = 0.1f)
+                        color = FuwaGitThemeExtras.colors.mizuiroAccentLight.copy(alpha = 0.1f)
                     ) {
                         Row(
                             modifier = Modifier.padding(12.dp),
@@ -747,14 +750,14 @@ private fun LocalContent(
                             Icon(
                                 Icons.Default.Warning,
                                 contentDescription = null,
-                                tint = Color(0xFFFF9800),
+                                tint = FuwaGitThemeExtras.colors.mizuiroAccentLight,
                                 modifier = Modifier.size(20.dp)
                             )
                             Spacer(Modifier.width(8.dp))
                             Text(
                                 text = "Folder is not empty. Git init will be executed.",
                                 style = MaterialTheme.typography.bodySmall,
-                                color = Color(0xFFFF9800)
+                                color = FuwaGitThemeExtras.colors.mizuiroAccentLight
                             )
                         }
                     }
@@ -776,9 +779,9 @@ private fun LocalContent(
                     shape = RoundedCornerShape(12.dp),
                     modifier = Modifier.fillMaxWidth(),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = Color(0xFF4CAF50),
-                        focusedLabelColor = Color(0xFF4CAF50),
-                        cursorColor = Color(0xFF4CAF50)
+                        focusedBorderColor = FuwaGitThemeExtras.colors.mizuiroAccent,
+                        focusedLabelColor = FuwaGitThemeExtras.colors.mizuiroAccent,
+                        cursorColor = FuwaGitThemeExtras.colors.mizuiroAccent
                     )
                 )
             }
@@ -792,9 +795,9 @@ private fun LocalContent(
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
             colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = Color(0xFF4CAF50),
-                focusedLabelColor = Color(0xFF4CAF50),
-                cursorColor = Color(0xFF4CAF50)
+                focusedBorderColor = FuwaGitThemeExtras.colors.mizuiroAccent,
+                focusedLabelColor = FuwaGitThemeExtras.colors.mizuiroAccent,
+                cursorColor = FuwaGitThemeExtras.colors.mizuiroAccent
             )
         )
 
@@ -818,7 +821,7 @@ private fun LocalContent(
                 .fillMaxWidth()
                 .height(50.dp),
             shape = RoundedCornerShape(12.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50))
+            colors = ButtonDefaults.buttonColors(containerColor = FuwaGitThemeExtras.colors.mizuiroAccent)
         ) {
             Icon(
                 Icons.Default.Add,
@@ -882,7 +885,7 @@ private fun RemoteSelectorDropdown(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(
-            containerColor = Color(0xFF2196F3).copy(alpha = 0.1f)
+            containerColor = FuwaGitThemeExtras.colors.mizuiroAccent.copy(alpha = 0.1f)
         )
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
@@ -904,7 +907,7 @@ private fun RemoteSelectorDropdown(
                     Icon(
                         if (index == selectedIndex) Icons.Default.CheckCircle else Icons.Default.Link,
                         contentDescription = null,
-                        tint = if (index == selectedIndex) Color(0xFF2196F3) else MaterialTheme.colorScheme.onSurfaceVariant,
+                        tint = if (index == selectedIndex) FuwaGitThemeExtras.colors.mizuiroAccent else MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(18.dp)
                     )
                     Spacer(Modifier.width(8.dp))
@@ -937,7 +940,7 @@ private fun RemoteUrlDisplay(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(
-            containerColor = Color(0xFF2196F3).copy(alpha = 0.1f)
+            containerColor = FuwaGitThemeExtras.colors.mizuiroAccent.copy(alpha = 0.1f)
         )
     ) {
         Row(
@@ -949,7 +952,7 @@ private fun RemoteUrlDisplay(
             Icon(
                 Icons.Default.Link,
                 contentDescription = null,
-                tint = Color(0xFF2196F3),
+                tint = FuwaGitThemeExtras.colors.mizuiroAccent,
                 modifier = Modifier.size(18.dp)
             )
             Spacer(Modifier.width(8.dp))
@@ -1000,8 +1003,8 @@ private fun TargetFolderSelector(
                 shape = RoundedCornerShape(12.dp),
                 color = when {
                     localPath.isBlank() -> colors.surfaceVariant.copy(alpha = 0.5f)
-                    isDirectoryEmpty -> Color(0xFF4CAF50).copy(alpha = 0.1f)
-                    else -> Color(0xFFE53935).copy(alpha = 0.1f)
+                    isDirectoryEmpty -> FuwaGitThemeExtras.colors.mizuiroAccent.copy(alpha = 0.1f)
+                    else -> FuwaGitThemeExtras.colors.mizuiroAccentLight.copy(alpha = 0.1f)
                 }
             ) {
                 Row(
@@ -1017,8 +1020,8 @@ private fun TargetFolderSelector(
                         contentDescription = null,
                         tint = when {
                             localPath.isBlank() -> colors.onSurfaceVariant
-                            isDirectoryEmpty -> Color(0xFF4CAF50)
-                            else -> Color(0xFFE53935)
+                            isDirectoryEmpty -> FuwaGitThemeExtras.colors.mizuiroAccent
+                            else -> FuwaGitThemeExtras.colors.mizuiroAccentLight
                         },
                         modifier = Modifier.size(20.dp)
                     )
@@ -1032,8 +1035,8 @@ private fun TargetFolderSelector(
                         style = MaterialTheme.typography.bodySmall,
                         color = when {
                             localPath.isBlank() -> colors.onSurfaceVariant
-                            isDirectoryEmpty -> Color(0xFF4CAF50)
-                            else -> Color(0xFFE53935)
+                            isDirectoryEmpty -> FuwaGitThemeExtras.colors.mizuiroAccent
+                            else -> FuwaGitThemeExtras.colors.mizuiroAccentLight
                         }
                     )
                 }
@@ -1043,12 +1046,12 @@ private fun TargetFolderSelector(
                 onClick = onPickFolder,
                 modifier = Modifier
                     .size(48.dp)
-                    .background(Color(0xFF2196F3).copy(alpha = 0.1f), CircleShape)
+                    .background(FuwaGitThemeExtras.colors.mizuiroAccent.copy(alpha = 0.1f), CircleShape)
             ) {
                 Icon(
                     Icons.Default.FolderOpen,
                     contentDescription = "Pick folder",
-                    tint = Color(0xFF2196F3),
+                    tint = FuwaGitThemeExtras.colors.mizuiroAccent,
                     modifier = Modifier.size(24.dp)
                 )
             }
@@ -1099,8 +1102,8 @@ private fun FolderSelectorCard(
         shape = RoundedCornerShape(16.dp),
         color = when {
             path.isBlank() -> colors.surfaceVariant.copy(alpha = 0.5f)
-            isGitRepo -> Color(0xFF4CAF50).copy(alpha = 0.08f)
-            else -> Color(0xFFFF9800).copy(alpha = 0.08f)
+            isGitRepo -> FuwaGitThemeExtras.colors.mizuiroAccent.copy(alpha = 0.08f)
+            else -> FuwaGitThemeExtras.colors.mizuiroAccentLight.copy(alpha = 0.08f)
         }
     ) {
         Row(
@@ -1120,8 +1123,8 @@ private fun FolderSelectorCard(
                         contentDescription = null,
                         tint = when {
                             path.isBlank() -> colors.onSurfaceVariant
-                            isGitRepo -> Color(0xFF4CAF50)
-                            else -> Color(0xFFFF9800)
+                            isGitRepo -> FuwaGitThemeExtras.colors.mizuiroAccent
+                            else -> FuwaGitThemeExtras.colors.mizuiroAccentLight
                         },
                         modifier = Modifier.size(20.dp)
                     )
@@ -1136,8 +1139,8 @@ private fun FolderSelectorCard(
                         fontWeight = FontWeight.Medium,
                         color = when {
                             path.isBlank() -> colors.onSurfaceVariant
-                            isGitRepo -> Color(0xFF4CAF50)
-                            else -> Color(0xFFFF9800)
+                            isGitRepo -> FuwaGitThemeExtras.colors.mizuiroAccent
+                            else -> FuwaGitThemeExtras.colors.mizuiroAccentLight
                         }
                     )
                 }
@@ -1159,12 +1162,12 @@ private fun FolderSelectorCard(
                 onClick = onPickFolder,
                 modifier = Modifier
                     .size(48.dp)
-                    .background(Color(0xFF4CAF50).copy(alpha = 0.1f), CircleShape)
+                    .background(FuwaGitThemeExtras.colors.mizuiroAccent.copy(alpha = 0.1f), CircleShape)
             ) {
                 Icon(
                     Icons.Default.FolderOpen,
                     contentDescription = "Pick folder",
-                    tint = Color(0xFF4CAF50),
+                    tint = FuwaGitThemeExtras.colors.mizuiroAccent,
                     modifier = Modifier.size(24.dp)
                 )
             }
@@ -1184,7 +1187,7 @@ private fun RepositoryInfoCard(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(
-            containerColor = Color(0xFF4CAF50).copy(alpha = 0.08f)
+            containerColor = FuwaGitThemeExtras.colors.mizuiroAccent.copy(alpha = 0.08f)
         )
     ) {
         Column(
@@ -1195,7 +1198,7 @@ private fun RepositoryInfoCard(
                 Icon(
                     Icons.Default.Folder,
                     contentDescription = null,
-                    tint = Color(0xFF4CAF50),
+                    tint = FuwaGitThemeExtras.colors.mizuiroAccent,
                     modifier = Modifier.size(16.dp)
                 )
                 Spacer(Modifier.width(8.dp))
@@ -1203,7 +1206,7 @@ private fun RepositoryInfoCard(
                     text = "Repository: $repoName",
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Medium,
-                    color = Color(0xFF4CAF50)
+                    color = FuwaGitThemeExtras.colors.mizuiroAccent
                 )
             }
 
@@ -1272,7 +1275,7 @@ private fun CloneOptionsSection(
                 Icon(
                     Icons.Default.AccountTree,
                     contentDescription = null,
-                    tint = Color(0xFF2196F3),
+                    tint = FuwaGitThemeExtras.colors.mizuiroAccent,
                     modifier = Modifier.size(16.dp)
                 )
                 Spacer(Modifier.width(8.dp))
@@ -1291,25 +1294,33 @@ private fun CloneOptionsSection(
                     .fillMaxWidth()
                     .clickable { onCloneAllBranchesChange(!cloneAllBranches) }
                     .padding(vertical = 4.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Checkbox(
-                    checked = cloneAllBranches,
-                    onCheckedChange = onCloneAllBranchesChange,
-                    colors = CheckboxDefaults.colors(checkedColor = Color(0xFF2196F3))
-                )
-                Spacer(Modifier.width(8.dp))
-                Column {
+                Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = "Clone all branches",
-                        style = MaterialTheme.typography.bodyMedium
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Medium
                     )
                     Text(
-                        text = "Download entire remote history. Uncheck for single-branch clone.",
+                        text = "Download entire remote history. Turn off for single-branch clone.",
                         style = MaterialTheme.typography.bodySmall,
                         color = colors.onSurfaceVariant
                     )
                 }
+                Switch(
+                    checked = cloneAllBranches,
+                    onCheckedChange = onCloneAllBranchesChange,
+                    colors = SwitchDefaults.colors(
+                        checkedThumbColor = FuwaGitThemeExtras.colors.mizuiroAccent,
+                        checkedTrackColor = FuwaGitThemeExtras.colors.mizuiroAccent.copy(alpha = 0.5f),
+                        checkedBorderColor = FuwaGitThemeExtras.colors.mizuiroAccent,
+                        uncheckedThumbColor = colors.onSurfaceVariant,
+                        uncheckedTrackColor = colors.surfaceVariant,
+                        uncheckedBorderColor = colors.outline.copy(alpha = 0.5f)
+                    )
+                )
             }
 
             HorizontalDivider(color = colors.outline.copy(alpha = 0.1f))
@@ -1319,18 +1330,14 @@ private fun CloneOptionsSection(
                     .fillMaxWidth()
                     .clickable { onEnableShallowCloneChange(!enableShallowClone) }
                     .padding(vertical = 4.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Checkbox(
-                    checked = enableShallowClone,
-                    onCheckedChange = onEnableShallowCloneChange,
-                    colors = CheckboxDefaults.colors(checkedColor = Color(0xFF9C27B0))
-                )
-                Spacer(Modifier.width(8.dp))
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = "Shallow clone",
-                        style = MaterialTheme.typography.bodyMedium
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Medium
                     )
                     Text(
                         text = "Only download the latest commits to save time and space.",
@@ -1338,6 +1345,18 @@ private fun CloneOptionsSection(
                         color = colors.onSurfaceVariant
                     )
                 }
+                Switch(
+                    checked = enableShallowClone,
+                    onCheckedChange = onEnableShallowCloneChange,
+                    colors = SwitchDefaults.colors(
+                        checkedThumbColor = FuwaGitThemeExtras.colors.mizuiroAccent,
+                        checkedTrackColor = FuwaGitThemeExtras.colors.mizuiroAccent.copy(alpha = 0.5f),
+                        checkedBorderColor = FuwaGitThemeExtras.colors.mizuiroAccent,
+                        uncheckedThumbColor = colors.onSurfaceVariant,
+                        uncheckedTrackColor = colors.surfaceVariant,
+                        uncheckedBorderColor = colors.outline.copy(alpha = 0.5f)
+                    )
+                )
             }
 
             if (enableShallowClone) {

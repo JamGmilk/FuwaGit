@@ -59,8 +59,6 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import jamgmilk.fuwagit.ui.components.SubSettingsTemplate
 import jamgmilk.fuwagit.ui.theme.FuwaGitThemeExtras
-import jamgmilk.fuwagit.ui.theme.Sakura50
-import jamgmilk.fuwagit.ui.theme.Sakura80
 
 @Composable
 fun PermissionsScreen(
@@ -147,7 +145,7 @@ private fun SystemPermissionsCard(
         Column(modifier = Modifier.fillMaxWidth()) {
             Surface(
                 modifier = Modifier.fillMaxWidth(),
-                color = Sakura80.copy(alpha = 0.1f),
+                color = FuwaGitThemeExtras.colors.mizuiroAccent.copy(alpha = 0.1f),
                 shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)
             ) {
                 Row(
@@ -159,7 +157,7 @@ private fun SystemPermissionsCard(
                     Icon(
                         Icons.Default.Shield,
                         contentDescription = null,
-                        tint = Sakura80,
+                        tint = FuwaGitThemeExtras.colors.mizuiroAccent,
                         modifier = Modifier.size(22.dp)
                     )
                     Spacer(Modifier.width(10.dp))
@@ -167,7 +165,7 @@ private fun SystemPermissionsCard(
                         text = "System Permissions",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
-                        color = Sakura80
+                        color = FuwaGitThemeExtras.colors.mizuiroAccent
                     )
                 }
             }
@@ -184,7 +182,7 @@ private fun SystemPermissionsCard(
                     actionLabel = if (allFilesStatus == PermissionStatus.Granted) "Open Settings" else "Grant",
                     onAction = onRequestAllFilesAccess,
                     actionEnabled = true,
-                    accentColor = Sakura80
+                    accentColor = FuwaGitThemeExtras.colors.mizuiroAccent
                 )
             }
         }
@@ -210,7 +208,7 @@ private fun ScopedStorageCard(
         Column(modifier = Modifier.fillMaxWidth()) {
             Surface(
                 modifier = Modifier.fillMaxWidth(),
-                color = Sakura50.copy(alpha = 0.15f),
+                color = FuwaGitThemeExtras.colors.mizuiroAccentLight.copy(alpha = 0.15f),
                 shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)
             ) {
                 Row(
@@ -222,7 +220,7 @@ private fun ScopedStorageCard(
                     Icon(
                         Icons.Default.FolderOpen,
                         contentDescription = null,
-                        tint = Sakura80,
+                        tint = FuwaGitThemeExtras.colors.mizuiroAccent,
                         modifier = Modifier.size(22.dp)
                     )
                     Spacer(Modifier.width(10.dp))
@@ -231,7 +229,7 @@ private fun ScopedStorageCard(
                             text = "Scoped Storage",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
-                            color = Sakura80
+                            color = FuwaGitThemeExtras.colors.mizuiroAccent
                         )
                         Text(
                             text = "SAF folder access",
@@ -252,14 +250,14 @@ private fun ScopedStorageCard(
                 ) {
                     Surface(
                         shape = RoundedCornerShape(10.dp),
-                        color = Sakura80.copy(alpha = 0.15f),
+                        color = FuwaGitThemeExtras.colors.mizuiroAccent.copy(alpha = 0.15f),
                         modifier = Modifier.size(44.dp)
                     ) {
                         Box(contentAlignment = Alignment.Center) {
                             Icon(
                                 Icons.Default.Lock,
                                 contentDescription = null,
-                                tint = Sakura80,
+                                tint = FuwaGitThemeExtras.colors.mizuiroAccent,
                                 modifier = Modifier.size(22.dp)
                             )
                         }

@@ -256,7 +256,7 @@ fun BranchesScreen(
         )
     }
 
-    // 危险操作双确认对话框
+    // 鍗遍櫓鎿嶄綔鍙岀‘璁ゅ璇濇
     val pendingOperation = uiState.pendingOperation
     val pendingTarget = uiState.pendingOperationTarget
     if (pendingOperation != null && pendingTarget != null) {
@@ -298,7 +298,7 @@ fun BranchesScreen(
         }
     }
 
-    // 冲突解决对话框
+    // 鍐茬獊瑙ｅ喅瀵硅瘽妗?
     val conflictResult = uiState.conflictResult
     if (conflictResult != null && uiState.isResolvingConflict) {
         ConflictResolutionDialog(
@@ -320,7 +320,7 @@ fun BranchesScreen(
         )
     }
 
-    // 操作结果反馈对话框
+    // 鎿嶄綔缁撴灉鍙嶉瀵硅瘽妗?
     val operationResult = uiState.operationResult
     if (operationResult != null) {
         val operationType = pendingOperation ?: DangerousOperationType.DELETE_BRANCH
@@ -660,7 +660,7 @@ private fun BranchItem(
                     )
                 }
                 
-                // 远程分支的提示菜单项
+                // 杩滅▼鍒嗘敮鐨勬彁绀鸿彍鍗曢」
                 if (isRemote) {
                     DropdownMenuItem(
                         text = { Text("Merge into current") },

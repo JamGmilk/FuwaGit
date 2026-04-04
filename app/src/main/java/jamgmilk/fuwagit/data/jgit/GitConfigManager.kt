@@ -10,8 +10,8 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * Git 配置管理器
- * 管理 global 和 repo 级别的 Git 配置
+ * Git 閰嶇疆绠＄悊鍣?
+ * 绠＄悊 global 鍜?repo 绾у埆鐨?Git 閰嶇疆
  */
 @Singleton
 class GitConfigManager @Inject constructor() {
@@ -21,7 +21,7 @@ class GitConfigManager @Inject constructor() {
     }
 
     /**
-     * 获取 global git config 文件路径 (~/.gitconfig)
+     * 鑾峰彇 global git config 鏂囦欢璺緞 (~/.gitconfig)
      */
     fun getGlobalConfigFile(): File {
         return try {
@@ -35,7 +35,7 @@ class GitConfigManager @Inject constructor() {
     }
 
     /**
-     * 读取 global git config
+     * 璇诲彇 global git config
      */
     fun getGlobalConfig(): Config {
         return try {
@@ -49,7 +49,7 @@ class GitConfigManager @Inject constructor() {
     }
 
     /**
-     * 设置 global git user.name
+     * 璁剧疆 global git user.name
      */
     fun setGlobalUserName(name: String): Result<Unit> {
         return try {
@@ -66,7 +66,7 @@ class GitConfigManager @Inject constructor() {
     }
 
     /**
-     * 设置 global git user.email
+     * 璁剧疆 global git user.email
      */
     fun setGlobalUserEmail(email: String): Result<Unit> {
         return try {
@@ -83,7 +83,7 @@ class GitConfigManager @Inject constructor() {
     }
 
     /**
-     * 设置 global git 配置（name 和 email）
+     * 璁剧疆 global git 閰嶇疆锛坣ame 鍜?email锛?
      */
     fun setGlobalUserConfig(name: String, email: String): Result<Unit> {
         return try {
@@ -101,7 +101,7 @@ class GitConfigManager @Inject constructor() {
     }
 
     /**
-     * 获取 global git user.name
+     * 鑾峰彇 global git user.name
      */
     fun getGlobalUserName(): String? {
         return try {
@@ -113,7 +113,7 @@ class GitConfigManager @Inject constructor() {
     }
 
     /**
-     * 获取 global git user.email
+     * 鑾峰彇 global git user.email
      */
     fun getGlobalUserEmail(): String? {
         return try {
@@ -125,7 +125,7 @@ class GitConfigManager @Inject constructor() {
     }
 
     /**
-     * 设置仓库级别的 git user.name
+     * 璁剧疆浠撳簱绾у埆鐨?git user.name
      */
     fun setRepoUserName(repoPath: String, name: String): Result<Unit> {
         return try {
@@ -147,7 +147,7 @@ class GitConfigManager @Inject constructor() {
     }
 
     /**
-     * 设置仓库级别的 git user.email
+     * 璁剧疆浠撳簱绾у埆鐨?git user.email
      */
     fun setRepoUserEmail(repoPath: String, email: String): Result<Unit> {
         return try {
@@ -169,7 +169,7 @@ class GitConfigManager @Inject constructor() {
     }
 
     /**
-     * 设置仓库级别的 git 配置（name 和 email）
+     * 璁剧疆浠撳簱绾у埆鐨?git 閰嶇疆锛坣ame 鍜?email锛?
      */
     fun setRepoUserConfig(repoPath: String, name: String, email: String): Result<Unit> {
         return try {
@@ -192,7 +192,7 @@ class GitConfigManager @Inject constructor() {
     }
 
     /**
-     * 获取仓库级别的 git user.name
+     * 鑾峰彇浠撳簱绾у埆鐨?git user.name
      */
     fun getRepoUserName(repoPath: String): String? {
         return try {
@@ -208,7 +208,7 @@ class GitConfigManager @Inject constructor() {
     }
 
     /**
-     * 获取仓库级别的 git user.email
+     * 鑾峰彇浠撳簱绾у埆鐨?git user.email
      */
     fun getRepoUserEmail(repoPath: String): String? {
         return try {
@@ -224,7 +224,7 @@ class GitConfigManager @Inject constructor() {
     }
 
     /**
-     * 检查仓库是否有本地用户配置
+     * 妫€鏌ヤ粨搴撴槸鍚︽湁鏈湴鐢ㄦ埛閰嶇疆
      */
     fun hasRepoLocalUserConfig(repoPath: String): Boolean {
         return try {
@@ -241,7 +241,7 @@ class GitConfigManager @Inject constructor() {
     }
 
     /**
-     * 移除仓库级别的本地用户配置（使用 global 配置）
+     * 绉婚櫎浠撳簱绾у埆鐨勬湰鍦扮敤鎴烽厤缃紙浣跨敤 global 閰嶇疆锛?
      */
     fun removeRepoLocalUserConfig(repoPath: String): Result<Unit> {
         return try {
@@ -264,10 +264,10 @@ class GitConfigManager @Inject constructor() {
     }
 
     /**
-     * 获取当前生效的用户配置（repo > global）
+     * 鑾峰彇褰撳墠鐢熸晥鐨勭敤鎴烽厤缃紙repo > global锛?
      */
     fun getEffectiveUserConfig(repoPath: String): Pair<String?, String?> {
-        // 先检查 repo config
+        // 鍏堟鏌?repo config
         val repoName = getRepoUserName(repoPath)
         val repoEmail = getRepoUserEmail(repoPath)
         
@@ -275,7 +275,7 @@ class GitConfigManager @Inject constructor() {
             return Pair(repoName, repoEmail)
         }
         
-        // 否则使用 global config
+        // 鍚﹀垯浣跨敤 global config
         return Pair(getGlobalUserName(), getGlobalUserEmail())
     }
 }
