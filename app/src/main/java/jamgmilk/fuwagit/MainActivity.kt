@@ -20,7 +20,7 @@ import androidx.navigation.compose.rememberNavController
 import dagger.hilt.android.AndroidEntryPoint
 import jamgmilk.fuwagit.ui.screen.main.AppNavHost
 import jamgmilk.fuwagit.ui.screen.settings.SettingsViewModel
-import jamgmilk.fuwagit.ui.theme.FuwaGitTheme
+import jamgmilk.fuwagit.ui.theme.SakuraTheme
 
 @AndroidEntryPoint
 class MainActivity : FragmentActivity() {
@@ -38,7 +38,7 @@ class MainActivity : FragmentActivity() {
                 else -> isSystemInDarkTheme()
             }
 
-            FuwaGitTheme(darkTheme = isDarkTheme) {
+            SakuraTheme(darkTheme = isDarkTheme) {
                 val navController = rememberNavController()
                 AppNavHost(navController)
             }

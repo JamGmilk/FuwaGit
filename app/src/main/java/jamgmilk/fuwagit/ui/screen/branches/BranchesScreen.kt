@@ -49,7 +49,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -63,14 +62,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import jamgmilk.fuwagit.domain.model.git.GitBranch
-import jamgmilk.fuwagit.ui.components.ScreenTemplate
-import jamgmilk.fuwagit.ui.components.TwoStepConfirmDialog
+import jamgmilk.fuwagit.ui.components.ConflictResolutionDialog
 import jamgmilk.fuwagit.ui.components.DangerousOperationType
 import jamgmilk.fuwagit.ui.components.OperationResultDialog
-import jamgmilk.fuwagit.ui.components.ConflictResolutionDialog
-import androidx.compose.ui.tooling.preview.Preview
-import jamgmilk.fuwagit.ui.theme.FuwaGitTheme
+import jamgmilk.fuwagit.ui.components.ScreenTemplate
+import jamgmilk.fuwagit.ui.components.TwoStepConfirmDialog
 import jamgmilk.fuwagit.ui.theme.FuwaGitThemeExtras
 
 
