@@ -37,6 +37,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -44,7 +45,7 @@ import jamgmilk.fuwagit.domain.model.credential.HttpsCredential
 import jamgmilk.fuwagit.domain.model.credential.SshKey
 import jamgmilk.fuwagit.ui.screen.credentials.CredentialSelectDialog
 import jamgmilk.fuwagit.ui.screen.credentials.CredentialType
-import jamgmilk.fuwagit.ui.theme.FuwaGitThemeExtras
+import jamgmilk.fuwagit.ui.theme.AppShapes
 
 @Composable
 fun ConfigureRemoteDialog(
@@ -59,7 +60,6 @@ fun ConfigureRemoteDialog(
     var showCredentialDialog by remember { mutableStateOf(false) }
     var selectedHttpsUuid by remember { mutableStateOf<String?>(null) }
     var selectedSshUuid by remember { mutableStateOf<String?>(null) }
-    val colors = MaterialTheme.colorScheme
 
     if (showCredentialDialog) {
         CredentialSelectDialog(
@@ -84,123 +84,49 @@ fun ConfigureRemoteDialog(
         )
     }
 
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        icon = {
-            Box(
-                modifier = Modifier
-                    .size(56.dp)
-                    .background(Color(0xFF2196F3).copy(alpha = 0.15f), CircleShape),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    Icons.Filled.Link,
-                    contentDescription = null,
-                    tint = Color(0xFF2196F3),
-                    modifier = Modifier.size(28.dp)
-                )
-            }
-        },
-        title = {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(
-                    text = "Configure Remote",
-                    fontWeight = FontWeight.Bold,
-                    style = MaterialTheme.typography.titleLarge
-                )
-                Text(
-                    text = repoName,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = colors.onSurfaceVariant
-                )
-            }
-        },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                Surface(
-                    shape = RoundedCornerShape(12.dp),
-                    color = colors.surfaceVariant.copy(alpha = 0.5f)
-                ) {
-                    Row(
-                        modifier = Modifier.padding(12.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            Icons.Default.Info,
-                            contentDescription = null,
-                            tint = colors.onSurfaceVariant,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Spacer(Modifier.width(8.dp))
-                        Text(
-                            text = "Set the remote 'origin' URL for pushing and pulling code.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = colors.onSurfaceVariant
-                        )
-                    }
-                }
+    DialogWithIcon(
+        onDismiss = onDismiss,
+        icon = Icons.Filled.Link,
+        title = "Configure Remote",
+        subtitle = repoName,
+        content = {
+            TipInDialog(
+                icon = Icons.Default.Info,
+                text = "Set the remote 'origin' URL for pushing and pulling code.")
 
-                OutlinedTextField(
-                    value = url,
-                    onValueChange = { url = it },
-                    label = { Text("Remote URL") },
-                    leadingIcon = {
-                        Icon(
-                            Icons.Default.Source,
-                            contentDescription = null,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    },
-                    singleLine = true,
-                    shape = RoundedCornerShape(12.dp),
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = Color(0xFF2196F3),
-                        focusedLabelColor = Color(0xFF2196F3),
-                        cursorColor = Color(0xFF2196F3)
+            OutlinedTextField(
+                value = url,
+                onValueChange = { url = it },
+                label = { Text("Remote URL") },
+                leadingIcon = {
+                    Icon(
+                        Icons.Default.Source,
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp)
                     )
-                )
+                },
+                singleLine = true,
+                shape = AppShapes.extraSmall,
+                modifier = Modifier.fillMaxWidth()
+            )
 
-                CredentialSelectionButton(
-                    selectedHttpsUuid = selectedHttpsUuid,
-                    selectedSshUuid = selectedSshUuid,
-                    httpsCredentials = httpsCredentials,
-                    sshKeys = sshKeys,
-                    onClick = { showCredentialDialog = true }
-                )
-
-                if (currentUrl.isNotBlank()) {
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = Color(0xFF4CAF50).copy(alpha = 0.1f)
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(10.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                Icons.Default.CheckCircle,
-                                contentDescription = null,
-                                tint = Color(0xFF4CAF50),
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Spacer(Modifier.width(8.dp))
-                            Text(
-                                text = "Remote is configured",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = Color(0xFF4CAF50)
-                            )
-                        }
-                    }
-                }
-            }
+            CredentialSelectionButton(
+                selectedHttpsUuid = selectedHttpsUuid,
+                selectedSshUuid = selectedSshUuid,
+                httpsCredentials = httpsCredentials,
+                sshKeys = sshKeys,
+                onClick = { showCredentialDialog = true }
+            )
         },
         confirmButton = {
             Button(
                 onClick = { onSave(url, selectedHttpsUuid, selectedSshUuid) },
                 enabled = url.isNotBlank(),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2196F3)),
-                shape = RoundedCornerShape(12.dp)
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary
+                ),
+                shape = AppShapes.extraSmall
             ) {
                 Icon(
                     Icons.Default.CheckCircle,
@@ -215,8 +141,7 @@ fun ConfigureRemoteDialog(
             TextButton(onClick = onDismiss) {
                 Text("Cancel")
             }
-        },
-        shape = RoundedCornerShape(24.dp)
+        }
     )
 }
 
@@ -228,7 +153,6 @@ private fun CredentialSelectionButton(
     sshKeys: List<SshKey>,
     onClick: () -> Unit
 ) {
-    val colors = MaterialTheme.colorScheme
     val hasSelection = selectedHttpsUuid != null || selectedSshUuid != null
 
     val label = when {
@@ -243,11 +167,11 @@ private fun CredentialSelectionButton(
         else -> "Bind Credential (optional)"
     }
 
-    val iconColor = when {
-        selectedHttpsUuid != null -> FuwaGitThemeExtras.colors.mizuiroAccent
-        selectedSshUuid != null -> FuwaGitThemeExtras.colors.mizuiroAccentDark
-        else -> colors.onSurfaceVariant
-    }
+//    val iconColor = when {
+//        selectedHttpsUuid != null -> FuwaGitThemeExtras.colors.mizuiroAccent
+//        selectedSshUuid != null -> FuwaGitThemeExtras.colors.mizuiroAccentDark
+//        else -> colors.onSurfaceVariant
+//    }
 
     val icon = when {
         selectedHttpsUuid != null -> Icons.Default.Link
@@ -256,31 +180,35 @@ private fun CredentialSelectionButton(
     }
 
     Surface(
-        shape = RoundedCornerShape(14.dp),
-        color = if (hasSelection) iconColor.copy(alpha = 0.1f) else colors.surfaceVariant.copy(alpha = 0.5f),
+        shape = AppShapes.extraSmall,
+        color = if (hasSelection) MaterialTheme.colorScheme.primary.copy(alpha = 0.08f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
         border = if (hasSelection) {
-            androidx.compose.foundation.BorderStroke(1.dp, iconColor.copy(alpha = 0.4f))
+            androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
         } else null,
         modifier = Modifier
             .fillMaxWidth()
+            .clip(AppShapes.extraSmall)
             .clickable(onClick = onClick)
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 14.dp, vertical = 13.dp),
+                .padding(vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Box(
                 modifier = Modifier
                     .size(36.dp)
-                    .background(iconColor.copy(alpha = 0.15f), RoundedCornerShape(10.dp)),
+                    .background(
+                        color = if (hasSelection) MaterialTheme.colorScheme.primary.copy(alpha = 0.2f) else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.1f),
+                        shape = AppShapes.extraSmall
+                    ),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     icon,
                     contentDescription = null,
-                    tint = iconColor,
+                    tint = if (hasSelection) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(18.dp)
                 )
             }
@@ -291,25 +219,22 @@ private fun CredentialSelectionButton(
                 Text(
                     text = label,
                     style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = if (hasSelection) FontWeight.SemiBold else FontWeight.Normal,
                     maxLines = 1,
                     overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                    color = if (hasSelection) iconColor else colors.onSurfaceVariant
+                    color = if (hasSelection) {
+                        MaterialTheme.colorScheme.onSurface
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    },
+                    fontWeight = if (hasSelection) FontWeight.SemiBold else FontWeight.Normal,
                 )
-                if (!hasSelection) {
-                    Text(
-                        text = "Use this credential for push/pull operations",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = colors.onSurfaceVariant
-                    )
-                }
             }
 
             Icon(
                 Icons.Default.ChevronRight,
                 contentDescription = null,
-                tint = colors.onSurfaceVariant.copy(alpha = 0.5f),
-                modifier = Modifier.size(18.dp)
+                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                //modifier = Modifier.size(18.dp)
             )
         }
     }

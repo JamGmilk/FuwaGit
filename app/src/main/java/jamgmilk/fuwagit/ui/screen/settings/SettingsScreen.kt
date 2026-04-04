@@ -35,6 +35,7 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.CloudSync
 import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.CreditCard
+import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Fingerprint
 import androidx.compose.material.icons.filled.FolderOpen
@@ -119,10 +120,8 @@ fun SettingsScreen(
     var showFilePicker by rememberSaveable { mutableStateOf(false) }
     var pendingBiometricEnable by rememberSaveable { mutableStateOf(false) }
 
-    // 鏄剧ず搴旂敤閰嶇疆缁撴灉
     LaunchedEffect(applyResult) {
         applyResult?.let {
-            // 缁撴灉瀵硅瘽妗嗕細锟?GlobalConfigCard 涓樉锟?
         }
     }
 
@@ -284,32 +283,38 @@ fun SettingsScreen(
 }
 
 @Composable
-private fun BetaWarningCard(
-    modifier: Modifier = Modifier
-) {
-    val uiColors = FuwaGitThemeExtras.colors
+private fun BetaWarningCard(modifier: Modifier = Modifier) {
     val colors = MaterialTheme.colorScheme
+    val warningOrange = Color(0xFFFF9800)
+    val warningBackground = Color(0xFFFFF3E0)
 
     ElevatedCard(
-        modifier = modifier.border(1.dp, MaterialTheme.colorScheme.tertiary.copy(alpha = 0.5f), RoundedCornerShape(24.dp)),
+        modifier = modifier.border(
+            width = 1.dp,
+            color = warningOrange.copy(alpha = 0.3f),
+            shape = RoundedCornerShape(24.dp)
+        ),
         shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.elevatedCardColors(containerColor = Color(0xFFFFCC80).copy(alpha = 0.3f)),
+        colors = CardDefaults.elevatedCardColors(
+            containerColor = warningBackground
+        ),
         elevation = CardDefaults.elevatedCardElevation(0.dp)
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
             SettingsSectionHeader(
                 title = "Beta Version Notice",
                 icon = Icons.Default.Warning,
-                color = FuwaGitThemeExtras.colors.mizuiroAccentLight
+                // Using the orange here for the header icon
+                color = warningOrange
             )
 
-            HorizontalDivider(color = colors.outline.copy(alpha = 0.15f))
+            HorizontalDivider(color = colors.outline.copy(alpha = 0.1f))
 
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 12.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 // Warning message
                 Row(
@@ -319,10 +324,8 @@ private fun BetaWarningCard(
                     Icon(
                         imageVector = Icons.Default.Info,
                         contentDescription = null,
-                        tint = FuwaGitThemeExtras.colors.mizuiroAccentLight,
-                        modifier = Modifier
-                            .size(20.dp)
-                            .align(Alignment.CenterVertically)
+                        tint = warningOrange,
+                        modifier = Modifier.size(20.dp)
                     )
                     Text(
                         text = "This application is currently in beta testing. Some features may be unstable or change in future updates.",
@@ -339,25 +342,20 @@ private fun BetaWarningCard(
                     Icon(
                         imageVector = Icons.Default.Backup,
                         contentDescription = null,
-                        tint = FuwaGitThemeExtras.colors.mizuiroAccentLight,
-                        modifier = Modifier
-                            .size(20.dp)
-                            .align(Alignment.CenterVertically)
+                        tint = warningOrange,
+                        modifier = Modifier.size(20.dp)
                     )
-                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text(
-                            text = "Important: Please backup your repositories and credentials.",
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = colors.onSurface
-                        )
-                    }
+                    Text(
+                        text = "Important: Please backup your repositories and credentials.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = colors.onSurface
+                    )
                 }
             }
         }
     }
 }
-
 @Composable
 private fun StorageSettingsCard(
     onPermissionsClick: () -> Unit,
@@ -1457,7 +1455,7 @@ private fun AppearanceSettingsCard(
                 SettingsClickableItem(
                     title = "Dark Mode",
                     subtitle = darkModeLabel,
-                    icon = Icons.Default.Build,
+                    icon = Icons.Default.DarkMode,
                     onClick = { showDarkModeMenu = true }
                 )
 
