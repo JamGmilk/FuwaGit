@@ -38,7 +38,7 @@ fun generateSshKeyPair(type: String, comment: String = ""): Pair<String, String>
 
 private fun generateRsaKeyPair(comment: String = ""): Pair<String, String> {
     Log.d(SSH_KEY_LOG_TAG, "generateRsaKeyPair: Starting RSA key generation, comment: $comment")
-    return try {
+    try {
         val keyPairGenerator = KeyPairGenerator.getInstance("RSA")
         Log.d(SSH_KEY_LOG_TAG, "generateRsaKeyPair: Initializing RSA 4096-bit key pair generator")
         keyPairGenerator.initialize(4096)

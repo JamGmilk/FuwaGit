@@ -60,8 +60,6 @@ fun CredentialSelectDialog(
     onDismiss: () -> Unit,
     onSelect: (uuid: String, type: CredentialType) -> Unit
 ) {
-    val colors = MaterialTheme.colorScheme
-    val uiColors = FuwaGitThemeExtras.colors
 
     var selectedTab by remember { mutableIntStateOf(0) }
     var selectedHttpsUuid by remember { mutableStateOf<String?>(null) }

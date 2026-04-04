@@ -311,9 +311,19 @@ class MyReposViewModel @Inject constructor(
         addRepo(path, alias)
     }
 
-    fun configureRemote(localPath: String, name: String, url: String) {
+    fun configureRemote(localPath: String, name: String, url: String, httpsCredentialUuid: String? = null, sshKeyUuid: String? = null) {
         viewModelScope.launch {
             gitRepo.configureRemote(localPath, name, url)
+        }
+    }
+
+    fun loadCredentials() {
+        viewModelScope.launch {
+            val httpsCreds = getHttpsCredentials()
+            val sshKeyList = getSshKeys()
+            _uiState.update {
+                it.copy(httpsCredentials = httpsCreds, sshKeys = sshKeyList)
+            }
         }
     }
 
