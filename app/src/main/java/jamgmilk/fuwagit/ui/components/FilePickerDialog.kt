@@ -51,7 +51,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import jamgmilk.fuwagit.ui.theme.AppColors
+import jamgmilk.fuwagit.ui.theme.GitColors
 import jamgmilk.fuwagit.ui.theme.FuwaGitThemeExtras
 import android.os.Environment
 import android.util.Log
@@ -159,7 +159,7 @@ fun FilePickerDialog(
                         Icon(
                             Icons.Default.FolderOpen,
                             contentDescription = null,
-                            tint = AppColors.GitPink,
+                            tint = GitColors.GitPink,
                             modifier = Modifier.size(28.dp)
                         )
                         Spacer(Modifier.width(12.dp))
@@ -239,7 +239,7 @@ fun FilePickerDialog(
                         isLoading -> {
                             CircularProgressIndicator(
                                 modifier = Modifier.align(Alignment.Center),
-                                color = AppColors.GitPink
+                                color = GitColors.GitPink
                             )
                         }
                         error != null -> {
@@ -297,7 +297,7 @@ fun FilePickerDialog(
                             onSelect(currentPath)
                         },
                         modifier = Modifier.weight(1f),
-                        colors = ButtonDefaults.buttonColors(containerColor = AppColors.GitPink),
+                        colors = ButtonDefaults.buttonColors(containerColor = GitColors.GitPink),
                         shape = RoundedCornerShape(12.dp)
                     ) {
                         Icon(
@@ -329,7 +329,7 @@ private fun FileListItem(
         Icon(
             Icons.Default.Folder,
             contentDescription = null,
-            tint = AppColors.GitPink,
+            tint = GitColors.GitPink,
             modifier = Modifier.size(24.dp)
         )
         Spacer(Modifier.width(12.dp))

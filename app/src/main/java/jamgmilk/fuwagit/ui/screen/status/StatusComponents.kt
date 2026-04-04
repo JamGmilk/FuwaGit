@@ -37,7 +37,6 @@ import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
@@ -46,8 +45,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -59,14 +56,12 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import jamgmilk.fuwagit.domain.model.git.GitBranch
-import jamgmilk.fuwagit.domain.model.credential.HttpsCredential
-import jamgmilk.fuwagit.domain.model.credential.SshKey
 import jamgmilk.fuwagit.core.util.PathUtils
+import jamgmilk.fuwagit.domain.model.git.GitBranch
 import jamgmilk.fuwagit.domain.model.git.GitChangeType
 import jamgmilk.fuwagit.domain.model.git.GitFileStatus
-import jamgmilk.fuwagit.ui.theme.AppColors
 import jamgmilk.fuwagit.ui.theme.FuwaGitThemeExtras
+import jamgmilk.fuwagit.ui.theme.GitColors
 import jamgmilk.fuwagit.ui.theme.Sakura50
 import jamgmilk.fuwagit.ui.theme.Sakura80
 import jamgmilk.fuwagit.ui.theme.Sakura90
@@ -100,7 +95,7 @@ internal fun ActionToolbar(
                 ActionButton(
                     icon = Icons.Default.CloudDownload,
                     label = "Pull",
-                    color = AppColors.GitBlue,
+                    color = GitColors.GitBlue,
                     enabled = true,
                     onClick = onPull,
                     modifier = Modifier.weight(1f)
@@ -108,7 +103,7 @@ internal fun ActionToolbar(
                 ActionButton(
                     icon = Icons.Default.CloudUpload,
                     label = "Push",
-                    color = AppColors.GitGreen,
+                    color = GitColors.GitGreen,
                     enabled = true,
                     onClick = onPush,
                     modifier = Modifier.weight(1f)
@@ -116,7 +111,7 @@ internal fun ActionToolbar(
                 ActionButton(
                     icon = Icons.Default.CloudDownload,
                     label = "Fetch",
-                    color = AppColors.GitPurple,
+                    color = GitColors.GitPurple,
                     enabled = true,
                     onClick = onFetch,
                     modifier = Modifier.weight(1f)
@@ -130,7 +125,7 @@ internal fun ActionToolbar(
                 ActionButton(
                     icon = Icons.Default.Check,
                     label = "Stage All",
-                    color = AppColors.GitGreen,
+                    color = GitColors.GitGreen,
                     enabled = stats.unstaged + stats.untracked > 0,
                     onClick = onStageAll,
                     modifier = Modifier.weight(1f)
@@ -138,7 +133,7 @@ internal fun ActionToolbar(
                 ActionButton(
                     icon = Icons.AutoMirrored.Filled.Undo,
                     label = "Unstage",
-                    color = AppColors.GitOrange,
+                    color = GitColors.GitOrange,
                     enabled = stats.staged > 0,
                     onClick = onUnstageAll,
                     modifier = Modifier.weight(1f)
@@ -229,7 +224,7 @@ internal fun RepositoryStatusCard(
                     modifier = Modifier
                         .size(48.dp)
                         .background(
-                            if (isRepo) AppColors.GitGreen.copy(alpha = 0.15f)
+                            if (isRepo) GitColors.GitGreen.copy(alpha = 0.15f)
                             else colors.error.copy(alpha = 0.15f),
                             RoundedCornerShape(14.dp)
                         ),
@@ -238,7 +233,7 @@ internal fun RepositoryStatusCard(
                     Icon(
                         imageVector = if (isRepo) Icons.Default.CheckCircle else Icons.Default.Error,
                         contentDescription = null,
-                        tint = if (isRepo) AppColors.GitGreen else colors.error,
+                        tint = if (isRepo) GitColors.GitGreen else colors.error,
                         modifier = Modifier.size(26.dp)
                     )
                 }
@@ -442,12 +437,12 @@ private fun FileStatusItem(
     val colors = MaterialTheme.colorScheme
 
     val (changeColor, changeLabel) = when (file.changeType) {
-        GitChangeType.Added -> AppColors.GitGreen to "A"
-        GitChangeType.Modified -> AppColors.GitBlue to "M"
-        GitChangeType.Removed -> AppColors.GitRed to "D"
-        GitChangeType.Untracked -> AppColors.GitBlueGrey to "?"
-        GitChangeType.Renamed -> AppColors.GitAmber to "R"
-        GitChangeType.Conflicting -> AppColors.GitDarkPink to "!"
+        GitChangeType.Added -> GitColors.GitGreen to "A"
+        GitChangeType.Modified -> GitColors.GitBlue to "M"
+        GitChangeType.Removed -> GitColors.GitRed to "D"
+        GitChangeType.Untracked -> GitColors.GitBlueGrey to "?"
+        GitChangeType.Renamed -> GitColors.GitAmber to "R"
+        GitChangeType.Conflicting -> GitColors.GitDarkPink to "!"
     }
 
     Surface(
@@ -594,7 +589,7 @@ internal fun CommitCard(
                 if (stagedCount > 0) {
                     Surface(
                         shape = RoundedCornerShape(8.dp),
-                        color = AppColors.GitGreen.copy(alpha = 0.15f)
+                        color = GitColors.GitGreen.copy(alpha = 0.15f)
                     ) {
                         Row(
                             modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
@@ -603,14 +598,14 @@ internal fun CommitCard(
                             Icon(
                                 Icons.Default.Pending,
                                 contentDescription = null,
-                                tint = AppColors.GitGreen,
+                                tint = GitColors.GitGreen,
                                 modifier = Modifier.size(14.dp)
                             )
                             Spacer(Modifier.width(4.dp))
                             Text(
                                 text = "$stagedCount staged",
                                 style = MaterialTheme.typography.labelSmall,
-                                color = AppColors.GitGreen
+                                color = GitColors.GitGreen
                             )
                         }
                     }

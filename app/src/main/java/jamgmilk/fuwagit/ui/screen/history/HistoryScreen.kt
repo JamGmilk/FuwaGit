@@ -44,22 +44,20 @@ import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Replay
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.outlined.Commit
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Button
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -72,16 +70,15 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import jamgmilk.fuwagit.domain.model.git.GitCommit
 import jamgmilk.fuwagit.domain.model.git.GitResetMode
 import jamgmilk.fuwagit.ui.components.ResetConfirmDialog
 import jamgmilk.fuwagit.ui.components.ScreenTemplate
-import jamgmilk.fuwagit.ui.theme.AppColors
-import jamgmilk.fuwagit.ui.theme.FuwaGitTheme
 import jamgmilk.fuwagit.ui.theme.FuwaGitThemeExtras
+import jamgmilk.fuwagit.ui.theme.GitColors
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -213,11 +210,11 @@ private fun CommitTimelineItem(
 
     val branchColors = remember {
         listOf(
-            AppColors.GitCyan,
-            AppColors.GitGreen,
-            AppColors.GitOrange,
-            AppColors.GitPink,
-            AppColors.GitPurple
+            GitColors.GitCyan,
+            GitColors.GitGreen,
+            GitColors.GitOrange,
+            GitColors.GitPink,
+            GitColors.GitPurple
         )
     }
     val lane = abs(commit.hash.hashCode()) % branchColors.size
@@ -359,7 +356,7 @@ private fun TimelineIndicator(
                 .padding(top = 14.dp)
                 .size(16.dp)
                 .background(
-                    if (isMerge) AppColors.GitPurple else color,
+                    if (isMerge) GitColors.GitPurple else color,
                     CircleShape
                 ),
             contentAlignment = Alignment.Center
@@ -381,7 +378,7 @@ private fun MergeBadge() {
     Box(
         modifier = Modifier
             .background(
-                AppColors.GitPurple.copy(alpha = 0.15f),
+                GitColors.GitPurple.copy(alpha = 0.15f),
                 RoundedCornerShape(4.dp)
             )
             .padding(horizontal = 6.dp, vertical = 2.dp)
@@ -393,14 +390,14 @@ private fun MergeBadge() {
             Icon(
                 Icons.AutoMirrored.Filled.MergeType,
                 contentDescription = null,
-                tint = AppColors.GitPurple,
+                tint = GitColors.GitPurple,
                 modifier = Modifier.size(12.dp)
             )
             Text(
                 text = "MERGE",
                 style = MaterialTheme.typography.labelSmall,
                 fontWeight = FontWeight.Bold,
-                color = AppColors.GitPurple,
+                color = GitColors.GitPurple,
                 fontSize = 10.sp
             )
         }

@@ -1,29 +1,14 @@
 package jamgmilk.fuwagit.ui.theme
 
-import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.animation.animateColor
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.core.updateTransition
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.runtime.getValue
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.Immutable
-import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Text
-import androidx.compose.material3.dynamicDarkColorScheme
-import androidx.compose.material3.dynamicLightColorScheme
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
+import jamgmilk.fuwagit.ui.theme.GitColors.GitRed
 
 // --- Light Scheme ---
 private val SakuraLightColorScheme = lightColorScheme(
@@ -84,7 +69,15 @@ fun SakuraTheme(
 
     val extraColors = ExtraColors(
         catCream = if (darkTheme) Color(0xFF2D2621) else CatCream,
-        sakuraGlow = if (darkTheme) Sakura80 else Sakura70
+        sakuraGlow = if (darkTheme) Sakura80 else Sakura70,
+        backgroundBrush = Brush.verticalGradient(
+            if (darkTheme) listOf(SakuraDarkBackground, SakuraDarkSurface)
+            else listOf(CatCream, Sakura95)
+        ),
+        cuteGradientBrush = Brush.horizontalGradient(
+            if (darkTheme) listOf(SakuraDarkPrimary, Sakura70)
+            else listOf(Sakura80, Sakura70)
+        )
     )
 
     CompositionLocalProvider(LocalExtraColors provides extraColors) {
