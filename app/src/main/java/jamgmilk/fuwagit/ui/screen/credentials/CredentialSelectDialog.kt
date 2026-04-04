@@ -45,8 +45,6 @@ import androidx.compose.ui.unit.sp
 import jamgmilk.fuwagit.domain.model.credential.HttpsCredential
 import jamgmilk.fuwagit.domain.model.credential.SshKey
 import jamgmilk.fuwagit.ui.theme.FuwaGitThemeExtras
-import jamgmilk.fuwagit.ui.theme.Sakura80
-import jamgmilk.fuwagit.ui.theme.Sakura90
 
 enum class CredentialType {
     HTTPS, SSH, BOTH
@@ -178,7 +176,7 @@ private fun CredentialTabChip(
     modifier: Modifier = Modifier
 ) {
     val colors = MaterialTheme.colorScheme
-    val accentColor = if (label == "HTTPS") Sakura80 else Sakura90
+    val accentColor = if (label == "HTTPS") FuwaGitThemeExtras.colors.mizuiroAccent else FuwaGitThemeExtras.colors.mizuiroAccentDark
 
     Surface(
         modifier = modifier
@@ -223,7 +221,7 @@ private fun HttpsCredentialList(
 ) {
     val colors = MaterialTheme.colorScheme
     val uiColors = FuwaGitThemeExtras.colors
-    val accentColor = Sakura80
+    val accentColor = FuwaGitThemeExtras.colors.mizuiroAccent
 
     Column(
         modifier = Modifier
@@ -282,7 +280,7 @@ private fun HttpsCredentialSelectItem(
 ) {
     val colors = MaterialTheme.colorScheme
     val uiColors = FuwaGitThemeExtras.colors
-    val accentColor = Sakura80
+    val accentColor = FuwaGitThemeExtras.colors.mizuiroAccent
 
     Row(
         modifier = Modifier
@@ -347,7 +345,7 @@ private fun SshKeyList(
 ) {
     val colors = MaterialTheme.colorScheme
     val uiColors = FuwaGitThemeExtras.colors
-    val accentColor = Sakura90
+    val accentColor = FuwaGitThemeExtras.colors.mizuiroAccentDark
 
     Column(
         modifier = Modifier
@@ -406,7 +404,7 @@ private fun SshKeySelectItem(
 ) {
     val colors = MaterialTheme.colorScheme
     val uiColors = FuwaGitThemeExtras.colors
-    val accentColor = Sakura90
+    val accentColor = FuwaGitThemeExtras.colors.mizuiroAccentDark
 
     Row(
         modifier = Modifier

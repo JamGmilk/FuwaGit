@@ -44,7 +44,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import jamgmilk.fuwagit.ui.theme.Sakura80
+import jamgmilk.fuwagit.ui.theme.FuwaGitThemeExtras
 
 @Composable
 fun AddRepoDialog(
@@ -71,13 +71,13 @@ fun AddRepoDialog(
             Box(
                 modifier = Modifier
                     .size(56.dp)
-                    .background(Sakura80.copy(alpha = 0.15f), CircleShape),
+                    .background(FuwaGitThemeExtras.colors.mizuiroAccent.copy(alpha = 0.15f), CircleShape),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     Icons.Default.Add,
                     contentDescription = null,
-                    tint = Sakura80,
+                    tint = FuwaGitThemeExtras.colors.mizuiroAccent,
                     modifier = Modifier.size(28.dp)
                 )
             }
@@ -134,12 +134,12 @@ fun AddRepoDialog(
                         onClick = onPickFolder,
                         modifier = Modifier
                             .size(48.dp)
-                            .background(Sakura80.copy(alpha = 0.1f), CircleShape)
+                            .background(FuwaGitThemeExtras.colors.mizuiroAccent.copy(alpha = 0.1f), CircleShape)
                     ) {
                         Icon(
                             Icons.Default.FolderOpen,
                             contentDescription = "Pick folder",
-                            tint = Sakura80,
+                            tint = FuwaGitThemeExtras.colors.mizuiroAccent,
                             modifier = Modifier.size(24.dp)
                         )
                     }
@@ -183,9 +183,9 @@ fun AddRepoDialog(
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = Sakura80,
-                        focusedLabelColor = Sakura80,
-                        cursorColor = Sakura80
+                        focusedBorderColor = FuwaGitThemeExtras.colors.mizuiroAccent,
+                        focusedLabelColor = FuwaGitThemeExtras.colors.mizuiroAccent,
+                        cursorColor = FuwaGitThemeExtras.colors.mizuiroAccent
                     )
                 )
 
@@ -217,7 +217,7 @@ fun AddRepoDialog(
             Button(
                 onClick = { onConfirm(path, alias.ifBlank { null }) },
                 enabled = path.isNotBlank(),
-                colors = ButtonDefaults.buttonColors(containerColor = Sakura80)
+                colors = ButtonDefaults.buttonColors(containerColor = FuwaGitThemeExtras.colors.mizuiroAccent)
             ) {
                 Text("Add")
             }

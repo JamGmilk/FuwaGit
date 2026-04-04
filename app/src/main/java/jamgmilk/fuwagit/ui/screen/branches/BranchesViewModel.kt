@@ -28,11 +28,11 @@ data class BranchesUiState(
     val localBranches: List<GitBranch> = emptyList(),
     val remoteBranches: List<GitBranch> = emptyList(),
     val currentBranch: GitBranch? = null,
-    // 危险操作相关状态
+    // 鍗遍櫓鎿嶄綔鐩稿叧鐘舵€?
     val pendingOperation: DangerousOperationType? = null,
     val pendingOperationTarget: String? = null,
     val operationResult: OperationResult? = null,
-    // 冲突处理相关状态
+    // 鍐茬獊澶勭悊鐩稿叧鐘舵€?
     val conflictResult: ConflictResult? = null,
     val isResolvingConflict: Boolean = false
 )
@@ -110,7 +110,7 @@ class BranchesViewModel @Inject constructor(
         }
     }
 
-    // ============ 危险操作：请求确认 ============
+    // ============ 鍗遍櫓鎿嶄綔锛氳姹傜‘璁?============
 
     fun requestDeleteBranch(name: String) {
         _uiState.update {
@@ -139,7 +139,7 @@ class BranchesViewModel @Inject constructor(
         }
     }
 
-    // ============ 危险操作：执行 ============
+    // ============ 鍗遍櫓鎿嶄綔锛氭墽琛?============
 
     fun confirmDeleteBranch(force: Boolean = false) {
         val path = currentRepoPath ?: return
@@ -246,7 +246,7 @@ class BranchesViewModel @Inject constructor(
         }
     }
 
-    // ============ 常规操作 ============
+    // ============ 甯歌鎿嶄綔 ============
 
     fun checkoutBranch(name: String) {
         val path = currentRepoPath ?: return
@@ -311,7 +311,7 @@ class BranchesViewModel @Inject constructor(
             mergeUseCase.merge(path, name)
                 .onSuccess { result ->
                     if (result.isConflicting) {
-                        // 有冲突，显示冲突解决 UI
+                        // 鏈夊啿绐侊紝鏄剧ず鍐茬獊瑙ｅ喅 UI
                         _uiState.update {
                             it.copy(
                                 conflictResult = result,
@@ -319,7 +319,7 @@ class BranchesViewModel @Inject constructor(
                             )
                         }
                     } else {
-                        // 合并成功
+                        // 鍚堝苟鎴愬姛
                         loadBranches()
                         _uiState.update {
                             it.copy(
@@ -342,7 +342,7 @@ class BranchesViewModel @Inject constructor(
             mergeUseCase.rebase(path, name)
                 .onSuccess { result ->
                     if (result.isConflicting) {
-                        // 有冲突，显示冲突解决 UI
+                        // 鏈夊啿绐侊紝鏄剧ず鍐茬獊瑙ｅ喅 UI
                         _uiState.update {
                             it.copy(
                                 conflictResult = result,
@@ -350,7 +350,7 @@ class BranchesViewModel @Inject constructor(
                             )
                         }
                     } else {
-                        // Rebase 成功
+                        // Rebase 鎴愬姛
                         loadBranches()
                         _uiState.update {
                             it.copy(
@@ -366,10 +366,10 @@ class BranchesViewModel @Inject constructor(
         }
     }
 
-    // ============ 冲突处理方法 ============
+    // ============ 鍐茬獊澶勭悊鏂规硶 ============
 
     /**
-     * 检查当前是否有未解决的冲突
+     * 妫€鏌ュ綋鍓嶆槸鍚︽湁鏈В鍐崇殑鍐茬獊
      */
     fun checkConflictStatus() {
         val path = currentRepoPath ?: return
@@ -393,7 +393,7 @@ class BranchesViewModel @Inject constructor(
     }
 
     /**
-     * 标记冲突文件为已解决
+     * 鏍囪鍐茬獊鏂囦欢涓哄凡瑙ｅ喅
      */
     fun markConflictResolved(filePath: String) {
         val path = currentRepoPath ?: return
@@ -401,7 +401,7 @@ class BranchesViewModel @Inject constructor(
         viewModelScope.launch {
             mergeUseCase.resolveConflict(path, filePath)
                 .onSuccess {
-                    // 重新获取冲突状态
+                    // 閲嶆柊鑾峰彇鍐茬獊鐘舵€?
                     checkConflictStatus()
                 }
                 .onFailure { e ->
@@ -411,17 +411,17 @@ class BranchesViewModel @Inject constructor(
     }
 
     /**
-     * 完成冲突解决（所有冲突都已解决后继续操作）
+     * 瀹屾垚鍐茬獊瑙ｅ喅锛堟墍鏈夊啿绐侀兘宸茶В鍐冲悗缁х画鎿嶄綔锛?
      */
     fun finishConflictResolution() {
         val path = currentRepoPath ?: return
 
         viewModelScope.launch {
-            // 检查是否所有冲突都已解决
+            // 妫€鏌ユ槸鍚︽墍鏈夊啿绐侀兘宸茶В鍐?
             mergeUseCase.getConflicts(path)
                 .onSuccess { result ->
                     if (result.allResolved || result.allStaged) {
-                        // 所有冲突已解决，可以继续
+                        // 鎵€鏈夊啿绐佸凡瑙ｅ喅锛屽彲浠ョ户缁?
                         _uiState.update {
                             it.copy(
                                 isResolvingConflict = false,
@@ -439,7 +439,7 @@ class BranchesViewModel @Inject constructor(
     }
 
     /**
-     * 取消冲突解决
+     * 鍙栨秷鍐茬獊瑙ｅ喅
      */
     fun cancelConflictResolution() {
         _uiState.update {
@@ -451,7 +451,7 @@ class BranchesViewModel @Inject constructor(
     }
 
     /**
-     * 取消 Rebase 操作
+     * 鍙栨秷 Rebase 鎿嶄綔
      */
     fun abortRebase() {
         val path = currentRepoPath ?: return
@@ -474,7 +474,7 @@ class BranchesViewModel @Inject constructor(
         }
     }
 
-    // ============ 状态清理 ============
+    // ============ 鐘舵€佹竻鐞?============
 
     fun clearError() {
         _uiState.update { it.copy(error = null) }

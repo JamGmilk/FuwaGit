@@ -344,7 +344,7 @@ class MasterKeyManager @Inject constructor(
             .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE)
             .setKeySize(KEY_LENGTH)
             .setUserAuthenticationRequired(true)
-            //.setInvalidatedByBiometricEnrollment(true) // 要启用吗这个qwq
+            //.setInvalidatedByBiometricEnrollment(true) // 瑕佸惎鐢ㄥ悧杩欎釜qwq
             .build()
 
         keyGenerator.init(spec)

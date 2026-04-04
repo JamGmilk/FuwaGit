@@ -126,7 +126,7 @@ fun HistoryScreen(
         }
     }
 
-    // Reset 确认对话框
+    // Reset 纭瀵硅瘽妗?
     val pendingCommit = uiState.pendingResetCommit
     val pendingMode = uiState.pendingResetMode
     if (pendingCommit != null && pendingMode != null) {
@@ -445,7 +445,7 @@ private fun CommitDetails(
     val commitDetail = uiState.selectedCommitDetail
     val isLoadingDetail = uiState.isLoadingCommitDetail
 
-    // 加载 commit 详情
+    // 鍔犺浇 commit 璇︽儏
     LaunchedEffect(commit.hash) {
         viewModel.loadCommitDetail(commit)
     }
@@ -457,7 +457,7 @@ private fun CommitDetails(
             .padding(12.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        // Commit 元信息
+        // Commit 鍏冧俊鎭?
         DetailRow(
             icon = Icons.Default.Code,
             label = "Hash",
@@ -492,7 +492,7 @@ private fun CommitDetails(
             )
         }
 
-        // 文件变更统计
+        // 鏂囦欢鍙樻洿缁熻
         HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
 
         if (isLoadingDetail) {
@@ -505,7 +505,7 @@ private fun CommitDetails(
                 CircularProgressIndicator(modifier = Modifier.size(24.dp))
             }
         } else if (commitDetail != null) {
-            // 变更统计摘要
+            // 鍙樻洿缁熻鎽樿
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceEvenly
@@ -527,7 +527,7 @@ private fun CommitDetails(
                 )
             }
 
-            // 文件变更列表
+            // 鏂囦欢鍙樻洿鍒楄〃
             Spacer(Modifier.height(8.dp))
             Text(
                 text = "Changed Files",
@@ -555,7 +555,7 @@ private fun CommitDetails(
             }
         }
 
-        // Reset 操作按钮
+        // Reset 鎿嶄綔鎸夐挳
         HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
         var showResetMenu by remember { mutableStateOf(false) }
@@ -738,7 +738,7 @@ private fun FileChangeItem(
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // 变更类型图标
+                    // 鍙樻洿绫诲瀷鍥炬爣
                     Icon(
                         imageVector = when (fileChange.changeType) {
                             jamgmilk.fuwagit.domain.model.git.GitChangeType.Added -> Icons.Default.Add
@@ -774,7 +774,7 @@ private fun FileChangeItem(
                 )
             }
             
-            // 行数变化
+            // 琛屾暟鍙樺寲
             Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically

@@ -46,7 +46,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import jamgmilk.fuwagit.ui.screen.myrepos.HttpsCredentialItem
 import jamgmilk.fuwagit.ui.screen.myrepos.SshKeyItem
-import jamgmilk.fuwagit.ui.theme.Sakura80
+import jamgmilk.fuwagit.ui.theme.FuwaGitThemeExtras
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -80,13 +80,13 @@ fun CloneRepoDialog(
             Box(
                 modifier = Modifier
                     .size(56.dp)
-                    .background(Sakura80.copy(alpha = 0.15f), CircleShape),
+                    .background(FuwaGitThemeExtras.colors.mizuiroAccent.copy(alpha = 0.15f), CircleShape),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     Icons.Default.CloudDownload,
                     contentDescription = null,
-                    tint = Sakura80,
+                    tint = FuwaGitThemeExtras.colors.mizuiroAccent,
                     modifier = Modifier.size(28.dp)
                 )
             }
@@ -136,9 +136,9 @@ fun CloneRepoDialog(
                     shape = RoundedCornerShape(12.dp),
                     modifier = Modifier.fillMaxWidth(),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = Sakura80,
-                        focusedLabelColor = Sakura80,
-                        cursorColor = Sakura80
+                        focusedBorderColor = FuwaGitThemeExtras.colors.mizuiroAccent,
+                        focusedLabelColor = FuwaGitThemeExtras.colors.mizuiroAccent,
+                        cursorColor = FuwaGitThemeExtras.colors.mizuiroAccent
                     )
                 )
 
@@ -151,7 +151,7 @@ fun CloneRepoDialog(
                         Checkbox(
                             checked = useCredential,
                             onCheckedChange = onUseCredentialChange,
-                            colors = CheckboxDefaults.colors(checkedColor = Sakura80)
+                            colors = CheckboxDefaults.colors(checkedColor = FuwaGitThemeExtras.colors.mizuiroAccent)
                         )
                         Text(
                             text = "Use saved credentials",
@@ -225,12 +225,12 @@ fun CloneRepoDialog(
                         onClick = onPickFolder,
                         modifier = Modifier
                             .size(48.dp)
-                            .background(Sakura80.copy(alpha = 0.1f), CircleShape)
+                            .background(FuwaGitThemeExtras.colors.mizuiroAccent.copy(alpha = 0.1f), CircleShape)
                     ) {
                         Icon(
                             Icons.Default.FolderOpen,
                             contentDescription = "Pick folder",
-                            tint = Sakura80,
+                            tint = FuwaGitThemeExtras.colors.mizuiroAccent,
                             modifier = Modifier.size(24.dp)
                         )
                     }
@@ -319,7 +319,7 @@ fun CloneRepoDialog(
             Button(
                 onClick = onClone,
                 enabled = cloneUrl.isNotBlank() && localPath.isNotBlank() && isDirectoryEmpty,
-                colors = ButtonDefaults.buttonColors(containerColor = Sakura80),
+                colors = ButtonDefaults.buttonColors(containerColor = FuwaGitThemeExtras.colors.mizuiroAccent),
                 shape = RoundedCornerShape(12.dp)
             ) {
                 Icon(

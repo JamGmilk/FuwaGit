@@ -75,7 +75,7 @@ import jamgmilk.fuwagit.domain.model.git.GitConflict
 import jamgmilk.fuwagit.domain.model.git.GitResetMode
 
 /**
- * 危险操作类型
+ * 鍗遍櫓鎿嶄綔绫诲瀷
  */
 enum class DangerousOperationType {
     DELETE_BRANCH,
@@ -88,7 +88,7 @@ enum class DangerousOperationType {
 }
 
 /**
- * 操作结果状态
+ * 鎿嶄綔缁撴灉鐘舵€?
  */
 sealed class OperationResult {
     data class Success(val message: String) : OperationResult()
@@ -97,15 +97,15 @@ sealed class OperationResult {
 }
 
 /**
- * 双确认对话框 - 用于危险操作
+ * 鍙岀‘璁ゅ璇濇 - 鐢ㄤ簬鍗遍櫓鎿嶄綔
  * 
- * @param operationType 操作类型
- * @param targetName 操作目标名称（如分支名、文件名）
- * @param description 操作描述
- * @param warningMessage 警告信息
- * @param confirmText 确认按钮文本（如 "DELETE"）
- * @param onConfirm 确认回调
- * @param onDismiss 取消回调
+ * @param operationType 鎿嶄綔绫诲瀷
+ * @param targetName 鎿嶄綔鐩爣鍚嶇О锛堝鍒嗘敮鍚嶃€佹枃浠跺悕锛?
+ * @param description 鎿嶄綔鎻忚堪
+ * @param warningMessage 璀﹀憡淇℃伅
+ * @param confirmText 纭鎸夐挳鏂囨湰锛堝 "DELETE"锛?
+ * @param onConfirm 纭鍥炶皟
+ * @param onDismiss 鍙栨秷鍥炶皟
  */
 @Composable
 fun TwoStepConfirmDialog(
@@ -152,14 +152,14 @@ fun TwoStepConfirmDialog(
             Column(
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                // 操作描述
+                // 鎿嶄綔鎻忚堪
                 Text(
                     text = description,
                     style = MaterialTheme.typography.bodyMedium,
                     color = colors.onSurfaceVariant
                 )
 
-                // 目标名称高亮
+                // 鐩爣鍚嶇О楂樹寒
                 if (targetName.isNotBlank()) {
                     Box(
                         modifier = Modifier
@@ -177,7 +177,7 @@ fun TwoStepConfirmDialog(
                     }
                 }
 
-                // 警告信息
+                // 璀﹀憡淇℃伅
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -191,7 +191,7 @@ fun TwoStepConfirmDialog(
                     )
                 }
 
-                // 第二步：输入确认
+                // 绗簩姝ワ細杈撳叆纭
                 if (step >= 2) {
                     Spacer(Modifier.height(8.dp))
                     Text(
@@ -256,7 +256,7 @@ fun TwoStepConfirmDialog(
 }
 
 /**
- * Reset 确认对话框
+ * Reset 纭瀵硅瘽妗?
  */
 @Composable
 fun ResetConfirmDialog(
@@ -399,17 +399,17 @@ fun ResetConfirmDialog(
                                 modifier = Modifier.padding(start = 8.dp)
                             ) {
                                 Text(
-                                    text = "• Discard ALL uncommitted changes",
+                                    text = "鈥?Discard ALL uncommitted changes",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = Color(0xFFC62828)
                                 )
                                 Text(
-                                    text = "• Remove ALL staged changes",
+                                    text = "鈥?Remove ALL staged changes",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = Color(0xFFC62828)
                                 )
                                 Text(
-                                    text = "• Reset working directory to match the selected commit",
+                                    text = "鈥?Reset working directory to match the selected commit",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = colors.onSurfaceVariant
                                 )
@@ -423,7 +423,7 @@ fun ResetConfirmDialog(
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 Text(
-                                    text = "⚠️ This action CANNOT be undone!",
+                                    text = "鈿狅笍 This action CANNOT be undone!",
                                     style = MaterialTheme.typography.bodySmall,
                                     fontWeight = FontWeight.Bold,
                                     color = Color(0xFFC62828),
@@ -472,7 +472,7 @@ fun ResetConfirmDialog(
         shape = RoundedCornerShape(24.dp)
     )
 }/**
- * 操作结果对话框 - 显示成功、失败或冲突信息
+ * 鎿嶄綔缁撴灉瀵硅瘽妗?- 鏄剧ず鎴愬姛銆佸け璐ユ垨鍐茬獊淇℃伅
  */
 @Composable
 fun OperationResultDialog(
@@ -600,7 +600,7 @@ fun OperationResultDialog(
 }
 
 /**
- * Clean 操作预览对话框
+ * Clean 鎿嶄綔棰勮瀵硅瘽妗?
  */
 @Composable
 fun CleanPreviewDialog(
@@ -682,7 +682,7 @@ fun CleanPreviewDialog(
                         .padding(10.dp)
                 ) {
                     Text(
-                        text = "⚠️ This action cannot be undone!",
+                        text = "鈿狅笍 This action cannot be undone!",
                         style = MaterialTheme.typography.bodySmall,
                         fontWeight = FontWeight.Bold,
                         color = colors.onErrorContainer
@@ -715,7 +715,7 @@ fun CleanPreviewDialog(
 }
 
 /**
- * Clean 操作结果对话框 - 显示已删除的文件列表
+ * Clean 鎿嶄綔缁撴灉瀵硅瘽妗?- 鏄剧ず宸插垹闄ょ殑鏂囦欢鍒楄〃
  */
 @Composable
 fun CleanResultDialog(
@@ -823,7 +823,7 @@ fun CleanResultDialog(
 }
 
 /**
- * 冲突解决对话框
+ * 鍐茬獊瑙ｅ喅瀵硅瘽妗?
  */
 @Composable
 fun ConflictResolutionDialog(
@@ -873,7 +873,7 @@ fun ConflictResolutionDialog(
             Column(
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                // 操作说明
+                // 鎿嶄綔璇存槑
                 Surface(
                     shape = RoundedCornerShape(8.dp),
                     color = colors.surfaceVariant.copy(alpha = 0.3f),
@@ -907,7 +907,7 @@ fun ConflictResolutionDialog(
                     }
                 }
 
-                // 冲突文件列表
+                // 鍐茬獊鏂囦欢鍒楄〃
                 Text(
                     text = "Conflicting Files:",
                     style = MaterialTheme.typography.labelMedium,
@@ -1177,7 +1177,7 @@ fun CleanMessageDialog(
                         color = colors.surfaceVariant.copy(alpha = 0.5f)
                     ) {
                         Text(
-                            text = "The repository is already clean — no untracked files found.",
+                            text = "The repository is already clean 鈥?no untracked files found.",
                             style = MaterialTheme.typography.bodySmall,
                             color = colors.onSurfaceVariant,
                             modifier = Modifier.padding(12.dp)

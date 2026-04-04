@@ -4,7 +4,7 @@ import jamgmilk.fuwagit.data.jgit.GitConfigManager
 import javax.inject.Inject
 
 /**
- * 将用户配置应用到指定仓库
+ * 灏嗙敤鎴烽厤缃簲鐢ㄥ埌鎸囧畾浠撳簱
  */
 class ApplyGitConfigToRepo @Inject constructor(
     private val gitConfigManager: GitConfigManager
@@ -22,7 +22,7 @@ class ApplyGitConfigToRepo @Inject constructor(
 }
 
 /**
- * 将用户配置应用到 global git config
+ * 灏嗙敤鎴烽厤缃簲鐢ㄥ埌 global git config
  */
 class ApplyGitConfigToGlobal @Inject constructor(
     private val gitConfigManager: GitConfigManager
@@ -37,7 +37,7 @@ class ApplyGitConfigToGlobal @Inject constructor(
 }
 
 /**
- * 将用户配置应用到所有已知仓库
+ * 灏嗙敤鎴烽厤缃簲鐢ㄥ埌鎵€鏈夊凡鐭ヤ粨搴?
  */
 class ApplyGitConfigToAllRepos @Inject constructor(
     private val gitConfigManager: GitConfigManager,
@@ -54,12 +54,12 @@ class ApplyGitConfigToAllRepos @Inject constructor(
         var successCount = 0
         var failureCount = 0
         
-        // 先应用到 global
+        // 鍏堝簲鐢ㄥ埌 global
         if (alsoApplyToGlobal) {
             applyGitConfigToGlobal(name, email)
         }
         
-        // 然后应用到所有仓库
+        // 鐒跺悗搴旂敤鍒版墍鏈変粨搴?
         repoPaths.forEach { repoPath ->
             val result = applyGitConfigToRepo(repoPath, name, email)
             results[repoPath] = result
@@ -80,7 +80,7 @@ class ApplyGitConfigToAllRepos @Inject constructor(
 }
 
 /**
- * 应用到所有仓库的结果
+ * 搴旂敤鍒版墍鏈変粨搴撶殑缁撴灉
  */
 data class ApplyToAllReposResult(
     val results: Map<String, Result<Unit>>,
@@ -93,7 +93,7 @@ data class ApplyToAllReposResult(
 }
 
 /**
- * 移除仓库本地配置（使用 global 配置）
+ * 绉婚櫎浠撳簱鏈湴閰嶇疆锛堜娇鐢?global 閰嶇疆锛?
  */
 class RemoveRepoLocalConfig @Inject constructor(
     private val gitConfigManager: GitConfigManager
@@ -108,7 +108,7 @@ class RemoveRepoLocalConfig @Inject constructor(
 }
 
 /**
- * 获取仓库当前生效的用户配置
+ * 鑾峰彇浠撳簱褰撳墠鐢熸晥鐨勭敤鎴烽厤缃?
  */
 class GetEffectiveUserConfig @Inject constructor(
     private val gitConfigManager: GitConfigManager
@@ -119,7 +119,7 @@ class GetEffectiveUserConfig @Inject constructor(
 }
 
 /**
- * 获取 global 用户配置
+ * 鑾峰彇 global 鐢ㄦ埛閰嶇疆
  */
 class GetGlobalUserConfig @Inject constructor(
     private val gitConfigManager: GitConfigManager

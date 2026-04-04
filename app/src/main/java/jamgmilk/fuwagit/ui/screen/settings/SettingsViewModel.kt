@@ -100,7 +100,7 @@ class SettingsViewModel @Inject constructor(
     }
 
     /**
-     * 加载 global git config
+     * 鍔犺浇 global git config
      */
     fun loadGlobalConfig() {
         viewModelScope.launch {

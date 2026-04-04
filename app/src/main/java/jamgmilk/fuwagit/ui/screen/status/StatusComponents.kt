@@ -62,9 +62,6 @@ import jamgmilk.fuwagit.domain.model.git.GitChangeType
 import jamgmilk.fuwagit.domain.model.git.GitFileStatus
 import jamgmilk.fuwagit.ui.theme.FuwaGitThemeExtras
 import jamgmilk.fuwagit.ui.theme.GitColors
-import jamgmilk.fuwagit.ui.theme.Sakura50
-import jamgmilk.fuwagit.ui.theme.Sakura80
-import jamgmilk.fuwagit.ui.theme.Sakura90
 
 @Composable
 internal fun ActionToolbar(
@@ -278,7 +275,7 @@ internal fun RepositoryStatusCard(
                 Surface(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
-                    color = Sakura50.copy(alpha = 0.15f)
+                    color = FuwaGitThemeExtras.colors.mizuiroAccentLight.copy(alpha = 0.15f)
                 ) {
                     Row(
                         modifier = Modifier
@@ -289,7 +286,7 @@ internal fun RepositoryStatusCard(
                         Icon(
                             Icons.Default.Code,
                             contentDescription = null,
-                            tint = Sakura80,
+                            tint = FuwaGitThemeExtras.colors.mizuiroAccent,
                             modifier = Modifier.size(18.dp)
                         )
                         Spacer(Modifier.width(8.dp))
@@ -303,7 +300,7 @@ internal fun RepositoryStatusCard(
                             text = currentBranch.name,
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.Bold,
-                            color = Sakura90
+                            color = FuwaGitThemeExtras.colors.mizuiroAccentDark
                         )
                     }
                 }
@@ -566,14 +563,14 @@ internal fun CommitCard(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Surface(
                         shape = RoundedCornerShape(10.dp),
-                        color = Sakura80.copy(alpha = 0.15f),
+                        color = FuwaGitThemeExtras.colors.mizuiroAccent.copy(alpha = 0.15f),
                         modifier = Modifier.size(36.dp)
                     ) {
                         Box(contentAlignment = Alignment.Center) {
                             Icon(
                                 Icons.Default.Check,
                                 contentDescription = null,
-                                tint = Sakura80,
+                                tint = FuwaGitThemeExtras.colors.mizuiroAccent,
                                 modifier = Modifier.size(18.dp)
                             )
                         }
@@ -626,7 +623,7 @@ internal fun CommitCard(
                 minLines = 2,
                 maxLines = 4,
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = Sakura80,
+                    focusedBorderColor = FuwaGitThemeExtras.colors.mizuiroAccent,
                     unfocusedBorderColor = colors.outline.copy(alpha = 0.3f)
                 )
             )
@@ -638,7 +635,7 @@ internal fun CommitCard(
                     .clip(RoundedCornerShape(14.dp))
                     .clickable(enabled = canCommit, onClick = onCommit),
                 shape = RoundedCornerShape(14.dp),
-                color = if (canCommit) Sakura80 else colors.surfaceVariant
+                color = if (canCommit) FuwaGitThemeExtras.colors.mizuiroAccent else colors.surfaceVariant
             ) {
                 Box(
                     modifier = Modifier.fillMaxSize(),
@@ -688,13 +685,13 @@ internal fun InitRepositoryCard(
             Box(
                 modifier = Modifier
                     .size(64.dp)
-                    .background(Sakura80.copy(alpha = 0.1f), RoundedCornerShape(20.dp)),
+                    .background(FuwaGitThemeExtras.colors.mizuiroAccent.copy(alpha = 0.1f), RoundedCornerShape(20.dp)),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = Icons.Default.Refresh,
                     contentDescription = null,
-                    tint = Sakura80,
+                    tint = FuwaGitThemeExtras.colors.mizuiroAccent,
                     modifier = Modifier.size(32.dp)
                 )
             }
@@ -721,7 +718,7 @@ internal fun InitRepositoryCard(
                     .clip(RoundedCornerShape(16.dp))
                     .clickable(enabled = !isLoading, onClick = onInit),
                 shape = RoundedCornerShape(16.dp),
-                color = Sakura80
+                color = FuwaGitThemeExtras.colors.mizuiroAccent
             ) {
                 Box(
                     modifier = Modifier.fillMaxSize(),

@@ -44,8 +44,7 @@ import jamgmilk.fuwagit.domain.model.credential.HttpsCredential
 import jamgmilk.fuwagit.domain.model.credential.SshKey
 import jamgmilk.fuwagit.ui.screen.credentials.CredentialSelectDialog
 import jamgmilk.fuwagit.ui.screen.credentials.CredentialType
-import jamgmilk.fuwagit.ui.theme.Sakura80
-import jamgmilk.fuwagit.ui.theme.Sakura90
+import jamgmilk.fuwagit.ui.theme.FuwaGitThemeExtras
 
 @Composable
 fun ConfigureRemoteDialog(
@@ -245,8 +244,8 @@ private fun CredentialSelectionButton(
     }
 
     val iconColor = when {
-        selectedHttpsUuid != null -> Sakura80
-        selectedSshUuid != null -> Sakura90
+        selectedHttpsUuid != null -> FuwaGitThemeExtras.colors.mizuiroAccent
+        selectedSshUuid != null -> FuwaGitThemeExtras.colors.mizuiroAccentDark
         else -> colors.onSurfaceVariant
     }
 

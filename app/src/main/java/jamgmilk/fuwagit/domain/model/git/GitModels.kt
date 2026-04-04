@@ -24,13 +24,13 @@ data class GitCommit(
 }
 
 /**
- * Commit 中的文件变更信息
+ * Commit 涓殑鏂囦欢鍙樻洿淇℃伅
  *
- * @param path 文件路径
- * @param name 文件名
- * @param changeType 变更类型
- * @param additions 新增行数
- * @param deletions 删除行数
+ * @param path 鏂囦欢璺緞
+ * @param name 鏂囦欢鍚?
+ * @param changeType 鍙樻洿绫诲瀷
+ * @param additions 鏂板琛屾暟
+ * @param deletions 鍒犻櫎琛屾暟
  */
 data class GitCommitFileChange(
     val path: String,
@@ -43,7 +43,7 @@ data class GitCommitFileChange(
 }
 
 /**
- * Commit 详情，包含文件变更列表
+ * Commit 璇︽儏锛屽寘鍚枃浠跺彉鏇村垪琛?
  */
 data class GitCommitDetail(
     val commit: GitCommit,
@@ -73,15 +73,15 @@ data class GitRepoStatus(
 data class PullResult(
     val isSuccessful: Boolean,
     val message: String,
-    // Fetch 结果
+    // Fetch 缁撴灉
     val fetchResult: FetchResult? = null,
-    // Merge 结果
+    // Merge 缁撴灉
     val mergeResult: MergeResultDetail? = null,
-    // Rebase 结果（如果使用了 rebase）
+    // Rebase 缁撴灉锛堝鏋滀娇鐢ㄤ簡 rebase锛?
     val rebaseResult: RebaseResultDetail? = null,
-    // 是否有冲突
+    // 鏄惁鏈夊啿绐?
     val hasConflicts: Boolean = false,
-    // 详细信息
+    // 璇︾粏淇℃伅
     val detailMessage: String = ""
 ) {
     val isUpToDate: Boolean get() = mergeResult?.mergeStatus == MergeStatus.ALREADY_UP_TO_DATE
@@ -91,7 +91,7 @@ data class PullResult(
 }
 
 /**
- * Fetch 结果详情
+ * Fetch 缁撴灉璇︽儏
  */
 data class FetchResult(
     val isSuccessful: Boolean,
@@ -99,7 +99,7 @@ data class FetchResult(
 )
 
 /**
- * Merge 结果详情
+ * Merge 缁撴灉璇︽儏
  */
 data class MergeResultDetail(
     val mergeStatus: MergeStatus,
@@ -109,7 +109,7 @@ data class MergeResultDetail(
 )
 
 /**
- * Merge 状态
+ * Merge 鐘舵€?
  */
 enum class MergeStatus {
     ALREADY_UP_TO_DATE,
@@ -122,7 +122,7 @@ enum class MergeStatus {
 }
 
 /**
- * Rebase 结果详情
+ * Rebase 缁撴灉璇︽儏
  */
 data class RebaseResultDetail(
     val status: RebaseStatus,
@@ -131,7 +131,7 @@ data class RebaseResultDetail(
 )
 
 /**
- * Rebase 状态
+ * Rebase 鐘舵€?
  */
 enum class RebaseStatus {
     UP_TO_DATE,

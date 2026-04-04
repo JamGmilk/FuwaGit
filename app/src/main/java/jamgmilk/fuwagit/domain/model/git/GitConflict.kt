@@ -1,24 +1,24 @@
 package jamgmilk.fuwagit.domain.model.git
 
 /**
- * 冲突文件状态
+ * 鍐茬獊鏂囦欢鐘舵€?
  */
 enum class ConflictStatus {
-    /** 未解决 */
+    /** 鏈В鍐?*/
     UNRESOLVED,
-    /** 已标记为解决 */
+    /** 宸叉爣璁颁负瑙ｅ喅 */
     RESOLVED,
-    /** 已添加到暂存区 */
+    /** 宸叉坊鍔犲埌鏆傚瓨鍖?*/
     STAGED
 }
 
 /**
- * 冲突文件信息
+ * 鍐茬獊鏂囦欢淇℃伅
  *
- * @param path 文件路径
- * @param name 文件名
- * @param status 冲突状态
- * @param description 冲突描述（如：both modified）
+ * @param path 鏂囦欢璺緞
+ * @param name 鏂囦欢鍚?
+ * @param status 鍐茬獊鐘舵€?
+ * @param description 鍐茬獊鎻忚堪锛堝锛歜oth modified锛?
  */
 data class GitConflict(
     val path: String,
@@ -28,12 +28,12 @@ data class GitConflict(
 )
 
 /**
- * Merge/Rebase 冲突结果
+ * Merge/Rebase 鍐茬獊缁撴灉
  *
- * @param isConflicting 是否正在冲突中
- * @param operationType 操作类型 (MERGE/REBASE)
- * @param conflicts 冲突文件列表
- * @param message 冲突消息
+ * @param isConflicting 鏄惁姝ｅ湪鍐茬獊涓?
+ * @param operationType 鎿嶄綔绫诲瀷 (MERGE/REBASE)
+ * @param conflicts 鍐茬獊鏂囦欢鍒楄〃
+ * @param message 鍐茬獊娑堟伅
  */
 data class ConflictResult(
     val isConflicting: Boolean = false,
