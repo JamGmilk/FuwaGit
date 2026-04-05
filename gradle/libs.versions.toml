@@ -29,6 +29,7 @@ uiGraphics = "1.10.6"
 runtimeAnnotation = "1.10.6"
 ui = "1.10.6"
 material = "1.13.0"
+animation = "1.10.6"
 
 [libraries]
 androidx-compose-material-icons-extended = { module = "androidx.compose.material:material-icons-extended" }
@@ -71,6 +72,7 @@ androidx-ui-graphics = { group = "androidx.compose.ui", name = "ui-graphics", ve
 androidx-compose-runtime-annotation = { group = "androidx.compose.runtime", name = "runtime-annotation", version.ref = "runtimeAnnotation" }
 androidx-ui = { group = "androidx.compose.ui", name = "ui", version.ref = "ui" }
 material = { group = "com.google.android.material", name = "material", version.ref = "material" }
+androidx-compose-animation = { group = "androidx.compose.animation", name = "animation", version.ref = "animation" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
