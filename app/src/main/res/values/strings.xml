@@ -1,3 +1,442 @@
 <resources>
     <string name="app_name">FuwaGit</string>
+
+    <!-- Screen Titles -->
+    <string name="screen_settings">Settings</string>
+    <string name="screen_status">Status</string>
+    <string name="screen_branches">Branches</string>
+    <string name="screen_permissions">Permissions</string>
+    <string name="screen_credentials">Credentials</string>
+    <string name="screen_my_repos">My Repos</string>
+    <string name="screen_add_repository">Add Repository</string>
+
+    <!-- Common Actions -->
+    <string name="action_cancel">Cancel</string>
+    <string name="action_save">Save</string>
+    <string name="action_ok">OK</string>
+    <string name="action_close">Close</string>
+    <string name="action_delete">Delete</string>
+    <string name="action_done">Done</string>
+    <string name="action_refresh">Refresh</string>
+    <string name="action_back">Back</string>
+    <string name="action_select">Select</string>
+    <string name="action_copy">Copy</string>
+    <string name="action_import">Import</string>
+    <string name="action_export">Export</string>
+    <string name="action_preview">Preview</string>
+    <string name="action_finish">Finish</string>
+    <string name="action_rename">Rename</string>
+    <string name="action_generate">Generate</string>
+    <string name="action_create">Create</string>
+    <string name="action_add">Add</string>
+    <string name="action_initialize">Initialize</string>
+    <string name="action_commit">Commit</string>
+    <string name="action_unlock">Unlock</string>
+    <string name="action_lock">Lock</string>
+    <string name="action_i_understand">I Understand</string>
+    <string name="action_mark_as_resolved">Mark as Resolved</string>
+
+    <!-- Settings Screen -->
+    <string name="settings_beta_version_notice">Beta Version Notice</string>
+    <string name="settings_beta_features_unstable">Features may be unstable or change.</string>
+    <string name="settings_beta_backup_warning">Important: Backup your repositories and credentials.</string>
+    <string name="settings_storage">Storage</string>
+    <string name="settings_permissions">Permissions</string>
+    <string name="settings_permissions_subtitle">Manage storage access permissions</string>
+    <string name="settings_security">Security</string>
+    <string name="settings_credentials_title">Credentials</string>
+    <string name="settings_credentials_subtitle">HTTPS passwords &amp; SSH keys</string>
+    <string name="settings_change_master_password">Change Master Password</string>
+    <string name="settings_set_master_password">Set Master Password</string>
+    <string name="settings_change_master_password_subtitle">Update your master password</string>
+    <string name="settings_set_master_password_subtitle">Protect your credentials</string>
+    <string name="settings_biometric_unlock">Biometric Unlock</string>
+    <string name="settings_biometric_tap_to_unlock">Tap to unlock credentials first</string>
+    <string name="settings_biometric_enabled">Enabled</string>
+    <string name="settings_biometric_use_fingerprint">Use fingerprint to unlock</string>
+    <string name="settings_auto_lock_timeout">Auto-Lock Timeout</string>
+    <string name="settings_auto_lock_subtitle_format">Session expires after %1$s</string>
+    <string name="settings_auto_lock_never">Never</string>
+    <string name="settings_auto_lock_1_minute">1 minute</string>
+    <string name="settings_auto_lock_5_minutes">5 minutes</string>
+    <string name="settings_auto_lock_10_minutes">10 minutes</string>
+    <string name="settings_auto_lock_30_minutes">30 minutes</string>
+    <string name="settings_auto_lock_1_hour">1 hour</string>
+    <string name="settings_auto_lock_seconds_format">%1$d seconds</string>
+    <string name="settings_auto_lock_description">Set the timeout duration in seconds after which the credentials will be automatically locked. Set to 0 to disable auto-lock.</string>
+    <string name="settings_timeout_label">Timeout (seconds)</string>
+    <string name="settings_timeout_placeholder">300</string>
+    <string name="settings_sync_backup">Sync &amp; Backup</string>
+    <string name="settings_auto_sync">Auto Sync</string>
+    <string name="settings_auto_sync_subtitle">Periodic pull/push in background</string>
+    <string name="settings_conflict_safe_mode">Safe Conflict Strategy</string>
+    <string name="settings_conflict_safe_mode_subtitle">Prefer no-overwrite during merge</string>
+    <string name="settings_backup_before_sync">Backup Before Sync</string>
+    <string name="settings_backup_before_sync_subtitle">Create snapshot before pull/rebase</string>
+    <string name="settings_developer_options">Developer Options</string>
+    <string name="settings_verbose_logging">Verbose Logging</string>
+    <string name="settings_verbose_logging_subtitle">Show detailed Git operations in terminal</string>
+    <string name="settings_test_file_picker">Test File Picker</string>
+    <string name="settings_test_file_picker_subtitle">Open file picker and show selected path</string>
+    <string name="settings_about">About</string>
+    <string name="settings_version">Version</string>
+    <string name="settings_build">Build</string>
+    <string name="settings_source_code">Source Code</string>
+    <string name="settings_source_code_subtitle">JamGmilk/FuwaGit</string>
+    <string name="settings_report_issue">Report Issue</string>
+    <string name="settings_report_issue_subtitle">Submit bug reports or feature requests</string>
+    <string name="settings_configuration">Configuration</string>
+    <string name="settings_user_email">User &amp; Email</string>
+    <string name="settings_user_email_subtitle">Set global author information for commits</string>
+    <string name="settings_user_email_description">Set the default author information. This saves to the global Git config (~/.gitconfig).\nWhen cloning or initializing a repo, you can choose to copy this to the repository\'s local config.</string>
+    <string name="settings_user_name_label">user.name</string>
+    <string name="settings_user_name_placeholder">Your Name</string>
+    <string name="settings_user_email_input_label">user.email</string>
+    <string name="settings_user_email_input_placeholder">your.email@example.com</string>
+    <string name="settings_default_branch">Default Branch</string>
+    <string name="settings_default_branch_subtitle">init.defaultBranch = %1$s</string>
+    <string name="settings_default_branch_description">Set the default branch name for new repositories.</string>
+    <string name="settings_default_branch_label">init.defaultbranch</string>
+    <string name="settings_default_branch_placeholder">main</string>
+
+    <!-- Test File Picker Dialog Title -->
+    <string name="test_file_picker_title">Test File Picker</string>
+
+    <!-- Status Screen -->
+    <string name="status_refresh_description">Refresh</string>
+    <string name="status_action_pull">Pull</string>
+    <string name="status_action_push">Push</string>
+    <string name="status_action_fetch">Fetch</string>
+    <string name="status_action_stage_all">Stage All</string>
+    <string name="status_action_unstage">Unstage</string>
+    <string name="status_checking_repo">Checking repository...</string>
+    <string name="status_not_a_repo">Not a git repository</string>
+    <string name="status_repo_active">Repository Active</string>
+    <string name="status_select_repo">Select a repository</string>
+    <string name="status_no_repo_selected">No Repository Selected</string>
+    <string name="status_current_branch_label">Current branch:</string>
+    <string name="status_workspace">Workspace</string>
+    <string name="status_workspace_subtitle">Unstaged changes</string>
+    <string name="status_working_directory_clean">Working directory clean</string>
+    <string name="status_staged">Staged</string>
+    <string name="status_staged_subtitle">Ready to commit</string>
+    <string name="status_nothing_to_commit">Nothing to commit</string>
+    <string name="status_commit_changes">Commit Changes</string>
+    <string name="status_staged_count">%1$d staged</string>
+    <string name="status_commit_message_placeholder">Enter commit message...</string>
+    <string name="status_initialize_repository">Initialize Repository</string>
+    <string name="status_not_git_repo_yet">This directory is not a Git repository yet.</string>
+    <string name="status_initializing">Initializing...</string>
+    <string name="status_execute_git_init">Execute git init</string>
+    <string name="status_terminal">Terminal</string>
+    <string name="status_terminal_lines">%1$d lines</string>
+    <string name="status_no_output_yet">No output yet</string>
+    <string name="status_file_actions">Actions</string>
+    <string name="status_discard_changes">Discard Changes</string>
+    <string name="status_discard_description">You are about to discard all changes to:</string>
+    <string name="status_discard_warning">Any unstaged modifications will be permanently lost. This action cannot be undone.</string>
+    <string name="status_discard_confirm">DISCARD</string>
+
+    <!-- Branches Screen -->
+    <string name="branches_refresh_description">Refresh</string>
+    <string name="branches_create_branch_description">Create Branch</string>
+    <string name="branches_rename_branch">Rename Branch</string>
+    <string name="branches_rename_description">Rename branch \"%1$s\" to a new name.</string>
+    <string name="branches_new_branch_name_label">New branch name</string>
+    <string name="branches_new_branch_name_placeholder">Enter new name</string>
+    <string name="branches_no_branches_found">No branches found</string>
+    <string name="branches_init_repo_message">Initialize a repository to see branches</string>
+    <string name="branches_local_branches">Local Branches</string>
+    <string name="branches_remote_branches">Remote Branches</string>
+    <string name="branches_count_format">%1$d branches</string>
+    <string name="branches_no_local_branches">No local branches</string>
+    <string name="branches_no_remote_branches">No remote branches</string>
+    <string name="branches_remote_label">Remote</string>
+    <string name="branches_current_branch_subtitle">Current branch</string>
+    <string name="branches_local_subtitle">Local</string>
+    <string name="branches_active_badge">ACTIVE</string>
+    <string name="branches_checkout_remote">Checkout &amp; Create Local Branch</string>
+    <string name="branches_checkout">Checkout</string>
+    <string name="branches_merge_into_current">Merge into current</string>
+    <string name="branches_rebase_onto_current">Rebase onto current</string>
+    <string name="branches_delete_branch">Delete</string>
+    <string name="branches_merge_only_local">Merge is only available for local branches</string>
+    <string name="branches_rebase_only_local">Rebase is only available for local branches</string>
+    <string name="branches_delete_only_local">Delete is only available for local branches</string>
+    <string name="branches_rename_only_local">Rename is only available for local branches</string>
+    <string name="branches_delete_description">You are about to delete the branch:</string>
+    <string name="branches_delete_warning">All commits unique to this branch will be lost. This action cannot be undone.</string>
+    <string name="branches_delete_confirm">DELETE</string>
+    <string name="branches_merge_description">You are about to merge into the current branch:</string>
+    <string name="branches_merge_warning">This may cause conflicts or change your working directory. Make sure you have committed your changes.</string>
+    <string name="branches_merge_confirm">MERGE</string>
+    <string name="branches_rebase_description">You are about to rebase the current branch onto:</string>
+    <string name="branches_rebase_warning">Rebase rewrites commit history. Do not rebase branches that have been shared with others.</string>
+    <string name="branches_rebase_confirm">REBASE</string>
+    <string name="branches_create_new_branch">Create New Branch</string>
+    <string name="branches_create_from_head">Create a new branch from the current HEAD</string>
+    <string name="branches_branch_name_label">Branch Name</string>
+    <string name="branches_branch_name_placeholder">feature/my-new-feature</string>
+    <string name="branches_create_tip">Branch will be created from the current HEAD</string>
+
+    <!-- Credentials Screen -->
+    <string name="credentials_setup_master_password">Set Master Password</string>
+    <string name="credentials_setup_description">Create a master password to protect your sensitive credentials.</string>
+    <string name="credentials_password_label">Password</string>
+    <string name="credentials_password_placeholder">At least 8 characters</string>
+    <string name="credentials_confirm_password_label">Confirm Password</string>
+    <string name="credentials_password_hint_optional">Password Hint (optional)</string>
+    <string name="credentials_password_hint_placeholder">Help you remember</string>
+    <string name="credentials_passwords_do_not_match">Passwords do not match</string>
+    <string name="credentials_at_least_8_characters">At least 8 characters</string>
+    <string name="credentials_set_password">Set Password</string>
+    <string name="credentials_setting">Setting...</string>
+    <string name="credentials_unlock_credentials">Unlock Credentials</string>
+    <string name="credentials_unlock_description">Enter your master password to access sensitive credentials.</string>
+    <string name="credentials_master_password_label">Master Password</string>
+    <string name="credentials_hint_format">Hint: %1$s</string>
+    <string name="credentials_unlocking">Unlocking...</string>
+    <string name="credentials_unlock">Unlock</string>
+    <string name="credentials_unlock_with_biometric">Unlock with biometric</string>
+    <string name="credentials_add_https_credential">Add HTTPS Credential</string>
+    <string name="credentials_host_label">Host</string>
+    <string name="credentials_host_placeholder">github.com</string>
+    <string name="credentials_username_label">Username</string>
+    <string name="credentials_password_pat_label">Password / PAT</string>
+    <string name="credentials_show_hide">Show</string>
+    <string name="credentials_hide">Hide</string>
+    <string name="credentials_change_master_password">Change Master Password</string>
+    <string name="credentials_change_password_description">Enter your current password and set a new one. This will also disable biometric unlock if enabled.</string>
+    <string name="credentials_current_password_label">Current Password</string>
+    <string name="credentials_new_password_label">New Password</string>
+    <string name="credentials_confirm_new_password_label">Confirm New Password</string>
+    <string name="credentials_change_password">Change Password</string>
+    <string name="credentials_setup_master_password_full">Set Master Password</string>
+    <string name="credentials_setup_full_description">Create a master password to protect your sensitive credentials. You\'ll need this password to view passwords and private keys.</string>
+    <string name="credentials_generate_ssh_key">Generate SSH Key</string>
+    <string name="credentials_key_name_label">Key Name</string>
+    <string name="credentials_key_name_placeholder">My Key</string>
+    <string name="credentials_key_type_label">Key Type</string>
+    <string name="credentials_ed25519_label">Ed25519</string>
+    <string name="credentials_ed25519_description">Recommended</string>
+    <string name="credentials_rsa_label">RSA</string>
+    <string name="credentials_rsa_description">Legacy</string>
+    <string name="credentials_comment_optional_label">Comment (optional)</string>
+    <string name="credentials_comment_placeholder">user@host</string>
+    <string name="credentials_import_ssh_key">Import SSH Key</string>
+    <string name="credentials_private_key_label">Private Key</string>
+    <string name="credentials_private_key_placeholder">Paste your private key here...</string>
+    <string name="credentials_passphrase_if_encrypted">Passphrase (if encrypted)</string>
+    <string name="credentials_public_key_optional">Public Key (optional)</string>
+    <string name="credentials_public_key_placeholder">ssh-rsa AAAA...</string>
+    <string name="credentials_https_credentials_title">HTTPS Credentials</string>
+    <string name="credentials_no_https_credentials">No HTTPS Credentials</string>
+    <string name="credentials_no_https_credentials_subtitle">Add your first credential to securely store passwords and PATs</string>
+    <string name="credentials_ssh_keys_title">SSH Keys</string>
+    <string name="credentials_no_ssh_keys">No SSH Keys</string>
+    <string name="credentials_no_ssh_keys_subtitle">Generate a new key pair or import an existing one</string>
+    <string name="credentials_add_description">Add</string>
+    <string name="credentials_generate_description">Generate</string>
+    <string name="credentials_import_description">Import</string>
+    <string name="credentials_info_description">Info</string>
+    <string name="credentials_security_settings">Security Settings</string>
+    <string name="credentials_export_button">Export</string>
+    <string name="credentials_import_button">Import</string>
+    <string name="credentials_lock_vault">Lock Vault</string>
+    <string name="credentials_unlock_vault">Unlock Vault</string>
+    <string name="credentials_unlock_to_reveal">Unlock to Reveal</string>
+    <string name="credentials_delete_ssh_key_title">Delete SSH Key?</string>
+    <string name="credentials_delete_credential_title">Delete Credential?</string>
+    <string name="credentials_delete_ssh_key_message">This SSH key will be permanently removed from your vault. This action cannot be undone.</string>
+    <string name="credentials_delete_credential_message">This credential will be permanently removed from your vault. This action cannot be undone.</string>
+    <string name="credentials_failed_to_generate_key">Failed to generate SSH key pair</string>
+    <string name="credentials_error_generating_key">Error generating SSH key: %1$s</string>
+    <string name="credentials_error_importing_key">Error importing SSH key: %1$s</string>
+    <string name="credentials_host_copied">Host copied</string>
+    <string name="credentials_username_copied">Username copied</string>
+    <string name="credentials_password_copied">Password copied</string>
+    <string name="credentials_name_copied">Name copied</string>
+    <string name="credentials_type_copied">Type copied</string>
+    <string name="credentials_fingerprint_copied">Fingerprint copied</string>
+    <string name="credentials_comment_copied">Comment copied</string>
+    <string name="credentials_public_key_copied">Public key copied</string>
+    <string name="credentials_private_key_copied">Private key copied</string>
+    <string name="credentials_export_title">Export Credentials</string>
+    <string name="credentials_exporting">Exporting...</string>
+    <string name="credentials_export_success">Credentials exported. Copy and save securely.</string>
+    <string name="credentials_export_warning">Contains plaintext passwords and private keys. Clear your clipboard after saving.</string>
+    <string name="credentials_import_title">Import Credentials</string>
+    <string name="credentials_import_warning">Importing will replace existing credentials</string>
+    <string name="credentials_import_paste_description">Paste your exported credentials data below:</string>
+    <string name="credentials_import_data_label">Credentials Data</string>
+    <string name="credentials_import_paste_placeholder">Paste JSON data here...</string>
+    <string name="credentials_import_success">Credentials imported successfully!</string>
+    <string name="credentials_current_hint_format">Current hint: %1$s</string>
+
+    <!-- Credential Select Dialog -->
+    <string name="credential_select_title">Select Credential</string>
+    <string name="credential_tab_https">HTTPS</string>
+    <string name="credential_tab_ssh">SSH</string>
+    <string name="credential_no_https">No HTTPS Credentials</string>
+    <string name="credential_no_ssh">No SSH Keys</string>
+
+    <!-- My Repos Screen -->
+    <string name="myrepos_no_repos_title">No repositories yet</string>
+    <string name="myrepos_no_repos_description">Use the + button to add a repository</string>
+    <string name="myrepos_add_repository_description">Add Repository</string>
+    <string name="myrepos_tap_select_hint">Tap to select, long press for options</string>
+    <string name="myrepos_unknown_date">Unknown</string>
+    <string name="myrepos_active_badge">ACTIVE</string>
+    <string name="myrepos_not_git_label">Not a Git</string>
+    <string name="myrepos_options_header">OPTIONS</string>
+    <string name="myrepos_show_info">Show Info</string>
+    <string name="myrepos_show_info_subtitle">View repository details</string>
+    <string name="myrepos_configure_remote">Configure Remote</string>
+    <string name="myrepos_configure_remote_subtitle">Set push/pull remote URL</string>
+    <string name="myrepos_danger_zone">DANGER ZONE</string>
+    <string name="myrepos_clean_repository">Clean Repository</string>
+    <string name="myrepos_clean_repository_subtitle">Remove untracked files</string>
+    <string name="myrepos_remove_from_list">Remove from List</string>
+    <string name="myrepos_remove_from_list_subtitle">Remove this repository from the list</string>
+    <string name="myrepos_path_copied">Path copied</string>
+    <string name="myrepos_clean_untracked_title">Clean Untracked Files</string>
+    <string name="myrepos_clean_untracked_description">Remove untracked files from the working directory. This action cannot be undone. Click \'Preview\' to see which files will be deleted.</string>
+    <string name="myrepos_repository_added">Repository added</string>
+    <string name="myrepos_repo_info_title">Repository Info</string>
+    <string name="myrepos_not_git_repo_warning">This directory is not a Git repository</string>
+    <string name="myrepos_clone_success">Repository cloned successfully</string>
+    <string name="myrepos_auth_failed">Authentication failed. Please select credentials.</string>
+
+    <!-- Local Content -->
+    <string name="local_repo_detected">Repository Detected</string>
+    <string name="local_new_repo_setup">New Repository Setup</string>
+    <string name="local_display_name_label">Display Name</string>
+    <string name="local_display_name_placeholder">Friendly alias for FuwaGit</string>
+    <string name="local_remote_url_optional">Remote URL (Optional)</string>
+    <string name="local_info_guide">Select a local folder to begin managing it with Git.</string>
+    <string name="local_select_folder">Select Folder</string>
+    <string name="local_remote_count_format">Remote (%1$d found)</string>
+    <string name="local_no_folder_selected">No folder selected</string>
+    <string name="local_git_repo_detected">Git repository detected</string>
+    <string name="local_not_git_repo">Not a Git repository</string>
+    <string name="local_pick_folder">Pick folder</string>
+    <string name="local_repository_label_format">Repository: %1$s</string>
+    <string name="local_user_label_format">User: %1$s</string>
+    <string name="local_head_label_format">HEAD: %1$s</string>
+
+    <!-- Clone Content -->
+    <string name="clone_remote_url_header">Remote URL</string>
+    <string name="clone_repository_url_label">Repository URL</string>
+    <string name="clone_credential_selector_https">Select HTTPS Credential</string>
+    <string name="clone_credential_selector_ssh">Select SSH Key</string>
+    <string name="clone_credential_selected_format">HTTPS: %1$s</string>
+    <string name="clone_credential_selected_ssh">SSH: %1$s</string>
+    <string name="clone_destination_label">Destination</string>
+    <string name="clone_target_path">Target Path</string>
+    <string name="clone_creating_format">Creating: %1$s</string>
+    <string name="clone_ready_to_clone">Ready to clone</string>
+    <string name="clone_directory_not_empty">Directory not empty</string>
+    <string name="clone_advanced_options">Advanced Options</string>
+    <string name="clone_all_branches">Clone all branches</string>
+    <string name="clone_all_branches_desc">Download entire remote history</string>
+    <string name="clone_shallow_clone">Shallow clone</string>
+    <string name="clone_shallow_clone_desc">Only download the latest commits</string>
+    <string name="clone_commit_depth_label">Commit Depth</string>
+    <string name="clone_commit_depth_placeholder">e.g. 1</string>
+    <string name="clone_cloning">Cloning...</string>
+    <string name="clone_repository_button">Clone Repository</string>
+    <string name="clone_select_destination">Select Clone Destination</string>
+
+    <!-- Add Repository Screen -->
+    <string name="add_repo_tab_clone">Clone Remote</string>
+    <string name="add_repo_tab_local">Add Local</string>
+    <string name="add_repo_url_invalid_https">Invalid HTTPS URL format</string>
+    <string name="add_repo_url_invalid_ssh">Invalid SSH format (expected: git@host:path)</string>
+    <string name="add_repo_url_invalid_protocol">URL must start with https://, http://, git@, or ssh://</string>
+
+    <!-- Configure Remote Dialog -->
+    <string name="remote_configure_title">Configure Remote</string>
+    <string name="remote_url_label">Remote URL</string>
+    <string name="remote_credential_label">Credential</string>
+    <string name="remote_ssh_key_label">SSH Key</string>
+
+    <!-- Permissions Screen -->
+    <string name="permissions_system_title">System Permissions</string>
+    <string name="permissions_all_files_access">All Files Access</string>
+    <string name="permissions_all_files_access_desc">Required for Git operations on all directories</string>
+    <string name="permissions_grant">Grant</string>
+    <string name="permissions_scoped_storage">Scoped Storage</string>
+    <string name="permissions_scoped_storage_subtitle">SAF folder access</string>
+    <string name="permissions_my_repos">My Repos</string>
+    <string name="permissions_saved_count_format">%1$d saved</string>
+    <string name="permissions_folder_grant_info">Folder grants are managed automatically when you add local repositories. Remove them by long-pressing an item in the Repo list.</string>
+    <string name="permissions_status_granted">Granted</string>
+    <string name="permissions_status_denied">Denied</string>
+    <string name="permissions_status_unknown">Unknown</string>
+
+    <!-- Confirm Dialogs -->
+    <string name="dialog_confirm_dangerous_title">Confirm Dangerous Operation</string>
+    <string name="dialog_confirm_type_confirm_format">Type \"%1$s\" to confirm:</string>
+    <string name="dialog_reset_confirm_title_format">Confirm %1$s Reset</string>
+    <string name="dialog_reset_to_commit">Reset current branch to commit:</string>
+    <string name="dialog_reset_hash_label">Hash:</string>
+    <string name="dialog_reset_soft">Soft Reset: Move HEAD only</string>
+    <string name="dialog_reset_mixed">Mixed Reset: Move HEAD and unstage changes</string>
+    <string name="dialog_reset_hard">Hard Reset: Discard ALL changes</string>
+    <string name="dialog_reset_hard_will">This will:</string>
+    <string name="dialog_reset_hard_discard_all">• Discard ALL uncommitted changes</string>
+    <string name="dialog_reset_hard_remove_staged">• Remove ALL staged changes</string>
+    <string name="dialog_reset_hard_reset_working">• Reset working directory to match the selected commit</string>
+    <string name="dialog_reset_hard_cannot_undo">⚠️ This action CANNOT be undone!</string>
+    <string name="dialog_reset_soft_label">Soft</string>
+    <string name="dialog_reset_mixed_label">Mixed</string>
+    <string name="dialog_reset_hard_label">Hard</string>
+    <string name="dialog_reset_button_format">Reset %1$s</string>
+    <string name="dialog_operation_successful">Operation Successful</string>
+    <string name="dialog_operation_failed">Operation Failed</string>
+    <string name="dialog_merge_conflicts">Merge Conflicts Detected</string>
+    <string name="dialog_error_format">Error: %1$s</string>
+    <string name="dialog_suggestion_format">Suggestion: %1$s</string>
+    <string name="dialog_conflict_files_message">The following files have conflicts:</string>
+    <string name="dialog_scanning_files">Scanning Files</string>
+    <string name="dialog_clean_info">Clean Info</string>
+    <string name="dialog_clean_failed">Clean Failed</string>
+    <string name="dialog_clean_untracked_title">Clean Untracked Files</string>
+    <string name="dialog_clean_files_to_delete_format">The following %1$d untracked file(s) will be permanently deleted:</string>
+    <string name="dialog_clean_cannot_undo">⚠️ This action CANNOT be undone!</string>
+    <string name="dialog_clean_no_files">No untracked files found.</string>
+    <string name="dialog_delete_all">Delete All</string>
+    <string name="dialog_clean_completed">Clean Completed</string>
+    <string name="dialog_clean_deleted_count_format">Successfully deleted %1$d file(s):</string>
+    <string name="dialog_clean_no_files_deleted">No files were deleted</string>
+    <string name="dialog_merge_conflict_title_format">%1$s Conflicts</string>
+    <string name="dialog_conflict_count_format">%1$s conflict(s) need resolution</string>
+    <string name="dialog_how_to_resolve">How to resolve:</string>
+    <string name="dialog_resolve_step1">1. Edit each file to resolve conflict markers (&lt;&lt;&lt;&lt;&lt;&lt;, ======, &gt;&gt;&gt;&gt;&gt;&gt;)</string>
+    <string name="dialog_resolve_step2">2. Click \'Mark as Resolved\' for each file after editing</string>
+    <string name="dialog_resolve_step3">3. Click \'Finish\' when all conflicts are resolved</string>
+    <string name="dialog_conflicting_files">Conflicting Files:</string>
+    <string name="dialog_abort_format">Abort %1$s</string>
+    <string name="dialog_conflict_status_unresolved">Unresolved</string>
+    <string name="dialog_conflict_status_resolved">Resolved</string>
+    <string name="dialog_conflict_status_staged">Staged</string>
+    <string name="dialog_conflict_status_format">Status: %1$s</string>
+
+    <!-- File Picker Dialog -->
+    <string name="filepicker_title">Select Folder</string>
+    <string name="filepicker_cannot_access">Cannot access this directory</string>
+    <string name="filepicker_empty_folder">Empty folder</string>
+
+    <!-- Empty State -->
+    <!-- (Title and description are passed as parameters) -->
+
+    <!-- SubSettingsTemplate -->
+    <!-- Back is handled by common action_back -->
+
+    <!-- Dialog With Icon -->
+    <!-- (Title and subtitle are passed as parameters) -->
+
+    <!-- Terminal Logs -->
+    <string name="terminal_lines_format">%1$d lines</string>
+    <string name="terminal_no_output">No output yet</string>
 </resources>

@@ -50,12 +50,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import jamgmilk.fuwagit.R
 import jamgmilk.fuwagit.core.util.PathUtils
 import jamgmilk.fuwagit.domain.model.git.GitBranch
 import jamgmilk.fuwagit.domain.model.git.GitChangeType
@@ -89,7 +91,7 @@ internal fun ActionToolbar(
             ) {
                 ActionButton(
                     icon = Icons.Default.CloudDownload,
-                    label = "Pull",
+                    label = stringResource(R.string.status_action_pull),
                     color = colors.primary,
                     enabled = true,
                     onClick = onPull,
@@ -97,7 +99,7 @@ internal fun ActionToolbar(
                 )
                 ActionButton(
                     icon = Icons.Default.CloudUpload,
-                    label = "Push",
+                    label = stringResource(R.string.status_action_push),
                     color = colors.tertiary,
                     enabled = true,
                     onClick = onPush,
@@ -105,7 +107,7 @@ internal fun ActionToolbar(
                 )
                 ActionButton(
                     icon = Icons.Default.CloudDownload,
-                    label = "Fetch",
+                    label = stringResource(R.string.status_action_fetch),
                     color = colors.secondary,
                     enabled = true,
                     onClick = onFetch,
@@ -119,7 +121,7 @@ internal fun ActionToolbar(
             ) {
                 ActionButton(
                     icon = Icons.Default.Check,
-                    label = "Stage All",
+                    label = stringResource(R.string.status_action_stage_all),
                     color = colors.tertiary,
                     enabled = stats.unstaged + stats.untracked > 0,
                     onClick = onStageAll,
@@ -127,7 +129,7 @@ internal fun ActionToolbar(
                 )
                 ActionButton(
                     icon = Icons.AutoMirrored.Filled.Undo,
-                    label = "Unstage",
+                    label = stringResource(R.string.status_action_unstage),
                     color = colors.error,
                     enabled = stats.staged > 0,
                     onClick = onUnstageAll,
@@ -194,11 +196,11 @@ internal fun RepositoryStatusCard(
     val colors = MaterialTheme.colorScheme
 
     val statusMessage = when {
-        isLoading -> "Checking repository..."
+        isLoading -> stringResource(R.string.status_checking_repo)
         !isRepo && error != null -> error
-        !isRepo -> "Not a git repository"
-        isRepo -> "Repository Active"
-        else -> "Select a repository"
+        !isRepo -> stringResource(R.string.status_not_a_repo)
+        isRepo -> stringResource(R.string.status_repo_active)
+        else -> stringResource(R.string.status_select_repo)
     }
 
     ElevatedCard(
@@ -236,7 +238,7 @@ internal fun RepositoryStatusCard(
 
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = repoName ?: "No Repository Selected",
+                        text = repoName ?: stringResource(R.string.status_no_repo_selected),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = when {
@@ -288,7 +290,7 @@ internal fun RepositoryStatusCard(
                         )
                         Spacer(Modifier.width(8.dp))
                         Text(
-                            text = "Current branch:",
+                            text = stringResource(R.string.status_current_branch_label),
                             style = MaterialTheme.typography.bodySmall,
                             color = colors.onSurfaceVariant
                         )

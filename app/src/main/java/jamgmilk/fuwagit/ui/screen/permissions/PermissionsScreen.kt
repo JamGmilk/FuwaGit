@@ -50,6 +50,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalInspectionMode
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
@@ -57,6 +58,7 @@ import androidx.core.net.toUri
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import jamgmilk.fuwagit.R
 import jamgmilk.fuwagit.ui.components.SubSettingsTemplate
 
 @Composable
@@ -73,7 +75,7 @@ fun PermissionsScreen(
     )
 
     SubSettingsTemplate(
-        title = "Permissions",
+        title = stringResource(R.string.screen_permissions),
         onBack = onBack,
         modifier = modifier
     ) {
@@ -161,7 +163,7 @@ private fun SystemPermissionsCard(
                     )
                     Spacer(Modifier.width(10.dp))
                     Text(
-                        text = "System Permissions",
+                        text = stringResource(R.string.permissions_system_title),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = colors.primary
@@ -175,10 +177,10 @@ private fun SystemPermissionsCard(
             ) {
                 PermissionItem(
                     icon = Icons.Default.Storage,
-                    title = "All Files Access",
-                    description = "Required for Git operations on all directories",
+                    title = stringResource(R.string.permissions_all_files_access),
+                    description = stringResource(R.string.permissions_all_files_access_desc),
                     status = allFilesStatus,
-                    actionLabel = "Grant",
+                    actionLabel = stringResource(R.string.permissions_grant),
                     onAction = onRequestAllFilesAccess,
                     actionEnabled = true,
                     accentColor = colors.primary
@@ -224,13 +226,13 @@ private fun ScopedStorageCard(
                     Spacer(Modifier.width(10.dp))
                     Column {
                         Text(
-                            text = "Scoped Storage",
+                            text = stringResource(R.string.permissions_scoped_storage),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = colors.primary
                         )
                         Text(
-                            text = "SAF folder access",
+                            text = stringResource(R.string.permissions_scoped_storage_subtitle),
                             style = MaterialTheme.typography.labelSmall,
                             color = colors.onSurfaceVariant
                         )
@@ -265,12 +267,12 @@ private fun ScopedStorageCard(
 
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = "My Repos",
+                            text = stringResource(R.string.permissions_my_repos),
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.Bold
                         )
                         Text(
-                            text = "$savedReposCount saved",
+                            text = stringResource(R.string.permissions_saved_count_format, savedReposCount),
                             style = MaterialTheme.typography.bodySmall,
                             color = colors.onSurfaceVariant
                         )
@@ -308,7 +310,7 @@ private fun ScopedStorageCard(
                         )
                         Spacer(Modifier.width(8.dp))
                         Text(
-                            text = "Folder grants are managed automatically when you add local repositories. Remove them by long-pressing an item in the Repo list.",
+                            text = stringResource(R.string.permissions_folder_grant_info),
                             style = MaterialTheme.typography.bodySmall,
                             color = colors.onSurfaceVariant
                         )
@@ -394,9 +396,9 @@ private fun PermissionItem(
 private fun StatusBadge(status: PermissionStatus) {
     val colors = MaterialTheme.colorScheme
     val (color, icon, text) = when (status) {
-        PermissionStatus.Granted -> Triple(colors.primary, Icons.Default.CheckCircle, "Granted")
-        PermissionStatus.Denied -> Triple(colors.error, Icons.Default.Error, "Denied")
-        PermissionStatus.Unknown -> Triple(colors.tertiary, Icons.Default.Info, "Unknown")
+        PermissionStatus.Granted -> Triple(colors.primary, Icons.Default.CheckCircle, stringResource(R.string.permissions_status_granted))
+        PermissionStatus.Denied -> Triple(colors.error, Icons.Default.Error, stringResource(R.string.permissions_status_denied))
+        PermissionStatus.Unknown -> Triple(colors.tertiary, Icons.Default.Info, stringResource(R.string.permissions_status_unknown))
     }
 
     Row(

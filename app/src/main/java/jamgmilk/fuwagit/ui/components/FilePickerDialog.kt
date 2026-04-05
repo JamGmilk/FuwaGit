@@ -46,12 +46,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import jamgmilk.fuwagit.R
 import jamgmilk.fuwagit.ui.theme.AppShapes
 import jamgmilk.fuwagit.ui.theme.DialogShapes
 import kotlinx.coroutines.Dispatchers
@@ -83,6 +85,7 @@ fun FilePickerDialog(
     val colors = MaterialTheme.colorScheme
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
+    val strCannotAccess = stringResource(R.string.filepicker_cannot_access)
 
     fun loadFiles(path: String) {
         targetPath = path
@@ -111,7 +114,7 @@ fun FilePickerDialog(
                     if (targetPath == path) {
                         files = emptyList()
                         isLoading = false
-                        error = "Cannot access this directory"
+                        error = strCannotAccess
                     }
                 }
             } catch (e: Exception) {

@@ -46,11 +46,13 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import jamgmilk.fuwagit.R
 import jamgmilk.fuwagit.ui.components.FilePickerDialog
 import jamgmilk.fuwagit.ui.theme.AppShapes
 import kotlinx.coroutines.launch
@@ -121,7 +123,7 @@ internal fun LocalContent(
 
                     // Header
                     Text(
-                        text = if (isGitRepo) "Repository Detected" else "New Repository Setup",
+                        text = if (isGitRepo) stringResource(R.string.local_repo_detected) else stringResource(R.string.local_new_repo_setup),
                         style = MaterialTheme.typography.labelLarge,
                         color = if (isGitRepo) colorScheme.primary else colorScheme.secondary
                     )
@@ -130,8 +132,8 @@ internal fun LocalContent(
                     OutlinedTextField(
                         value = alias,
                         onValueChange = { alias = it },
-                        label = { Text("Display Name") },
-                        placeholder = { Text("Friendly alias for FuwaGit") },
+                        label = { Text(stringResource(R.string.local_display_name_label)) },
+                        placeholder = { Text(stringResource(R.string.local_display_name_placeholder)) },
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(12.dp),
                         singleLine = true,
@@ -155,7 +157,7 @@ internal fun LocalContent(
                         OutlinedTextField(
                             value = remoteUrl,
                             onValueChange = { remoteUrl = it },
-                            label = { Text("Remote URL (Optional)") },
+                            label = { Text(stringResource(R.string.local_remote_url_optional)) },
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(12.dp),
                             singleLine = true,
@@ -167,7 +169,7 @@ internal fun LocalContent(
         }
 
         if (path.isBlank()) {
-            InfoGuideCard(message = "Select a local folder to begin managing it with Git.")
+            InfoGuideCard(message = stringResource(R.string.local_info_guide))
         }
 
         Spacer(modifier = Modifier.weight(1f))
@@ -188,13 +190,13 @@ internal fun LocalContent(
         ) {
             Icon(Icons.Default.Add, null)
             Spacer(Modifier.width(12.dp))
-            Text(if (isGitRepo) "Add" else "Initialize", style = MaterialTheme.typography.titleMedium)
+            Text(if (isGitRepo) stringResource(R.string.action_add) else stringResource(R.string.action_initialize), style = MaterialTheme.typography.titleMedium)
         }
     }
 
     if (showFolderPicker) {
         FilePickerDialog(
-            title = "Select Folder",
+            title = stringResource(R.string.local_select_folder),
             onDismiss = { showFolderPicker = false },
             onSelect = { path = it; showFolderPicker = false }
         )
@@ -235,7 +237,7 @@ private fun RemoteSelectorDropdown(
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
             Text(
-                text = "Remote (${remotes.size} found)",
+                text = stringResource(R.string.local_remote_count_format, remotes.size),
                 style = MaterialTheme.typography.labelMedium,
                 color = colors.onSurfaceVariant
             )
@@ -363,9 +365,9 @@ private fun FolderSelectorCard(
                     Spacer(Modifier.width(8.dp))
                     Text(
                         text = when {
-                            path.isBlank() -> "No folder selected"
-                            isGitRepo -> "Git repository detected"
-                            else -> "Not a Git repository"
+                            path.isBlank() -> stringResource(R.string.local_no_folder_selected)
+                            isGitRepo -> stringResource(R.string.local_git_repo_detected)
+                            else -> stringResource(R.string.local_not_git_repo)
                         },
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Medium,
@@ -398,7 +400,7 @@ private fun FolderSelectorCard(
             ) {
                 Icon(
                     Icons.Default.FolderOpen,
-                    contentDescription = "Pick folder",
+                    contentDescription = stringResource(R.string.local_pick_folder),
                     tint = colors.primary,
                     modifier = Modifier.size(24.dp)
                 )
@@ -435,7 +437,7 @@ private fun RepositoryInfoCard(
                 )
                 Spacer(Modifier.width(8.dp))
                 Text(
-                    text = "Repository: $repoName",
+                    text = stringResource(R.string.local_repository_label_format, repoName),
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Medium,
                     color = colors.primary
@@ -452,7 +454,7 @@ private fun RepositoryInfoCard(
                     )
                     Spacer(Modifier.width(8.dp))
                     Text(
-                        text = "User: $userName",
+                        text = stringResource(R.string.local_user_label_format, userName),
                         style = MaterialTheme.typography.bodySmall,
                         color = colors.onSurfaceVariant
                     )
@@ -469,7 +471,7 @@ private fun RepositoryInfoCard(
                     )
                     Spacer(Modifier.width(8.dp))
                     Text(
-                        text = "HEAD: ${head.take(12)}",
+                        text = stringResource(R.string.local_head_label_format, head.take(12)),
                         style = MaterialTheme.typography.bodySmall,
                         color = colors.onSurfaceVariant
                     )

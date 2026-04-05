@@ -59,11 +59,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import jamgmilk.fuwagit.R
 import jamgmilk.fuwagit.domain.model.git.GitBranch
 import jamgmilk.fuwagit.ui.components.ConflictResolutionDialog
 import jamgmilk.fuwagit.ui.components.DangerousOperationType
@@ -92,7 +94,7 @@ fun BranchesScreen(
     var branchToRename by remember { mutableStateOf<String?>(null) }
 
     ScreenTemplate(
-        title = "Branches",
+        title = stringResource(R.string.screen_branches),
         modifier = modifier,
         actions = {
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -106,7 +108,7 @@ fun BranchesScreen(
                 ) {
                     Icon(
                         Icons.Default.Refresh,
-                        contentDescription = "Refresh",
+                        contentDescription = stringResource(R.string.branches_refresh_description),
                         tint = colors.primary,
                         modifier = Modifier.size(18.dp)
                     )
@@ -121,7 +123,7 @@ fun BranchesScreen(
                 ) {
                     Icon(
                         Icons.Default.Add,
-                        contentDescription = "Create Branch",
+                        contentDescription = stringResource(R.string.branches_create_branch_description),
                         tint = colors.onPrimary,
                         modifier = Modifier.size(18.dp)
                     )
@@ -196,7 +198,7 @@ fun BranchesScreen(
             },
             title = {
                 Text(
-                    text = "Rename Branch",
+                    text = stringResource(R.string.branches_rename_branch),
                     fontWeight = FontWeight.Bold,
                     style = MaterialTheme.typography.titleLarge
                 )
@@ -206,7 +208,7 @@ fun BranchesScreen(
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     Text(
-                        text = "Rename branch \"$branchToRename\" to a new name.",
+                        text = stringResource(R.string.branches_rename_description, branchToRename!!),
                         style = MaterialTheme.typography.bodyMedium,
                         color = colors.onSurfaceVariant
                     )
@@ -214,8 +216,8 @@ fun BranchesScreen(
                     OutlinedTextField(
                         value = newName,
                         onValueChange = { newName = it },
-                        label = { Text("New branch name") },
-                        placeholder = { Text("Enter new name") },
+                        label = { Text(stringResource(R.string.branches_new_branch_name_label)) },
+                        placeholder = { Text(stringResource(R.string.branches_new_branch_name_placeholder)) },
                         singleLine = true,
                         shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.fillMaxWidth(),
@@ -243,7 +245,7 @@ fun BranchesScreen(
                         modifier = Modifier.size(18.dp)
                     )
                     Spacer(Modifier.width(6.dp))
-                    Text("Rename")
+                    Text(stringResource(R.string.action_rename))
                 }
             },
             dismissButton = {
@@ -251,7 +253,7 @@ fun BranchesScreen(
                     showRenameDialog = false
                     branchToRename = null
                 }) {
-                    Text("Cancel")
+                    Text(stringResource(R.string.action_cancel))
                 }
             },
             shape = RoundedCornerShape(24.dp)
@@ -267,9 +269,9 @@ fun BranchesScreen(
                 TwoStepConfirmDialog(
                     operationType = DangerousOperationType.DELETE_BRANCH,
                     targetName = pendingTarget,
-                    description = "You are about to delete the branch:",
-                    warningMessage = "All commits unique to this branch will be lost. This action cannot be undone.",
-                    confirmText = "DELETE",
+                    description = stringResource(R.string.branches_delete_description),
+                    warningMessage = stringResource(R.string.branches_delete_warning),
+                    confirmText = stringResource(R.string.branches_delete_confirm),
                     onConfirm = { branchesViewModel.confirmDeleteBranch(force = false) },
                     onDismiss = { branchesViewModel.cancelPendingOperation() }
                 )
@@ -278,9 +280,9 @@ fun BranchesScreen(
                 TwoStepConfirmDialog(
                     operationType = DangerousOperationType.MERGE,
                     targetName = pendingTarget,
-                    description = "You are about to merge into the current branch:",
-                    warningMessage = "This may cause conflicts or change your working directory. Make sure you have committed your changes.",
-                    confirmText = "MERGE",
+                    description = stringResource(R.string.branches_merge_description),
+                    warningMessage = stringResource(R.string.branches_merge_warning),
+                    confirmText = stringResource(R.string.branches_merge_confirm),
                     onConfirm = { branchesViewModel.confirmMergeBranch() },
                     onDismiss = { branchesViewModel.cancelPendingOperation() }
                 )
@@ -289,9 +291,9 @@ fun BranchesScreen(
                 TwoStepConfirmDialog(
                     operationType = DangerousOperationType.REBASE,
                     targetName = pendingTarget,
-                    description = "You are about to rebase the current branch onto:",
-                    warningMessage = "Rebase rewrites commit history. Do not rebase branches that have been shared with others.",
-                    confirmText = "REBASE",
+                    description = stringResource(R.string.branches_rebase_description),
+                    warningMessage = stringResource(R.string.branches_rebase_warning),
+                    confirmText = stringResource(R.string.branches_rebase_confirm),
                     onConfirm = { branchesViewModel.confirmRebaseBranch() },
                     onDismiss = { branchesViewModel.cancelPendingOperation() }
                 )
@@ -353,12 +355,12 @@ private fun EmptyBranchesState() {
                 modifier = Modifier.size(48.dp)
             )
             Text(
-                "No branches found",
+                stringResource(R.string.branches_no_branches_found),
                 style = MaterialTheme.typography.titleMedium,
                 color = colors.onSurfaceVariant
             )
             Text(
-                "Initialize a repository to see branches",
+                stringResource(R.string.branches_init_repo_message),
                 style = MaterialTheme.typography.bodySmall,
                 color = colors.onSurfaceVariant.copy(alpha = 0.7f)
             )
@@ -387,8 +389,8 @@ private fun BranchListContent(
     ) {
         item(contentType = "header") {
             SectionHeader(
-                title = "Local Branches",
-                subtitle = "${localBranches.size} branches",
+                title = stringResource(R.string.branches_local_branches),
+                subtitle = stringResource(R.string.branches_count_format, localBranches.size),
                 icon = Icons.Outlined.AccountTree,
                 color = colors.primary
             )
@@ -396,7 +398,7 @@ private fun BranchListContent(
 
         if (localBranches.isEmpty()) {
             item {
-                EmptySectionMessage("No local branches")
+                EmptySectionMessage(stringResource(R.string.branches_no_local_branches))
             }
         } else {
             items(localBranches, key = { "local:${it.name}" }, contentType = { "branch_item" }) { branch ->
@@ -422,8 +424,8 @@ private fun BranchListContent(
 
         item {
             SectionHeader(
-                title = "Remote Branches",
-                subtitle = "${remoteBranches.size} branches",
+                title = stringResource(R.string.branches_remote_branches),
+                subtitle = stringResource(R.string.branches_count_format, remoteBranches.size),
                 icon = Icons.Default.Cloud,
                 color = colors.secondary
             )
@@ -431,7 +433,7 @@ private fun BranchListContent(
 
         if (remoteBranches.isEmpty()) {
             item {
-                EmptySectionMessage("No remote branches")
+                EmptySectionMessage(stringResource(R.string.branches_no_remote_branches))
             }
         } else {
             items(remoteBranches, key = { "remote:${it.name}" }) { branch ->
@@ -518,6 +520,12 @@ private fun BranchItem(
     val colors = MaterialTheme.colorScheme
     val context = LocalContext.current
 
+    // Pre-fetch strings for use in non-composable contexts (onClick lambdas)
+    val strMergeOnlyLocal = stringResource(R.string.branches_merge_only_local)
+    val strRebaseOnlyLocal = stringResource(R.string.branches_rebase_only_local)
+    val strDeleteOnlyLocal = stringResource(R.string.branches_delete_only_local)
+    val strRenameOnlyLocal = stringResource(R.string.branches_rename_only_local)
+
     val accentColor = if (isRemote) colors.secondary else colors.primary
 
     Column(
@@ -554,7 +562,7 @@ private fun BranchItem(
                     overflow = TextOverflow.Ellipsis
                 )
                 Text(
-                    text = if (isRemote) "Remote" else if (isCurrent) "Current branch" else "Local",
+                    text = if (isRemote) stringResource(R.string.branches_remote_label) else if (isCurrent) stringResource(R.string.branches_current_branch_subtitle) else stringResource(R.string.branches_local_subtitle),
                     style = MaterialTheme.typography.labelSmall,
                     color = colors.onSurfaceVariant
                 )
@@ -567,7 +575,7 @@ private fun BranchItem(
                         .padding(horizontal = 8.dp, vertical = 3.dp)
                 ) {
                     Text(
-                        text = "ACTIVE",
+                        text = stringResource(R.string.branches_active_badge),
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
                         color = Color.White,
@@ -582,7 +590,7 @@ private fun BranchItem(
             ) {
                 Icon(
                     Icons.Default.MoreVert,
-                    contentDescription = "Actions",
+                    contentDescription = stringResource(R.string.status_file_actions),
                     tint = colors.onSurfaceVariant,
                     modifier = Modifier.size(18.dp)
                 )
@@ -594,11 +602,11 @@ private fun BranchItem(
             ) {
                 if (!isCurrent) {
                     DropdownMenuItem(
-                        text = { 
+                        text = {
                             Text(
-                                if (isRemote) "Checkout & Create Local Branch" 
-                                else "Checkout"
-                            ) 
+                                if (isRemote) stringResource(R.string.branches_checkout_remote)
+                                else stringResource(R.string.branches_checkout)
+                            )
                         },
                         onClick = {
                             onCheckout()
@@ -611,10 +619,10 @@ private fun BranchItem(
                 }
                 if (!isRemote) {
                     DropdownMenuItem(
-                        text = { Text("Merge into current") },
+                        text = { Text(stringResource(R.string.branches_merge_into_current)) },
                         onClick = {
                             onMerge?.invoke() ?: run {
-                                Toast.makeText(context, "Merge is only available for local branches", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, strMergeOnlyLocal, Toast.LENGTH_SHORT).show()
                             }
                             showMenu = false
                         },
@@ -623,10 +631,10 @@ private fun BranchItem(
                         }
                     )
                     DropdownMenuItem(
-                        text = { Text("Rebase onto current") },
+                        text = { Text(stringResource(R.string.branches_rebase_onto_current)) },
                         onClick = {
                             onRebase?.invoke() ?: run {
-                                Toast.makeText(context, "Rebase is only available for local branches", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, strRebaseOnlyLocal, Toast.LENGTH_SHORT).show()
                             }
                             showMenu = false
                         },
@@ -637,10 +645,10 @@ private fun BranchItem(
                 }
                 if (!isCurrent && !isRemote) {
                     DropdownMenuItem(
-                        text = { Text("Delete") },
+                        text = { Text(stringResource(R.string.branches_delete_branch)) },
                         onClick = {
                             onDelete?.invoke() ?: run {
-                                Toast.makeText(context, "Delete is only available for local branches", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, strDeleteOnlyLocal, Toast.LENGTH_SHORT).show()
                             }
                             showMenu = false
                         },
@@ -649,10 +657,10 @@ private fun BranchItem(
                         }
                     )
                     DropdownMenuItem(
-                        text = { Text("Rename") },
+                        text = { Text(stringResource(R.string.action_rename)) },
                         onClick = {
                             onRename?.invoke() ?: run {
-                                Toast.makeText(context, "Rename is only available for local branches", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, strRenameOnlyLocal, Toast.LENGTH_SHORT).show()
                             }
                             showMenu = false
                         },
@@ -661,13 +669,13 @@ private fun BranchItem(
                         }
                     )
                 }
-                
+
                 // 杩滅▼鍒嗘敮鐨勬彁绀鸿彍鍗曢」
                 if (isRemote) {
                     DropdownMenuItem(
-                        text = { Text("Merge into current") },
+                        text = { Text(stringResource(R.string.branches_merge_into_current)) },
                         onClick = {
-                            Toast.makeText(context, "Merge is only available for local branches", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, strMergeOnlyLocal, Toast.LENGTH_SHORT).show()
                             showMenu = false
                         },
                         leadingIcon = {
@@ -676,9 +684,9 @@ private fun BranchItem(
                         enabled = false
                     )
                     DropdownMenuItem(
-                        text = { Text("Rebase onto current") },
+                        text = { Text(stringResource(R.string.branches_rebase_onto_current)) },
                         onClick = {
-                            Toast.makeText(context, "Rebase is only available for local branches", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, strRebaseOnlyLocal, Toast.LENGTH_SHORT).show()
                             showMenu = false
                         },
                         leadingIcon = {
@@ -730,35 +738,35 @@ private fun CreateBranchDialog(
     DialogWithIcon(
         onDismiss = onDismiss,
         icon = Icons.Default.Add,
-        title = "Create New Branch",
-        subtitle = "Create a new branch from the current HEAD",
+        title = stringResource(R.string.branches_create_new_branch),
+        subtitle = stringResource(R.string.branches_create_from_head),
         confirmButton = {
             Button(
                 onClick = { onCreate(branchName) },
                 enabled = branchName.isNotBlank(),
                 shape = RoundedCornerShape(12.dp)
             ) {
-                Text("Create")
+                Text(stringResource(R.string.action_create))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel")
+                Text(stringResource(R.string.action_cancel))
             }
         }
     ) {
         OutlinedTextField(
             value = branchName,
             onValueChange = { branchName = it },
-            label = { Text("Branch Name") },
-            placeholder = { Text("feature/my-new-feature") },
+            label = { Text(stringResource(R.string.branches_branch_name_label)) },
+            placeholder = { Text(stringResource(R.string.branches_branch_name_placeholder)) },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(12.dp)
         )
         TipInDialog(
             icon = Icons.Default.Info,
-            text = "Branch will be created from the current HEAD"
+            text = stringResource(R.string.branches_create_tip)
         )
     }
 }

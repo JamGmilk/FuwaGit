@@ -54,6 +54,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.stringResource
+import jamgmilk.fuwagit.R
 import jamgmilk.fuwagit.domain.model.credential.HttpsCredential
 import jamgmilk.fuwagit.domain.model.credential.SshKey
 import jamgmilk.fuwagit.ui.theme.AppShapes
@@ -102,7 +104,7 @@ fun HttpsCredentialsSection(
                     }
                     Spacer(Modifier.width(10.dp))
                     Text(
-                        text = "HTTPS Credentials",
+                        text = stringResource(R.string.credentials_https_credentials_title),
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
                         color = colors.primary
@@ -120,7 +122,7 @@ fun HttpsCredentialsSection(
                 ) {
                     Icon(
                         Icons.Default.Add,
-                        contentDescription = "Add",
+                        contentDescription = stringResource(R.string.credentials_add_description),
                         modifier = Modifier.size(20.dp)
                     )
                 }
@@ -129,8 +131,8 @@ fun HttpsCredentialsSection(
             if (credentials.isEmpty()) {
                 EmptyStateContent(
                     icon = Icons.Default.Link,
-                    title = "No HTTPS Credentials",
-                    subtitle = "Add your first credential to securely store passwords and PATs",
+                    title = stringResource(R.string.credentials_no_https_credentials),
+                    subtitle = stringResource(R.string.credentials_no_https_credentials_subtitle),
                     modifier = Modifier.padding(24.dp)
                 )
             } else {
@@ -214,7 +216,7 @@ fun HttpsCredentialItem(
         ) {
             Icon(
                 Icons.Default.Info,
-                contentDescription = "Info",
+                contentDescription = stringResource(R.string.credentials_info_description),
                 tint = colors.primary,
                 modifier = Modifier.size(20.dp)
             )
@@ -264,7 +266,7 @@ fun SshKeysSection(
                     }
                     Spacer(Modifier.width(10.dp))
                     Text(
-                        text = "SSH Keys",
+                        text = stringResource(R.string.credentials_ssh_keys_title),
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
                         color = colors.tertiary
@@ -283,7 +285,7 @@ fun SshKeysSection(
                     ) {
                         Icon(
                             Icons.Default.Key,
-                            contentDescription = "Generate",
+                            contentDescription = stringResource(R.string.credentials_generate_description),
                             modifier = Modifier.size(20.dp)
                         )
                     }
@@ -298,7 +300,7 @@ fun SshKeysSection(
                     ) {
                         Icon(
                             Icons.Default.Upload,
-                            contentDescription = "Import",
+                            contentDescription = stringResource(R.string.credentials_import_description),
                             modifier = Modifier.size(20.dp)
                         )
                     }
@@ -308,8 +310,8 @@ fun SshKeysSection(
             if (keys.isEmpty()) {
                 EmptyStateContent(
                     icon = Icons.Default.Key,
-                    title = "No SSH Keys",
-                    subtitle = "Generate a new key pair or import an existing one",
+                    title = stringResource(R.string.credentials_no_ssh_keys),
+                    subtitle = stringResource(R.string.credentials_no_ssh_keys_subtitle),
                     modifier = Modifier.padding(24.dp)
                 )
             } else {
@@ -410,7 +412,7 @@ fun SshKeyItem(
         ) {
             Icon(
                 Icons.Default.Info,
-                contentDescription = "Info",
+                contentDescription = stringResource(R.string.credentials_info_description),
                 tint = colors.tertiary,
                 modifier = Modifier.size(20.dp)
             )
@@ -507,7 +509,7 @@ fun SecuritySettingsSection(
                     }
                     Spacer(Modifier.width(10.dp))
                     Text(
-                        text = "Security Settings",
+                        text = stringResource(R.string.credentials_security_settings),
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
                         color = colors.secondary
@@ -540,7 +542,7 @@ fun SecuritySettingsSection(
                             modifier = Modifier.size(18.dp)
                         )
                         Spacer(Modifier.width(6.dp))
-                        Text("Export")
+                        Text(stringResource(R.string.credentials_export_button))
                     }
 
                     FilledTonalButton(
@@ -558,7 +560,7 @@ fun SecuritySettingsSection(
                             modifier = Modifier.size(18.dp)
                         )
                         Spacer(Modifier.width(6.dp))
-                        Text("Import")
+                        Text(stringResource(R.string.credentials_import_button))
                     }
                 }
 
@@ -579,7 +581,7 @@ fun SecuritySettingsSection(
                             modifier = Modifier.size(18.dp)
                         )
                         Spacer(Modifier.width(6.dp))
-                        Text(if (isDecryptionUnlocked) "Lock Vault" else "Unlock Vault")
+                        Text(if (isDecryptionUnlocked) stringResource(R.string.credentials_lock_vault) else stringResource(R.string.credentials_unlock_vault))
                     }
             }
         }
@@ -638,7 +640,7 @@ fun SensitiveInfoRow(
                 ) {
                     Icon(
                         if (isRevealed) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                        contentDescription = if (isRevealed) "Hide" else "Show",
+                        contentDescription = if (isRevealed) stringResource(R.string.credentials_hide) else stringResource(R.string.credentials_show_hide),
                         tint = colors.onSurfaceVariant,
                         modifier = Modifier.size(18.dp)
                     )
@@ -704,16 +706,16 @@ fun DeleteConfirmDialog(
         },
         title = {
             Text(
-                text = if (isSsh) "Delete SSH Key?" else "Delete Credential?",
+                text = if (isSsh) stringResource(R.string.credentials_delete_ssh_key_title) else stringResource(R.string.credentials_delete_credential_title),
                 fontWeight = FontWeight.Bold
             )
         },
         text = {
             Text(
                 text = if (isSsh) {
-                    "This SSH key will be permanently removed from your vault. This action cannot be undone."
+                    stringResource(R.string.credentials_delete_ssh_key_message)
                 } else {
-                    "This credential will be permanently removed from your vault. This action cannot be undone."
+                    stringResource(R.string.credentials_delete_credential_message)
                 },
                 style = MaterialTheme.typography.bodyMedium,
                 color = colors.onSurfaceVariant
@@ -725,12 +727,12 @@ fun DeleteConfirmDialog(
                 colors = ButtonDefaults.buttonColors(containerColor = colors.error),
                 shape = RoundedCornerShape(12.dp)
             ) {
-                Text("Delete")
+                Text(stringResource(R.string.action_delete))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel")
+                Text(stringResource(R.string.action_cancel))
             }
         },
         shape = RoundedCornerShape(24.dp)
