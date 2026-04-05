@@ -78,8 +78,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import jamgmilk.fuwagit.ui.components.CleanLoadingDialog
-import jamgmilk.fuwagit.ui.components.CleanMessageDialog
 import jamgmilk.fuwagit.ui.components.CleanPreviewDialog
 import jamgmilk.fuwagit.ui.components.CleanResultDialog
 import jamgmilk.fuwagit.ui.components.ConfigureRemoteDialog
@@ -242,16 +240,10 @@ fun MyReposScreen(
     val isCleanPreviewing = uiState.isCleanPreviewing
     val cleanMessage = uiState.cleanMessage
 
-    if (isCleanPreviewing) {
-        CleanLoadingDialog()
-    } else if (cleanMessage != null && untrackedFiles.isEmpty()) {
-        CleanMessageDialog(
-            message = cleanMessage,
-            onDismiss = { myReposViewModel.clearCleanPreview() }
-        )
-    } else if (untrackedFiles.isNotEmpty()) {
+    if (untrackedFiles.isNotEmpty() || cleanMessage != null || isCleanPreviewing) {
         CleanPreviewDialog(
             untrackedFiles = untrackedFiles,
+            message = if (isCleanPreviewing) "Scanning for untracked files..." else cleanMessage,
             onConfirm = { myReposViewModel.confirmCleanUntracked() },
             onDismiss = { myReposViewModel.clearCleanPreview() }
         )

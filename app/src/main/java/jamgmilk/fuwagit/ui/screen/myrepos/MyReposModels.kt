@@ -5,6 +5,7 @@ import jamgmilk.fuwagit.core.util.PathUtils
 import jamgmilk.fuwagit.domain.model.credential.HttpsCredential
 import jamgmilk.fuwagit.domain.model.credential.SshKey
 import jamgmilk.fuwagit.domain.model.repo.RepoData
+import java.util.Locale
 
 @Stable
 data class RepoFolderItem(
@@ -25,7 +26,7 @@ data class RepoFolderItem(
                 size < 1024 -> "$size B"
                 size < 1024 * 1024 -> "${size / 1024} KB"
                 size < 1024 * 1024 * 1024 -> "${size / (1024 * 1024)} MB"
-                else -> String.format("%.1f GB", size / (1024.0 * 1024 * 1024))
+                else -> String.format(Locale.US, "%.1f GB", size / (1024.0 * 1024 * 1024))
             }
         }
 }

@@ -140,14 +140,14 @@ fun TwoStepConfirmDialog(
             Column(
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                // 鎿嶄綔鎻忚堪
+                // 操作描述
                 Text(
                     text = description,
                     style = MaterialTheme.typography.bodyMedium,
                     color = colors.onSurfaceVariant
                 )
 
-                // 鐩爣鍚嶇О楂樹寒
+                // 目标名称高亮
                 if (targetName.isNotBlank()) {
                     Box(
                         modifier = Modifier
@@ -165,7 +165,7 @@ fun TwoStepConfirmDialog(
                     }
                 }
 
-                // 璀﹀憡淇℃伅
+                // 警告信息
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -179,7 +179,7 @@ fun TwoStepConfirmDialog(
                     )
                 }
 
-                // 绗簩姝ワ細杈撳叆纭
+                // 第二步：输入确认
                 if (step >= 2) {
                     Spacer(Modifier.height(8.dp))
                     Text(
@@ -244,7 +244,7 @@ fun TwoStepConfirmDialog(
 }
 
 /**
- * Reset 纭瀵硅瘽妗?
+ * Reset 确认对话框
  */
 @Composable
 fun ResetConfirmDialog(
@@ -387,17 +387,17 @@ fun ResetConfirmDialog(
                                 modifier = Modifier.padding(start = 8.dp)
                             ) {
                                 Text(
-                                    text = "鈥?Discard ALL uncommitted changes",
+                                    text = "• Discard ALL uncommitted changes",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = Color(0xFFC62828)
                                 )
                                 Text(
-                                    text = "鈥?Remove ALL staged changes",
+                                    text = "• Remove ALL staged changes",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = Color(0xFFC62828)
                                 )
                                 Text(
-                                    text = "鈥?Reset working directory to match the selected commit",
+                                    text = "• Reset working directory to match the selected commit",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = colors.onSurfaceVariant
                                 )
@@ -411,7 +411,7 @@ fun ResetConfirmDialog(
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 Text(
-                                    text = "鈿狅笍 This action CANNOT be undone!",
+                                    text = "⚠️ This action CANNOT be undone!",
                                     style = MaterialTheme.typography.bodySmall,
                                     fontWeight = FontWeight.Bold,
                                     color = Color(0xFFC62828),
@@ -460,7 +460,7 @@ fun ResetConfirmDialog(
         shape = RoundedCornerShape(24.dp)
     )
 }/**
- * 鎿嶄綔缁撴灉瀵硅瘽妗?- 鏄剧ず鎴愬姛銆佸け璐ユ垨鍐茬獊淇℃伅
+ * 操作结果对话框 - 显示成功、失败或冲突信息
  */
 @Composable
 fun OperationResultDialog(
@@ -588,15 +588,19 @@ fun OperationResultDialog(
 }
 
 /**
- * Clean 鎿嶄綔棰勮瀵硅瘽妗?
+ * Clean 操作预览对话框
  */
 @Composable
 fun CleanPreviewDialog(
     untrackedFiles: List<String>,
+    message: String? = null,
     onConfirm: () -> Unit,
     onDismiss: () -> Unit
 ) {
     val colors = MaterialTheme.colorScheme
+    val isError = message?.startsWith("Failed") == true || message?.contains("error", ignoreCase = true) == true
+    val isLoading = message == "Scanning for untracked files..."
+    val isInfo = message != null && !isError && untrackedFiles.isEmpty() && !isLoading
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -604,20 +608,49 @@ fun CleanPreviewDialog(
             Box(
                 modifier = Modifier
                     .size(56.dp)
-                    .background(Color(0xFF2196F3).copy(alpha = 0.15f), CircleShape),
+                    .background(
+                        when {
+                            isLoading -> Color(0xFF2196F3)
+                            isInfo -> Color(0xFFFF9800)
+                            isError -> Color(0xFFE53935)
+                            else -> Color(0xFF2196F3)
+                        }.copy(alpha = 0.15f),
+                        CircleShape
+                    ),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(
-                    Icons.Default.Clear,
-                    contentDescription = null,
-                    tint = Color(0xFF2196F3),
-                    modifier = Modifier.size(28.dp)
-                )
+                if (isLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(28.dp),
+                        color = Color(0xFF2196F3),
+                        strokeWidth = 2.5.dp
+                    )
+                } else {
+                    Icon(
+                        imageVector = when {
+                            isInfo -> Icons.Default.Info
+                            isError -> Icons.Default.Warning
+                            else -> Icons.Default.Clear
+                        },
+                        contentDescription = null,
+                        tint = when {
+                            isInfo -> Color(0xFFFF9800)
+                            isError -> Color(0xFFE53935)
+                            else -> Color(0xFF2196F3)
+                        },
+                        modifier = Modifier.size(28.dp)
+                    )
+                }
             }
         },
         title = {
             Text(
-                text = "Clean Untracked Files",
+                text = when {
+                    isLoading -> "Scanning Files"
+                    isInfo -> "Clean Info"
+                    isError -> "Clean Failed"
+                    else -> "Clean Untracked Files"
+                },
                 fontWeight = FontWeight.Bold,
                 style = MaterialTheme.typography.titleLarge
             )
@@ -626,76 +659,105 @@ fun CleanPreviewDialog(
             Column(
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                Text(
-                    text = "The following ${untrackedFiles.size} untracked file(s) will be permanently deleted:",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = colors.onSurfaceVariant
-                )
+                // 显示消息（如果有）
+                if (message != null) {
+                    Text(
+                        text = message,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = if (isError) colors.error else colors.onSurfaceVariant
+                    )
+                }
 
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(max = 300.dp)
-                        .background(colors.surfaceVariant.copy(alpha = 0.3f), RoundedCornerShape(8.dp))
-                        .padding(10.dp)
-                ) {
-                    Column(
-                        verticalArrangement = Arrangement.spacedBy(6.dp),
-                        modifier = Modifier.verticalScroll(rememberScrollState())
+                // 显示文件列表（如果有）
+                if (untrackedFiles.isNotEmpty()) {
+                    Text(
+                        text = "The following ${untrackedFiles.size} untracked file(s) will be permanently deleted:",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = colors.onSurfaceVariant
+                    )
+
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(max = 300.dp)
+                            .background(colors.surfaceVariant.copy(alpha = 0.3f), RoundedCornerShape(8.dp))
+                            .padding(10.dp)
                     ) {
-                        untrackedFiles.forEach { file ->
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(
-                                    Icons.Default.Clear,
-                                    contentDescription = null,
-                                    tint = colors.error,
-                                    modifier = Modifier.size(14.dp)
-                                )
-                                Spacer(Modifier.width(6.dp))
-                                Text(
-                                    text = file,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    fontFamily = FontFamily.Monospace,
-                                    color = colors.onSurfaceVariant
-                                )
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(6.dp),
+                            modifier = Modifier.verticalScroll(rememberScrollState())
+                        ) {
+                            untrackedFiles.forEach { file ->
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        Icons.Default.Clear,
+                                        contentDescription = null,
+                                        tint = colors.error,
+                                        modifier = Modifier.size(14.dp)
+                                    )
+                                    Spacer(Modifier.width(6.dp))
+                                    Text(
+                                        text = file,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        fontFamily = FontFamily.Monospace,
+                                        color = colors.onSurfaceVariant
+                                    )
+                                }
                             }
                         }
                     }
-                }
 
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(colors.errorContainer.copy(alpha = 0.2f), RoundedCornerShape(8.dp))
-                        .padding(10.dp)
-                ) {
-                    Text(
-                        text = "鈿狅笍 This action cannot be undone!",
-                        style = MaterialTheme.typography.bodySmall,
-                        fontWeight = FontWeight.Bold,
-                        color = colors.onErrorContainer
-                    )
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(colors.errorContainer.copy(alpha = 0.2f), RoundedCornerShape(8.dp))
+                            .padding(10.dp)
+                    ) {
+                        Text(
+                            text = "⚠️ This action CANNOT be undone!",
+                            style = MaterialTheme.typography.bodySmall,
+                            fontWeight = FontWeight.Bold,
+                            color = colors.onErrorContainer
+                        )
+                    }
+                } else if (!isInfo) {
+                    // 空状态但非信息消息
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(colors.surfaceVariant.copy(alpha = 0.3f), RoundedCornerShape(8.dp))
+                            .padding(16.dp)
+                    ) {
+                        Text(
+                            text = "No untracked files found.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = colors.onSurfaceVariant,
+                            textAlign = TextAlign.Center
+                        )
+                    }
                 }
             }
         },
         confirmButton = {
-            Button(
-                onClick = onConfirm,
-                colors = ButtonDefaults.buttonColors(containerColor = colors.error),
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Icon(
-                    Icons.Default.Clear,
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp)
-                )
-                Spacer(Modifier.width(6.dp))
-                Text("Delete All")
+            if (!isLoading && untrackedFiles.isNotEmpty() && !isError) {
+                Button(
+                    onClick = onConfirm,
+                    colors = ButtonDefaults.buttonColors(containerColor = colors.error),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Icon(
+                        Icons.Default.Clear,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    Text("Delete All")
+                }
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel")
+                Text("Close")
             }
         },
         shape = RoundedCornerShape(24.dp)
@@ -703,7 +765,7 @@ fun CleanPreviewDialog(
 }
 
 /**
- * Clean 鎿嶄綔缁撴灉瀵硅瘽妗?- 鏄剧ず宸插垹闄ょ殑鏂囦欢鍒楄〃
+ * Clean 操作结果对话框 - 显示已删除的文件列表
  */
 @Composable
 fun CleanResultDialog(
@@ -811,7 +873,7 @@ fun CleanResultDialog(
 }
 
 /**
- * 鍐茬獊瑙ｅ喅瀵硅瘽妗?
+ * 冲突解决对话框
  */
 @Composable
 fun ConflictResolutionDialog(
@@ -861,7 +923,7 @@ fun ConflictResolutionDialog(
             Column(
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                // 鎿嶄綔璇存槑
+                // 操作说明
                 Surface(
                     shape = RoundedCornerShape(8.dp),
                     color = colors.surfaceVariant.copy(alpha = 0.3f),
@@ -895,7 +957,7 @@ fun ConflictResolutionDialog(
                     }
                 }
 
-                // 鍐茬獊鏂囦欢鍒楄〃
+                // 冲突文件列表
                 Text(
                     text = "Conflicting Files:",
                     style = MaterialTheme.typography.labelMedium,
@@ -1075,110 +1137,4 @@ private fun ConflictFileItem(
             }
         }
     }
-}
-
-@Composable
-fun CleanLoadingDialog() {
-    val colors = MaterialTheme.colorScheme
-
-    AlertDialog(
-        onDismissRequest = {},
-        icon = {
-            Box(
-                modifier = Modifier
-                    .size(56.dp)
-                    .background(Color(0xFF2196F3).copy(alpha = 0.15f), CircleShape),
-                contentAlignment = Alignment.Center
-            ) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(28.dp),
-                    color = Color(0xFF2196F3),
-                    strokeWidth = 2.5.dp
-                )
-            }
-        },
-        title = {
-            Text(
-                text = "Scanning Files",
-                fontWeight = FontWeight.Bold,
-                style = MaterialTheme.typography.titleLarge
-            )
-        },
-        text = {
-            Text(
-                text = "Analyzing untracked files in working directory...",
-                style = MaterialTheme.typography.bodyMedium,
-                color = colors.onSurfaceVariant
-            )
-        },
-        confirmButton = {},
-        shape = RoundedCornerShape(24.dp)
-    )
-}
-
-@Composable
-fun CleanMessageDialog(
-    message: String,
-    onDismiss: () -> Unit
-) {
-    val colors = MaterialTheme.colorScheme
-    val isError = message.startsWith("Failed") || message.contains("error", ignoreCase = true)
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        icon = {
-            Box(
-                modifier = Modifier
-                    .size(56.dp)
-                    .background(
-                        if (isError) Color(0xFFE53935).copy(alpha = 0.15f) else Color(0xFFFF9800).copy(alpha = 0.15f),
-                        CircleShape
-                    ),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    if (isError) Icons.Default.Warning else Icons.Default.Info,
-                    contentDescription = null,
-                    tint = if (isError) Color(0xFFE53935) else Color(0xFFFF9800),
-                    modifier = Modifier.size(28.dp)
-                )
-            }
-        },
-        title = {
-            Text(
-                text = if (isError) "Clean Failed" else "Clean Info",
-                fontWeight = FontWeight.Bold,
-                style = MaterialTheme.typography.titleLarge
-            )
-        },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text(
-                    text = message,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = if (isError) colors.error else colors.onSurfaceVariant
-                )
-
-                if (!isError) {
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = colors.surfaceVariant.copy(alpha = 0.5f)
-                    ) {
-                        Text(
-                            text = "The repository is already clean 鈥?no untracked files found.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = colors.onSurfaceVariant,
-                            modifier = Modifier.padding(12.dp)
-                        )
-                    }
-                }
-            }
-        },
-        confirmButton = {
-            Button(onClick = onDismiss, shape = RoundedCornerShape(12.dp)) {
-                Text("OK")
-            }
-        },
-        shape = RoundedCornerShape(24.dp)
-    )
 }

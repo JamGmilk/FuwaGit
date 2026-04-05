@@ -28,6 +28,7 @@ import java.util.Date
 import javax.inject.Inject
 
 import androidx.compose.runtime.Stable
+import java.util.Locale
 
 @Stable
 data class StatusUiState(
@@ -42,11 +43,11 @@ data class StatusUiState(
     val branches: List<GitBranch> = emptyList(),
     val workspaceFiles: List<GitFileStatus> = emptyList(),
     val terminalOutput: List<String> = emptyList(),
-    // 鍗遍櫓鎿嶄綔鐩稿叧鐘舵€?
+    // 危险操作相关状态
     val pendingOperation: DangerousOperationType? = null,
     val pendingOperationTarget: String? = null,
     val operationResult: OperationResult? = null,
-    // 鍑嵁鐩稿叧鐘舵€?
+    // 凭证相关状态
     val selectedCredentialUuid: String? = null,
     val selectedSshKeyUuid: String? = null,
     val httpsCredentials: List<HttpsCredential> = emptyList(),
@@ -238,7 +239,7 @@ class StatusViewModel @Inject constructor(
         }
     }
 
-    // ============ 鍗遍櫓鎿嶄綔锛氳姹傜‘璁?============
+    // ============ 危险操作：请求确认 ============
 
     fun requestDiscardChanges(filePath: String) {
         _uiState.update {
@@ -249,7 +250,7 @@ class StatusViewModel @Inject constructor(
         }
     }
 
-    // ============ 鍗遍櫓鎿嶄綔锛氭墽琛?============
+    // ============ 危险操作：执行 ============
 
     fun confirmDiscardChanges() {
         val path = currentRepoPath ?: return
@@ -398,7 +399,7 @@ class StatusViewModel @Inject constructor(
 
     private suspend fun loadSelectedCredentials(remoteUrl: String? = null): CloneCredential? {
         var state = _uiState.value
-        // 濡傛灉褰撳墠鍒楄〃涓虹┖锛屽皾璇曞悓姝ュ埛鏂颁竴涓?
+        // 如果当前列表为空，尝试同步刷新一下
         if (state.httpsCredentials.isEmpty() && state.sshKeys.isEmpty()) {
             refreshCredentials()
             state = _uiState.value
@@ -414,7 +415,7 @@ class StatusViewModel @Inject constructor(
     }
 
     private fun appendTerminalLog(command: String, result: String) {
-        val time = SimpleDateFormat("HH:mm:ss").format(Date())
+        val time = SimpleDateFormat("HH:mm:ss", Locale.US).format(Date())
         val line = "[$time] > $command\n$result"
         _uiState.update { it.copy(terminalOutput = it.terminalOutput + line) }
     }
