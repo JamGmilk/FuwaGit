@@ -10,6 +10,7 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -79,6 +80,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
@@ -87,6 +89,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.core.content.pm.PackageInfoCompat
 import androidx.core.net.toUri
 import androidx.fragment.app.FragmentActivity
@@ -98,7 +101,6 @@ import jamgmilk.fuwagit.ui.screen.credentials.ChangeMasterPasswordDialog
 import jamgmilk.fuwagit.ui.screen.credentials.CredentialStoreViewModel
 import jamgmilk.fuwagit.ui.screen.credentials.SetupMasterPasswordDialog
 import jamgmilk.fuwagit.ui.screen.credentials.UnlockDialog
-import jamgmilk.fuwagit.ui.theme.FuwaGitThemeExtras
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -285,13 +287,20 @@ fun SettingsScreen(
 @Composable
 private fun BetaWarningCard(modifier: Modifier = Modifier) {
     val colors = MaterialTheme.colorScheme
+    val isDark = isSystemInDarkTheme()
+
     val warningOrange = Color(0xFFFF9800)
-    val warningBackground = Color(0xFFFFF3E0)
+    val warningBackground = if (isDark) {
+        lerp(warningOrange, colors.surface, 0.85f)
+    } else {
+        lerp(warningOrange, Color.White, 0.9f)
+    }
+    val contentOrange = if (isDark) Color(0xFFFFB74D) else warningOrange
 
     ElevatedCard(
         modifier = modifier.border(
             width = 1.dp,
-            color = warningOrange.copy(alpha = 0.3f),
+            color = contentOrange.copy(alpha = if (isDark) 0.3f else 0.2f),
             shape = RoundedCornerShape(24.dp)
         ),
         shape = RoundedCornerShape(24.dp),
@@ -304,11 +313,10 @@ private fun BetaWarningCard(modifier: Modifier = Modifier) {
             SettingsSectionHeader(
                 title = "Beta Version Notice",
                 icon = Icons.Default.Warning,
-                // Using the orange here for the header icon
-                color = warningOrange
+                color = contentOrange
             )
 
-            HorizontalDivider(color = colors.outline.copy(alpha = 0.1f))
+            HorizontalDivider(color = contentOrange.copy(alpha = 0.1f))
 
             Column(
                 modifier = Modifier
@@ -316,64 +324,66 @@ private fun BetaWarningCard(modifier: Modifier = Modifier) {
                     .padding(horizontal = 16.dp, vertical = 12.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                // Warning message
+
                 Row(
-                    verticalAlignment = Alignment.Top,
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     Icon(
                         imageVector = Icons.Default.Info,
                         contentDescription = null,
-                        tint = warningOrange,
-                        modifier = Modifier.size(20.dp)
+                        tint = contentOrange,
+                        modifier = Modifier.size(18.dp)
                     )
                     Text(
-                        text = "This application is currently in beta testing. Some features may be unstable or change in future updates.",
+                        text = "Features may be unstable or change.",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = colors.onSurface
+                        color = colors.onSurfaceVariant,
+                        lineHeight = 20.sp
                     )
                 }
 
-                // Backup reminder
                 Row(
-                    verticalAlignment = Alignment.Top,
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     Icon(
                         imageVector = Icons.Default.Backup,
                         contentDescription = null,
-                        tint = warningOrange,
-                        modifier = Modifier.size(20.dp)
+                        tint = contentOrange,
+                        modifier = Modifier.size(18.dp)
                     )
                     Text(
-                        text = "Important: Please backup your repositories and credentials.",
+                        text = "Important: Backup your repositories and credentials.",
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Bold,
-                        color = colors.onSurface
+                        color = colors.onSurfaceVariant,
+                        lineHeight = 20.sp
                     )
                 }
             }
         }
     }
 }
+
 @Composable
 private fun StorageSettingsCard(
     onPermissionsClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val uiColors = FuwaGitThemeExtras.colors
+    val colors = MaterialTheme.colorScheme
 
     ElevatedCard(
-        modifier = modifier.border(1.dp, uiColors.cardBorder, RoundedCornerShape(24.dp)),
+        modifier = modifier.border(1.dp, colors.outlineVariant, RoundedCornerShape(24.dp)),
         shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.elevatedCardColors(containerColor = uiColors.cardContainer),
+        colors = CardDefaults.elevatedCardColors(containerColor = colors.surfaceContainerLow),
         elevation = CardDefaults.elevatedCardElevation(0.dp)
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
             SettingsSectionHeader(
                 title = "Storage",
                 icon = Icons.Default.Storage,
-                color = Color(0xFF4CAF50)
+                color = colors.primary
             )
 
             SettingsNavigationItem(
@@ -396,19 +406,19 @@ private fun SecuritySettingsCard(
     isMasterPasswordSet: Boolean = false,
     onBiometricEnabledChange: ((Boolean) -> Unit)? = null
 ) {
-    val uiColors = FuwaGitThemeExtras.colors
+    val colors = MaterialTheme.colorScheme
 
     ElevatedCard(
-        modifier = modifier.border(1.dp, uiColors.cardBorder, RoundedCornerShape(24.dp)),
+        modifier = modifier.border(1.dp, colors.outlineVariant, RoundedCornerShape(24.dp)),
         shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.elevatedCardColors(containerColor = uiColors.cardContainer),
+        colors = CardDefaults.elevatedCardColors(containerColor = colors.surfaceContainerLow),
         elevation = CardDefaults.elevatedCardElevation(0.dp)
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
             SettingsSectionHeader(
                 title = "Security",
                 icon = Icons.Default.Shield,
-                color = Color(0xFFE91E63)
+                color = colors.tertiary
             )
 
             SettingsNavigationItem(
@@ -456,19 +466,19 @@ private fun SyncSettingsCard(
     onBackupBeforeSyncChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val uiColors = FuwaGitThemeExtras.colors
+    val colors = MaterialTheme.colorScheme
 
     ElevatedCard(
-        modifier = modifier.border(1.dp, uiColors.cardBorder, RoundedCornerShape(24.dp)),
+        modifier = modifier.border(1.dp, colors.outlineVariant, RoundedCornerShape(24.dp)),
         shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.elevatedCardColors(containerColor = uiColors.cardContainer),
+        colors = CardDefaults.elevatedCardColors(containerColor = colors.surfaceContainerLow),
         elevation = CardDefaults.elevatedCardElevation(0.dp)
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
             SettingsSectionHeader(
                 title = "Sync & Backup",
                 icon = Icons.Default.CloudSync,
-                color = Color(0xFF2196F3)
+                color = colors.secondary
             )
 
             SettingsSwitchItem(
@@ -509,19 +519,19 @@ private fun DeveloperOptionsCard(
     onTestFilePicker: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val uiColors = FuwaGitThemeExtras.colors
+    val colors = MaterialTheme.colorScheme
 
     ElevatedCard(
-        modifier = modifier.border(1.dp, uiColors.cardBorder, RoundedCornerShape(24.dp)),
+        modifier = modifier.border(1.dp, colors.outlineVariant, RoundedCornerShape(24.dp)),
         shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.elevatedCardColors(containerColor = uiColors.cardContainer),
+        colors = CardDefaults.elevatedCardColors(containerColor = colors.surfaceContainerLow),
         elevation = CardDefaults.elevatedCardElevation(0.dp)
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
             SettingsSectionHeader(
                 title = "Developer Options",
                 icon = Icons.Default.Build,
-                color = Color(0xFFFF9800)
+                color = colors.primary
             )
 
             SettingsSwitchItem(
@@ -548,7 +558,7 @@ private fun DeveloperOptionsCard(
 private fun AboutCard(
     modifier: Modifier = Modifier
 ) {
-    val uiColors = FuwaGitThemeExtras.colors
+    val colors = MaterialTheme.colorScheme
     val context = LocalContext.current
 
     val packageInfo = remember(context) {
@@ -565,16 +575,16 @@ private fun AboutCard(
     } ?: "Unknown"
 
     ElevatedCard(
-        modifier = modifier.border(1.dp, uiColors.cardBorder, RoundedCornerShape(24.dp)),
+        modifier = modifier.border(1.dp, colors.outlineVariant, RoundedCornerShape(24.dp)),
         shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.elevatedCardColors(containerColor = uiColors.cardContainer),
+        colors = CardDefaults.elevatedCardColors(containerColor = colors.surfaceContainerLow),
         elevation = CardDefaults.elevatedCardElevation(0.dp)
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
             SettingsSectionHeader(
                 title = "About",
                 icon = Icons.Outlined.Info,
-                color = Color(0xFF9C27B0)
+                color = colors.tertiary
             )
 
             SettingsInfoItem(
@@ -629,7 +639,7 @@ private fun GlobalConfigCard(
     onClearApplyResult: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val uiColors = FuwaGitThemeExtras.colors
+    val colors = MaterialTheme.colorScheme
     val scope = rememberCoroutineScope()
 
     var userConfigExpanded by rememberSaveable { mutableStateOf(false) }
@@ -672,16 +682,16 @@ private fun GlobalConfigCard(
     }
 
     ElevatedCard(
-        modifier = modifier.border(1.dp, uiColors.cardBorder, RoundedCornerShape(24.dp)),
+        modifier = modifier.border(1.dp, colors.outlineVariant, RoundedCornerShape(24.dp)),
         shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.elevatedCardColors(containerColor = uiColors.cardContainer),
+        colors = CardDefaults.elevatedCardColors(containerColor = colors.surfaceContainerLow),
         elevation = CardDefaults.elevatedCardElevation(0.dp)
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
             SettingsSectionHeader(
                 title = "Configuration",
                 icon = Icons.Default.Code,
-                color = Color(0xFF00BCD4)
+                color = colors.secondary
             )
 
             ExpandableSettingsItem(
@@ -930,6 +940,7 @@ private fun ApplyToAllReposDialog(
     onDismiss: () -> Unit
 ) {
     var applyToGlobal by remember { mutableStateOf(false) }
+    val colors = MaterialTheme.colorScheme
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -937,13 +948,13 @@ private fun ApplyToAllReposDialog(
             Box(
                 modifier = Modifier
                     .size(56.dp)
-                    .background(Color(0xFF2196F3).copy(alpha = 0.15f), CircleShape),
+                    .background(colors.secondary.copy(alpha = 0.15f), CircleShape),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     Icons.Default.Business,
                     contentDescription = null,
-                    tint = Color(0xFF2196F3),
+                    tint = colors.secondary,
                     modifier = Modifier.size(28.dp)
                 )
             }
@@ -1066,6 +1077,8 @@ private fun ApplyConfigResultDialog(
     result: ApplyConfigResult,
     onDismiss: () -> Unit
 ) {
+    val colors = MaterialTheme.colorScheme
+
     AlertDialog(
         onDismissRequest = onDismiss,
         icon = {
@@ -1073,7 +1086,7 @@ private fun ApplyConfigResultDialog(
                 modifier = Modifier
                     .size(56.dp)
                     .background(
-                        if (result.allSuccess) Color(0xFF4CAF50) else Color(0xFFFF9800),
+                        (if (result.allSuccess) colors.primary else colors.tertiary).copy(alpha = 0.15f),
                         CircleShape
                     ),
                 contentAlignment = Alignment.Center
@@ -1081,7 +1094,7 @@ private fun ApplyConfigResultDialog(
                 Icon(
                     if (result.allSuccess) Icons.Default.CheckCircle else Icons.Default.Warning,
                     contentDescription = null,
-                    tint = if (result.allSuccess) Color(0xFF4CAF50) else Color(0xFFFF9800),
+                    tint = if (result.allSuccess) colors.primary else colors.tertiary,
                     modifier = Modifier.size(28.dp)
                 )
             }
@@ -1429,7 +1442,7 @@ private fun AppearanceSettingsCard(
     onDarkModeChange: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val uiColors = FuwaGitThemeExtras.colors
+    val colors = MaterialTheme.colorScheme
     var showDarkModeMenu by remember { mutableStateOf(false) }
 
     val darkModeLabel = when (darkMode) {
@@ -1439,16 +1452,16 @@ private fun AppearanceSettingsCard(
     }
 
     ElevatedCard(
-        modifier = modifier.border(1.dp, uiColors.cardBorder, RoundedCornerShape(24.dp)),
+        modifier = modifier.border(1.dp, colors.outlineVariant, RoundedCornerShape(24.dp)),
         shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.elevatedCardColors(containerColor = uiColors.cardContainer),
+        colors = CardDefaults.elevatedCardColors(containerColor = colors.surfaceContainerLow),
         elevation = CardDefaults.elevatedCardElevation(0.dp)
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
             SettingsSectionHeader(
                 title = "Appearance",
-                icon = Icons.Default.Build,
-                color = Color(0xFF9C27B0)
+                icon = Icons.Default.DarkMode,
+                color = colors.primary
             )
 
             Box {

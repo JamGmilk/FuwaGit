@@ -53,7 +53,6 @@ import jamgmilk.fuwagit.ui.screen.settings.SettingsScreen
 import jamgmilk.fuwagit.ui.screen.settings.SettingsViewModel
 import jamgmilk.fuwagit.ui.screen.status.StatusScreen
 import jamgmilk.fuwagit.ui.screen.status.StatusViewModel
-import jamgmilk.fuwagit.ui.theme.FuwaGitThemeExtras
 import kotlinx.coroutines.launch
 
 @Composable
@@ -171,7 +170,6 @@ fun MainScreen(
     Row(modifier = Modifier.fillMaxSize()) {
         if (isLandscape) {
             NavigationRail(
-                //containerColor = FuwaGitThemeExtras.colors.navBarContainer,
                 modifier = Modifier.fillMaxHeight()
             ) {
                 navItems.forEachIndexed { index, item ->
@@ -187,8 +185,7 @@ fun MainScreen(
             VerticalDivider(
                 modifier = Modifier
                     .fillMaxHeight()
-                    .width(1.dp),
-                //color = FuwaGitThemeExtras.colors.cardBorder
+                    .width(1.dp)
             )
         }
 
@@ -232,8 +229,7 @@ fun MainScreen(
 
             if (!isLandscape) {
                 NavigationBar(
-                    windowInsets = NavigationBarDefaults.windowInsets,
-                    //containerColor = FuwaGitThemeExtras.colors.navBarContainer
+                    windowInsets = NavigationBarDefaults.windowInsets
                 ) {
                     navItems.forEachIndexed { index, item ->
                         NavigationBarItem(

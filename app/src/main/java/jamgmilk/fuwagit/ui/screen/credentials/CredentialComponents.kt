@@ -17,12 +17,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Download
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Fingerprint
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.Link
@@ -44,40 +40,23 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.SnackbarDuration
-import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
-
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import jamgmilk.fuwagit.domain.model.credential.HttpsCredential
 import jamgmilk.fuwagit.domain.model.credential.SshKey
-import jamgmilk.fuwagit.ui.theme.FuwaGitThemeExtras
-import kotlinx.coroutines.launch
+import jamgmilk.fuwagit.ui.theme.AppShapes
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -89,21 +68,20 @@ fun HttpsCredentialsSection(
     onInfo: (HttpsCredential) -> Unit
 ) {
     val colors = MaterialTheme.colorScheme
-    val uiColors = FuwaGitThemeExtras.colors
 
     ElevatedCard(
         modifier = Modifier
             .fillMaxWidth()
-            .border(1.dp, uiColors.cardBorder, RoundedCornerShape(24.dp)),
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.elevatedCardColors(containerColor = uiColors.cardContainer),
+            .border(1.dp, colors.outlineVariant, AppShapes.medium),
+        shape = AppShapes.medium,
+        colors = CardDefaults.elevatedCardColors(containerColor = colors.surfaceContainerLow),
         elevation = CardDefaults.elevatedCardElevation(0.dp)
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(FuwaGitThemeExtras.colors.mizuiroAccent.copy(alpha = 0.08f))
+                    .background(colors.primary.copy(alpha = 0.08f))
                     .padding(horizontal = 16.dp, vertical = 12.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
@@ -112,13 +90,13 @@ fun HttpsCredentialsSection(
                     Box(
                         modifier = Modifier
                             .size(32.dp)
-                            .background(FuwaGitThemeExtras.colors.mizuiroAccent.copy(alpha = 0.15f), RoundedCornerShape(10.dp)),
+                            .background(colors.primary.copy(alpha = 0.15f), RoundedCornerShape(10.dp)),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             Icons.Default.Link,
                             contentDescription = null,
-                            tint = FuwaGitThemeExtras.colors.mizuiroAccent,
+                            tint = colors.primary,
                             modifier = Modifier.size(18.dp)
                         )
                     }
@@ -127,7 +105,7 @@ fun HttpsCredentialsSection(
                         text = "HTTPS Credentials",
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
-                        color = FuwaGitThemeExtras.colors.mizuiroAccent
+                        color = colors.primary
                     )
                 }
 
@@ -136,8 +114,8 @@ fun HttpsCredentialsSection(
                     modifier = Modifier.size(36.dp),
                     shape = RoundedCornerShape(10.dp),
                     colors = IconButtonDefaults.filledTonalIconButtonColors(
-                        containerColor = FuwaGitThemeExtras.colors.mizuiroAccent.copy(alpha = 0.15f),
-                        contentColor = FuwaGitThemeExtras.colors.mizuiroAccent
+                        containerColor = colors.primary.copy(alpha = 0.15f),
+                        contentColor = colors.primary
                     )
                 ) {
                     Icon(
@@ -164,7 +142,7 @@ fun HttpsCredentialsSection(
                         if (index > 0) {
                             HorizontalDivider(
                                 modifier = Modifier.padding(horizontal = 16.dp),
-                                color = uiColors.cardBorder
+                                color = colors.outlineVariant
                             )
                         }
                         HttpsCredentialItem(
@@ -195,13 +173,13 @@ fun HttpsCredentialItem(
         Box(
             modifier = Modifier
                 .size(42.dp)
-                .background(FuwaGitThemeExtras.colors.mizuiroAccent.copy(alpha = 0.1f), RoundedCornerShape(12.dp)),
+                .background(colors.primary.copy(alpha = 0.1f), RoundedCornerShape(12.dp)),
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 Icons.Default.Link,
                 contentDescription = null,
-                tint = FuwaGitThemeExtras.colors.mizuiroAccent,
+                tint = colors.primary,
                 modifier = Modifier.size(22.dp)
             )
         }
@@ -237,7 +215,7 @@ fun HttpsCredentialItem(
             Icon(
                 Icons.Default.Info,
                 contentDescription = "Info",
-                tint = FuwaGitThemeExtras.colors.mizuiroAccent,
+                tint = colors.primary,
                 modifier = Modifier.size(20.dp)
             )
         }
@@ -252,21 +230,20 @@ fun SshKeysSection(
     onInfo: (SshKey) -> Unit
 ) {
     val colors = MaterialTheme.colorScheme
-    val uiColors = FuwaGitThemeExtras.colors
 
     ElevatedCard(
         modifier = Modifier
             .fillMaxWidth()
-            .border(1.dp, uiColors.cardBorder, RoundedCornerShape(24.dp)),
+            .border(1.dp, colors.outlineVariant, RoundedCornerShape(24.dp)),
         shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.elevatedCardColors(containerColor = uiColors.cardContainer),
+        colors = CardDefaults.elevatedCardColors(containerColor = colors.surfaceContainerLow),
         elevation = CardDefaults.elevatedCardElevation(0.dp)
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(FuwaGitThemeExtras.colors.mizuiroAccentDark.copy(alpha = 0.08f))
+                    .background(colors.tertiary.copy(alpha = 0.08f))
                     .padding(horizontal = 16.dp, vertical = 12.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
@@ -275,13 +252,13 @@ fun SshKeysSection(
                     Box(
                         modifier = Modifier
                             .size(32.dp)
-                            .background(FuwaGitThemeExtras.colors.mizuiroAccentDark.copy(alpha = 0.15f), RoundedCornerShape(10.dp)),
+                            .background(colors.tertiary.copy(alpha = 0.15f), RoundedCornerShape(10.dp)),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             Icons.Default.Key,
                             contentDescription = null,
-                            tint = FuwaGitThemeExtras.colors.mizuiroAccentDark,
+                            tint = colors.tertiary,
                             modifier = Modifier.size(18.dp)
                         )
                     }
@@ -290,7 +267,7 @@ fun SshKeysSection(
                         text = "SSH Keys",
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
-                        color = FuwaGitThemeExtras.colors.mizuiroAccentDark
+                        color = colors.tertiary
                     )
                 }
 
@@ -300,8 +277,8 @@ fun SshKeysSection(
                         modifier = Modifier.size(36.dp),
                         shape = RoundedCornerShape(10.dp),
                         colors = IconButtonDefaults.filledTonalIconButtonColors(
-                            containerColor = FuwaGitThemeExtras.colors.mizuiroAccentDark.copy(alpha = 0.15f),
-                            contentColor = FuwaGitThemeExtras.colors.mizuiroAccentDark
+                            containerColor = colors.tertiary.copy(alpha = 0.15f),
+                            contentColor = colors.tertiary
                         )
                     ) {
                         Icon(
@@ -315,8 +292,8 @@ fun SshKeysSection(
                         modifier = Modifier.size(36.dp),
                         shape = RoundedCornerShape(10.dp),
                         colors = IconButtonDefaults.filledTonalIconButtonColors(
-                            containerColor = FuwaGitThemeExtras.colors.mizuiroAccentDark.copy(alpha = 0.15f),
-                            contentColor = FuwaGitThemeExtras.colors.mizuiroAccentDark
+                            containerColor = colors.tertiary.copy(alpha = 0.15f),
+                            contentColor = colors.tertiary
                         )
                     ) {
                         Icon(
@@ -344,7 +321,7 @@ fun SshKeysSection(
                         if (index > 0) {
                             HorizontalDivider(
                                 modifier = Modifier.padding(horizontal = 16.dp),
-                                color = uiColors.cardBorder
+                                color = colors.outlineVariant
                             )
                         }
                         SshKeyItem(
@@ -375,13 +352,13 @@ fun SshKeyItem(
         Box(
             modifier = Modifier
                 .size(42.dp)
-                .background(FuwaGitThemeExtras.colors.mizuiroAccentDark.copy(alpha = 0.1f), RoundedCornerShape(12.dp)),
+                .background(colors.tertiary.copy(alpha = 0.1f), RoundedCornerShape(12.dp)),
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 Icons.Default.Key,
                 contentDescription = null,
-                tint = FuwaGitThemeExtras.colors.mizuiroAccentDark,
+                tint = colors.tertiary,
                 modifier = Modifier.size(22.dp)
             )
         }
@@ -404,7 +381,7 @@ fun SshKeyItem(
                 Box(
                     modifier = Modifier
                         .background(
-                            FuwaGitThemeExtras.colors.mizuiroAccentDark.copy(alpha = 0.15f),
+                            colors.tertiary.copy(alpha = 0.15f),
                             RoundedCornerShape(4.dp)
                         )
                         .padding(horizontal = 6.dp, vertical = 2.dp)
@@ -412,7 +389,7 @@ fun SshKeyItem(
                     Text(
                         text = key.type,
                         style = MaterialTheme.typography.labelSmall,
-                        color = FuwaGitThemeExtras.colors.mizuiroAccentDark,
+                        color = colors.tertiary,
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Medium
                     )
@@ -434,7 +411,7 @@ fun SshKeyItem(
             Icon(
                 Icons.Default.Info,
                 contentDescription = "Info",
-                tint = FuwaGitThemeExtras.colors.mizuiroAccentDark,
+                tint = colors.tertiary,
                 modifier = Modifier.size(20.dp)
             )
         }
@@ -496,21 +473,20 @@ fun SecuritySettingsSection(
     onLockToggle: () -> Unit
 ) {
     val colors = MaterialTheme.colorScheme
-    val uiColors = FuwaGitThemeExtras.colors
 
     ElevatedCard(
         modifier = Modifier
             .fillMaxWidth()
-            .border(1.dp, uiColors.cardBorder, RoundedCornerShape(24.dp)),
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.elevatedCardColors(containerColor = uiColors.cardContainer),
+            .border(1.dp, colors.outlineVariant, AppShapes.medium),
+        shape = AppShapes.medium,
+        colors = CardDefaults.elevatedCardColors(containerColor = colors.surfaceContainerLow),
         elevation = CardDefaults.elevatedCardElevation(0.dp)
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(Color(0xFF2196F3).copy(alpha = 0.08f))
+                    .background(colors.secondary.copy(alpha = 0.08f))
                     .padding(horizontal = 16.dp, vertical = 12.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
@@ -519,13 +495,13 @@ fun SecuritySettingsSection(
                     Box(
                         modifier = Modifier
                             .size(32.dp)
-                            .background(Color(0xFF2196F3).copy(alpha = 0.15f), RoundedCornerShape(10.dp)),
+                            .background(colors.secondary.copy(alpha = 0.15f), RoundedCornerShape(10.dp)),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             Icons.Default.Security,
                             contentDescription = null,
-                            tint = Color(0xFF2196F3),
+                            tint = colors.secondary,
                             modifier = Modifier.size(18.dp)
                         )
                     }
@@ -534,7 +510,7 @@ fun SecuritySettingsSection(
                         text = "Security Settings",
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFF2196F3)
+                        color = colors.secondary
                     )
                 }
             }
@@ -554,8 +530,8 @@ fun SecuritySettingsSection(
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(12.dp),
                         colors = ButtonDefaults.filledTonalButtonColors(
-                            containerColor = Color(0xFF4CAF50).copy(alpha = 0.15f),
-                            contentColor = Color(0xFF4CAF50)
+                            containerColor = colors.primary.copy(alpha = 0.15f),
+                            contentColor = colors.primary
                         )
                     ) {
                         Icon(
@@ -572,8 +548,8 @@ fun SecuritySettingsSection(
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(12.dp),
                         colors = ButtonDefaults.filledTonalButtonColors(
-                            containerColor = Color(0xFF2196F3).copy(alpha = 0.15f),
-                            contentColor = Color(0xFF2196F3)
+                            containerColor = colors.secondary.copy(alpha = 0.15f),
+                            contentColor = colors.secondary
                         )
                     ) {
                         Icon(
@@ -593,8 +569,8 @@ fun SecuritySettingsSection(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(12.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = if (isDecryptionUnlocked) colors.error.copy(alpha = 0.1f) else Color(0xFF4CAF50).copy(alpha = 0.15f),
-                            contentColor = if (isDecryptionUnlocked) colors.error else Color(0xFF4CAF50)
+                            containerColor = if (isDecryptionUnlocked) colors.error.copy(alpha = 0.1f) else colors.primary.copy(alpha = 0.15f),
+                            contentColor = if (isDecryptionUnlocked) colors.error else colors.primary
                         )
                     ) {
                         Icon(

@@ -74,7 +74,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import jamgmilk.fuwagit.domain.model.credential.HttpsCredential
 import jamgmilk.fuwagit.domain.model.credential.SshKey
-import jamgmilk.fuwagit.ui.theme.FuwaGitThemeExtras
 import kotlinx.coroutines.launch
 
 @Composable
@@ -303,6 +302,7 @@ fun AddHttpsCredentialDialog(
     onDismiss: () -> Unit,
     onAdd: (host: String, username: String, password: String) -> Unit
 ) {
+    val colors = MaterialTheme.colorScheme
     var host by rememberSaveable { mutableStateOf("") }
     var username by rememberSaveable { mutableStateOf("") }
     var password by rememberSaveable { mutableStateOf("") }
@@ -314,13 +314,13 @@ fun AddHttpsCredentialDialog(
             Box(
                 modifier = Modifier
                     .size(48.dp)
-                    .background(FuwaGitThemeExtras.colors.mizuiroAccent.copy(alpha = 0.15f), CircleShape),
+                    .background(colors.primary.copy(alpha = 0.15f), CircleShape),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     Icons.Default.Link,
                     contentDescription = null,
-                    tint = FuwaGitThemeExtras.colors.mizuiroAccent,
+                    tint = colors.primary,
                     modifier = Modifier.size(24.dp)
                 )
             }
@@ -349,9 +349,9 @@ fun AddHttpsCredentialDialog(
                     shape = RoundedCornerShape(12.dp),
                     modifier = Modifier.fillMaxWidth(),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = FuwaGitThemeExtras.colors.mizuiroAccent,
-                        focusedLabelColor = FuwaGitThemeExtras.colors.mizuiroAccent,
-                        cursorColor = FuwaGitThemeExtras.colors.mizuiroAccent
+                        focusedBorderColor = colors.primary,
+                        focusedLabelColor = colors.primary,
+                        cursorColor = colors.primary
                     )
                 )
 
@@ -370,9 +370,9 @@ fun AddHttpsCredentialDialog(
                     shape = RoundedCornerShape(12.dp),
                     modifier = Modifier.fillMaxWidth(),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = FuwaGitThemeExtras.colors.mizuiroAccent,
-                        focusedLabelColor = FuwaGitThemeExtras.colors.mizuiroAccent,
-                        cursorColor = FuwaGitThemeExtras.colors.mizuiroAccent
+                        focusedBorderColor = colors.primary,
+                        focusedLabelColor = colors.primary,
+                        cursorColor = colors.primary
                     )
                 )
 
@@ -400,9 +400,9 @@ fun AddHttpsCredentialDialog(
                     shape = RoundedCornerShape(12.dp),
                     modifier = Modifier.fillMaxWidth(),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = FuwaGitThemeExtras.colors.mizuiroAccent,
-                        focusedLabelColor = FuwaGitThemeExtras.colors.mizuiroAccent,
-                        cursorColor = FuwaGitThemeExtras.colors.mizuiroAccent
+                        focusedBorderColor = colors.primary,
+                        focusedLabelColor = colors.primary,
+                        cursorColor = colors.primary
                     )
                 )
             }
@@ -411,7 +411,7 @@ fun AddHttpsCredentialDialog(
             Button(
                 onClick = { onAdd(host, username, password) },
                 enabled = host.isNotBlank() && username.isNotBlank() && password.isNotBlank(),
-                colors = ButtonDefaults.buttonColors(containerColor = FuwaGitThemeExtras.colors.mizuiroAccent),
+                colors = ButtonDefaults.buttonColors(containerColor = colors.primary),
                 shape = RoundedCornerShape(12.dp)
             ) {
                 Icon(
@@ -465,13 +465,13 @@ fun ChangeMasterPasswordDialog(
             Box(
                 modifier = Modifier
                     .size(48.dp)
-                    .background(FuwaGitThemeExtras.colors.mizuiroAccent.copy(alpha = 0.15f), CircleShape),
+                    .background(colors.primary.copy(alpha = 0.15f), CircleShape),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     Icons.Default.Key,
                     contentDescription = null,
-                    tint = FuwaGitThemeExtras.colors.mizuiroAccent,
+                    tint = colors.primary,
                     modifier = Modifier.size(24.dp)
                 )
             }
@@ -518,9 +518,9 @@ fun ChangeMasterPasswordDialog(
                     shape = RoundedCornerShape(12.dp),
                     modifier = Modifier.fillMaxWidth(),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = FuwaGitThemeExtras.colors.mizuiroAccent,
-                        focusedLabelColor = FuwaGitThemeExtras.colors.mizuiroAccent,
-                        cursorColor = FuwaGitThemeExtras.colors.mizuiroAccent
+                        focusedBorderColor = colors.primary,
+                        focusedLabelColor = colors.primary,
+                        cursorColor = colors.primary
                     )
                 )
 
@@ -553,9 +553,9 @@ fun ChangeMasterPasswordDialog(
                     shape = RoundedCornerShape(12.dp),
                     modifier = Modifier.fillMaxWidth(),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = FuwaGitThemeExtras.colors.mizuiroAccent,
-                        focusedLabelColor = FuwaGitThemeExtras.colors.mizuiroAccent,
-                        cursorColor = FuwaGitThemeExtras.colors.mizuiroAccent
+                        focusedBorderColor = colors.primary,
+                        focusedLabelColor = colors.primary,
+                        cursorColor = colors.primary
                     )
                 )
 
@@ -582,9 +582,9 @@ fun ChangeMasterPasswordDialog(
                     shape = RoundedCornerShape(12.dp),
                     modifier = Modifier.fillMaxWidth(),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = FuwaGitThemeExtras.colors.mizuiroAccent,
-                        focusedLabelColor = FuwaGitThemeExtras.colors.mizuiroAccent,
-                        cursorColor = FuwaGitThemeExtras.colors.mizuiroAccent
+                        focusedBorderColor = colors.primary,
+                        focusedLabelColor = colors.primary,
+                        cursorColor = colors.primary
                     )
                 )
 
@@ -600,9 +600,9 @@ fun ChangeMasterPasswordDialog(
                     shape = RoundedCornerShape(12.dp),
                     modifier = Modifier.fillMaxWidth(),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = FuwaGitThemeExtras.colors.mizuiroAccent,
-                        focusedLabelColor = FuwaGitThemeExtras.colors.mizuiroAccent,
-                        cursorColor = FuwaGitThemeExtras.colors.mizuiroAccent
+                        focusedBorderColor = colors.primary,
+                        focusedLabelColor = colors.primary,
+                        cursorColor = colors.primary
                     )
                 )
 
@@ -621,7 +621,7 @@ fun ChangeMasterPasswordDialog(
             Button(
                 onClick = { onConfirm(oldPassword, newPassword, confirmPassword, hint.ifBlank { null }) },
                 enabled = !isLoading && isFormValid,
-                colors = ButtonDefaults.buttonColors(containerColor = FuwaGitThemeExtras.colors.mizuiroAccent),
+                colors = ButtonDefaults.buttonColors(containerColor = colors.primary),
                 shape = RoundedCornerShape(12.dp)
             ) {
                 if (isLoading) {
@@ -680,13 +680,13 @@ fun SetupMasterPasswordDialog(
             Box(
                 modifier = Modifier
                     .size(48.dp)
-                    .background(FuwaGitThemeExtras.colors.mizuiroAccent.copy(alpha = 0.15f), CircleShape),
+                    .background(colors.primary.copy(alpha = 0.15f), CircleShape),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     Icons.Default.Lock,
                     contentDescription = null,
-                    tint = FuwaGitThemeExtras.colors.mizuiroAccent,
+                    tint = colors.primary,
                     modifier = Modifier.size(24.dp)
                 )
             }
@@ -731,9 +731,9 @@ fun SetupMasterPasswordDialog(
                     shape = RoundedCornerShape(12.dp),
                     modifier = Modifier.fillMaxWidth(),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = FuwaGitThemeExtras.colors.mizuiroAccent,
-                        focusedLabelColor = FuwaGitThemeExtras.colors.mizuiroAccent,
-                        cursorColor = FuwaGitThemeExtras.colors.mizuiroAccent
+                        focusedBorderColor = colors.primary,
+                        focusedLabelColor = colors.primary,
+                        cursorColor = colors.primary
                     )
                 )
 
@@ -760,9 +760,9 @@ fun SetupMasterPasswordDialog(
                     shape = RoundedCornerShape(12.dp),
                     modifier = Modifier.fillMaxWidth(),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = FuwaGitThemeExtras.colors.mizuiroAccent,
-                        focusedLabelColor = FuwaGitThemeExtras.colors.mizuiroAccent,
-                        cursorColor = FuwaGitThemeExtras.colors.mizuiroAccent
+                        focusedBorderColor = colors.primary,
+                        focusedLabelColor = colors.primary,
+                        cursorColor = colors.primary
                     )
                 )
 
@@ -778,9 +778,9 @@ fun SetupMasterPasswordDialog(
                     shape = RoundedCornerShape(12.dp),
                     modifier = Modifier.fillMaxWidth(),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = FuwaGitThemeExtras.colors.mizuiroAccent,
-                        focusedLabelColor = FuwaGitThemeExtras.colors.mizuiroAccent,
-                        cursorColor = FuwaGitThemeExtras.colors.mizuiroAccent
+                        focusedBorderColor = colors.primary,
+                        focusedLabelColor = colors.primary,
+                        cursorColor = colors.primary
                     )
                 )
 
@@ -797,7 +797,7 @@ fun SetupMasterPasswordDialog(
             Button(
                 onClick = { onConfirm(password, confirmPassword, hint.ifBlank { null }) },
                 enabled = !isLoading && isFormValid,
-                colors = ButtonDefaults.buttonColors(containerColor = FuwaGitThemeExtras.colors.mizuiroAccent),
+                colors = ButtonDefaults.buttonColors(containerColor = colors.primary),
                 shape = RoundedCornerShape(12.dp)
             ) {
                 if (isLoading) {
@@ -995,13 +995,13 @@ fun GenerateSshKeyDialog(
             Box(
                 modifier = Modifier
                     .size(48.dp)
-                    .background(FuwaGitThemeExtras.colors.mizuiroAccentDark.copy(alpha = 0.15f), CircleShape),
+                    .background(colors.tertiary.copy(alpha = 0.15f), CircleShape),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     Icons.Default.Key,
                     contentDescription = null,
-                    tint = FuwaGitThemeExtras.colors.mizuiroAccentDark,
+                    tint = colors.tertiary,
                     modifier = Modifier.size(24.dp)
                 )
             }
@@ -1023,9 +1023,9 @@ fun GenerateSshKeyDialog(
                     shape = RoundedCornerShape(12.dp),
                     modifier = Modifier.fillMaxWidth(),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = FuwaGitThemeExtras.colors.mizuiroAccentDark,
-                        focusedLabelColor = FuwaGitThemeExtras.colors.mizuiroAccentDark,
-                        cursorColor = FuwaGitThemeExtras.colors.mizuiroAccentDark
+                        focusedBorderColor = colors.tertiary,
+                        focusedLabelColor = colors.tertiary,
+                        cursorColor = colors.tertiary
                     )
                 )
 
@@ -1064,9 +1064,9 @@ fun GenerateSshKeyDialog(
                     shape = RoundedCornerShape(12.dp),
                     modifier = Modifier.fillMaxWidth(),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = FuwaGitThemeExtras.colors.mizuiroAccentDark,
-                        focusedLabelColor = FuwaGitThemeExtras.colors.mizuiroAccentDark,
-                        cursorColor = FuwaGitThemeExtras.colors.mizuiroAccentDark
+                        focusedBorderColor = colors.tertiary,
+                        focusedLabelColor = colors.tertiary,
+                        cursorColor = colors.tertiary
                     )
                 )
             }
@@ -1075,7 +1075,7 @@ fun GenerateSshKeyDialog(
             Button(
                 onClick = { onGenerate(name, selectedType, comment) },
                 enabled = name.isNotBlank(),
-                colors = ButtonDefaults.buttonColors(containerColor = FuwaGitThemeExtras.colors.mizuiroAccentDark),
+                colors = ButtonDefaults.buttonColors(containerColor = colors.tertiary),
                 shape = RoundedCornerShape(12.dp)
             ) {
                 Icon(
@@ -1111,9 +1111,9 @@ private fun SshTypeChip(
             .height(52.dp)
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(12.dp),
-        color = if (selected) FuwaGitThemeExtras.colors.mizuiroAccentDark.copy(alpha = 0.12f) else colors.surfaceVariant.copy(alpha = 0.3f),
+        color = if (selected) colors.tertiary.copy(alpha = 0.12f) else colors.surfaceVariant.copy(alpha = 0.3f),
         border = if (selected) {
-            androidx.compose.foundation.BorderStroke(2.dp, FuwaGitThemeExtras.colors.mizuiroAccentDark)
+            androidx.compose.foundation.BorderStroke(2.dp, colors.tertiary)
         } else {
             androidx.compose.foundation.BorderStroke(1.dp, colors.outline.copy(alpha = 0.3f))
         }
@@ -1129,12 +1129,12 @@ private fun SshTypeChip(
                 text = label,
                 style = MaterialTheme.typography.labelMedium,
                 fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
-                color = if (selected) FuwaGitThemeExtras.colors.mizuiroAccentDark else colors.onSurface
+                color = if (selected) colors.tertiary else colors.onSurface
             )
             Text(
                 text = description,
                 style = MaterialTheme.typography.labelSmall,
-                color = if (selected) FuwaGitThemeExtras.colors.mizuiroAccentDark.copy(alpha = 0.7f) else colors.onSurfaceVariant,
+                color = if (selected) colors.tertiary.copy(alpha = 0.7f) else colors.onSurfaceVariant,
                 fontSize = 9.sp
             )
         }
@@ -1146,6 +1146,7 @@ fun ImportSshKeyDialog(
     onDismiss: () -> Unit,
     onImport: (name: String, privateKey: String, publicKey: String?, passphrase: String?) -> Unit
 ) {
+    val colors = MaterialTheme.colorScheme
     var name by rememberSaveable { mutableStateOf("") }
     var privateKey by rememberSaveable { mutableStateOf("") }
     var publicKey by rememberSaveable { mutableStateOf("") }
@@ -1159,13 +1160,13 @@ fun ImportSshKeyDialog(
             Box(
                 modifier = Modifier
                     .size(48.dp)
-                    .background(FuwaGitThemeExtras.colors.mizuiroAccentDark.copy(alpha = 0.15f), CircleShape),
+                    .background(colors.tertiary.copy(alpha = 0.15f), CircleShape),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     Icons.Default.Edit,
                     contentDescription = null,
-                    tint = FuwaGitThemeExtras.colors.mizuiroAccentDark,
+                    tint = colors.tertiary,
                     modifier = Modifier.size(24.dp)
                 )
             }
@@ -1186,9 +1187,9 @@ fun ImportSshKeyDialog(
                     shape = RoundedCornerShape(12.dp),
                     modifier = Modifier.fillMaxWidth(),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = FuwaGitThemeExtras.colors.mizuiroAccentDark,
-                        focusedLabelColor = FuwaGitThemeExtras.colors.mizuiroAccentDark,
-                        cursorColor = FuwaGitThemeExtras.colors.mizuiroAccentDark
+                        focusedBorderColor = colors.tertiary,
+                        focusedLabelColor = colors.tertiary,
+                        cursorColor = colors.tertiary
                     )
                 )
 
@@ -1211,9 +1212,9 @@ fun ImportSshKeyDialog(
                     shape = RoundedCornerShape(12.dp),
                     modifier = Modifier.fillMaxWidth(),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = FuwaGitThemeExtras.colors.mizuiroAccentDark,
-                        focusedLabelColor = FuwaGitThemeExtras.colors.mizuiroAccentDark,
-                        cursorColor = FuwaGitThemeExtras.colors.mizuiroAccentDark
+                        focusedBorderColor = colors.tertiary,
+                        focusedLabelColor = colors.tertiary,
+                        cursorColor = colors.tertiary
                     )
                 )
 
@@ -1234,9 +1235,9 @@ fun ImportSshKeyDialog(
                     shape = RoundedCornerShape(12.dp),
                     modifier = Modifier.fillMaxWidth(),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = FuwaGitThemeExtras.colors.mizuiroAccentDark,
-                        focusedLabelColor = FuwaGitThemeExtras.colors.mizuiroAccentDark,
-                        cursorColor = FuwaGitThemeExtras.colors.mizuiroAccentDark
+                        focusedBorderColor = colors.tertiary,
+                        focusedLabelColor = colors.tertiary,
+                        cursorColor = colors.tertiary
                     )
                 )
 
@@ -1250,9 +1251,9 @@ fun ImportSshKeyDialog(
                     shape = RoundedCornerShape(12.dp),
                     modifier = Modifier.fillMaxWidth(),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = FuwaGitThemeExtras.colors.mizuiroAccentDark,
-                        focusedLabelColor = FuwaGitThemeExtras.colors.mizuiroAccentDark,
-                        cursorColor = FuwaGitThemeExtras.colors.mizuiroAccentDark
+                        focusedBorderColor = colors.tertiary,
+                        focusedLabelColor = colors.tertiary,
+                        cursorColor = colors.tertiary
                     )
                 )
             }
@@ -1268,7 +1269,7 @@ fun ImportSshKeyDialog(
                     )
                 },
                 enabled = name.isNotBlank() && privateKey.isNotBlank(),
-                colors = ButtonDefaults.buttonColors(containerColor = FuwaGitThemeExtras.colors.mizuiroAccentDark),
+                colors = ButtonDefaults.buttonColors(containerColor = colors.tertiary),
                 shape = RoundedCornerShape(12.dp)
             ) {
                 Icon(
@@ -1330,13 +1331,13 @@ fun HttpsCredentialInfoDialog(
             Box(
                 modifier = Modifier
                     .size(48.dp)
-                    .background(FuwaGitThemeExtras.colors.mizuiroAccent.copy(alpha = 0.15f), CircleShape),
+                    .background(colors.primary.copy(alpha = 0.15f), CircleShape),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     Icons.Default.Link,
                     contentDescription = null,
-                    tint = FuwaGitThemeExtras.colors.mizuiroAccent,
+                    tint = colors.primary,
                     modifier = Modifier.size(24.dp)
                 )
             }
@@ -1385,8 +1386,8 @@ fun HttpsCredentialInfoDialog(
                         FilledTonalButton(
                             onClick = { viewModel.showUnlockDialog() },
                             colors = ButtonDefaults.filledTonalButtonColors(
-                                containerColor = FuwaGitThemeExtras.colors.mizuiroAccent.copy(alpha = 0.15f),
-                                contentColor = FuwaGitThemeExtras.colors.mizuiroAccent
+                                containerColor = colors.primary.copy(alpha = 0.15f),
+                                contentColor = colors.primary
                             )
                         ) {
                             Icon(Icons.Default.Lock, contentDescription = null, modifier = Modifier.size(16.dp))
@@ -1478,13 +1479,13 @@ fun SshKeyInfoDialog(
             Box(
                 modifier = Modifier
                     .size(48.dp)
-                    .background(FuwaGitThemeExtras.colors.mizuiroAccentDark.copy(alpha = 0.15f), CircleShape),
+                    .background(colors.tertiary.copy(alpha = 0.15f), CircleShape),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     Icons.Default.Key,
                     contentDescription = null,
-                    tint = FuwaGitThemeExtras.colors.mizuiroAccentDark,
+                    tint = colors.tertiary,
                     modifier = Modifier.size(24.dp)
                 )
             }
@@ -1510,7 +1511,7 @@ fun SshKeyInfoDialog(
                 SensitiveInfoRow(
                     label = "Type",
                     value = key.type,
-                    valueColor = FuwaGitThemeExtras.colors.mizuiroAccentDark,
+                    valueColor = colors.tertiary,
                     onCopy = {
                         clipboardManager.setText(AnnotatedString(key.type))
                         scope.launch {
@@ -1574,8 +1575,8 @@ fun SshKeyInfoDialog(
                         FilledTonalButton(
                             onClick = { viewModel.showUnlockDialog() },
                             colors = ButtonDefaults.filledTonalButtonColors(
-                                containerColor = FuwaGitThemeExtras.colors.mizuiroAccentDark.copy(alpha = 0.15f),
-                                contentColor = FuwaGitThemeExtras.colors.mizuiroAccentDark
+                                containerColor = colors.tertiary.copy(alpha = 0.15f),
+                                contentColor = colors.tertiary
                             )
                         ) {
                             Icon(Icons.Default.Lock, contentDescription = null, modifier = Modifier.size(16.dp))
@@ -1604,7 +1605,7 @@ fun SshKeyInfoDialog(
                 InfoRow(
                     label = "Passphrase",
                     value = if (key.passphrase != null) "Protected" else "None",
-                    valueColor = if (key.passphrase != null) Color(0xFFFF9800) else colors.onSurfaceVariant
+                    valueColor = if (key.passphrase != null) colors.tertiary else colors.onSurfaceVariant
                 )
                 HorizontalDivider(color = colors.outline.copy(alpha = 0.2f))
                 InfoRow(label = "Created", value = formatTimestamp(key.createdAt))
@@ -1657,13 +1658,13 @@ fun ExportCredentialsDialog(
             Box(
                 modifier = Modifier
                     .size(48.dp)
-                    .background(Color(0xFF4CAF50).copy(alpha = 0.15f), CircleShape),
+                    .background(colors.primary.copy(alpha = 0.15f), CircleShape),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     Icons.Default.Upload,
                     contentDescription = null,
-                    tint = Color(0xFF4CAF50),
+                    tint = colors.primary,
                     modifier = Modifier.size(24.dp)
                 )
             }
@@ -1683,7 +1684,7 @@ fun ExportCredentialsDialog(
                     ) {
                         CircularProgressIndicator(
                             modifier = Modifier.size(24.dp),
-                            color = Color(0xFF4CAF50)
+                            color = colors.primary
                         )
                         Spacer(Modifier.width(8.dp))
                         Text("Exporting...")
@@ -1737,7 +1738,7 @@ fun ExportCredentialsDialog(
         confirmButton = {
             Button(
                 onClick = onDismiss,
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50)),
+                colors = ButtonDefaults.buttonColors(containerColor = colors.primary),
                 shape = RoundedCornerShape(12.dp)
             ) {
                 Text("Done")
@@ -1764,13 +1765,13 @@ fun ImportCredentialsDialog(
             Box(
                 modifier = Modifier
                     .size(48.dp)
-                    .background(Color(0xFF2196F3).copy(alpha = 0.15f), CircleShape),
+                    .background(colors.secondary.copy(alpha = 0.15f), CircleShape),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     Icons.Default.Download,
                     contentDescription = null,
-                    tint = Color(0xFF2196F3),
+                    tint = colors.secondary,
                     modifier = Modifier.size(24.dp)
                 )
             }
@@ -1785,21 +1786,21 @@ fun ImportCredentialsDialog(
             Column {
                 Surface(
                     shape = RoundedCornerShape(10.dp),
-                    color = Color(0xFFFF9800).copy(alpha = 0.12f)
+                    color = colors.tertiary.copy(alpha = 0.12f)
                 ) {
                     Row(
                         modifier = Modifier.padding(12.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "鈿狅笍",
+                            text = "⚠",
                             style = MaterialTheme.typography.bodySmall
                         )
                         Spacer(Modifier.width(8.dp))
                         Text(
                             text = "Importing will replace existing credentials",
                             style = MaterialTheme.typography.bodySmall,
-                            color = Color(0xFFFF9800)
+                            color = colors.tertiary
                         )
                     }
                 }
@@ -1820,8 +1821,8 @@ fun ImportCredentialsDialog(
                     shape = RoundedCornerShape(12.dp),
                     modifier = Modifier.fillMaxWidth(),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = Color(0xFF2196F3),
-                        focusedLabelColor = Color(0xFF2196F3)
+                        focusedBorderColor = colors.secondary,
+                        focusedLabelColor = colors.secondary
                     )
                 )
             }
@@ -1837,7 +1838,7 @@ fun ImportCredentialsDialog(
                     }
                 },
                 enabled = importData.isNotBlank() && !isLoading,
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2196F3)),
+                colors = ButtonDefaults.buttonColors(containerColor = colors.secondary),
                 shape = RoundedCornerShape(12.dp)
             ) {
                 if (isLoading) {

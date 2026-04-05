@@ -8,7 +8,6 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -22,15 +21,12 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Label
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.AutoFixHigh
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.Label
 import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -39,7 +35,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -53,13 +48,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import jamgmilk.fuwagit.ui.components.FilePickerDialog
 import jamgmilk.fuwagit.ui.theme.AppShapes
-import jamgmilk.fuwagit.ui.theme.FuwaGitThemeExtras
 import kotlinx.coroutines.launch
 import java.io.File
 
@@ -230,20 +223,21 @@ private fun RemoteSelectorDropdown(
     selectedIndex: Int,
     onSelected: (Int) -> Unit
 ) {
+    val colors = MaterialTheme.colorScheme
     var expanded by remember { mutableStateOf(false) }
 
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(
-            containerColor = FuwaGitThemeExtras.colors.mizuiroAccent.copy(alpha = 0.1f)
+            containerColor = colors.primary.copy(alpha = 0.1f)
         )
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
             Text(
                 text = "Remote (${remotes.size} found)",
                 style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = colors.onSurfaceVariant
             )
             Spacer(Modifier.height(8.dp))
 
@@ -258,7 +252,7 @@ private fun RemoteSelectorDropdown(
                     Icon(
                         if (index == selectedIndex) Icons.Default.CheckCircle else Icons.Default.Link,
                         contentDescription = null,
-                        tint = if (index == selectedIndex) FuwaGitThemeExtras.colors.mizuiroAccent else MaterialTheme.colorScheme.onSurfaceVariant,
+                        tint = if (index == selectedIndex) colors.primary else colors.onSurfaceVariant,
                         modifier = Modifier.size(18.dp)
                     )
                     Spacer(Modifier.width(8.dp))
@@ -271,7 +265,7 @@ private fun RemoteSelectorDropdown(
                         Text(
                             text = url,
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            color = colors.onSurfaceVariant,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
@@ -287,11 +281,13 @@ private fun RemoteUrlDisplay(
     remoteName: String,
     remoteUrl: String
 ) {
+    val colors = MaterialTheme.colorScheme
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(
-            containerColor = FuwaGitThemeExtras.colors.mizuiroAccent.copy(alpha = 0.1f)
+            containerColor = colors.primary.copy(alpha = 0.1f)
         )
     ) {
         Row(
@@ -303,7 +299,7 @@ private fun RemoteUrlDisplay(
             Icon(
                 Icons.Default.Link,
                 contentDescription = null,
-                tint = FuwaGitThemeExtras.colors.mizuiroAccent,
+                tint = colors.primary,
                 modifier = Modifier.size(18.dp)
             )
             Spacer(Modifier.width(8.dp))
@@ -316,7 +312,7 @@ private fun RemoteUrlDisplay(
                 Text(
                     text = remoteUrl,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = colors.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -338,8 +334,8 @@ private fun FolderSelectorCard(
         shape = RoundedCornerShape(16.dp),
         color = when {
             path.isBlank() -> colors.surfaceVariant.copy(alpha = 0.5f)
-            isGitRepo -> FuwaGitThemeExtras.colors.mizuiroAccent.copy(alpha = 0.08f)
-            else -> FuwaGitThemeExtras.colors.mizuiroAccentLight.copy(alpha = 0.08f)
+            isGitRepo -> colors.primary.copy(alpha = 0.08f)
+            else -> colors.primaryContainer.copy(alpha = 0.08f)
         }
     ) {
         Row(
@@ -359,8 +355,8 @@ private fun FolderSelectorCard(
                         contentDescription = null,
                         tint = when {
                             path.isBlank() -> colors.onSurfaceVariant
-                            isGitRepo -> FuwaGitThemeExtras.colors.mizuiroAccent
-                            else -> FuwaGitThemeExtras.colors.mizuiroAccentLight
+                            isGitRepo -> colors.primary
+                            else -> colors.primaryContainer
                         },
                         modifier = Modifier.size(20.dp)
                     )
@@ -375,8 +371,8 @@ private fun FolderSelectorCard(
                         fontWeight = FontWeight.Medium,
                         color = when {
                             path.isBlank() -> colors.onSurfaceVariant
-                            isGitRepo -> FuwaGitThemeExtras.colors.mizuiroAccent
-                            else -> FuwaGitThemeExtras.colors.mizuiroAccentLight
+                            isGitRepo -> colors.primary
+                            else -> colors.primaryContainer
                         }
                     )
                 }
@@ -398,12 +394,12 @@ private fun FolderSelectorCard(
                 onClick = onPickFolder,
                 modifier = Modifier
                     .size(48.dp)
-                    .background(FuwaGitThemeExtras.colors.mizuiroAccent.copy(alpha = 0.1f), CircleShape)
+                    .background(colors.primary.copy(alpha = 0.1f), CircleShape)
             ) {
                 Icon(
                     Icons.Default.FolderOpen,
                     contentDescription = "Pick folder",
-                    tint = FuwaGitThemeExtras.colors.mizuiroAccent,
+                    tint = colors.primary,
                     modifier = Modifier.size(24.dp)
                 )
             }
@@ -423,7 +419,7 @@ private fun RepositoryInfoCard(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(
-            containerColor = FuwaGitThemeExtras.colors.mizuiroAccent.copy(alpha = 0.08f)
+            containerColor = colors.primary.copy(alpha = 0.08f)
         )
     ) {
         Column(
@@ -434,7 +430,7 @@ private fun RepositoryInfoCard(
                 Icon(
                     Icons.Default.Folder,
                     contentDescription = null,
-                    tint = FuwaGitThemeExtras.colors.mizuiroAccent,
+                    tint = colors.primary,
                     modifier = Modifier.size(16.dp)
                 )
                 Spacer(Modifier.width(8.dp))
@@ -442,7 +438,7 @@ private fun RepositoryInfoCard(
                     text = "Repository: $repoName",
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Medium,
-                    color = FuwaGitThemeExtras.colors.mizuiroAccent
+                    color = colors.primary
                 )
             }
 

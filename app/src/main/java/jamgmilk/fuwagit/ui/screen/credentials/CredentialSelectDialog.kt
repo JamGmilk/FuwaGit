@@ -44,7 +44,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import jamgmilk.fuwagit.domain.model.credential.HttpsCredential
 import jamgmilk.fuwagit.domain.model.credential.SshKey
-import jamgmilk.fuwagit.ui.theme.FuwaGitThemeExtras
+import jamgmilk.fuwagit.ui.theme.AppShapes
 
 enum class CredentialType {
     HTTPS, SSH, BOTH
@@ -151,7 +151,7 @@ fun CredentialSelectDialog(
                 enabled = (selectedTab != 2 && selectedHttpsUuid != null) ||
                         (selectedTab == 2 && selectedSshUuid != null),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFF2196F3)
+                    containerColor = MaterialTheme.colorScheme.primary
                 ),
                 shape = RoundedCornerShape(12.dp)
             ) {
@@ -176,7 +176,7 @@ private fun CredentialTabChip(
     modifier: Modifier = Modifier
 ) {
     val colors = MaterialTheme.colorScheme
-    val accentColor = if (label == "HTTPS") FuwaGitThemeExtras.colors.mizuiroAccent else FuwaGitThemeExtras.colors.mizuiroAccentDark
+    val accentColor = if (label == "HTTPS") colors.primary else colors.tertiary
 
     Surface(
         modifier = modifier
@@ -220,14 +220,13 @@ private fun HttpsCredentialList(
     onSelect: (String) -> Unit
 ) {
     val colors = MaterialTheme.colorScheme
-    val uiColors = FuwaGitThemeExtras.colors
-    val accentColor = FuwaGitThemeExtras.colors.mizuiroAccent
+    val accentColor = colors.primary
 
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .border(1.dp, uiColors.cardBorder, RoundedCornerShape(16.dp))
-            .background(uiColors.cardContainer, RoundedCornerShape(16.dp)),
+            .border(1.dp, colors.outlineVariant, AppShapes.small)
+            .background(colors.surfaceContainerLow, AppShapes.small),
         verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
         if (credentials.isEmpty()) {
@@ -259,7 +258,7 @@ private fun HttpsCredentialList(
                 if (index > 0) {
                     HorizontalDivider(
                         modifier = Modifier.padding(horizontal = 12.dp),
-                        color = uiColors.cardBorder.copy(alpha = 0.5f)
+                        color = colors.outlineVariant.copy(alpha = 0.5f)
                     )
                 }
                 HttpsCredentialSelectItem(
@@ -279,8 +278,7 @@ private fun HttpsCredentialSelectItem(
     onClick: () -> Unit
 ) {
     val colors = MaterialTheme.colorScheme
-    val uiColors = FuwaGitThemeExtras.colors
-    val accentColor = FuwaGitThemeExtras.colors.mizuiroAccent
+    val accentColor = colors.primary
 
     Row(
         modifier = Modifier
@@ -344,14 +342,12 @@ private fun SshKeyList(
     onSelect: (String) -> Unit
 ) {
     val colors = MaterialTheme.colorScheme
-    val uiColors = FuwaGitThemeExtras.colors
-    val accentColor = FuwaGitThemeExtras.colors.mizuiroAccentDark
 
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .border(1.dp, uiColors.cardBorder, RoundedCornerShape(16.dp))
-            .background(uiColors.cardContainer, RoundedCornerShape(16.dp)),
+            .border(1.dp, colors.outlineVariant, AppShapes.small)
+            .background(colors.surfaceContainerLow, AppShapes.small),
         verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
         if (keys.isEmpty()) {
@@ -383,7 +379,7 @@ private fun SshKeyList(
                 if (index > 0) {
                     HorizontalDivider(
                         modifier = Modifier.padding(horizontal = 12.dp),
-                        color = uiColors.cardBorder.copy(alpha = 0.5f)
+                        color = colors.outlineVariant.copy(alpha = 0.5f)
                     )
                 }
                 SshKeySelectItem(
@@ -403,8 +399,7 @@ private fun SshKeySelectItem(
     onClick: () -> Unit
 ) {
     val colors = MaterialTheme.colorScheme
-    val uiColors = FuwaGitThemeExtras.colors
-    val accentColor = FuwaGitThemeExtras.colors.mizuiroAccentDark
+    val accentColor = colors.tertiary
 
     Row(
         modifier = Modifier

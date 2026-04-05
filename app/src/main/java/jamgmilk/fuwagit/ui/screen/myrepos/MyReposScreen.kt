@@ -83,7 +83,6 @@ import jamgmilk.fuwagit.ui.components.ConfigureRemoteDialog
 import jamgmilk.fuwagit.ui.components.EmptyState
 import jamgmilk.fuwagit.ui.components.ScreenTemplate
 import jamgmilk.fuwagit.ui.theme.AppShapes
-import jamgmilk.fuwagit.ui.theme.FuwaGitThemeExtras
 import kotlinx.coroutines.launch
 import java.text.DateFormat
 import java.util.Date
@@ -278,19 +277,20 @@ fun MyReposScreen(
 
     // Clean Confirmation Dialog: Requesting a preview
     if (showCleanDialog && untrackedFiles.isEmpty()) {
+        val colors = MaterialTheme.colorScheme
         AlertDialog(
             onDismissRequest = { showCleanDialog = false },
             icon = {
                 Box(
                     modifier = Modifier
                         .size(56.dp)
-                        .background(Color(0xFFFF9800).copy(alpha = 0.15f), CircleShape),
+                        .background(colors.tertiary.copy(alpha = 0.15f), CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         Icons.Default.CleaningServices,
                         contentDescription = null,
-                        tint = Color(0xFFFF9800),
+                        tint = colors.tertiary,
                         modifier = Modifier.size(28.dp)
                     )
                 }
@@ -306,7 +306,7 @@ fun MyReposScreen(
                 Text(
                     text = "Remove untracked files from the working directory. This action cannot be undone. Click 'Preview' to see which files will be deleted.",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = colors.onSurfaceVariant
                 )
             },
             confirmButton = {
@@ -317,7 +317,7 @@ fun MyReposScreen(
                         }
                         showCleanDialog = false
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2196F3)),
+                    colors = ButtonDefaults.buttonColors(containerColor = colors.secondary),
                     shape = RoundedCornerShape(12.dp)
                 ) {
                     Icon(
@@ -602,7 +602,7 @@ fun RepoOptionsSheet(
                     icon = Icons.Default.Info,
                     title = "Show Info",
                     subtitle = "View repository details",
-                    accentColor = Color(0xFF9C27B0),
+                    accentColor = colors.primary,
                     onClick = onShowInfo
                 )
 
@@ -610,7 +610,7 @@ fun RepoOptionsSheet(
                     icon = Icons.Default.Link,
                     title = "Configure Remote",
                     subtitle = "Set push/pull remote URL",
-                    accentColor = Color(0xFF2196F3),
+                    accentColor = colors.secondary,
                     onClick = onConfigureRemote
                 )
 
@@ -634,7 +634,7 @@ fun RepoOptionsSheet(
                     icon = Icons.Default.CleaningServices,
                     title = "Clean Repository",
                     subtitle = "Remove untracked files",
-                    accentColor = Color(0xFFE91E63),
+                    accentColor = colors.error,
                     onClick = onClean
                 )
 
@@ -668,11 +668,12 @@ private fun RepoHeader(
         verticalAlignment = Alignment.CenterVertically
     ) {
 
+        val colors = MaterialTheme.colorScheme
         Box(
             modifier = Modifier
                 .size(48.dp)
                 .background(
-                    color = if (item.isGitRepo) Color(0xFF4CAF50) else Color(0xFFFF9800),
+                    color = if (item.isGitRepo) colors.primary else colors.tertiary,
                     shape = AppShapes.extraSmall
                 ),
             contentAlignment = Alignment.Center
@@ -802,13 +803,13 @@ fun RepoInfoDialog(
             Box(
                 modifier = Modifier
                     .size(56.dp)
-                    .background(Color(0xFF9C27B0).copy(alpha = 0.15f), CircleShape),
+                    .background(colors.primary.copy(alpha = 0.15f), CircleShape),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     Icons.Default.Info,
                     contentDescription = null,
-                    tint = Color(0xFF9C27B0),
+                    tint = colors.primary,
                     modifier = Modifier.size(28.dp)
                 )
             }
@@ -832,7 +833,7 @@ fun RepoInfoDialog(
                 if (!isGitRepo) {
                     Surface(
                         shape = RoundedCornerShape(12.dp),
-                        color = Color(0xFFFF9800).copy(alpha = 0.15f)
+                        color = colors.tertiary.copy(alpha = 0.15f)
                     ) {
                         Row(
                             modifier = Modifier.padding(12.dp),
@@ -841,14 +842,14 @@ fun RepoInfoDialog(
                             Icon(
                                 Icons.Default.Warning,
                                 contentDescription = null,
-                                tint = Color(0xFFFF9800),
+                                tint = colors.error,
                                 modifier = Modifier.size(20.dp)
                             )
                             Spacer(Modifier.width(8.dp))
                             Text(
                                 text = "This directory is not a Git repository",
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = Color(0xFFFF9800)
+                                color = colors.error
                             )
                         }
                     }
@@ -876,7 +877,7 @@ fun RepoInfoDialog(
         confirmButton = {
             Button(
                 onClick = onDismiss,
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF9C27B0)),
+                colors = ButtonDefaults.buttonColors(containerColor = colors.primary),
                 shape = RoundedCornerShape(12.dp)
             ) {
                 Text("Close")

@@ -69,7 +69,7 @@ import jamgmilk.fuwagit.ui.components.DangerousOperationType
 import jamgmilk.fuwagit.ui.components.OperationResultDialog
 import jamgmilk.fuwagit.ui.components.ScreenTemplate
 import jamgmilk.fuwagit.ui.components.TwoStepConfirmDialog
-import jamgmilk.fuwagit.ui.theme.FuwaGitThemeExtras
+import jamgmilk.fuwagit.ui.theme.AppShapes
 
 
 @Composable
@@ -82,7 +82,6 @@ fun BranchesScreen(
     val remote = uiState.remoteBranches
     val currentBranch = uiState.currentBranch?.name
     val colors = MaterialTheme.colorScheme
-    val uiColors = FuwaGitThemeExtras.colors
     val context = LocalContext.current
 
     var showCreateDialog by remember { mutableStateOf(false) }
@@ -131,9 +130,9 @@ fun BranchesScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .weight(1f)
-                .border(1.dp, uiColors.cardBorder, RoundedCornerShape(24.dp)),
-            shape = RoundedCornerShape(24.dp),
-            colors = CardDefaults.elevatedCardColors(containerColor = uiColors.cardContainer),
+                .border(1.dp, colors.outlineVariant, AppShapes.medium),
+            shape = AppShapes.medium,
+            colors = CardDefaults.elevatedCardColors(containerColor = colors.surfaceContainerLow),
             elevation = CardDefaults.elevatedCardElevation(0.dp)
         ) {
             if (local.isEmpty() && remote.isEmpty()) {
@@ -181,13 +180,13 @@ fun BranchesScreen(
                 Box(
                     modifier = Modifier
                         .size(56.dp)
-                        .background(Color(0xFFFF5722).copy(alpha = 0.15f), CircleShape),
+                        .background(colors.error.copy(alpha = 0.15f), CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         Icons.Default.Edit,
                         contentDescription = null,
-                        tint = Color(0xFFFF5722),
+                        tint = colors.error,
                         modifier = Modifier.size(28.dp)
                     )
                 }
@@ -206,7 +205,7 @@ fun BranchesScreen(
                     Text(
                         text = "Rename branch \"$branchToRename\" to a new name.",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = colors.onSurfaceVariant
                     )
 
                     OutlinedTextField(
@@ -218,8 +217,8 @@ fun BranchesScreen(
                         shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.fillMaxWidth(),
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = Color(0xFFFF5722),
-                            focusedLabelColor = Color(0xFFFF5722)
+                            focusedBorderColor = colors.primary,
+                            focusedLabelColor = colors.primary
                         )
                     )
                 }
@@ -232,7 +231,7 @@ fun BranchesScreen(
                         branchToRename = null
                     },
                     enabled = newName.isNotBlank() && newName != branchToRename,
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF5722)),
+                    colors = ButtonDefaults.buttonColors(containerColor = colors.primary),
                     shape = RoundedCornerShape(12.dp)
                 ) {
                     Icon(
@@ -388,7 +387,7 @@ private fun BranchListContent(
                 title = "Local Branches",
                 subtitle = "${localBranches.size} branches",
                 icon = Icons.Outlined.AccountTree,
-                color = Color(0xFF4CAF50)
+                color = colors.primary
             )
         }
 
@@ -423,7 +422,7 @@ private fun BranchListContent(
                 title = "Remote Branches",
                 subtitle = "${remoteBranches.size} branches",
                 icon = Icons.Default.Cloud,
-                color = Color(0xFF2196F3)
+                color = colors.secondary
             )
         }
 
@@ -516,7 +515,7 @@ private fun BranchItem(
     val colors = MaterialTheme.colorScheme
     val context = LocalContext.current
 
-    val accentColor = if (isRemote) Color(0xFF2196F3) else Color(0xFF4CAF50)
+    val accentColor = if (isRemote) colors.secondary else colors.primary
 
     Column(
         modifier = Modifier
