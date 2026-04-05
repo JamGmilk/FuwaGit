@@ -1,6 +1,7 @@
 package jamgmilk.fuwagit.ui.screen.myrepos
 
 import android.annotation.SuppressLint
+import android.content.Context
 import android.widget.Toast
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -10,8 +11,10 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -81,6 +84,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import jamgmilk.fuwagit.ui.components.CleanPreviewDialog
 import jamgmilk.fuwagit.ui.components.CleanResultDialog
 import jamgmilk.fuwagit.ui.components.ConfigureRemoteDialog
+import jamgmilk.fuwagit.ui.components.EmptyState
 import jamgmilk.fuwagit.ui.components.ScreenTemplate
 import jamgmilk.fuwagit.ui.theme.AppShapes
 import jamgmilk.fuwagit.ui.theme.FuwaGitThemeExtras
@@ -109,7 +113,9 @@ fun MyReposScreen(
     var showRemoteDialog by remember { mutableStateOf<RepoFolderItem?>(null) }
     var showInfoDialog by remember { mutableStateOf<RepoFolderItem?>(null) }
 
-    val sheetState = rememberModalBottomSheetState()
+    val sheetState = rememberModalBottomSheetState(
+        skipPartiallyExpanded = true
+    )
 
     var remoteUrlState by remember { mutableStateOf("") }
     var repoInfoState by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
@@ -124,17 +130,21 @@ fun MyReposScreen(
             title = "My Repos",
             modifier = Modifier.fillMaxSize()
         ) {
-            ElevatedCard(
+            Surface(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f)
-                    .border(1.dp, FuwaGitThemeExtras.colors.cardBorder, AppShapes.medium),
+                    .border(1.dp, MaterialTheme.colorScheme.outline, AppShapes.medium),
                 shape = AppShapes.medium,
-                colors = CardDefaults.elevatedCardColors(containerColor = FuwaGitThemeExtras.colors.cardContainer),
-                elevation = CardDefaults.elevatedCardElevation(0.dp)
+                color = MaterialTheme.colorScheme.surfaceContainer
             ) {
                 if (folders.isEmpty()) {
-                    EmptyReposState()
+                    EmptyState(
+                        icon = Icons.Outlined.FolderOpen,
+                        title = "No repositories yet",
+                        description = "Use the + button to add a repository",
+                        modifier = modifier
+                    )
                 } else {
                     RepoListContent(
                         folders = folders,
@@ -150,12 +160,22 @@ fun MyReposScreen(
             }
         }
 
-        RepoSpeedDial(
-            onAddRepository = onNavigateToAddRepository,
+        FloatingActionButton(
+            onClick = onNavigateToAddRepository,
+            containerColor = MaterialTheme.colorScheme.primaryContainer,
+            contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+            // elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 0.dp),
+            shape = AppShapes.medium,
             modifier = Modifier
                 .align(Alignment.BottomEnd)
                 .padding(16.dp)
-        )
+        ) {
+            Icon(
+                Icons.Default.Add,
+                contentDescription = "Add Repository"
+            )
+        }
+
     }
 
     selectedItemForSheet?.let { item ->
@@ -235,7 +255,7 @@ fun MyReposScreen(
         )
     }
 
-    // Clean 棰?瑙堝璇濇??細鏄剧ず灏?瑕佸垹闄ょ?鏂?浠跺垪琛?
+    // Clean Preview Dialog: Displays the list of files that will be deleted
     val untrackedFiles = uiState.untrackedFilesForClean
     val isCleanPreviewing = uiState.isCleanPreviewing
     val cleanMessage = uiState.cleanMessage
@@ -249,7 +269,7 @@ fun MyReposScreen(
         )
     }
 
-    // Clean 缁撴灉瀵硅瘽妗??細鏄剧ず宸插?闄ょ?鏂?浠跺垪琛?
+    // Clean Result Dialog: Displays the list of files that have been deleted
     val cleanedFiles = uiState.cleanedFilesForResult
     if (cleanedFiles.isNotEmpty()) {
         CleanResultDialog(
@@ -259,7 +279,7 @@ fun MyReposScreen(
         )
     }
 
-    // Clean 纭瀵硅瘽妗??細璇锋眰棰?瑙?
+    // Clean Confirmation Dialog: Requesting a preview
     if (showCleanDialog && untrackedFiles.isEmpty()) {
         AlertDialog(
             onDismissRequest = { showCleanDialog = false },
@@ -357,7 +377,7 @@ fun RepoListContent(
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
             verticalArrangement = Arrangement.spacedBy(10.dp),
-            contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = 8.dp)
+            contentPadding = PaddingValues(vertical = 8.dp)
         ) {
             items(folders, key = { it.path }, contentType = { "repo_item" }) { item ->
                 RepoItemCard(
@@ -537,57 +557,14 @@ fun RepoItemCard(
     }
 }
 
-@Composable
-fun EmptyReposState(modifier: Modifier = Modifier) {
-    val colors = MaterialTheme.colorScheme
 
-    Box(
-        modifier = modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
-    ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(14.dp)
-        ) {
-            Surface(
-                shape = RoundedCornerShape(20.dp),
-                color = FuwaGitThemeExtras.colors.mizuiroAccent.copy(alpha = 0.1f),
-                modifier = Modifier.size(72.dp)
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        Icons.Outlined.FolderOpen,
-                        contentDescription = null,
-                        tint = FuwaGitThemeExtras.colors.mizuiroAccent.copy(alpha = 0.6f),
-                        modifier = Modifier.size(36.dp)
-                    )
-                }
-            }
 
-            Text(
-                text = "No repositories yet",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = colors.onSurfaceVariant
-            )
-
-            Text(
-                text = "Use the + button to add a repository",
-                style = MaterialTheme.typography.bodySmall,
-                color = colors.onSurfaceVariant.copy(alpha = 0.7f),
-                textAlign = TextAlign.Center
-            )
-        }
-    }
-}
-
-@SuppressLint("UseKtx")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RepoOptionsSheet(
     item: RepoFolderItem,
     sheetState: SheetState,
-    context: android.content.Context,
+    context: Context,
     onDismiss: () -> Unit,
     onRemove: () -> Unit,
     onConfigureRemote: () -> Unit,
@@ -595,21 +572,19 @@ fun RepoOptionsSheet(
     onShowInfo: () -> Unit
 ) {
     val colors = MaterialTheme.colorScheme
-    val uiColors = FuwaGitThemeExtras.colors
-    val scope = rememberCoroutineScope()
     val clipboardManager = LocalClipboardManager.current
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        containerColor = uiColors.cardContainer,
+        containerColor = colors.surfaceContainerLow,
         contentColor = colors.onSurface,
         dragHandle = null
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 32.dp)
+                .padding(horizontal = 16.dp, vertical = 24.dp)
         ) {
             RepoHeader(
                 item = item,
@@ -620,7 +595,7 @@ fun RepoOptionsSheet(
 
             HorizontalDivider(
                 modifier = Modifier.padding(top = 16.dp, bottom = 12.dp),
-                color = colors.outline.copy(alpha = 0.15f)
+                color = colors.outlineVariant
             )
 
             Text(
@@ -644,7 +619,7 @@ fun RepoOptionsSheet(
 
             HorizontalDivider(
                 modifier = Modifier.padding(12.dp),
-                color = colors.outline.copy(alpha = 0.15f)
+                color = colors.outlineVariant
             )
 
             Text(
@@ -655,21 +630,23 @@ fun RepoOptionsSheet(
                 modifier = Modifier.padding(start = 8.dp)
             )
 
-            RepoOptionItem(
-                icon = Icons.Default.CleaningServices,
-                title = "Clean Repository",
-                subtitle = "Remove untracked files",
-                accentColor = Color(0xFFE91E63),
-                onClick = onClean
-            )
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                RepoOptionItem(
+                    icon = Icons.Default.CleaningServices,
+                    title = "Clean Repository",
+                    subtitle = "Remove untracked files",
+                    accentColor = Color(0xFFE91E63),
+                    onClick = onClean
+                )
 
-            RepoOptionItem(
-                icon = Icons.Default.Delete,
-                title = "Remove from List",
-                subtitle = "Remove this repository from the list",
-                accentColor = colors.error,
-                onClick = onRemove
-            )
+                RepoOptionItem(
+                    icon = Icons.Default.Delete,
+                    title = "Remove from List",
+                    subtitle = "Remove this repository from the list",
+                    accentColor = colors.error,
+                    onClick = onRemove
+                )
+            }
         }
     }
 }
@@ -679,15 +656,14 @@ private fun RepoHeader(
     item: RepoFolderItem,
     onCopyPath: () -> Unit
 ) {
-    val colors = MaterialTheme.colorScheme
     val context = LocalContext.current
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .background(
-                color = FuwaGitThemeExtras.colors.mizuiroAccent.copy(alpha = 0.12f),
-                shape = RoundedCornerShape(16.dp)
+                color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.4f),
+                shape = AppShapes.small
             )
             .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically
@@ -695,10 +671,10 @@ private fun RepoHeader(
 
         Box(
             modifier = Modifier
-                .size(56.dp)
+                .size(48.dp)
                 .background(
                     color = if (item.isGitRepo) Color(0xFF4CAF50) else Color(0xFFFF9800),
-                    shape = RoundedCornerShape(14.dp)
+                    shape = AppShapes.extraSmall
                 ),
             contentAlignment = Alignment.Center
         ) {
@@ -716,27 +692,31 @@ private fun RepoHeader(
             Text(
                 text = item.alias.ifBlank { item.path.substringAfterLast("/") },
                 style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface,
                 fontWeight = FontWeight.Bold,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
 
-            //Spacer(Modifier.height(6.dp))
+            //Spacer(Modifier.height(2.dp))
 
             Text(
                 text = item.path,
                 style = MaterialTheme.typography.bodySmall.copy(lineHeight = 16.sp),
-                color = colors.onSurfaceVariant.copy(alpha = 0.8f),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 fontFamily = FontFamily.Monospace,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.combinedClickable(
-                    onClick = {},
-                    onLongClick = {
-                        onCopyPath()
-                        Toast.makeText(context, "Path copied", Toast.LENGTH_SHORT).show()
-                    }
-                )
+                modifier = Modifier
+                    .clip(RoundedCornerShape(4.dp))
+                    .combinedClickable(
+                        onClick = {},
+                        onLongClick = {
+                            onCopyPath()
+                            // TODO: Toast 报看喵
+                            Toast.makeText(context, "Path copied", Toast.LENGTH_SHORT).show()
+                        }
+                    )
             )
         }
     }
@@ -1001,24 +981,5 @@ private fun getInfoColor(key: String): Color {
         key.contains("Hash", ignoreCase = true) -> Color(0xFF795548)
         key.contains("Error", ignoreCase = true) -> Color(0xFFE53935)
         else -> FuwaGitThemeExtras.colors.mizuiroAccent
-    }
-}
-
-@Composable
-fun RepoSpeedDial(
-    onAddRepository: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    FloatingActionButton(
-        onClick = onAddRepository,
-        containerColor = FuwaGitThemeExtras.colors.mizuiroAccent,
-        elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 0.dp),
-        shape = AppShapes.medium,
-        modifier = modifier
-    ) {
-        Icon(
-            Icons.Default.Add,
-            contentDescription = "Add Repository"
-        )
     }
 }
