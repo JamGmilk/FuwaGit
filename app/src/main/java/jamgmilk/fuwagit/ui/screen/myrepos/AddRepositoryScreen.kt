@@ -2,9 +2,12 @@ package jamgmilk.fuwagit.ui.screen.myrepos
 
 import android.widget.Toast
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -22,6 +25,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
@@ -38,6 +42,7 @@ import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.ReportProblem
+import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -74,6 +79,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -341,10 +347,12 @@ private fun CloneContent(
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
+            // Section Header
             Text(
                 text = "Remote URL",
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Medium
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(start = 4.dp, bottom = 4.dp)
             )
 
             // TODO: 清除焦点
@@ -394,7 +402,7 @@ private fun CloneContent(
 
         if (isHttps && httpsCredentials.isNotEmpty()) {
             val selectedCred = httpsCredentials.find { it.uuid == selectedHttpsUuid }
-            CredentialSelectionButton(
+            CredentialSelector(
                 label = if (selectedCred != null) "HTTPS: ${selectedCred.username}" else "Select HTTPS Credential",
                 isEnabled = true,
                 onClick = { showCredentialDialog = true }
@@ -403,7 +411,7 @@ private fun CloneContent(
 
         if (isSsh && sshKeys.isNotEmpty()) {
             val selectedKey = sshKeys.find { it.uuid == selectedSshUuid }
-            CredentialSelectionButton(
+            CredentialSelector(
                 label = if (selectedKey != null) "SSH: ${selectedKey.name}" else "Select SSH Key",
                 isEnabled = true,
                 onClick = { showCredentialDialog = true }
@@ -558,7 +566,7 @@ private fun CloneContent(
 }
 
 @Composable
-private fun CredentialSelectionButton(
+private fun CredentialSelector(
     label: String,
     isEnabled: Boolean,
     onClick: () -> Unit
@@ -1225,128 +1233,124 @@ private fun CloneOptionsSection(
     shallowDepth: String,
     onShallowDepthChange: (String) -> Unit
 ) {
-    val colors = MaterialTheme.colorScheme
+    val colorScheme = MaterialTheme.colorScheme
 
-    Surface(
-        shape = RoundedCornerShape(12.dp),
-        color = colors.surfaceVariant.copy(alpha = 0.5f)
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
+        // Section Header
+        Text(
+            text = "Advanced Options",
+            style = MaterialTheme.typography.labelMedium,
+            color = colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(start = 4.dp, bottom = 4.dp)
+        )
+
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
+                .clip(AppShapes.medium)
+                .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+            //.padding(16.dp)
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    Icons.Default.AccountTree,
-                    contentDescription = null,
-                    tint = FuwaGitThemeExtras.colors.mizuiroAccent,
-                    modifier = Modifier.size(16.dp)
-                )
-                Spacer(Modifier.width(8.dp))
-                Text(
-                    text = "Clone Options",
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.Medium,
-                    color = colors.onSurface
-                )
-            }
+            // Clone All Branches
+            OptionToggleRow(
+                title = "Clone all branches",
+                description = "Download entire remote history",
+                checked = cloneAllBranches,
+                onCheckedChange = onCloneAllBranchesChange,
+                icon = Icons.Default.AccountTree
+            )
 
-            HorizontalDivider(color = colors.outline.copy(alpha = 0.15f))
+            HorizontalDivider(
+                // modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                color = colorScheme.outlineVariant.copy(alpha = 0.5f)
+            )
 
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { onCloneAllBranchesChange(!cloneAllBranches) }
-                    .padding(vertical = 4.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+            // Shallow Clone
+            OptionToggleRow(
+                title = "Shallow clone",
+                description = "Only download the latest commits",
+                checked = enableShallowClone,
+                onCheckedChange = onEnableShallowCloneChange,
+                icon = Icons.Default.Speed
+            )
+
+            // Depth Input
+            AnimatedVisibility(
+                visible = enableShallowClone,
+                enter = expandVertically() + fadeIn(),
+                exit = shrinkVertically() + fadeOut()
             ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "Clone all branches",
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Medium
-                    )
-                    Text(
-                        text = "Download entire remote history. Turn off for single-branch clone.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = colors.onSurfaceVariant
+                Box(modifier = Modifier.padding(16.dp)) {
+                    OutlinedTextField(
+                        value = shallowDepth,
+                        onValueChange = { if (it.all { char -> char.isDigit() }) onShallowDepthChange(it) },
+                        label = { Text("Commit Depth") },
+                        placeholder = { Text("e.g. 1") },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     )
                 }
-                Switch(
-                    checked = cloneAllBranches,
-                    onCheckedChange = onCloneAllBranchesChange,
-                    colors = SwitchDefaults.colors(
-                        checkedThumbColor = FuwaGitThemeExtras.colors.mizuiroAccent,
-                        checkedTrackColor = FuwaGitThemeExtras.colors.mizuiroAccent.copy(alpha = 0.5f),
-                        checkedBorderColor = FuwaGitThemeExtras.colors.mizuiroAccent,
-                        uncheckedThumbColor = colors.onSurfaceVariant,
-                        uncheckedTrackColor = colors.surfaceVariant,
-                        uncheckedBorderColor = colors.outline.copy(alpha = 0.5f)
-                    )
-                )
-            }
-
-            HorizontalDivider(color = colors.outline.copy(alpha = 0.1f))
-
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { onEnableShallowCloneChange(!enableShallowClone) }
-                    .padding(vertical = 4.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "Shallow clone",
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Medium
-                    )
-                    Text(
-                        text = "Only download the latest commits to save time and space.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = colors.onSurfaceVariant
-                    )
-                }
-                Switch(
-                    checked = enableShallowClone,
-                    onCheckedChange = onEnableShallowCloneChange,
-                    colors = SwitchDefaults.colors(
-                        checkedThumbColor = FuwaGitThemeExtras.colors.mizuiroAccent,
-                        checkedTrackColor = FuwaGitThemeExtras.colors.mizuiroAccent.copy(alpha = 0.5f),
-                        checkedBorderColor = FuwaGitThemeExtras.colors.mizuiroAccent,
-                        uncheckedThumbColor = colors.onSurfaceVariant,
-                        uncheckedTrackColor = colors.surfaceVariant,
-                        uncheckedBorderColor = colors.outline.copy(alpha = 0.5f)
-                    )
-                )
-            }
-
-            if (enableShallowClone) {
-                OutlinedTextField(
-                    value = shallowDepth,
-                    onValueChange = { newValue ->
-                        if (newValue.isEmpty() || newValue.all { it.isDigit() }) {
-                            onShallowDepthChange(newValue)
-                        }
-                    },
-                    label = { Text("Depth (number of commits)") },
-                    singleLine = true,
-                    shape = RoundedCornerShape(10.dp),
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = Color(0xFF9C27B0),
-                        focusedLabelColor = Color(0xFF9C27B0),
-                        cursorColor = Color(0xFF9C27B0)
-                    )
-                )
             }
         }
+    }
+}
+
+@Composable
+private fun OptionToggleRow(
+    title: String,
+    description: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+    icon: ImageVector
+) {
+    val colorScheme = MaterialTheme.colorScheme
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onCheckedChange(!checked) }
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .size(36.dp)
+                .background(
+                    color = if (checked) colorScheme.primary.copy(alpha = 0.1f) else colorScheme.surfaceVariant,
+                    shape = CircleShape
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = if (checked) colorScheme.primary else colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(18.dp)
+            )
+        }
+
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.bodyLarge,
+                color = colorScheme.onSurface
+            )
+            Text(
+                text = description,
+                style = MaterialTheme.typography.bodySmall,
+                color = colorScheme.onSurfaceVariant
+            )
+        }
+
+        Switch(
+            checked = checked,
+            onCheckedChange = onCheckedChange
+        )
     }
 }
