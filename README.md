@@ -130,11 +130,6 @@ SOFTWARE.
 - [Dagger Hilt](https://dagger.dev/hilt/) - Excellent dependency injection framework
 - [Material Design 3](https://m3.material.io/) - Google's design system
 
-## 📧 Contact
-
-- **Author**: jamgmilk
-- **Email**: (To be filled)
-
 ---
 
 <p align="center">
@@ -142,5 +137,5 @@ SOFTWARE.
 </p>
 
 <p align="center">
-  Made with ❤️ by <a href="https://github.com/YOUR_USERNAME">jamgmilk</a>
+  Made with ❤️ by <a href="https://github.com/JamGmilk">JamGmilk</a>
 </p>
