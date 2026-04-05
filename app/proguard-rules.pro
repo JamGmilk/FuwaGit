@@ -19,3 +19,12 @@
 # If you keep the line number information, uncomment this to
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
+
+-keepclassmembers class * extends androidx.compose.ui.node.ModifierNodeElement {
+    <fields>;
+    <init>(...);
+}
+-keep @kotlinx.serialization.Serializable class * { *; }
+-keep class org.eclipse.jgit.api.** { *; }
+-keep class org.eclipse.jgit.lib.** { *; }
+-keep class org.eclipse.jgit.transport.** { *; }

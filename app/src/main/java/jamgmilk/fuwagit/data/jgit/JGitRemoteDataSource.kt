@@ -46,7 +46,7 @@ class JGitRemoteDataSource @Inject constructor(
             }
             Result.success(result)
         } catch (e: Exception) {
-            android.util.Log.e("JGitRemoteDataSource", "Failed to clone repository", e)
+            Log.e("JGitRemoteDataSource", "Failed to clone repository", e)
             Result.failure(e)
         } finally {
             core.clearSshCredentials()
