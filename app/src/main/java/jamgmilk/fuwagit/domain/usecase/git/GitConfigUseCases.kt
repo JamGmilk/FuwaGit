@@ -1,13 +1,13 @@
 package jamgmilk.fuwagit.domain.usecase.git
 
-import jamgmilk.fuwagit.data.jgit.GitConfigManager
+import jamgmilk.fuwagit.domain.repository.ConfigRepository
 import javax.inject.Inject
 
 /**
- * 灏嗙敤鎴烽厤缃簲鐢ㄥ埌鎸囧畾浠撳簱
+ * 将用户配置应用到指定仓库
  */
 class ApplyGitConfigToRepo @Inject constructor(
-    private val gitConfigManager: GitConfigManager
+    private val configRepository: ConfigRepository
 ) {
     suspend operator fun invoke(repoPath: String, name: String, email: String): Result<Unit> {
         if (repoPath.isBlank()) {
@@ -16,31 +16,31 @@ class ApplyGitConfigToRepo @Inject constructor(
         if (name.isBlank() && email.isBlank()) {
             return Result.failure(IllegalArgumentException("Name or email must be provided"))
         }
-        
-        return gitConfigManager.setRepoUserConfig(repoPath, name, email)
+
+        return configRepository.setRepoUserConfig(repoPath, name, email)
     }
 }
 
 /**
- * 灏嗙敤鎴烽厤缃簲鐢ㄥ埌 global git config
+ * 将用户配置应用到 global git config
  */
 class ApplyGitConfigToGlobal @Inject constructor(
-    private val gitConfigManager: GitConfigManager
+    private val configRepository: ConfigRepository
 ) {
     suspend operator fun invoke(name: String, email: String): Result<Unit> {
         if (name.isBlank() && email.isBlank()) {
             return Result.failure(IllegalArgumentException("Name or email must be provided"))
         }
-        
-        return gitConfigManager.setGlobalUserConfig(name, email)
+
+        return configRepository.setGlobalUserConfig(name, email)
     }
 }
 
 /**
- * 灏嗙敤鎴烽厤缃簲鐢ㄥ埌鎵€鏈夊凡鐭ヤ粨搴?
+ * 将用户配置应用到所有已知仓库
  */
 class ApplyGitConfigToAllRepos @Inject constructor(
-    private val gitConfigManager: GitConfigManager,
+    private val configRepository: ConfigRepository,
     private val applyGitConfigToRepo: ApplyGitConfigToRepo,
     private val applyGitConfigToGlobal: ApplyGitConfigToGlobal
 ) {
@@ -53,13 +53,13 @@ class ApplyGitConfigToAllRepos @Inject constructor(
         val results = mutableMapOf<String, Result<Unit>>()
         var successCount = 0
         var failureCount = 0
-        
-        // 鍏堝簲鐢ㄥ埌 global
+
+        // 先应用到 global
         if (alsoApplyToGlobal) {
             applyGitConfigToGlobal(name, email)
         }
-        
-        // 鐒跺悗搴旂敤鍒版墍鏈変粨搴?
+
+        // 然后应用到所有仓库
         repoPaths.forEach { repoPath ->
             val result = applyGitConfigToRepo(repoPath, name, email)
             results[repoPath] = result
@@ -69,7 +69,7 @@ class ApplyGitConfigToAllRepos @Inject constructor(
                 failureCount++
             }
         }
-        
+
         return ApplyToAllReposResult(
             results = results,
             successCount = successCount,
@@ -80,7 +80,7 @@ class ApplyGitConfigToAllRepos @Inject constructor(
 }
 
 /**
- * 搴旂敤鍒版墍鏈変粨搴撶殑缁撴灉
+ * 应用到所有仓库的结果
  */
 data class ApplyToAllReposResult(
     val results: Map<String, Result<Unit>>,
@@ -93,41 +93,41 @@ data class ApplyToAllReposResult(
 }
 
 /**
- * 绉婚櫎浠撳簱鏈湴閰嶇疆锛堜娇鐢?global 閰嶇疆锛?
+ * 移除仓库本地配置（使用 global 配置）
  */
 class RemoveRepoLocalConfig @Inject constructor(
-    private val gitConfigManager: GitConfigManager
+    private val configRepository: ConfigRepository
 ) {
     suspend operator fun invoke(repoPath: String): Result<Unit> {
         if (repoPath.isBlank()) {
             return Result.failure(IllegalArgumentException("Repository path cannot be empty"))
         }
-        
-        return gitConfigManager.removeRepoLocalUserConfig(repoPath)
+
+        return configRepository.removeRepoLocalUserConfig(repoPath)
     }
 }
 
 /**
- * 鑾峰彇浠撳簱褰撳墠鐢熸晥鐨勭敤鎴烽厤缃?
+ * 获取仓库当前生效的用户配置
  */
 class GetEffectiveUserConfig @Inject constructor(
-    private val gitConfigManager: GitConfigManager
+    private val configRepository: ConfigRepository
 ) {
     suspend operator fun invoke(repoPath: String): Pair<String?, String?> {
-        return gitConfigManager.getEffectiveUserConfig(repoPath)
+        return configRepository.getEffectiveUserConfig(repoPath)
     }
 }
 
 /**
- * 鑾峰彇 global 鐢ㄦ埛閰嶇疆
+ * 获取 global 用户配置
  */
 class GetGlobalUserConfig @Inject constructor(
-    private val gitConfigManager: GitConfigManager
+    private val configRepository: ConfigRepository
 ) {
     suspend operator fun invoke(): Pair<String?, String?> {
         return Pair(
-            gitConfigManager.getGlobalUserName(),
-            gitConfigManager.getGlobalUserEmail()
+            configRepository.getGlobalUserName(),
+            configRepository.getGlobalUserEmail()
         )
     }
 }
