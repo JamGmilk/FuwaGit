@@ -1,7 +1,12 @@
 package jamgmilk.fuwagit.ui.components
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -18,13 +23,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.shrinkVertically
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Clear
@@ -34,7 +34,6 @@ import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Replay
 import androidx.compose.material.icons.filled.Warning
-import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -45,38 +44,31 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import jamgmilk.fuwagit.domain.model.git.ConflictResult
 import jamgmilk.fuwagit.domain.model.git.ConflictStatus
 import jamgmilk.fuwagit.domain.model.git.GitCommit
 import jamgmilk.fuwagit.domain.model.git.GitConflict
 import jamgmilk.fuwagit.domain.model.git.GitResetMode
 
-/**
- * 鍗遍櫓鎿嶄綔绫诲瀷
- */
 enum class DangerousOperationType {
     DELETE_BRANCH,
     DISCARD_CHANGES,
@@ -87,9 +79,6 @@ enum class DangerousOperationType {
     RESET_HARD
 }
 
-/**
- * 鎿嶄綔缁撴灉鐘舵€?
- */
 sealed class OperationResult {
     data class Success(val message: String) : OperationResult()
     data class Failure(val error: String, val suggestion: String = "") : OperationResult()
@@ -97,15 +86,14 @@ sealed class OperationResult {
 }
 
 /**
- * 鍙岀‘璁ゅ璇濇 - 鐢ㄤ簬鍗遍櫓鎿嶄綔
- * 
- * @param operationType 鎿嶄綔绫诲瀷
- * @param targetName 鎿嶄綔鐩爣鍚嶇О锛堝鍒嗘敮鍚嶃€佹枃浠跺悕锛?
- * @param description 鎿嶄綔鎻忚堪
- * @param warningMessage 璀﹀憡淇℃伅
- * @param confirmText 纭鎸夐挳鏂囨湰锛堝 "DELETE"锛?
- * @param onConfirm 纭鍥炶皟
- * @param onDismiss 鍙栨秷鍥炶皟
+ * Double Confirmation Dialog - Used for hazardous operations.
+ * @param operationType The type of action being performed.
+ * @param targetName Name of the operation target (e.g., branch name, filename).
+ * @param description A brief description of the operation.
+ * @param warningMessage A message highlighting potential risks.
+ * @param confirmText Text displayed on the confirmation button (e.g., "DELETE").
+ * @param onConfirm Callback invoked when the action is confirmed.
+ * @param onDismiss Callback invoked when the action is canceled or dismissed.
  */
 @Composable
 fun TwoStepConfirmDialog(
@@ -117,7 +105,7 @@ fun TwoStepConfirmDialog(
     onConfirm: () -> Unit,
     onDismiss: () -> Unit
 ) {
-    var step by remember { mutableStateOf(1) }
+    var step by remember { mutableIntStateOf(1) }
     var confirmInput by remember { mutableStateOf("") }
     val colors = MaterialTheme.colorScheme
 
