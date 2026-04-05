@@ -73,6 +73,7 @@ dependencies {
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.compose.runtime.annotation)
     implementation(libs.androidx.ui)
+    implementation(libs.material)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
