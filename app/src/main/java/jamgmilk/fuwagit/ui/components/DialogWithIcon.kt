@@ -25,6 +25,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import jamgmilk.fuwagit.ui.theme.DialogShapes
 
 @Composable
 fun DialogWithIcon(
@@ -41,7 +42,7 @@ fun DialogWithIcon(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        shape = RoundedCornerShape(24.dp),
+        shape = DialogShapes,
         icon = {
             Box(
                 modifier = Modifier

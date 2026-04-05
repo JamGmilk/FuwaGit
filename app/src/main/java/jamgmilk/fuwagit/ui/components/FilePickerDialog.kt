@@ -16,9 +16,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Folder
@@ -44,13 +45,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import jamgmilk.fuwagit.ui.theme.GitColors
+import jamgmilk.fuwagit.ui.theme.AppShapes
+import jamgmilk.fuwagit.ui.theme.DialogShapes
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.io.File
@@ -79,6 +82,7 @@ fun FilePickerDialog(
     var targetPath by remember { mutableStateOf<String?>(null) }
     val colors = MaterialTheme.colorScheme
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
 
     fun loadFiles(path: String) {
         targetPath = path
@@ -129,16 +133,17 @@ fun FilePickerDialog(
         properties = DialogProperties(
             dismissOnBackPress = true,
             dismissOnClickOutside = false,
-            usePlatformDefaultWidth = false, // 适配平板？
+            usePlatformDefaultWidth = false,
             decorFitsSystemWindows = false
         )
     ) {
         Surface(
             modifier = Modifier
-                .fillMaxWidth(0.95f)
+                .padding(horizontal = 16.dp)
+                .widthIn(max = 500.dp)
+                .fillMaxWidth()
                 .height(600.dp),
-            shape = RoundedCornerShape(24.dp),
-            //color = uiColors.cardContainer
+            shape = DialogShapes,
         ) {
             Column(
                 modifier = Modifier
@@ -154,13 +159,13 @@ fun FilePickerDialog(
                         Icon(
                             Icons.Default.FolderOpen,
                             contentDescription = null,
-                            tint = GitColors.GitPink,
-                            modifier = Modifier.size(28.dp)
+                            tint = colors.primary,
+                            modifier = Modifier.padding(horizontal = 8.dp).size(28.dp)
                         )
-                        Spacer(Modifier.width(12.dp))
+                        Spacer(Modifier.width(4.dp))
                         Text(
                             text = title,
-                            style = MaterialTheme.typography.titleLarge,
+                            style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold
                         )
                     }
@@ -168,7 +173,8 @@ fun FilePickerDialog(
                         Icon(
                             Icons.Default.Refresh,
                             contentDescription = "Refresh",
-                            tint = colors.onSurfaceVariant
+                            tint = colors.onSurfaceVariant,
+                            modifier = Modifier.size(28.dp)
                         )
                     }
                 }
@@ -178,9 +184,9 @@ fun FilePickerDialog(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(colors.surfaceVariant.copy(alpha = 0.3f))
-                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                        .clip(AppShapes.extraSmall)
+                        .background(colors.surfaceContainer)
+                        .padding(horizontal = 8.dp, vertical = 8.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -188,15 +194,12 @@ fun FilePickerDialog(
 
                     Box(
                         modifier = Modifier
-                            .size(48.dp)
-                            .clip(RoundedCornerShape(12.dp))
+                            .size(36.dp)
+                            .clip(CircleShape)
                             .combinedClickable(
                                 enabled = canGoBack,
                                 onClick = {
-                                    val parent = File(currentPath).parent
-                                    if (parent != null) {
-                                        loadFiles(parent)
-                                    }
+                                    File(currentPath).parent?.let { loadFiles(it) }
                                 },
                                 onLongClick = {
                                     loadFiles(initialPath ?: externalStorageDirPrefix)
@@ -205,15 +208,15 @@ fun FilePickerDialog(
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
-                            Icons.Default.KeyboardArrowUp,
-                            contentDescription = "Go back (long press to go home)",
-                            tint = if (canGoBack) colors.onSurface else colors.onSurface.copy(alpha = 0.3f)
+                            imageVector = Icons.Default.KeyboardArrowUp,
+                            contentDescription = "Back",
+                            tint = if (canGoBack) colors.onSurface else colors.onSurface.copy(alpha = 0.38f)
                         )
                     }
 
                     Text(
                         text = currentPath,
-                        style = MaterialTheme.typography.bodySmall,
+                        style = MaterialTheme.typography.bodyMedium,
                         color = colors.onSurfaceVariant,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
@@ -227,37 +230,35 @@ fun FilePickerDialog(
                     modifier = Modifier
                         .fillMaxWidth()
                         .weight(1f)
-                        .clip(RoundedCornerShape(12.dp))
-                        //.border(1.dp, colors.outline, RoundedCornerShape(12.dp))
+                        .clip(AppShapes.extraSmall)
                 ) {
                     when {
                         isLoading -> {
                             CircularProgressIndicator(
-                                modifier = Modifier.align(Alignment.Center),
-                                color = GitColors.GitPink
+                                Modifier.align(Alignment.Center),
+                                color = colors.primary
                             )
                         }
                         error != null -> {
-                            Column(
+                            Text(
+                                text = error ?: "",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = colors.error,
+                                textAlign = TextAlign.Center,
                                 modifier = Modifier
                                     .align(Alignment.Center)
-                                    .padding(16.dp),
-                                horizontalAlignment = Alignment.CenterHorizontally
-                            ) {
-                                Text(
-                                    text = error ?: "",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = colors.error,
-                                    textAlign = TextAlign.Center
-                                )
-                            }
+                                    .padding(16.dp)
+                            )
                         }
                         files.isEmpty() -> {
                             Text(
                                 text = "Empty folder",
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = colors.onSurfaceVariant,
-                                modifier = Modifier.align(Alignment.Center)
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier
+                                    .align(Alignment.Center)
+                                    .padding(16.dp)
                             )
                         }
                         else -> {
@@ -281,7 +282,8 @@ fun FilePickerDialog(
                 ) {
                     TextButton(
                         onClick = onDismiss,
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f),
+                        shape = AppShapes.extraSmall
                     ) {
                         Text("Cancel")
                     }
@@ -292,8 +294,11 @@ fun FilePickerDialog(
                             onSelect(currentPath)
                         },
                         modifier = Modifier.weight(1f),
-                        colors = ButtonDefaults.buttonColors(containerColor = GitColors.GitPink),
-                        shape = RoundedCornerShape(12.dp)
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            contentColor = MaterialTheme.colorScheme.onPrimary
+                        ),
+                        shape = AppShapes.extraSmall
                     ) {
                         Icon(
                             Icons.Default.CheckCircle,
@@ -318,16 +323,16 @@ private fun FileListItem(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 10.dp),
+            .padding(horizontal = 12.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
             Icons.Default.Folder,
             contentDescription = null,
-            tint = GitColors.GitPink,
+            tint = MaterialTheme.colorScheme.primary,
             modifier = Modifier.size(24.dp)
         )
-        Spacer(Modifier.width(12.dp))
+        Spacer(Modifier.width(8.dp))
         Text(
             text = item.name,
             style = MaterialTheme.typography.bodyMedium,
