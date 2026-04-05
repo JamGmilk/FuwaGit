@@ -32,6 +32,7 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Upload
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -1691,7 +1692,7 @@ fun ExportCredentialsDialog(
                     }
                 } else if (exportedData != null) {
                     Text(
-                        text = "Your credentials have been exported. Copy the data below to save it securely:",
+                        text = "Credentials exported. Copy and save securely.",
                         style = MaterialTheme.typography.bodyMedium,
                         color = colors.onSurfaceVariant
                     )
@@ -1731,6 +1732,33 @@ fun ExportCredentialsDialog(
                                 )
                             }
                         }
+                    }
+
+                    Spacer(Modifier.height(16.dp))
+
+                    val warningOrange = Color(0xFFFF9800)
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(
+                                warningOrange.copy(alpha = 0.1f),
+                                RoundedCornerShape(12.dp)
+                            )
+                            .padding(12.dp),
+                        verticalAlignment = Alignment.Top
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Warning,
+                            contentDescription = null,
+                            tint = warningOrange,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            text = "Contains plaintext passwords and private keys. Clear your clipboard after saving.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = colors.onSurfaceVariant
+                        )
                     }
                 }
             }

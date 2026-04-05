@@ -25,6 +25,7 @@ object PreferencesKeys {
     val BACKUP_BEFORE_SYNC = booleanPreferencesKey("sync.backupBeforeSync")
     val VERBOSE_LOGGING = booleanPreferencesKey("developer.verboseLogging")
     val DARK_MODE = stringPreferencesKey("appearance.darkMode")
+    val AUTO_LOCK_TIMEOUT = stringPreferencesKey("security.autoLockTimeout")
 }
 
 // App preferences data class (for type-safe access)
@@ -33,7 +34,8 @@ data class AppPreferences(
     val conflictSafeMode: Boolean = true,
     val backupBeforeSync: Boolean = true,
     val verboseLogging: Boolean = false,
-    val darkMode: String = "system" // "system", "always_on", "always_off"
+    val darkMode: String = "system", // "system", "always_on", "always_off"
+    val autoLockTimeout: String = "300" // Auto-lock timeout in seconds (default: 5 minutes)
 )
 
 @Singleton
@@ -47,8 +49,15 @@ class AppPreferencesStore @Inject constructor(
             conflictSafeMode = prefs[PreferencesKeys.CONFLICT_SAFE_MODE] ?: true,
             backupBeforeSync = prefs[PreferencesKeys.BACKUP_BEFORE_SYNC] ?: true,
             verboseLogging = prefs[PreferencesKeys.VERBOSE_LOGGING] ?: false,
-            darkMode = prefs[PreferencesKeys.DARK_MODE] ?: "system"
+            darkMode = prefs[PreferencesKeys.DARK_MODE] ?: "system",
+            autoLockTimeout = prefs[PreferencesKeys.AUTO_LOCK_TIMEOUT] ?: "300"
         )
+    }
+
+    suspend fun setAutoLockTimeout(timeout: String) {
+        context.dataStore.edit { prefs ->
+            prefs[PreferencesKeys.AUTO_LOCK_TIMEOUT] = timeout
+        }
     }
 
     suspend fun setAutoSync(enabled: Boolean) {

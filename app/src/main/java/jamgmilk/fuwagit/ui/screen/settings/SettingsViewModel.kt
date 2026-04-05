@@ -33,7 +33,8 @@ data class SettingsUiState(
     val darkMode: String = "system",
     val globalUserName: String? = null,
     val globalUserEmail: String? = null,
-    val applyResult: ApplyConfigResult? = null
+    val applyResult: ApplyConfigResult? = null,
+    val autoLockTimeout: String = "300" // Auto-lock timeout in seconds (0 = never)
 )
 
 data class ApplyConfigResult(
@@ -91,7 +92,8 @@ class SettingsViewModel @Inject constructor(
                             conflictSafeMode = prefs.conflictSafeMode,
                             backupBeforeSync = prefs.backupBeforeSync,
                             verboseLogging = prefs.verboseLogging,
-                            darkMode = prefs.darkMode
+                            darkMode = prefs.darkMode,
+                            autoLockTimeout = prefs.autoLockTimeout
                         )
                     }
                 }
@@ -151,6 +153,12 @@ class SettingsViewModel @Inject constructor(
     fun saveDarkMode(mode: String) {
         viewModelScope.launch {
             appPreferencesStore.setDarkMode(mode)
+        }
+    }
+
+    fun saveAutoLockTimeout(timeout: String) {
+        viewModelScope.launch {
+            appPreferencesStore.setAutoLockTimeout(timeout)
         }
     }
 
