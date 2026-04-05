@@ -6,6 +6,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -23,10 +24,12 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.AccountTree
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.CloudDownload
+import androidx.compose.material.icons.filled.CreateNewFolder
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.FolderOpen
@@ -34,6 +37,7 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.ReportProblem
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -42,6 +46,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -52,6 +57,8 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.material3.OutlinedCard
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -79,6 +86,7 @@ import jamgmilk.fuwagit.ui.components.FilePickerDialog
 import jamgmilk.fuwagit.ui.components.SubSettingsTemplate
 import jamgmilk.fuwagit.ui.screen.credentials.CredentialSelectDialog
 import jamgmilk.fuwagit.ui.screen.credentials.CredentialType
+import jamgmilk.fuwagit.ui.theme.AppShapes
 import jamgmilk.fuwagit.ui.theme.FuwaGitThemeExtras
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -109,8 +117,7 @@ fun AddRepositoryScreen(
     myReposViewModel: MyReposViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
-    val scope = rememberCoroutineScope()
-
+    // val scope = rememberCoroutineScope()
     var selectedTab by remember { mutableStateOf<AddRepoTab>(AddRepoTab.Clone) }
 
     SubSettingsTemplate(
@@ -146,6 +153,7 @@ fun AddRepositoryScreen(
                             myReposViewModel = myReposViewModel,
                             onAddRepository = { path, alias ->
                                 onAddRepository(path, alias)
+                                // TODO: Toast 不好看啊
                                 Toast.makeText(context, "Repository added", Toast.LENGTH_SHORT).show()
                             }
                         )
@@ -169,7 +177,6 @@ private fun AddRepoTabSelector(
             label = "Clone Remote",
             icon = Icons.Default.CloudDownload,
             selected = selectedTab is AddRepoTab.Clone,
-            accentColor = FuwaGitThemeExtras.colors.mizuiroAccent,
             onClick = { onTabSelected(AddRepoTab.Clone) },
             modifier = Modifier.weight(1f)
         )
@@ -178,7 +185,6 @@ private fun AddRepoTabSelector(
             label = "Add Local",
             icon = Icons.Default.Folder,
             selected = selectedTab is AddRepoTab.Local,
-            accentColor = FuwaGitThemeExtras.colors.mizuiroAccent,
             onClick = { onTabSelected(AddRepoTab.Local) },
             modifier = Modifier.weight(1f)
         )
@@ -190,7 +196,6 @@ private fun AddRepoTabChip(
     label: String,
     icon: ImageVector,
     selected: Boolean,
-    accentColor: Color,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -198,14 +203,14 @@ private fun AddRepoTabChip(
 
     Surface(
         modifier = modifier
-            .clip(RoundedCornerShape(16.dp))
+            .clip(AppShapes.small)
             .clickable(onClick = onClick),
-        shape = RoundedCornerShape(16.dp),
-        color = if (selected) accentColor.copy(alpha = 0.12f) else colors.surfaceVariant.copy(alpha = 0.5f),
+        shape = AppShapes.small,
+        color = if (selected) colors.primaryContainer.copy(alpha = 0.3f) else colors.surfaceContainerLow,
         border = if (selected) {
-            androidx.compose.foundation.BorderStroke(2.dp, accentColor)
+            BorderStroke(2.dp, colors.primary)
         } else {
-            androidx.compose.foundation.BorderStroke(1.dp, colors.outline.copy(alpha = 0.3f))
+            BorderStroke(1.dp, colors.outlineVariant)
         }
     ) {
         Row(
@@ -218,7 +223,7 @@ private fun AddRepoTabChip(
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = if (selected) accentColor else colors.onSurfaceVariant,
+                tint = if (selected) colors.primary else colors.onSurfaceVariant,
                 modifier = Modifier.size(18.dp)
             )
             Spacer(Modifier.width(8.dp))
@@ -226,7 +231,7 @@ private fun AddRepoTabChip(
                 text = label,
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
-                color = if (selected) accentColor else colors.onSurface
+                color = if (selected) colors.onPrimaryContainer else colors.onSurface
             )
         }
     }
@@ -276,8 +281,8 @@ private fun CloneContent(
     onCloneComplete: (String) -> Unit
 ) {
     val context = LocalContext.current
-    val scope = rememberCoroutineScope()
-    val colors = MaterialTheme.colorScheme
+    // val scope = rememberCoroutineScope()
+    // val colors = MaterialTheme.colorScheme
 
     var cloneUrl by remember { mutableStateOf("") }
     var debouncedUrl by remember { mutableStateOf("") }
@@ -301,19 +306,16 @@ private fun CloneContent(
     var enableShallowClone by remember { mutableStateOf(false) }
     var shallowDepth by remember { mutableStateOf("50") }
 
+    val colors = MaterialTheme.colorScheme
+
     LaunchedEffect(Unit) {
         httpsCredentials = myReposViewModel.getHttpsCredentials()
         sshKeys = myReposViewModel.getSshKeys()
     }
 
     LaunchedEffect(cloneUrl) {
-        val job = Job()
-        kotlinx.coroutines.coroutineScope {
-            launch {
-                delay(500)
-                debouncedUrl = cloneUrl
-            }
-        }
+        delay(500)
+        debouncedUrl = cloneUrl
     }
 
     LaunchedEffect(debouncedUrl) {
@@ -338,77 +340,57 @@ private fun CloneContent(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        Box(
-            modifier = Modifier
-                .size(64.dp)
-                .align(Alignment.CenterHorizontally)
-                .background(
-                    color = FuwaGitThemeExtras.colors.mizuiroAccent.copy(alpha = 0.12f),
-                    shape = CircleShape
-                ),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                Icons.Default.CloudDownload,
-                contentDescription = null,
-                tint = FuwaGitThemeExtras.colors.mizuiroAccent,
-                modifier = Modifier.size(32.dp)
+        Column(modifier = Modifier.fillMaxWidth()) {
+            Text(
+                text = "Remote URL",
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Medium
             )
-        }
 
-        Text(
-            text = "Enter the repository URL and select a target folder to clone.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        OutlinedTextField(
-            value = cloneUrl,
-            onValueChange = { cloneUrl = it },
-            label = { Text("Repository URL") },
-            leadingIcon = {
-                Icon(
-                    Icons.Default.Link,
-                    contentDescription = null,
-                    modifier = Modifier.size(20.dp)
-                )
-            },
-            trailingIcon = {
-                if (showCredentialSection) {
-                    Surface(
-                        shape = RoundedCornerShape(6.dp),
-                        color = if (isHttps) FuwaGitThemeExtras.colors.mizuiroAccent.copy(alpha = 0.15f) else FuwaGitThemeExtras.colors.mizuiroAccent.copy(alpha = 0.15f)
-                    ) {
+            // TODO: 清除焦点
+            OutlinedTextField(
+                value = cloneUrl,
+                onValueChange = { cloneUrl = it },
+                label = { Text("Repository URL") },
+                leadingIcon = {
+                    Icon(
+                        Icons.Default.Link,
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp)
+                    )
+                },
+                // TODO: Fix overlap
+                trailingIcon = {
+                    if (showCredentialSection) {
+                        Surface(
+                            shape = RoundedCornerShape(6.dp),
+                            color = colors.secondaryContainer
+                        ) {
+                            Text(
+                                text = if (isHttps) "HTTPS" else "SSH",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = colors.onSecondaryContainer,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                            )
+                        }
+                    }
+                },
+                isError = validationResult.errorMessage != null,
+                supportingText = {
+                    if (validationResult.errorMessage != null) {
                         Text(
-                            text = if (isHttps) "HTTPS" else "SSH",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = if (isHttps) FuwaGitThemeExtras.colors.mizuiroAccent else FuwaGitThemeExtras.colors.mizuiroAccent,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                            // TODO: why !!
+                            text = validationResult.errorMessage!!,
+                            color = colors.error
                         )
                     }
-                }
-            },
-            isError = validationResult.errorMessage != null,
-            supportingText = {
-                if (validationResult.errorMessage != null) {
-                    Text(
-                        text = validationResult.errorMessage!!,
-                        color = MaterialTheme.colorScheme.error
-                    )
-                }
-            },
-            singleLine = true,
-            shape = RoundedCornerShape(12.dp),
-            modifier = Modifier.fillMaxWidth(),
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = FuwaGitThemeExtras.colors.mizuiroAccent,
-                focusedLabelColor = FuwaGitThemeExtras.colors.mizuiroAccent,
-                cursorColor = FuwaGitThemeExtras.colors.mizuiroAccent
+                },
+                singleLine = true,
+                shape = AppShapes.extraSmall,
+                modifier = Modifier.fillMaxWidth()
             )
-        )
+        }
 
         if (isHttps && httpsCredentials.isNotEmpty()) {
             val selectedCred = httpsCredentials.find { it.uuid == selectedHttpsUuid }
@@ -581,18 +563,19 @@ private fun CredentialSelectionButton(
     isEnabled: Boolean,
     onClick: () -> Unit
 ) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(enabled = isEnabled, onClick = onClick),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(
+    OutlinedCard(
+        onClick = onClick,
+        enabled = isEnabled,
+        shape = AppShapes.extraSmall,
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.outlinedCardColors(
             containerColor = if (isEnabled) {
-                FuwaGitThemeExtras.colors.mizuiroAccent.copy(alpha = 0.1f)
+                MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.4f)
             } else {
-                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f)
             }
-        )
+        ),
+        border = CardDefaults.outlinedCardBorder(enabled = isEnabled)
     ) {
         Row(
             modifier = Modifier
@@ -603,28 +586,16 @@ private fun CredentialSelectionButton(
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
-                    if (label.startsWith("Using:")) Icons.Default.CheckCircle else Icons.Default.Key,
+                    imageVector = if (label.startsWith("Using:")) Icons.Default.CheckCircle else Icons.Default.Key,
                     contentDescription = null,
-                    tint = if (isEnabled) FuwaGitThemeExtras.colors.mizuiroAccent else MaterialTheme.colorScheme.onSurfaceVariant,
+                    tint = if (isEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(20.dp)
                 )
                 Spacer(Modifier.width(12.dp))
                 Text(
                     text = label,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = if (isEnabled) {
-                        MaterialTheme.colorScheme.onSurface
-                    } else {
-                        MaterialTheme.colorScheme.onSurfaceVariant
-                    }
-                )
-            }
-            if (isEnabled) {
-                Icon(
-                    Icons.Default.FolderOpen,
-                    contentDescription = null,
-                    tint = FuwaGitThemeExtras.colors.mizuiroAccent,
-                    modifier = Modifier.size(20.dp)
+                    color = if (isEnabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
@@ -980,113 +951,112 @@ private fun TargetFolderSelector(
     isDirectoryEmpty: Boolean,
     onPickFolder: () -> Unit
 ) {
-    val colors = MaterialTheme.colorScheme
+    val colorScheme = MaterialTheme.colorScheme
 
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
+    val isSelected = localPath.isNotBlank()
+    val statusColor = when {
+        !isSelected -> colorScheme.outline
+        isDirectoryEmpty -> colorScheme.primary
+        else -> colorScheme.error
+    }
+
+    Column(modifier = Modifier.fillMaxWidth()) {
         Text(
-            text = "Target Folder",
-            style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.Medium
+            text = "Destination",
+            style = MaterialTheme.typography.labelMedium,
+            color = colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(start = 4.dp, bottom = 8.dp)
         )
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically
+        Surface(
+            onClick = onPickFolder,
+            shape = AppShapes.medium,
+            color = colorScheme.surfaceContainerHigh,
+            border = if (!isDirectoryEmpty && isSelected)
+                BorderStroke(1.dp, colorScheme.error.copy(alpha = 0.5f))
+            else null,
+            modifier = Modifier.fillMaxWidth()
         ) {
-            Surface(
-                modifier = Modifier.weight(1f),
-                shape = RoundedCornerShape(12.dp),
-                color = when {
-                    localPath.isBlank() -> colors.surfaceVariant.copy(alpha = 0.5f)
-                    isDirectoryEmpty -> FuwaGitThemeExtras.colors.mizuiroAccent.copy(alpha = 0.1f)
-                    else -> FuwaGitThemeExtras.colors.mizuiroAccentLight.copy(alpha = 0.1f)
-                }
+            Column(
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 Row(
-                    modifier = Modifier.padding(12.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Icon(
-                        when {
-                            localPath.isBlank() -> Icons.Default.FolderOpen
-                            isDirectoryEmpty -> Icons.Default.CheckCircle
-                            else -> Icons.Default.Warning
-                        },
-                        contentDescription = null,
-                        tint = when {
-                            localPath.isBlank() -> colors.onSurfaceVariant
-                            isDirectoryEmpty -> FuwaGitThemeExtras.colors.mizuiroAccent
-                            else -> FuwaGitThemeExtras.colors.mizuiroAccentLight
-                        },
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Spacer(Modifier.width(8.dp))
-                    Text(
-                        text = when {
-                            localPath.isBlank() -> "Select target folder"
-                            isDirectoryEmpty -> if (suggestedFolderName.isNotBlank()) "Will create: $suggestedFolderName" else "Folder is empty"
-                            else -> "Folder is not empty"
-                        },
-                        style = MaterialTheme.typography.bodySmall,
-                        color = when {
-                            localPath.isBlank() -> colors.onSurfaceVariant
-                            isDirectoryEmpty -> FuwaGitThemeExtras.colors.mizuiroAccent
-                            else -> FuwaGitThemeExtras.colors.mizuiroAccentLight
+                    Box(
+                        modifier = Modifier
+                            .size(40.dp)
+                            .background(statusColor.copy(alpha = 0.1f), CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = if (isSelected) Icons.Default.Folder else Icons.Default.CreateNewFolder,
+                            contentDescription = null,
+                            tint = statusColor,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = if (isSelected) "Target Path" else "No folder selected",
+                            style = MaterialTheme.typography.titleSmall,
+                            color = colorScheme.onSurface
+                        )
+                        if (isSelected) {
+                            Text(
+                                text = localPath,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = colorScheme.onSurfaceVariant,
+                                fontFamily = FontFamily.Monospace,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
                         }
+                    }
+
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                        contentDescription = null,
+                        tint = colorScheme.outline,
+                        modifier = Modifier.size(24.dp)
                     )
                 }
-            }
 
-            IconButton(
-                onClick = onPickFolder,
-                modifier = Modifier
-                    .size(48.dp)
-                    .background(FuwaGitThemeExtras.colors.mizuiroAccent.copy(alpha = 0.1f), CircleShape)
-            ) {
-                Icon(
-                    Icons.Default.FolderOpen,
-                    contentDescription = "Pick folder",
-                    tint = FuwaGitThemeExtras.colors.mizuiroAccent,
-                    modifier = Modifier.size(24.dp)
-                )
-            }
-        }
-
-        if (localPath.isNotBlank()) {
-            Surface(
-                shape = RoundedCornerShape(8.dp),
-                color = colors.surfaceVariant.copy(alpha = 0.5f)
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(10.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        Icons.Default.Folder,
-                        contentDescription = null,
-                        tint = colors.onSurfaceVariant,
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Spacer(Modifier.width(8.dp))
-                    Text(
-                        text = localPath,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = colors.onSurfaceVariant,
-                        fontFamily = FontFamily.Monospace,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis
-                    )
+                if (isSelected) {
+                    Surface(
+                        shape = RoundedCornerShape(100),
+                        color = statusColor.copy(alpha = 0.12f),
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Icon(
+                                imageVector = if (isDirectoryEmpty) Icons.Default.CheckCircle else Icons.Default.ReportProblem,
+                                contentDescription = null,
+                                tint = statusColor,
+                                modifier = Modifier.size(14.dp)
+                            )
+                            Text(
+                                text = if (isDirectoryEmpty) {
+                                    if (suggestedFolderName.isNotBlank()) "Creating: $suggestedFolderName" else "Ready to clone"
+                                } else "Directory not empty",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = statusColor,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+                    }
                 }
             }
         }
     }
 }
+
 
 @Composable
 private fun FolderSelectorCard(

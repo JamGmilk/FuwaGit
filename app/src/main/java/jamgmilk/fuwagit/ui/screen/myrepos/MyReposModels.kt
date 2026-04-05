@@ -46,6 +46,7 @@ data class RepoUiState(
     val sshKeys: List<SshKey> = emptyList()
 )
 
+// TODO: 何意味
 data class HttpsCredentialItem(
     val uuid: String,
     val host: String,
