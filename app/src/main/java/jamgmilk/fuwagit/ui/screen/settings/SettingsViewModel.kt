@@ -3,14 +3,10 @@ package jamgmilk.fuwagit.ui.screen.settings
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
-import jamgmilk.fuwagit.data.jgit.GitConfigManager
-import jamgmilk.fuwagit.data.local.prefs.GitConfigDataStore
-import jamgmilk.fuwagit.data.local.prefs.AppPreferencesStore
-import jamgmilk.fuwagit.data.local.prefs.RepoDataStore
+import jamgmilk.fuwagit.domain.repository.ConfigRepository
+import jamgmilk.fuwagit.domain.repository.RepoRepository
+import jamgmilk.fuwagit.domain.repository.SettingsRepository
 import jamgmilk.fuwagit.domain.usecase.git.ApplyGitConfigToAllRepos
-import jamgmilk.fuwagit.domain.usecase.git.ApplyGitConfigToGlobal
-import jamgmilk.fuwagit.domain.usecase.git.ApplyGitConfigToRepo
-import jamgmilk.fuwagit.domain.usecase.git.GetGlobalUserConfig
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -48,14 +44,10 @@ data class ApplyConfigResult(
 
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
-    private val repoDataStore: RepoDataStore,
-    private val gitConfigDataStore: GitConfigDataStore,
-    private val appPreferencesStore: AppPreferencesStore,
-    private val gitConfigManager: GitConfigManager,
-    private val applyGitConfigToRepo: ApplyGitConfigToRepo,
-    private val applyGitConfigToGlobal: ApplyGitConfigToGlobal,
-    private val applyGitConfigToAllRepos: ApplyGitConfigToAllRepos,
-    private val getGlobalUserConfig: GetGlobalUserConfig
+    private val settingsRepository: SettingsRepository,
+    private val configRepository: ConfigRepository,
+    private val repoRepository: RepoRepository,
+    private val applyGitConfigToAllRepos: ApplyGitConfigToAllRepos
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SettingsUiState())
@@ -63,18 +55,18 @@ class SettingsViewModel @Inject constructor(
 
     init {
         loadGlobalConfig()
-        observeDataStores()
+        observeRepositories()
     }
 
-    private fun observeDataStores() {
+    private fun observeRepositories() {
         viewModelScope.launch {
             launch {
-                repoDataStore.getSavedReposFlow().collect { repos ->
+                repoRepository.getSavedReposFlow().collect { repos ->
                     _uiState.update { it.copy(savedReposCount = repos.size) }
                 }
             }
             launch {
-                gitConfigDataStore.configFlow.collect { config ->
+                settingsRepository.gitConfigFlow().collect { config ->
                     _uiState.update {
                         it.copy(
                             userName = config.userName,
@@ -85,7 +77,7 @@ class SettingsViewModel @Inject constructor(
                 }
             }
             launch {
-                appPreferencesStore.preferencesFlow.collect { prefs ->
+                settingsRepository.preferencesFlow().collect { prefs ->
                     _uiState.update {
                         it.copy(
                             autoSync = prefs.autoSync,
@@ -101,10 +93,9 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
-
     fun loadGlobalConfig() {
         viewModelScope.launch {
-            val (name, email) = getGlobalUserConfig()
+            val (name, email) = configRepository.getEffectiveUserConfig("")
             _uiState.update {
                 it.copy(
                     globalUserName = name,
@@ -116,72 +107,72 @@ class SettingsViewModel @Inject constructor(
 
     fun saveUserConfig(name: String, email: String) {
         viewModelScope.launch {
-            gitConfigDataStore.setUserConfig(name, email)
+            settingsRepository.saveUserConfig(name, email)
         }
     }
 
     fun saveDefaultBranch(branch: String) {
         viewModelScope.launch {
-            gitConfigDataStore.setDefaultBranch(branch)
+            settingsRepository.saveDefaultBranch(branch)
         }
     }
 
     fun saveAutoSync(enabled: Boolean) {
         viewModelScope.launch {
-            appPreferencesStore.setAutoSync(enabled)
+            settingsRepository.saveAutoSync(enabled)
         }
     }
 
     fun saveConflictSafeMode(enabled: Boolean) {
         viewModelScope.launch {
-            appPreferencesStore.setConflictSafeMode(enabled)
+            settingsRepository.saveConflictSafeMode(enabled)
         }
     }
 
     fun saveBackupBeforeSync(enabled: Boolean) {
         viewModelScope.launch {
-            appPreferencesStore.setBackupBeforeSync(enabled)
+            settingsRepository.saveBackupBeforeSync(enabled)
         }
     }
 
     fun saveVerboseLogging(enabled: Boolean) {
         viewModelScope.launch {
-            appPreferencesStore.setVerboseLogging(enabled)
+            settingsRepository.saveVerboseLogging(enabled)
         }
     }
 
     fun saveDarkMode(mode: String) {
         viewModelScope.launch {
-            appPreferencesStore.setDarkMode(mode)
+            settingsRepository.saveDarkMode(mode)
         }
     }
 
     fun saveAutoLockTimeout(timeout: String) {
         viewModelScope.launch {
-            appPreferencesStore.setAutoLockTimeout(timeout)
+            settingsRepository.saveAutoLockTimeout(timeout)
         }
     }
 
     suspend fun reloadUserConfig() {
-        // DataStore automatically reloads from disk when needed
+        // Repositories automatically reload from disk when needed
     }
 
     fun applyConfigToGlobal(name: String, email: String) {
         viewModelScope.launch {
-            applyGitConfigToGlobal(name, email)
+            configRepository.setGlobalUserConfig(name, email)
                 .onSuccess { loadGlobalConfig() }
         }
     }
 
     fun applyConfigToRepo(repoPath: String, name: String, email: String) {
         viewModelScope.launch {
-            applyGitConfigToRepo(repoPath, name, email)
+            configRepository.setRepoUserConfig(repoPath, name, email)
         }
     }
 
     fun applyConfigToAllRepos(name: String, email: String, alsoApplyToGlobal: Boolean) {
         viewModelScope.launch {
-            val repos = repoDataStore.getAllRepos()
+            val repos = repoRepository.getAllRepos()
             val repoPaths = repos.map { it.path }
             val result = applyGitConfigToAllRepos(repoPaths, name, email, alsoApplyToGlobal)
 

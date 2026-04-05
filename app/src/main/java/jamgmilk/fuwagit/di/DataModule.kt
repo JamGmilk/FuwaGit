@@ -14,10 +14,18 @@ import jamgmilk.fuwagit.data.jgit.JGitCoreDataSource
 import jamgmilk.fuwagit.data.jgit.JGitMergeDataSource
 import jamgmilk.fuwagit.data.jgit.JGitRemoteDataSource
 import jamgmilk.fuwagit.data.jgit.JGitStatusDataSource
+import jamgmilk.fuwagit.data.repository.BiometricRepositoryImpl
+import jamgmilk.fuwagit.data.repository.ConfigRepositoryImpl
 import jamgmilk.fuwagit.data.repository.CredentialRepositoryImpl
 import jamgmilk.fuwagit.data.repository.GitRepositoryImpl
+import jamgmilk.fuwagit.data.repository.RepoRepositoryImpl
+import jamgmilk.fuwagit.data.repository.SettingsRepositoryImpl
+import jamgmilk.fuwagit.domain.repository.BiometricRepository
+import jamgmilk.fuwagit.domain.repository.ConfigRepository
 import jamgmilk.fuwagit.domain.repository.CredentialRepository
 import jamgmilk.fuwagit.domain.repository.GitRepository
+import jamgmilk.fuwagit.domain.repository.RepoRepository
+import jamgmilk.fuwagit.domain.repository.SettingsRepository
 import javax.inject.Singleton
 
 @Module
@@ -51,4 +59,20 @@ abstract class DataModule {
     @Binds
     @Singleton
     abstract fun bindGitMergeDataSource(impl: JGitMergeDataSource): GitMergeDataSource
+
+    @Binds
+    @Singleton
+    abstract fun bindBiometricRepository(impl: BiometricRepositoryImpl): BiometricRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindConfigRepository(impl: ConfigRepositoryImpl): ConfigRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindRepoRepository(impl: RepoRepositoryImpl): RepoRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindSettingsRepository(impl: SettingsRepositoryImpl): SettingsRepository
 }

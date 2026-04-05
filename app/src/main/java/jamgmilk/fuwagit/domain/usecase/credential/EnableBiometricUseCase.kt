@@ -2,13 +2,14 @@ package jamgmilk.fuwagit.domain.usecase.credential
 
 import androidx.fragment.app.FragmentActivity
 import jamgmilk.fuwagit.core.result.AppResult
-import jamgmilk.fuwagit.data.local.security.MasterKeyManager
+import jamgmilk.fuwagit.core.result.AppException
+import jamgmilk.fuwagit.domain.repository.BiometricRepository
 import jamgmilk.fuwagit.domain.repository.CredentialRepository
 import javax.inject.Inject
 
 class EnableBiometricUseCase @Inject constructor(
     private val credentialRepository: CredentialRepository,
-    private val masterKeyManager: MasterKeyManager
+    private val biometricRepository: BiometricRepository
 ) {
     suspend operator fun invoke(
         activity: FragmentActivity,
@@ -16,18 +17,18 @@ class EnableBiometricUseCase @Inject constructor(
     ) {
         val masterKey = credentialRepository.getCachedMasterKey()
             ?: run {
-                onResult(AppResult.Error(jamgmilk.fuwagit.core.result.AppException.MasterKeyNotUnlocked()))
+                onResult(AppResult.Error(AppException.MasterKeyNotUnlocked()))
                 return
             }
 
-        masterKeyManager.enableBiometric(
+        biometricRepository.enableBiometric(
             activity = activity,
             masterKey = masterKey,
             onSuccess = {
                 onResult(AppResult.Success(Unit))
             },
             onError = { message ->
-                onResult(AppResult.Error(jamgmilk.fuwagit.core.result.AppException.BiometricError(message)))
+                onResult(AppResult.Error(AppException.BiometricError(message)))
             }
         )
     }
