@@ -4,18 +4,16 @@ import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
-import jamgmilk.fuwagit.core.util.PathUtils
 import jamgmilk.fuwagit.data.local.prefs.RepoDataStore
-import jamgmilk.fuwagit.core.result.AppResult
 import jamgmilk.fuwagit.domain.model.credential.CloneCredential
-import jamgmilk.fuwagit.domain.model.git.CloneOptions
-import jamgmilk.fuwagit.domain.model.repo.RepoData
 import jamgmilk.fuwagit.domain.model.credential.HttpsCredential
 import jamgmilk.fuwagit.domain.model.credential.SshKey
+import jamgmilk.fuwagit.domain.model.git.CloneOptions
+import jamgmilk.fuwagit.domain.model.repo.RepoData
+import jamgmilk.fuwagit.domain.usecase.credential.CredentialFacade
+import jamgmilk.fuwagit.domain.usecase.git.GitRepoFacade
 import jamgmilk.fuwagit.ui.state.RepoInfo
 import jamgmilk.fuwagit.ui.state.RepoStateManager
-import jamgmilk.fuwagit.domain.usecase.git.GitRepoFacade
-import jamgmilk.fuwagit.domain.usecase.credential.CredentialFacade
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -185,7 +183,7 @@ class MyReposViewModel @Inject constructor(
     suspend fun cleanRepo(path: String, dryRun: Boolean = false): Result<String> {
         return gitRepo.clean(path, dryRun).map { result ->
             if (dryRun) {
-                // 鏇存柊 untracked files 鍒楄〃鐢ㄤ簬棰勮
+                // Update untracked files list for previewing
                 _uiState.update { it.copy(untrackedFilesForClean = result.files) }
             }
             result.toString()
@@ -193,7 +191,7 @@ class MyReposViewModel @Inject constructor(
     }
 
     /**
-     * 璇锋眰 Clean 棰勮锛氭墽琛?dry-run 鑾峰彇灏嗚鍒犻櫎鐨勬枃浠跺垪琛?
+     * Request Clean preview: execute a dry-run to get the list of files that will be deleted.
      */
     fun requestCleanPreview() {
         val path = currentRepoInfo.value.repoPath ?: return
@@ -223,9 +221,6 @@ class MyReposViewModel @Inject constructor(
         }
     }
 
-    /**
-     * 纭鎵ц Clean 鎿嶄綔锛堝疄闄呭垹闄ゆ枃浠讹級
-     */
     fun confirmCleanUntracked() {
         val path = currentRepoInfo.value.repoPath ?: return
         val filesToClean = _uiState.value.untrackedFilesForClean
@@ -269,16 +264,10 @@ class MyReposViewModel @Inject constructor(
         }
     }
 
-    /**
-     * 娓呴櫎 Clean 棰勮鐘舵€?
-     */
     fun clearCleanPreview() {
         _uiState.update { it.copy(untrackedFilesForClean = emptyList(), isCleanPreviewing = false, cleanMessage = null) }
     }
 
-    /**
-     * 娓呴櫎 Clean 缁撴灉鐘舵€?
-     */
     fun clearCleanResult() {
         _uiState.update { it.copy(cleanedFilesForResult = emptyList(), cleanMessage = null) }
     }
