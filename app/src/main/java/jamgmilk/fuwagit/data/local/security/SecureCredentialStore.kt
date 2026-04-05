@@ -39,7 +39,27 @@ class SecureCredentialStore @Inject constructor(
     }
 
     private val dataFile: File by lazy {
-        File(context.filesDir, DATA_FILE)
+        File(context.filesDir, DATA_FILE).also { file ->
+            // Explicitly set file permissions to owner read/write only
+            // While filesDir defaults to 0700, this ensures security even if defaults change
+            setFilePermissions(file)
+        }
+    }
+
+    /**
+     * Sets explicit file permissions to owner read/write only (0600).
+     * This provides defense-in-depth security for sensitive credential data.
+     */
+    private fun setFilePermissions(file: File) {
+        if (file.exists()) {
+            // Remove all permissions first
+            file.setReadable(false, false)
+            file.setWritable(false, false)
+            file.setExecutable(false, false)
+            // Set owner read/write only
+            file.setReadable(true, true)
+            file.setWritable(true, true)
+        }
     }
 
     private var cachedMasterKey: WeakReference<SecretKey>? = null
@@ -66,14 +86,17 @@ class SecureCredentialStore @Inject constructor(
     fun saveCredentialData(data: CredentialData) {
         val updatedData = data.copy(updated_at = System.currentTimeMillis())
         val jsonString = json.encodeToString(updatedData)
-        
+
         // Atomic write using a temporary file
         val tempFile = File(context.filesDir, "$DATA_FILE.tmp")
         try {
             tempFile.writeText(jsonString)
+            // Set restrictive permissions before renaming
+            setFilePermissions(tempFile)
             if (!tempFile.renameTo(dataFile)) {
                 // If rename fails, try to copy and delete
                 tempFile.copyTo(dataFile, overwrite = true)
+                setFilePermissions(dataFile)
                 tempFile.delete()
             }
         } catch (e: Exception) {

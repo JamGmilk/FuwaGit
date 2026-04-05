@@ -305,8 +305,13 @@ class MasterKeyManager @Inject constructor(
             PBKDF2_ITERATIONS,
             KEY_LENGTH
         )
-        val factory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256")
-        return SecretKeySpec(factory.generateSecret(spec).encoded, "AES")
+        return try {
+            val factory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256")
+            SecretKeySpec(factory.generateSecret(spec).encoded, "AES")
+        } finally {
+            // Security: Clear the password char array to prevent sensitive data from lingering in memory
+            spec.clearPassword()
+        }
     }
 
     private fun generateRandomKey(): SecretKey {
