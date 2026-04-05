@@ -74,6 +74,7 @@ dependencies {
     implementation(libs.androidx.compose.runtime.annotation)
     implementation(libs.androidx.ui)
     implementation(libs.material)
+    implementation(libs.androidx.compose.animation)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
