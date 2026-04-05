@@ -2,7 +2,6 @@ package jamgmilk.fuwagit.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -11,22 +10,17 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ChevronRight
-import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.Source
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -38,7 +32,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import jamgmilk.fuwagit.domain.model.credential.HttpsCredential
@@ -63,7 +56,7 @@ fun ConfigureRemoteDialog(
 
     if (showCredentialDialog) {
         CredentialSelectDialog(
-            title = "Select Remote Credential",
+            title = "Select Credential",
             httpsCredentials = httpsCredentials,
             sshKeys = sshKeys,
             onDismiss = { showCredentialDialog = false },
@@ -90,9 +83,9 @@ fun ConfigureRemoteDialog(
         title = "Configure Remote",
         subtitle = repoName,
         content = {
-            TipInDialog(
-                icon = Icons.Default.Info,
-                text = "Set the remote 'origin' URL for pushing and pulling code.")
+//            TipInDialog(
+//                icon = Icons.Default.Info,
+//                text = "Set the remote 'origin' URL for pushing and pulling code.")
 
             OutlinedTextField(
                 value = url,
@@ -115,12 +108,14 @@ fun ConfigureRemoteDialog(
                 selectedSshUuid = selectedSshUuid,
                 httpsCredentials = httpsCredentials,
                 sshKeys = sshKeys,
+                // TODO: 判断选择的凭据是否与 URL 类型相匹配
                 onClick = { showCredentialDialog = true }
             )
         },
         confirmButton = {
             Button(
                 onClick = { onSave(url, selectedHttpsUuid, selectedSshUuid) },
+                // TODO: 这里还要检查 URL 是否合法喵~ 弄一个工具类（用 validateUrl？）
                 enabled = url.isNotBlank(),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.primary,
@@ -164,14 +159,8 @@ private fun CredentialSelectionButton(
             val key = sshKeys.find { it.uuid == selectedSshUuid }
             key?.name ?: "SSH Key"
         }
-        else -> "Bind Credential (optional)"
+        else -> "Credential"
     }
-
-//    val iconColor = when {
-//        selectedHttpsUuid != null -> FuwaGitThemeExtras.colors.mizuiroAccent
-//        selectedSshUuid != null -> FuwaGitThemeExtras.colors.mizuiroAccentDark
-//        else -> colors.onSurfaceVariant
-//    }
 
     val icon = when {
         selectedHttpsUuid != null -> Icons.Default.Link
@@ -181,9 +170,9 @@ private fun CredentialSelectionButton(
 
     Surface(
         shape = AppShapes.extraSmall,
-        color = if (hasSelection) MaterialTheme.colorScheme.primary.copy(alpha = 0.08f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+        color = if (hasSelection) MaterialTheme.colorScheme.primary.copy(alpha = 0.1f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
         border = if (hasSelection) {
-            androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
+            androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
         } else null,
         modifier = Modifier
             .fillMaxWidth()
@@ -196,6 +185,7 @@ private fun CredentialSelectionButton(
                 .padding(vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            Spacer(Modifier.width(6.dp))
             Box(
                 modifier = Modifier
                     .size(36.dp)
@@ -234,7 +224,6 @@ private fun CredentialSelectionButton(
                 Icons.Default.ChevronRight,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                //modifier = Modifier.size(18.dp)
             )
         }
     }

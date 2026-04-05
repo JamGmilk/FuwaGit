@@ -767,7 +767,6 @@ private fun LocalContent(
                     value = remoteUrl,
                     onValueChange = { remoteUrl = it },
                     label = { Text("Remote URL (optional)") },
-                    placeholder = { Text("https://github.com/user/repo.git") },
                     leadingIcon = {
                         Icon(
                             Icons.Default.Link,

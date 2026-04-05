@@ -14,8 +14,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -27,7 +25,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import jamgmilk.fuwagit.ui.theme.AppShapes
 
 @Composable
 fun DialogWithIcon(
@@ -39,15 +36,18 @@ fun DialogWithIcon(
     dismissButton: @Composable (() -> Unit)? = null,
     content: @Composable () -> Unit
 ) {
+//    val focusManager = LocalFocusManager.current
+    val colors = MaterialTheme.colorScheme
+
     AlertDialog(
-        shape = RoundedCornerShape(24.dp),
         onDismissRequest = onDismiss,
+        shape = RoundedCornerShape(24.dp),
         icon = {
             Box(
                 modifier = Modifier
                     .size(56.dp)
                     .background(
-                        MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                        colors.primary.copy(alpha = 0.15f),
                         CircleShape
                     ),
                 contentAlignment = Alignment.Center
@@ -55,7 +55,7 @@ fun DialogWithIcon(
                 Icon(
                     imageVector = icon,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
+                    tint = colors.primary,
                     modifier = Modifier.size(28.dp)
                 )
             }
@@ -74,7 +74,7 @@ fun DialogWithIcon(
                     Text(
                         text = subtitle,
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = colors.onSurfaceVariant
                     )
                 }
             }
@@ -84,7 +84,13 @@ fun DialogWithIcon(
             Column(
                 modifier = Modifier
                     .verticalScroll(scrollState)
-                    .fillMaxWidth(),
+                    .fillMaxWidth()
+//                    .pointerInput(Unit) {
+//                        detectTapGestures(onTap = {
+//                            focusManager.clearFocus()
+//                        })
+//                    }
+                ,
                 verticalArrangement = Arrangement.spacedBy(16.dp)) {
                     content()
             } },
@@ -98,9 +104,11 @@ fun TipInDialog(
     icon: ImageVector,
     text: String,
     ) {
+    val colors = MaterialTheme.colorScheme
+
     Surface(
         shape = RoundedCornerShape(12.dp),
-        color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f)
+        color = colors.secondaryContainer.copy(alpha = 0.5f)
     ) {
         Row(
             modifier = Modifier
@@ -111,14 +119,14 @@ fun TipInDialog(
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
+                tint = colors.primary,
                 modifier = Modifier.size(16.dp)
             )
             Spacer(Modifier.width(8.dp))
             Text(
                 text = text,
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSecondaryContainer
+                color = colors.onSecondaryContainer
             )
         }
     }

@@ -1,7 +1,8 @@
 package jamgmilk.fuwagit.ui.components
 
+import android.os.Environment
+import android.util.Log
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
@@ -19,12 +20,10 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.FolderOpen
-import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -52,9 +51,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import jamgmilk.fuwagit.ui.theme.GitColors
-import jamgmilk.fuwagit.ui.theme.FuwaGitThemeExtras
-import android.os.Environment
-import android.util.Log
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.io.File
@@ -81,8 +77,7 @@ fun FilePickerDialog(
     var isLoading by remember { mutableStateOf(true) }
     var error by remember { mutableStateOf<String?>(null) }
     var targetPath by remember { mutableStateOf<String?>(null) }
-    val colors = MaterialTheme.colorScheme // TODO: 鏀逛富棰樿壊鍠?
-    val uiColors = FuwaGitThemeExtras.colors
+    val colors = MaterialTheme.colorScheme
     val scope = rememberCoroutineScope()
 
     fun loadFiles(path: String) {
@@ -134,7 +129,7 @@ fun FilePickerDialog(
         properties = DialogProperties(
             dismissOnBackPress = true,
             dismissOnClickOutside = false,
-            usePlatformDefaultWidth = false, // 閫傞厤骞虫澘锛?
+            usePlatformDefaultWidth = false, // 适配平板？
             decorFitsSystemWindows = false
         )
     ) {
@@ -143,7 +138,7 @@ fun FilePickerDialog(
                 .fillMaxWidth(0.95f)
                 .height(600.dp),
             shape = RoundedCornerShape(24.dp),
-            color = uiColors.cardContainer
+            //color = uiColors.cardContainer
         ) {
             Column(
                 modifier = Modifier
@@ -233,7 +228,7 @@ fun FilePickerDialog(
                         .fillMaxWidth()
                         .weight(1f)
                         .clip(RoundedCornerShape(12.dp))
-                        .border(1.dp, uiColors.cardBorder, RoundedCornerShape(12.dp))
+                        //.border(1.dp, colors.outline, RoundedCornerShape(12.dp))
                 ) {
                     when {
                         isLoading -> {
