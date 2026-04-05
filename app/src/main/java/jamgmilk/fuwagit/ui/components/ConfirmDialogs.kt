@@ -110,7 +110,7 @@ fun TwoStepConfirmDialog(
     val colors = MaterialTheme.colorScheme
 
     val iconData = Icons.Default.Warning
-    val iconColor = Color(0xFFFFA726)
+    val iconColor = colors.tertiary
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -263,9 +263,9 @@ fun ResetConfirmDialog(
                     .size(56.dp)
                     .background(
                         when (mode) {
-                            GitResetMode.SOFT -> Color(0xFF4CAF50)
-                            GitResetMode.MIXED -> Color(0xFFFF9800)
-                            GitResetMode.HARD -> Color(0xFFF44336)
+                            GitResetMode.SOFT -> colors.primary
+                            GitResetMode.MIXED -> colors.tertiary
+                            GitResetMode.HARD -> colors.error
                         }.copy(alpha = 0.15f),
                         CircleShape
                     ),
@@ -279,9 +279,9 @@ fun ResetConfirmDialog(
                     },
                     contentDescription = null,
                     tint = when (mode) {
-                        GitResetMode.SOFT -> Color(0xFF4CAF50)
-                        GitResetMode.MIXED -> Color(0xFFFF9800)
-                        GitResetMode.HARD -> Color(0xFFF44336)
+                        GitResetMode.SOFT -> colors.primary
+                        GitResetMode.MIXED -> colors.tertiary
+                        GitResetMode.HARD -> colors.error
                     },
                     modifier = Modifier.size(28.dp)
                 )
@@ -342,10 +342,10 @@ fun ResetConfirmDialog(
                 Surface(
                     shape = RoundedCornerShape(8.dp),
                     color = when (mode) {
-                        GitResetMode.SOFT -> Color(0xFF4CAF50).copy(alpha = 0.1f)
-                        GitResetMode.MIXED -> Color(0xFFFF9800).copy(alpha = 0.1f)
-                        GitResetMode.HARD -> Color(0xFFF44336).copy(alpha = 0.1f)
-                    },
+                        GitResetMode.SOFT -> colors.primary
+                        GitResetMode.MIXED -> colors.tertiary
+                        GitResetMode.HARD -> colors.error
+                    }.copy(alpha = 0.1f),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Column(
@@ -361,9 +361,9 @@ fun ResetConfirmDialog(
                             style = MaterialTheme.typography.labelLarge,
                             fontWeight = FontWeight.Bold,
                             color = when (mode) {
-                                GitResetMode.SOFT -> Color(0xFF2E7D32)
-                                GitResetMode.MIXED -> Color(0xFFE65100)
-                                GitResetMode.HARD -> Color(0xFFC62828)
+                                GitResetMode.SOFT -> colors.primary
+                                GitResetMode.MIXED -> colors.tertiary
+                                GitResetMode.HARD -> colors.error
                             }
                         )
                         Text(
@@ -379,7 +379,7 @@ fun ResetConfirmDialog(
                                 text = "This will:",
                                 style = MaterialTheme.typography.labelMedium,
                                 fontWeight = FontWeight.Bold,
-                                color = Color(0xFFC62828)
+                                color = colors.error
                             )
 
                             Column(
@@ -389,12 +389,12 @@ fun ResetConfirmDialog(
                                 Text(
                                     text = "• Discard ALL uncommitted changes",
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = Color(0xFFC62828)
+                                    color = colors.error
                                 )
                                 Text(
                                     text = "• Remove ALL staged changes",
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = Color(0xFFC62828)
+                                    color = colors.error
                                 )
                                 Text(
                                     text = "• Reset working directory to match the selected commit",
@@ -407,14 +407,14 @@ fun ResetConfirmDialog(
 
                             Surface(
                                 shape = RoundedCornerShape(8.dp),
-                                color = Color(0xFFF44336).copy(alpha = 0.1f),
+                                color = colors.error.copy(alpha = 0.1f),
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 Text(
                                     text = "⚠️ This action CANNOT be undone!",
                                     style = MaterialTheme.typography.bodySmall,
                                     fontWeight = FontWeight.Bold,
-                                    color = Color(0xFFC62828),
+                                    color = colors.error,
                                     modifier = Modifier.padding(8.dp)
                                 )
                             }
@@ -428,9 +428,9 @@ fun ResetConfirmDialog(
                 onClick = onConfirm,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = when (mode) {
-                        GitResetMode.SOFT -> Color(0xFF4CAF50)
-                        GitResetMode.MIXED -> Color(0xFFFF9800)
-                        GitResetMode.HARD -> Color(0xFFF44336)
+                        GitResetMode.SOFT -> colors.primary
+                        GitResetMode.MIXED -> colors.tertiary
+                        GitResetMode.HARD -> colors.error
                     }
                 ),
                 shape = RoundedCornerShape(12.dp)
@@ -469,11 +469,10 @@ fun OperationResultDialog(
     onDismiss: () -> Unit
 ) {
     val colors = MaterialTheme.colorScheme
-
     val (icon, iconColor, title) = when (result) {
-        is OperationResult.Success -> Triple(Icons.Default.CheckCircle, Color(0xFF4CAF50), "Operation Successful")
-        is OperationResult.Failure -> Triple(Icons.Default.Warning, Color(0xFFFF5722), "Operation Failed")
-        is OperationResult.Conflict -> Triple(Icons.Default.Warning, Color(0xFFFF9800), "Merge Conflicts Detected")
+        is OperationResult.Success -> Triple(Icons.Default.CheckCircle, colors.primary, "Operation Successful")
+        is OperationResult.Failure -> Triple(Icons.Default.Warning, colors.error, "Operation Failed")
+        is OperationResult.Conflict -> Triple(Icons.Default.Warning, colors.tertiary, "Merge Conflicts Detected")
     }
 
     AlertDialog(
@@ -610,10 +609,10 @@ fun CleanPreviewDialog(
                     .size(56.dp)
                     .background(
                         when {
-                            isLoading -> Color(0xFF2196F3)
-                            isInfo -> Color(0xFFFF9800)
-                            isError -> Color(0xFFE53935)
-                            else -> Color(0xFF2196F3)
+                            isLoading -> colors.secondary
+                            isInfo -> colors.tertiary
+                            isError -> colors.error
+                            else -> colors.secondary
                         }.copy(alpha = 0.15f),
                         CircleShape
                     ),
@@ -622,7 +621,7 @@ fun CleanPreviewDialog(
                 if (isLoading) {
                     CircularProgressIndicator(
                         modifier = Modifier.size(28.dp),
-                        color = Color(0xFF2196F3),
+                        color = colors.secondary,
                         strokeWidth = 2.5.dp
                     )
                 } else {
@@ -634,9 +633,9 @@ fun CleanPreviewDialog(
                         },
                         contentDescription = null,
                         tint = when {
-                            isInfo -> Color(0xFFFF9800)
-                            isError -> Color(0xFFE53935)
-                            else -> Color(0xFF2196F3)
+                            isInfo -> colors.tertiary
+                            isError -> colors.error
+                            else -> colors.secondary
                         },
                         modifier = Modifier.size(28.dp)
                     )
@@ -781,13 +780,13 @@ fun CleanResultDialog(
             Box(
                 modifier = Modifier
                     .size(56.dp)
-                    .background(Color(0xFF4CAF50).copy(alpha = 0.15f), CircleShape),
+                    .background(colors.primary.copy(alpha = 0.15f), CircleShape),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     Icons.Default.CheckCircle,
                     contentDescription = null,
-                    tint = Color(0xFF4CAF50),
+                    tint = colors.primary,
                     modifier = Modifier.size(28.dp)
                 )
             }
@@ -889,20 +888,21 @@ fun ConflictResolutionDialog(
     AlertDialog(
         onDismissRequest = onDismiss,
         icon = {
-            Box(
-                modifier = Modifier
-                    .size(56.dp)
-                    .background(Color(0xFFFF9800).copy(alpha = 0.15f), CircleShape),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    Icons.Default.Warning,
-                    contentDescription = null,
-                    tint = Color(0xFFFF9800),
-                    modifier = Modifier.size(28.dp)
-                )
-            }
+        Box(
+        modifier = Modifier
+            .size(56.dp)
+            .background(colors.tertiary.copy(alpha = 0.15f), CircleShape),
+        contentAlignment = Alignment.Center
+        ) {
+        Icon(
+            Icons.Default.Warning,
+            contentDescription = null,
+            tint = colors.tertiary,
+            modifier = Modifier.size(28.dp)
+        )
+        }
         },
+
         title = {
             Column(
                 verticalArrangement = Arrangement.spacedBy(4.dp)
@@ -985,7 +985,7 @@ fun ConflictResolutionDialog(
                 enabled = conflictResult.allResolved || conflictResult.allStaged,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = if (conflictResult.allResolved || conflictResult.allStaged) {
-                        Color(0xFF4CAF50)
+                        colors.primary
                     } else {
                         colors.primary.copy(alpha = 0.5f)
                     }
@@ -1031,10 +1031,11 @@ private fun ConflictFileItem(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.elevatedCardColors(
             containerColor = if (isResolved) {
-                Color(0xFF4CAF50).copy(alpha = 0.1f)
+                colors.primary.copy(alpha = 0.1f)
             } else {
                 colors.surface
             }
+
         )
     ) {
         Column(
@@ -1056,7 +1057,7 @@ private fun ConflictFileItem(
                     Icon(
                         imageVector = if (isResolved) Icons.Default.CheckCircle else Icons.Default.Warning,
                         contentDescription = null,
-                        tint = if (isResolved) Color(0xFF4CAF50) else Color(0xFFFF9800),
+                        tint = if (isResolved) colors.primary else colors.tertiary,
                         modifier = Modifier.size(20.dp)
                     )
                     Column {
@@ -1111,19 +1112,20 @@ private fun ConflictFileItem(
                         }}",
                         style = MaterialTheme.typography.bodySmall,
                         color = when (conflict.status) {
-                            ConflictStatus.UNRESOLVED -> Color(0xFFFF9800)
-                            ConflictStatus.RESOLVED -> Color(0xFF4CAF50)
-                            ConflictStatus.STAGED -> Color(0xFF2196F3)
+                            ConflictStatus.UNRESOLVED -> colors.tertiary
+                            ConflictStatus.RESOLVED -> colors.primary
+                            ConflictStatus.STAGED -> colors.secondary
                         }
-                    )
+                        )
 
-                    if (!isResolved) {
+                        if (!isResolved) {
                         Button(
                             onClick = onMarkResolved,
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50)),
+                            colors = ButtonDefaults.buttonColors(containerColor = colors.primary),
                             shape = RoundedCornerShape(8.dp),
                             modifier = Modifier.fillMaxWidth()
                         ) {
+
                             Icon(
                                 Icons.Default.Check,
                                 contentDescription = null,

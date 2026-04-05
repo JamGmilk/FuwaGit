@@ -60,8 +60,6 @@ import jamgmilk.fuwagit.core.util.PathUtils
 import jamgmilk.fuwagit.domain.model.git.GitBranch
 import jamgmilk.fuwagit.domain.model.git.GitChangeType
 import jamgmilk.fuwagit.domain.model.git.GitFileStatus
-import jamgmilk.fuwagit.ui.theme.FuwaGitThemeExtras
-import jamgmilk.fuwagit.ui.theme.GitColors
 
 @Composable
 internal fun ActionToolbar(
@@ -73,12 +71,12 @@ internal fun ActionToolbar(
     onFetch: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val uiColors = FuwaGitThemeExtras.colors
+    val colors = MaterialTheme.colorScheme
 
     ElevatedCard(
-        modifier = modifier.border(1.dp, uiColors.cardBorder, RoundedCornerShape(20.dp)),
+        modifier = modifier.border(1.dp, colors.outlineVariant, RoundedCornerShape(20.dp)),
         shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.elevatedCardColors(containerColor = uiColors.cardContainer),
+        colors = CardDefaults.elevatedCardColors(containerColor = colors.surfaceContainerLow),
         elevation = CardDefaults.elevatedCardElevation(0.dp)
     ) {
         Column(
@@ -92,7 +90,7 @@ internal fun ActionToolbar(
                 ActionButton(
                     icon = Icons.Default.CloudDownload,
                     label = "Pull",
-                    color = GitColors.GitBlue,
+                    color = colors.primary,
                     enabled = true,
                     onClick = onPull,
                     modifier = Modifier.weight(1f)
@@ -100,7 +98,7 @@ internal fun ActionToolbar(
                 ActionButton(
                     icon = Icons.Default.CloudUpload,
                     label = "Push",
-                    color = GitColors.GitGreen,
+                    color = colors.tertiary,
                     enabled = true,
                     onClick = onPush,
                     modifier = Modifier.weight(1f)
@@ -108,7 +106,7 @@ internal fun ActionToolbar(
                 ActionButton(
                     icon = Icons.Default.CloudDownload,
                     label = "Fetch",
-                    color = GitColors.GitPurple,
+                    color = colors.secondary,
                     enabled = true,
                     onClick = onFetch,
                     modifier = Modifier.weight(1f)
@@ -122,7 +120,7 @@ internal fun ActionToolbar(
                 ActionButton(
                     icon = Icons.Default.Check,
                     label = "Stage All",
-                    color = GitColors.GitGreen,
+                    color = colors.tertiary,
                     enabled = stats.unstaged + stats.untracked > 0,
                     onClick = onStageAll,
                     modifier = Modifier.weight(1f)
@@ -130,7 +128,7 @@ internal fun ActionToolbar(
                 ActionButton(
                     icon = Icons.AutoMirrored.Filled.Undo,
                     label = "Unstage",
-                    color = GitColors.GitOrange,
+                    color = colors.error,
                     enabled = stats.staged > 0,
                     onClick = onUnstageAll,
                     modifier = Modifier.weight(1f)
@@ -194,7 +192,6 @@ internal fun RepositoryStatusCard(
     error: String? = null
 ) {
     val colors = MaterialTheme.colorScheme
-    val uiColors = FuwaGitThemeExtras.colors
 
     val statusMessage = when {
         isLoading -> "Checking repository..."
@@ -205,10 +202,10 @@ internal fun RepositoryStatusCard(
     }
 
     ElevatedCard(
-        modifier = modifier.border(1.dp, uiColors.cardBorder, RoundedCornerShape(20.dp)),
+        modifier = modifier.border(1.dp, colors.outlineVariant, RoundedCornerShape(20.dp)),
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.elevatedCardColors(
-            containerColor = if (isRepo) uiColors.cardContainer else colors.errorContainer.copy(alpha = 0.3f)
+            containerColor = if (isRepo) colors.surfaceContainerLow else colors.errorContainer.copy(alpha = 0.3f)
         ),
         elevation = CardDefaults.elevatedCardElevation(0.dp)
     ) {
@@ -221,7 +218,7 @@ internal fun RepositoryStatusCard(
                     modifier = Modifier
                         .size(48.dp)
                         .background(
-                            if (isRepo) GitColors.GitGreen.copy(alpha = 0.15f)
+                            if (isRepo) colors.primary.copy(alpha = 0.15f)
                             else colors.error.copy(alpha = 0.15f),
                             RoundedCornerShape(14.dp)
                         ),
@@ -230,7 +227,7 @@ internal fun RepositoryStatusCard(
                     Icon(
                         imageVector = if (isRepo) Icons.Default.CheckCircle else Icons.Default.Error,
                         contentDescription = null,
-                        tint = if (isRepo) GitColors.GitGreen else colors.error,
+                        tint = if (isRepo) colors.primary else colors.error,
                         modifier = Modifier.size(26.dp)
                     )
                 }
@@ -275,7 +272,7 @@ internal fun RepositoryStatusCard(
                 Surface(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
-                    color = FuwaGitThemeExtras.colors.mizuiroAccentLight.copy(alpha = 0.15f)
+                    color = colors.primaryContainer.copy(alpha = 0.15f)
                 ) {
                     Row(
                         modifier = Modifier
@@ -286,7 +283,7 @@ internal fun RepositoryStatusCard(
                         Icon(
                             Icons.Default.Code,
                             contentDescription = null,
-                            tint = FuwaGitThemeExtras.colors.mizuiroAccent,
+                            tint = colors.primary,
                             modifier = Modifier.size(18.dp)
                         )
                         Spacer(Modifier.width(8.dp))
@@ -300,7 +297,7 @@ internal fun RepositoryStatusCard(
                             text = currentBranch.name,
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.Bold,
-                            color = FuwaGitThemeExtras.colors.mizuiroAccentDark
+                            color = colors.onPrimaryContainer
                         )
                     }
                 }
@@ -322,14 +319,13 @@ internal fun FileSectionCard(
     emptyMessage: String
 ) {
     val colors = MaterialTheme.colorScheme
-    val uiColors = FuwaGitThemeExtras.colors
 
     ElevatedCard(
         modifier = modifier
             .fillMaxSize()
-            .border(1.dp, uiColors.cardBorder, RoundedCornerShape(20.dp)),
+            .border(1.dp, colors.outlineVariant, RoundedCornerShape(20.dp)),
         shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.elevatedCardColors(containerColor = uiColors.cardContainer),
+        colors = CardDefaults.elevatedCardColors(containerColor = colors.surfaceContainerLow),
         elevation = CardDefaults.elevatedCardElevation(0.dp)
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
@@ -366,7 +362,7 @@ internal fun FileSectionCard(
                             text = files.size.toString(),
                             style = MaterialTheme.typography.labelLarge,
                             fontWeight = FontWeight.Bold,
-                            color = Color.White,
+                            color = colors.onPrimary,
                             modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
                         )
                     }
@@ -434,12 +430,12 @@ private fun FileStatusItem(
     val colors = MaterialTheme.colorScheme
 
     val (changeColor, changeLabel) = when (file.changeType) {
-        GitChangeType.Added -> GitColors.GitGreen to "A"
-        GitChangeType.Modified -> GitColors.GitBlue to "M"
-        GitChangeType.Removed -> GitColors.GitRed to "D"
-        GitChangeType.Untracked -> GitColors.GitBlueGrey to "?"
-        GitChangeType.Renamed -> GitColors.GitAmber to "R"
-        GitChangeType.Conflicting -> GitColors.GitDarkPink to "!"
+        GitChangeType.Added -> colors.primary to "A"
+        GitChangeType.Modified -> colors.secondary to "M"
+        GitChangeType.Removed -> colors.error to "D"
+        GitChangeType.Untracked -> colors.outline to "?"
+        GitChangeType.Renamed -> colors.tertiary to "R"
+        GitChangeType.Conflicting -> colors.error to "!"
     }
 
     Surface(
@@ -542,13 +538,12 @@ internal fun CommitCard(
     modifier: Modifier = Modifier
 ) {
     val colors = MaterialTheme.colorScheme
-    val uiColors = FuwaGitThemeExtras.colors
     val canCommit = commitMessage.isNotBlank() && stagedCount > 0
 
     ElevatedCard(
-        modifier = modifier.border(1.dp, uiColors.cardBorder, RoundedCornerShape(20.dp)),
+        modifier = modifier.border(1.dp, colors.outlineVariant, RoundedCornerShape(20.dp)),
         shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.elevatedCardColors(containerColor = uiColors.cardContainer),
+        colors = CardDefaults.elevatedCardColors(containerColor = colors.surfaceContainerLow),
         elevation = CardDefaults.elevatedCardElevation(0.dp)
     ) {
         Column(
@@ -563,14 +558,14 @@ internal fun CommitCard(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Surface(
                         shape = RoundedCornerShape(10.dp),
-                        color = FuwaGitThemeExtras.colors.mizuiroAccent.copy(alpha = 0.15f),
+                        color = colors.primary.copy(alpha = 0.15f),
                         modifier = Modifier.size(36.dp)
                     ) {
                         Box(contentAlignment = Alignment.Center) {
                             Icon(
                                 Icons.Default.Check,
                                 contentDescription = null,
-                                tint = FuwaGitThemeExtras.colors.mizuiroAccent,
+                                tint = colors.primary,
                                 modifier = Modifier.size(18.dp)
                             )
                         }
@@ -586,7 +581,7 @@ internal fun CommitCard(
                 if (stagedCount > 0) {
                     Surface(
                         shape = RoundedCornerShape(8.dp),
-                        color = GitColors.GitGreen.copy(alpha = 0.15f)
+                        color = colors.primary.copy(alpha = 0.15f)
                     ) {
                         Row(
                             modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
@@ -595,14 +590,14 @@ internal fun CommitCard(
                             Icon(
                                 Icons.Default.Pending,
                                 contentDescription = null,
-                                tint = GitColors.GitGreen,
+                                tint = colors.primary,
                                 modifier = Modifier.size(14.dp)
                             )
                             Spacer(Modifier.width(4.dp))
                             Text(
                                 text = "$stagedCount staged",
                                 style = MaterialTheme.typography.labelSmall,
-                                color = GitColors.GitGreen
+                                color = colors.primary
                             )
                         }
                     }
@@ -623,7 +618,7 @@ internal fun CommitCard(
                 minLines = 2,
                 maxLines = 4,
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = FuwaGitThemeExtras.colors.mizuiroAccent,
+                    focusedBorderColor = colors.primary,
                     unfocusedBorderColor = colors.outline.copy(alpha = 0.3f)
                 )
             )
@@ -635,7 +630,7 @@ internal fun CommitCard(
                     .clip(RoundedCornerShape(14.dp))
                     .clickable(enabled = canCommit, onClick = onCommit),
                 shape = RoundedCornerShape(14.dp),
-                color = if (canCommit) FuwaGitThemeExtras.colors.mizuiroAccent else colors.surfaceVariant
+                color = if (canCommit) colors.primary else colors.surfaceVariant
             ) {
                 Box(
                     modifier = Modifier.fillMaxSize(),
@@ -645,7 +640,7 @@ internal fun CommitCard(
                         Icon(
                             Icons.Default.Check,
                             contentDescription = null,
-                            tint = if (canCommit) Color.White else colors.onSurfaceVariant.copy(alpha = 0.5f),
+                            tint = if (canCommit) colors.onPrimary else colors.onSurfaceVariant.copy(alpha = 0.5f),
                             modifier = Modifier.size(20.dp)
                         )
                         Spacer(Modifier.width(8.dp))
@@ -653,7 +648,7 @@ internal fun CommitCard(
                             text = "Commit",
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.Bold,
-                            color = if (canCommit) Color.White else colors.onSurfaceVariant.copy(alpha = 0.5f)
+                            color = if (canCommit) colors.onPrimary else colors.onSurfaceVariant.copy(alpha = 0.5f)
                         )
                     }
                 }
@@ -669,12 +664,11 @@ internal fun InitRepositoryCard(
     modifier: Modifier = Modifier
 ) {
     val colors = MaterialTheme.colorScheme
-    val uiColors = FuwaGitThemeExtras.colors
 
     ElevatedCard(
-        modifier = modifier.border(1.dp, uiColors.cardBorder, RoundedCornerShape(20.dp)),
+        modifier = modifier.border(1.dp, colors.outlineVariant, RoundedCornerShape(20.dp)),
         shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.elevatedCardColors(containerColor = uiColors.cardContainer),
+        colors = CardDefaults.elevatedCardColors(containerColor = colors.surfaceContainerLow),
         elevation = CardDefaults.elevatedCardElevation(0.dp)
     ) {
         Column(
@@ -685,13 +679,13 @@ internal fun InitRepositoryCard(
             Box(
                 modifier = Modifier
                     .size(64.dp)
-                    .background(FuwaGitThemeExtras.colors.mizuiroAccent.copy(alpha = 0.1f), RoundedCornerShape(20.dp)),
+                    .background(colors.primary.copy(alpha = 0.1f), RoundedCornerShape(20.dp)),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = Icons.Default.Refresh,
                     contentDescription = null,
-                    tint = FuwaGitThemeExtras.colors.mizuiroAccent,
+                    tint = colors.primary,
                     modifier = Modifier.size(32.dp)
                 )
             }
@@ -718,7 +712,7 @@ internal fun InitRepositoryCard(
                     .clip(RoundedCornerShape(16.dp))
                     .clickable(enabled = !isLoading, onClick = onInit),
                 shape = RoundedCornerShape(16.dp),
-                color = FuwaGitThemeExtras.colors.mizuiroAccent
+                color = colors.primary
             ) {
                 Box(
                     modifier = Modifier.fillMaxSize(),
@@ -729,14 +723,14 @@ internal fun InitRepositoryCard(
                             text = "Initializing...",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
-                            color = Color.White
+                            color = colors.onPrimary
                         )
                     } else {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(
                                 Icons.Default.Check,
                                 contentDescription = null,
-                                tint = Color.White,
+                                tint = colors.onPrimary,
                                 modifier = Modifier.size(20.dp)
                             )
                             Spacer(Modifier.width(8.dp))
@@ -744,7 +738,7 @@ internal fun InitRepositoryCard(
                                 text = "Execute git init",
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
-                                color = Color.White
+                                color = colors.onPrimary
                             )
                         }
                     }
@@ -760,7 +754,6 @@ internal fun TerminalLogsCard(
     modifier: Modifier = Modifier
 ) {
     val colors = MaterialTheme.colorScheme
-    val uiColors = FuwaGitThemeExtras.colors
     val listState = rememberLazyListState()
 
     LaunchedEffect(logs.size) {
@@ -770,9 +763,9 @@ internal fun TerminalLogsCard(
     }
 
     ElevatedCard(
-        modifier = modifier.border(1.dp, uiColors.cardBorder, RoundedCornerShape(20.dp)),
+        modifier = modifier.border(1.dp, colors.outlineVariant, RoundedCornerShape(20.dp)),
         shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.elevatedCardColors(containerColor = uiColors.terminalBackground),
+        colors = CardDefaults.elevatedCardColors(containerColor = colors.surfaceContainerLowest),
         elevation = CardDefaults.elevatedCardElevation(0.dp)
     ) {
         Column(
@@ -805,7 +798,7 @@ internal fun TerminalLogsCard(
                 modifier = Modifier
                     .fillMaxSize()
                     .clip(RoundedCornerShape(12.dp))
-                    .background(uiColors.terminalBackground)
+                    .background(colors.surfaceContainerLowest)
             ) {
                 if (logs.isEmpty()) {
                     Box(
@@ -826,7 +819,7 @@ internal fun TerminalLogsCard(
                         items(logs, key = { it.hashCode() }, contentType = { "terminal_log" }) { log ->
                             Text(
                                 text = log,
-                                color = uiColors.terminalText,
+                                color = colors.onSurface,
                                 fontFamily = FontFamily.Monospace,
                                 fontSize = 11.sp,
                                 modifier = Modifier

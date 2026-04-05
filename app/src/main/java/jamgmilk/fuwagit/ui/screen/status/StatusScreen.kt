@@ -15,6 +15,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -29,9 +30,6 @@ import jamgmilk.fuwagit.ui.components.DangerousOperationType
 import jamgmilk.fuwagit.ui.components.OperationResultDialog
 import jamgmilk.fuwagit.ui.components.ScreenTemplate
 import jamgmilk.fuwagit.ui.components.TwoStepConfirmDialog
-import jamgmilk.fuwagit.ui.theme.FuwaGitThemeExtras
-import jamgmilk.fuwagit.ui.theme.GitColors
-
 
 data class StatusStats(
     val totalChanges: Int,
@@ -57,6 +55,7 @@ fun StatusScreen(
     val isRepo = uiState.isGitRepo
     val terminalLogs = uiState.terminalOutput
     val currentBranch = uiState.currentBranch
+    val colors = MaterialTheme.colorScheme
 
     LaunchedEffect(uiState.repoPath) {
         if (uiState.repoPath != null) {
@@ -148,7 +147,7 @@ fun StatusScreen(
                     subtitle = "Unstaged changes",
                     files = workspace,
                     modifier = Modifier.weight(1f),
-                    accentColor = FuwaGitThemeExtras.colors.mizuiroAccent,
+                    accentColor = colors.primary,
                     onFileAction = { file ->
                         statusViewModel.stageFile(file.path)
                     },
@@ -163,7 +162,7 @@ fun StatusScreen(
                     subtitle = "Ready to commit",
                     files = staged,
                     modifier = Modifier.weight(1f),
-                    accentColor = GitColors.GitGreen,
+                    accentColor = colors.tertiary,
                     onFileAction = { file -> statusViewModel.unstageFile(file.path) },
                     emptyMessage = "Nothing to commit"
                 )

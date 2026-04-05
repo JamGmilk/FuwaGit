@@ -58,7 +58,6 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import jamgmilk.fuwagit.ui.components.SubSettingsTemplate
-import jamgmilk.fuwagit.ui.theme.FuwaGitThemeExtras
 
 @Composable
 fun PermissionsScreen(
@@ -101,7 +100,7 @@ private fun SystemPermissionsCard(
     onRequestAllFilesAccess: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val uiColors = FuwaGitThemeExtras.colors
+    val colors = MaterialTheme.colorScheme
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val isInspectionMode = LocalInspectionMode.current
@@ -137,15 +136,15 @@ private fun SystemPermissionsCard(
     ElevatedCard(
         modifier = modifier
             .fillMaxWidth()
-            .border(1.dp, uiColors.cardBorder, RoundedCornerShape(20.dp)),
+            .border(1.dp, colors.outlineVariant, RoundedCornerShape(20.dp)),
         shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.elevatedCardColors(containerColor = uiColors.cardContainer),
+        colors = CardDefaults.elevatedCardColors(containerColor = colors.surfaceContainerLow),
         elevation = CardDefaults.elevatedCardElevation(0.dp)
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
             Surface(
                 modifier = Modifier.fillMaxWidth(),
-                color = FuwaGitThemeExtras.colors.mizuiroAccent.copy(alpha = 0.1f),
+                color = colors.primary.copy(alpha = 0.1f),
                 shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)
             ) {
                 Row(
@@ -157,7 +156,7 @@ private fun SystemPermissionsCard(
                     Icon(
                         Icons.Default.Shield,
                         contentDescription = null,
-                        tint = FuwaGitThemeExtras.colors.mizuiroAccent,
+                        tint = colors.primary,
                         modifier = Modifier.size(22.dp)
                     )
                     Spacer(Modifier.width(10.dp))
@@ -165,7 +164,7 @@ private fun SystemPermissionsCard(
                         text = "System Permissions",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
-                        color = FuwaGitThemeExtras.colors.mizuiroAccent
+                        color = colors.primary
                     )
                 }
             }
@@ -182,7 +181,7 @@ private fun SystemPermissionsCard(
                     actionLabel = if (allFilesStatus == PermissionStatus.Granted) "Open Settings" else "Grant",
                     onAction = onRequestAllFilesAccess,
                     actionEnabled = true,
-                    accentColor = FuwaGitThemeExtras.colors.mizuiroAccent
+                    accentColor = colors.primary
                 )
             }
         }
@@ -195,20 +194,19 @@ private fun ScopedStorageCard(
     modifier: Modifier = Modifier
 ) {
     val colors = MaterialTheme.colorScheme
-    val uiColors = FuwaGitThemeExtras.colors
 
     ElevatedCard(
         modifier = modifier
             .fillMaxWidth()
-            .border(1.dp, uiColors.cardBorder, RoundedCornerShape(20.dp)),
+            .border(1.dp, colors.outlineVariant, RoundedCornerShape(20.dp)),
         shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.elevatedCardColors(containerColor = uiColors.cardContainer),
+        colors = CardDefaults.elevatedCardColors(containerColor = colors.surfaceContainerLow),
         elevation = CardDefaults.elevatedCardElevation(0.dp)
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
             Surface(
                 modifier = Modifier.fillMaxWidth(),
-                color = FuwaGitThemeExtras.colors.mizuiroAccentLight.copy(alpha = 0.15f),
+                color = colors.primaryContainer.copy(alpha = 0.15f),
                 shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)
             ) {
                 Row(
@@ -220,7 +218,7 @@ private fun ScopedStorageCard(
                     Icon(
                         Icons.Default.FolderOpen,
                         contentDescription = null,
-                        tint = FuwaGitThemeExtras.colors.mizuiroAccent,
+                        tint = colors.primary,
                         modifier = Modifier.size(22.dp)
                     )
                     Spacer(Modifier.width(10.dp))
@@ -229,7 +227,7 @@ private fun ScopedStorageCard(
                             text = "Scoped Storage",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
-                            color = FuwaGitThemeExtras.colors.mizuiroAccent
+                            color = colors.primary
                         )
                         Text(
                             text = "SAF folder access",
@@ -250,14 +248,14 @@ private fun ScopedStorageCard(
                 ) {
                     Surface(
                         shape = RoundedCornerShape(10.dp),
-                        color = FuwaGitThemeExtras.colors.mizuiroAccent.copy(alpha = 0.15f),
+                        color = colors.primary.copy(alpha = 0.15f),
                         modifier = Modifier.size(44.dp)
                     ) {
                         Box(contentAlignment = Alignment.Center) {
                             Icon(
                                 Icons.Default.Lock,
                                 contentDescription = null,
-                                tint = FuwaGitThemeExtras.colors.mizuiroAccent,
+                                tint = colors.primary,
                                 modifier = Modifier.size(22.dp)
                             )
                         }
@@ -280,13 +278,13 @@ private fun ScopedStorageCard(
 
                     Surface(
                         shape = RoundedCornerShape(8.dp),
-                        color = if (savedReposCount > 0) Color(0xFF4CAF50).copy(alpha = 0.15f) else colors.surfaceVariant
+                        color = if (savedReposCount > 0) colors.primary.copy(alpha = 0.15f) else colors.surfaceVariant
                     ) {
                         Text(
                             text = savedReposCount.toString(),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
-                            color = if (savedReposCount > 0) Color(0xFF4CAF50) else colors.onSurfaceVariant,
+                            color = if (savedReposCount > 0) colors.primary else colors.onSurfaceVariant,
                             modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
                         )
                     }
@@ -394,10 +392,11 @@ private fun PermissionItem(
 
 @Composable
 private fun StatusBadge(status: PermissionStatus) {
+    val colors = MaterialTheme.colorScheme
     val (color, icon, text) = when (status) {
-        PermissionStatus.Granted -> Triple(Color(0xFF4CAF50), Icons.Default.CheckCircle, "Granted")
-        PermissionStatus.Denied -> Triple(Color(0xFFE53935), Icons.Default.Error, "Denied")
-        PermissionStatus.Unknown -> Triple(Color(0xFFFFA000), Icons.Default.Info, "Unknown")
+        PermissionStatus.Granted -> Triple(colors.primary, Icons.Default.CheckCircle, "Granted")
+        PermissionStatus.Denied -> Triple(colors.error, Icons.Default.Error, "Denied")
+        PermissionStatus.Unknown -> Triple(colors.tertiary, Icons.Default.Info, "Unknown")
     }
 
     Row(

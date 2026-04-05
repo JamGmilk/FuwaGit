@@ -71,7 +71,6 @@ import jamgmilk.fuwagit.ui.components.FilePickerDialog
 import jamgmilk.fuwagit.ui.screen.credentials.CredentialSelectDialog
 import jamgmilk.fuwagit.ui.screen.credentials.CredentialType
 import jamgmilk.fuwagit.ui.theme.AppShapes
-import jamgmilk.fuwagit.ui.theme.FuwaGitThemeExtras
 import kotlinx.coroutines.delay
 
 @Composable
@@ -233,7 +232,7 @@ internal fun CloneContent(
         if (error != null) {
             Surface(
                 shape = RoundedCornerShape(8.dp),
-                color = FuwaGitThemeExtras.colors.mizuiroAccentLight.copy(alpha = 0.1f)
+                color = colors.error.copy(alpha = 0.1f)
             ) {
                 Row(
                     modifier = Modifier.padding(12.dp),
@@ -242,14 +241,14 @@ internal fun CloneContent(
                     Icon(
                         Icons.Default.Error,
                         contentDescription = null,
-                        tint = FuwaGitThemeExtras.colors.mizuiroAccentLight,
+                        tint = colors.error,
                         modifier = Modifier.size(16.dp)
                     )
                     Spacer(Modifier.width(8.dp))
                     Text(
                         text = error!!,
                         style = MaterialTheme.typography.bodySmall,
-                        color = FuwaGitThemeExtras.colors.mizuiroAccentLight
+                        color = colors.error
                     )
                 }
             }
@@ -307,7 +306,7 @@ internal fun CloneContent(
                 .fillMaxWidth()
                 .height(50.dp),
             shape = RoundedCornerShape(12.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = FuwaGitThemeExtras.colors.mizuiroAccent)
+            colors = ButtonDefaults.buttonColors(containerColor = colors.primary)
         ) {
             if (isLoading) {
                 CircularProgressIndicator(

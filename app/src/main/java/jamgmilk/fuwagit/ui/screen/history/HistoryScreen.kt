@@ -77,8 +77,6 @@ import jamgmilk.fuwagit.domain.model.git.GitCommit
 import jamgmilk.fuwagit.domain.model.git.GitResetMode
 import jamgmilk.fuwagit.ui.components.ResetConfirmDialog
 import jamgmilk.fuwagit.ui.components.ScreenTemplate
-import jamgmilk.fuwagit.ui.theme.FuwaGitThemeExtras
-import jamgmilk.fuwagit.ui.theme.GitColors
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -92,7 +90,6 @@ fun HistoryScreen(
     val uiState by historyViewModel.uiState.collectAsStateWithLifecycle()
     val history = uiState.commits
     val colors = MaterialTheme.colorScheme
-    val uiColors = FuwaGitThemeExtras.colors
 
     ScreenTemplate(
         title = "History",
@@ -109,9 +106,9 @@ fun HistoryScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .weight(1f)
-                .border(1.dp, uiColors.cardBorder, RoundedCornerShape(24.dp)),
+                .border(1.dp, colors.outlineVariant, RoundedCornerShape(24.dp)),
             shape = RoundedCornerShape(24.dp),
-            colors = CardDefaults.elevatedCardColors(containerColor = uiColors.cardContainer),
+            colors = CardDefaults.elevatedCardColors(containerColor = colors.surfaceContainerLow),
             elevation = CardDefaults.elevatedCardElevation(0.dp)
         ) {
             if (history.isEmpty()) {
@@ -126,7 +123,6 @@ fun HistoryScreen(
         }
     }
 
-    // Reset 纭瀵硅瘽妗?
     val pendingCommit = uiState.pendingResetCommit
     val pendingMode = uiState.pendingResetMode
     if (pendingCommit != null && pendingMode != null) {
@@ -210,15 +206,14 @@ private fun CommitTimelineItem(
 
     val branchColors = remember {
         listOf(
-            GitColors.GitCyan,
-            GitColors.GitGreen,
-            GitColors.GitOrange,
-            GitColors.GitPink,
-            GitColors.GitPurple
+            colors.primary,
+            colors.primary,
+            colors.error,
+            colors.secondary,
+            colors.tertiary
         )
     }
     val lane = abs(commit.hash.hashCode()) % branchColors.size
-    val mergeLane = abs((commit.hash + "m").hashCode()) % branchColors.size
 
     Row(
         modifier = Modifier
@@ -356,7 +351,7 @@ private fun TimelineIndicator(
                 .padding(top = 14.dp)
                 .size(16.dp)
                 .background(
-                    if (isMerge) GitColors.GitPurple else color,
+                    if (isMerge) colors.tertiary else color,
                     CircleShape
                 ),
             contentAlignment = Alignment.Center
@@ -375,10 +370,11 @@ private fun TimelineIndicator(
 
 @Composable
 private fun MergeBadge() {
+    val colors = MaterialTheme.colorScheme
     Box(
         modifier = Modifier
             .background(
-                GitColors.GitPurple.copy(alpha = 0.15f),
+                colors.tertiary.copy(alpha = 0.15f),
                 RoundedCornerShape(4.dp)
             )
             .padding(horizontal = 6.dp, vertical = 2.dp)
@@ -390,14 +386,14 @@ private fun MergeBadge() {
             Icon(
                 Icons.AutoMirrored.Filled.MergeType,
                 contentDescription = null,
-                tint = GitColors.GitPurple,
+                tint = colors.tertiary,
                 modifier = Modifier.size(12.dp)
             )
             Text(
                 text = "MERGE",
                 style = MaterialTheme.typography.labelSmall,
                 fontWeight = FontWeight.Bold,
-                color = GitColors.GitPurple,
+                color = colors.tertiary,
                 fontSize = 10.sp
             )
         }
@@ -440,12 +436,10 @@ private fun CommitDetails(
     modifier: Modifier = Modifier
 ) {
     val colors = MaterialTheme.colorScheme
-    val uiColors = FuwaGitThemeExtras.colors
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val commitDetail = uiState.selectedCommitDetail
     val isLoadingDetail = uiState.isLoadingCommitDetail
 
-    // 鍔犺浇 commit 璇︽儏
     LaunchedEffect(commit.hash) {
         viewModel.loadCommitDetail(commit)
     }
@@ -457,7 +451,6 @@ private fun CommitDetails(
             .padding(12.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        // Commit 鍏冧俊鎭?
         DetailRow(
             icon = Icons.Default.Code,
             label = "Hash",
@@ -518,16 +511,15 @@ private fun CommitDetails(
                 StatChip(
                     value = "+${commitDetail.totalAdditions}",
                     label = "Additions",
-                    color = Color(0xFF4CAF50)
+                    color = colors.primary
                 )
                 StatChip(
                     value = "-${commitDetail.totalDeletions}",
                     label = "Deletions",
-                    color = Color(0xFFF44336)
+                    color = colors.error
                 )
             }
 
-            // 鏂囦欢鍙樻洿鍒楄〃
             Spacer(Modifier.height(8.dp))
             Text(
                 text = "Changed Files",
@@ -585,12 +577,12 @@ private fun CommitDetails(
                 onDismissRequest = { showResetMenu = false }
             ) {
                 DropdownMenuItem(
-                    text = { Text("Soft Reset", color = Color(0xFF4CAF50)) },
+                    text = { Text("Soft Reset", color = colors.primary) },
                     leadingIcon = {
                         Icon(
                             Icons.Default.ArrowUpward,
                             contentDescription = null,
-                            tint = Color(0xFF4CAF50),
+                            tint = colors.primary,
                             modifier = Modifier.size(18.dp)
                         )
                     },
@@ -600,12 +592,12 @@ private fun CommitDetails(
                     }
                 )
                 DropdownMenuItem(
-                    text = { Text("Mixed Reset", color = Color(0xFFFF9800)) },
+                    text = { Text("Mixed Reset", color = colors.tertiary) },
                     leadingIcon = {
                         Icon(
                             Icons.Default.Replay,
                             contentDescription = null,
-                            tint = Color(0xFFFF9800),
+                            tint = colors.tertiary,
                             modifier = Modifier.size(18.dp)
                         )
                     },
@@ -615,12 +607,12 @@ private fun CommitDetails(
                     }
                 )
                 DropdownMenuItem(
-                    text = { Text("Hard Reset", color = Color(0xFFF44336)) },
+                    text = { Text("Hard Reset", color = colors.error) },
                     leadingIcon = {
                         Icon(
                             Icons.Default.DeleteForever,
                             contentDescription = null,
-                            tint = Color(0xFFF44336),
+                            tint = colors.error,
                             modifier = Modifier.size(18.dp)
                         )
                     },
@@ -748,10 +740,10 @@ private fun FileChangeItem(
                         },
                         contentDescription = null,
                         tint = when (fileChange.changeType) {
-                            jamgmilk.fuwagit.domain.model.git.GitChangeType.Added -> Color(0xFF4CAF50)
-                            jamgmilk.fuwagit.domain.model.git.GitChangeType.Removed -> Color(0xFFF44336)
-                            jamgmilk.fuwagit.domain.model.git.GitChangeType.Renamed -> Color(0xFF2196F3)
-                            else -> Color(0xFFFF9800)
+                            jamgmilk.fuwagit.domain.model.git.GitChangeType.Added -> colors.primary
+                            jamgmilk.fuwagit.domain.model.git.GitChangeType.Removed -> colors.error
+                            jamgmilk.fuwagit.domain.model.git.GitChangeType.Renamed -> colors.secondary
+                            else -> colors.tertiary
                         },
                         modifier = Modifier.size(14.dp)
                     )
@@ -784,7 +776,7 @@ private fun FileChangeItem(
                         text = "+${fileChange.additions}",
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFF4CAF50)
+                        color = colors.primary
                     )
                 }
                 if (fileChange.deletions > 0) {
@@ -792,7 +784,7 @@ private fun FileChangeItem(
                         text = "-${fileChange.deletions}",
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFFF44336)
+                        color = colors.error
                     )
                 }
             }
