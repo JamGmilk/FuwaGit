@@ -1,6 +1,5 @@
 package jamgmilk.fuwagit.ui.screen.myrepos
 
-import android.annotation.SuppressLint
 import android.content.Context
 import android.widget.Toast
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -14,7 +13,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -48,7 +46,6 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -76,7 +73,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -89,7 +85,7 @@ import jamgmilk.fuwagit.ui.components.ScreenTemplate
 import jamgmilk.fuwagit.ui.theme.AppShapes
 import jamgmilk.fuwagit.ui.theme.FuwaGitThemeExtras
 import kotlinx.coroutines.launch
-import java.text.SimpleDateFormat
+import java.text.DateFormat
 import java.util.Date
 import java.util.Locale
 
@@ -255,6 +251,7 @@ fun MyReposScreen(
         )
     }
 
+    // TODO: review, 这里样式不一样喵
     // Clean Preview Dialog: Displays the list of files that will be deleted
     val untrackedFiles = uiState.untrackedFilesForClean
     val isCleanPreviewing = uiState.isCleanPreviewing
@@ -351,8 +348,6 @@ fun RepoListContent(
     onItemLongClick: (RepoFolderItem) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val colors = MaterialTheme.colorScheme
-
     Column(modifier = modifier.padding(12.dp)) {
         Row(
             modifier = Modifier
@@ -363,14 +358,14 @@ fun RepoListContent(
             Icon(
                 Icons.Default.Info,
                 contentDescription = null,
-                tint = colors.onSurfaceVariant,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(14.dp)
             )
             Spacer(Modifier.width(6.dp))
             Text(
                 text = "Tap to select, long press for options",
                 style = MaterialTheme.typography.labelSmall,
-                color = colors.onSurfaceVariant
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
 
@@ -400,33 +395,30 @@ fun RepoItemCard(
     onLongClick: () -> Unit
 ) {
     val colors = MaterialTheme.colorScheme
-    val uiColors = FuwaGitThemeExtras.colors
 
-    val dateFormat = remember { SimpleDateFormat("MMM dd, yyyy", Locale.getDefault()) }
+    val dateFormat = remember { DateFormat.getDateInstance(DateFormat.MEDIUM, Locale.getDefault()).format(Date()) }
     val lastModifiedText = if (item.lastModified > 0) {
         dateFormat.format(Date(item.lastModified))
     } else {
         "Unknown"
     }
 
-    val accentColor = if (item.isGitRepo) Color(0xFF4CAF50) else Color(0xFFFF9800)
-
     ElevatedCard(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
+            .clip(AppShapes.small)
             .combinedClickable(
                 onLongClick = onLongClick,
                 onClick = onClick
             )
             .border(
                 width = if (isSelected) 2.dp else 1.dp,
-                color = if (isSelected) FuwaGitThemeExtras.colors.mizuiroAccent else uiColors.cardBorder,
-                shape = RoundedCornerShape(16.dp)
+                color = if (isSelected) colors.primary else colors.outlineVariant,
+                shape = AppShapes.small
             ),
-        shape = RoundedCornerShape(16.dp),
+        shape = AppShapes.small,
         colors = CardDefaults.elevatedCardColors(
-            containerColor = if (isSelected) FuwaGitThemeExtras.colors.mizuiroAccent.copy(alpha = 0.08f) else colors.surface.copy(alpha = 0.5f)
+            containerColor = if (isSelected) colors.primary.copy(alpha = 0.1f) else colors.surface
         ),
         elevation = CardDefaults.elevatedCardElevation(0.dp)
     ) {
@@ -438,14 +430,14 @@ fun RepoItemCard(
         ) {
             Surface(
                 shape = RoundedCornerShape(12.dp),
-                color = if (isSelected) FuwaGitThemeExtras.colors.mizuiroAccent else accentColor.copy(alpha = 0.15f),
+                color = if (isSelected) colors.primary else colors.secondaryContainer,
                 modifier = Modifier.size(48.dp)
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Icon(
                         imageVector = if (item.isGitRepo) Icons.Default.Folder else Icons.Default.FolderOpen,
                         contentDescription = null,
-                        tint = if (isSelected) Color.White else accentColor,
+                        tint = if (isSelected) colors.onPrimary else colors.onSecondaryContainer,
                         modifier = Modifier.size(24.dp)
                     )
                 }
@@ -462,6 +454,7 @@ fun RepoItemCard(
                         text = item.alias.ifBlank { item.path.substringAfterLast("/") },
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
+                        color = colors.onSurface,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f, fill = false)
@@ -470,13 +463,13 @@ fun RepoItemCard(
                     if (isSelected) {
                         Surface(
                             shape = RoundedCornerShape(6.dp),
-                            color = FuwaGitThemeExtras.colors.mizuiroAccent
+                            color = colors.primary
                         ) {
                             Text(
                                 text = "ACTIVE",
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.Bold,
-                                color = Color.White,
+                                color = colors.onPrimary,
                                 fontSize = 9.sp,
                                 modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                             )
@@ -488,7 +481,7 @@ fun RepoItemCard(
                             modifier = Modifier
                                 .padding(start = 4.dp)
                                 .background(
-                                    color = accentColor.copy(alpha = 0.15f),
+                                    color = colors.errorContainer,
                                     shape = RoundedCornerShape(6.dp)
                                 )
                                 .padding(horizontal = 8.dp, vertical = 4.dp),
@@ -498,13 +491,13 @@ fun RepoItemCard(
                             Icon(
                                 Icons.Default.Warning,
                                 contentDescription = null,
-                                tint = accentColor,
+                                tint = colors.onErrorContainer,
                                 modifier = Modifier.size(11.dp)
                             )
                             Text(
                                 text = "Not a Git",
                                 style = MaterialTheme.typography.labelSmall,
-                                color = accentColor,
+                                color = colors.onErrorContainer,
                                 fontWeight = FontWeight.Medium
                             )
                         }
@@ -549,15 +542,13 @@ fun RepoItemCard(
                     Text(
                         text = lastModifiedText,
                         style = MaterialTheme.typography.labelSmall,
-                        color = colors.onSurfaceVariant.copy(alpha = 0.6f)
+                        color = colors.onSurfaceVariant.copy(alpha = 0.7f)
                     )
                 }
             }
         }
     }
 }
-
-
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -607,7 +598,15 @@ fun RepoOptionsSheet(
             )
 
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                RepoOptionItem(
+                RepoOptionsSheetItem(
+                    icon = Icons.Default.Info,
+                    title = "Show Info",
+                    subtitle = "View repository details",
+                    accentColor = Color(0xFF9C27B0),
+                    onClick = onShowInfo
+                )
+
+                RepoOptionsSheetItem(
                     icon = Icons.Default.Link,
                     title = "Configure Remote",
                     subtitle = "Set push/pull remote URL",
@@ -631,7 +630,7 @@ fun RepoOptionsSheet(
             )
 
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                RepoOptionItem(
+                RepoOptionsSheetItem(
                     icon = Icons.Default.CleaningServices,
                     title = "Clean Repository",
                     subtitle = "Remove untracked files",
@@ -639,7 +638,7 @@ fun RepoOptionsSheet(
                     onClick = onClean
                 )
 
-                RepoOptionItem(
+                RepoOptionsSheetItem(
                     icon = Icons.Default.Delete,
                     title = "Remove from List",
                     subtitle = "Remove this repository from the list",
@@ -723,7 +722,7 @@ private fun RepoHeader(
 }
 
 @Composable
-fun RepoOptionItem(
+fun RepoOptionsSheetItem(
     icon: ImageVector,
     title: String,
     subtitle: String,
@@ -733,24 +732,24 @@ fun RepoOptionItem(
     val colors = MaterialTheme.colorScheme
 
     Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .clickable { onClick() },
+        color = Color.Transparent,
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(12.dp))
-                .clickable { onClick() },
-            color = Color.Transparent,
-            shape = RoundedCornerShape(12.dp)
+                .padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(12.dp),
-                verticalAlignment = Alignment.CenterVertically
+            Surface(
+                shape = RoundedCornerShape(10.dp),
+                color = accentColor.copy(alpha = 0.12f),
+                modifier = Modifier.size(44.dp)
             ) {
-                Surface(
-                    shape = RoundedCornerShape(10.dp),
-                    color = accentColor.copy(alpha = 0.12f),
-                    modifier = Modifier.size(44.dp)
-                ) {
                 Box(contentAlignment = Alignment.Center) {
                     Icon(
                         icon,
@@ -784,7 +783,7 @@ fun RepoOptionItem(
     }
 }
 
-@Suppress("DEPRECATION")
+// TODO: review
 @Composable
 fun RepoInfoDialog(
     repoName: String,
@@ -865,7 +864,7 @@ fun RepoInfoDialog(
                             icon = getInfoIcon(key),
                             label = key,
                             value = value,
-                            accentColor = getInfoColor(key),
+                            accentColor = MaterialTheme.colorScheme.primary,
                             onCopy = {
                                 clipboardManager.setText(AnnotatedString(value))
                             }
@@ -887,6 +886,7 @@ fun RepoInfoDialog(
     )
 }
 
+// TODO: review
 @Composable
 private fun RepoInfoItem(
     icon: ImageVector,
@@ -969,17 +969,3 @@ private fun getInfoIcon(key: String): ImageVector {
     }
 }
 
-@Composable
-private fun getInfoColor(key: String): Color {
-    return when {
-        key.contains("Branch", ignoreCase = true) -> Color(0xFF2196F3)
-        key.contains("Commit", ignoreCase = true) -> Color(0xFF4CAF50)
-        key.contains("Remote", ignoreCase = true) -> Color(0xFFFF5722)
-        key.contains("Date", ignoreCase = true) -> Color(0xFF9C27B0)
-        key.contains("Path", ignoreCase = true) -> Color(0xFF607D8B)
-        key.contains("Status", ignoreCase = true) -> Color(0xFF4CAF50)
-        key.contains("Hash", ignoreCase = true) -> Color(0xFF795548)
-        key.contains("Error", ignoreCase = true) -> Color(0xFFE53935)
-        else -> FuwaGitThemeExtras.colors.mizuiroAccent
-    }
-}
