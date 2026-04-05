@@ -10,7 +10,7 @@ class EnableBiometricUseCase @Inject constructor(
     private val credentialRepository: CredentialRepository,
     private val masterKeyManager: MasterKeyManager
 ) {
-    operator fun invoke(
+    suspend operator fun invoke(
         activity: FragmentActivity,
         onResult: (AppResult<Unit>) -> Unit
     ) {

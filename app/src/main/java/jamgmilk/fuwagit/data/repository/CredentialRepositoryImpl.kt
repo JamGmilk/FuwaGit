@@ -66,7 +66,7 @@ class CredentialRepositoryImpl @Inject constructor(
         return masterKeyManager.getPasswordHint()
     }
 
-    override fun isUnlocked(): Boolean {
+    override suspend fun isUnlocked(): Boolean {
         return cachedMasterKey != null || secureStore.getCachedMasterKey() != null
     }
 
@@ -75,7 +75,7 @@ class CredentialRepositoryImpl @Inject constructor(
         secureStore.clearCachedMasterKey()
     }
 
-    override fun getCachedMasterKey(): SecretKey? {
+    override suspend fun getCachedMasterKey(): SecretKey? {
         return cachedMasterKey ?: secureStore.getCachedMasterKey()
     }
 
@@ -84,7 +84,7 @@ class CredentialRepositoryImpl @Inject constructor(
         secureStore.cacheMasterKey(key)
     }
 
-    private fun getMasterKey(): SecretKey {
+    private suspend fun getMasterKey(): SecretKey {
         return cachedMasterKey ?: secureStore.getCachedMasterKey()
             ?: throw AppException.MasterKeyNotUnlocked()
     }

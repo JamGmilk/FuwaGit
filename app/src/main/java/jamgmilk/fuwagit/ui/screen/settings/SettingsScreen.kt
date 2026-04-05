@@ -202,6 +202,8 @@ fun SettingsScreen(
                     }
                 }
             },
+            autoLockTimeout = settingsUiState.autoLockTimeout,
+            onAutoLockTimeoutChange = { timeout -> settingsViewModel.saveAutoLockTimeout(timeout) },
             modifier = Modifier.fillMaxWidth()
         )
 
@@ -404,9 +406,14 @@ private fun SecuritySettingsCard(
     biometricEnabled: Boolean = false,
     isDecryptionUnlocked: Boolean = false,
     isMasterPasswordSet: Boolean = false,
-    onBiometricEnabledChange: ((Boolean) -> Unit)? = null
+    onBiometricEnabledChange: ((Boolean) -> Unit)? = null,
+    autoLockTimeout: String = "300",
+    onAutoLockTimeoutChange: (String) -> Unit = {}
 ) {
     val colors = MaterialTheme.colorScheme
+    val scope = rememberCoroutineScope()
+    var autoLockExpanded by remember { mutableStateOf(false) }
+    var localTimeout by remember(autoLockTimeout) { mutableStateOf(autoLockTimeout) }
 
     ElevatedCard(
         modifier = modifier.border(1.dp, colors.outlineVariant, RoundedCornerShape(24.dp)),
@@ -451,6 +458,78 @@ private fun SecuritySettingsCard(
                     checked = biometricEnabled,
                     onCheckedChange = { onBiometricEnabledChange(it) }
                 )
+
+                HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+
+                val displayTimeout = when (val seconds = autoLockTimeout.toLongOrNull()) {
+                    0L -> "Never"
+                    60L -> "1 minute"
+                    300L -> "5 minutes"
+                    600L -> "10 minutes"
+                    1800L -> "30 minutes"
+                    3600L -> "1 hour"
+                    else -> "$seconds seconds"
+                }
+
+                ExpandableSettingsItem(
+                    title = "Auto-Lock Timeout",
+                    subtitle = "Session expires after $displayTimeout",
+                    icon = Icons.Default.Schedule,
+                    expanded = autoLockExpanded,
+                    onExpandedChange = { autoLockExpanded = it }
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp)
+                            .padding(bottom = 16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Text(
+                            text = "Set the timeout duration in seconds after which the credentials will be automatically locked. Set to 0 to disable auto-lock.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+
+                        OutlinedTextField(
+                            value = localTimeout,
+                            onValueChange = { localTimeout = it.filter { c -> c.isDigit() } },
+                            label = { Text("Timeout (seconds)") },
+                            placeholder = { Text("300") },
+                            singleLine = true,
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier.fillMaxWidth(),
+                            keyboardOptions = KeyboardOptions(
+                                keyboardType = KeyboardType.Number,
+                                imeAction = ImeAction.Done
+                            )
+                        )
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.End,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            TextButton(onClick = { autoLockExpanded = false }) {
+                                Text("Cancel")
+                            }
+                            Spacer(Modifier.width(8.dp))
+                            Button(
+                                onClick = {
+                                    scope.launch {
+                                        val timeout = localTimeout.toLongOrNull() ?: 300
+                                        onAutoLockTimeoutChange(timeout.toString())
+                                    }.invokeOnCompletion {
+                                        autoLockExpanded = false
+                                    }
+                                },
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Text("Save")
+                            }
+                        }
+                    }
+                }
             }
         }
     }
@@ -764,7 +843,7 @@ private fun GlobalConfigCard(
                 }
             }
 
-            // 鏄剧ず搴旂敤閰嶇疆缁撴灉瀵硅瘽锟?
+            // Show application configuration result dialog
             if (applyResult != null) {
                 ApplyConfigResultDialog(
                     result = applyResult,

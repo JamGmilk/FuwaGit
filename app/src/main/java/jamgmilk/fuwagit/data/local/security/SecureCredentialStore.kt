@@ -2,13 +2,14 @@ package jamgmilk.fuwagit.data.local.security
 
 import android.content.Context
 import android.util.Base64
+import dagger.hilt.android.qualifiers.ApplicationContext
 import jamgmilk.fuwagit.data.local.credential.CredentialData
 import jamgmilk.fuwagit.data.local.credential.ExportData
 import jamgmilk.fuwagit.data.local.credential.HttpsCredential
 import jamgmilk.fuwagit.data.local.credential.SshKey
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.io.File
 import java.lang.ref.WeakReference
@@ -16,13 +17,13 @@ import java.nio.charset.StandardCharsets
 import javax.crypto.Cipher
 import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
-import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 class SecureCredentialStore @Inject constructor(
-    @ApplicationContext private val context: Context
+    @ApplicationContext private val context: Context,
+    private val appPreferencesStore: jamgmilk.fuwagit.data.local.prefs.AppPreferencesStore
 ) {
 
     companion object {
@@ -64,7 +65,19 @@ class SecureCredentialStore @Inject constructor(
 
     private var cachedMasterKey: WeakReference<SecretKey>? = null
     private var lastUnlockTime: Long = 0
-    private val sessionTimeout: Long = 5 * 60 * 1000
+
+    /**
+     * Gets the session timeout in milliseconds from user preferences.
+     * Returns 0 if auto-lock is disabled, or the configured timeout value otherwise.
+     */
+    private suspend fun getSessionTimeoutMillis(): Long {
+        val timeoutSeconds = appPreferencesStore.preferencesFlow
+            .first { true } // Get the current value
+            .autoLockTimeout
+            .toLongOrNull() ?: 300L // Default to 5 minutes if invalid
+        
+        return if (timeoutSeconds == 0L) 0L else timeoutSeconds * 1000L
+    }
 
     fun loadCredentialData(): CredentialData {
         return try {
@@ -118,9 +131,12 @@ class SecureCredentialStore @Inject constructor(
         lastUnlockTime = System.currentTimeMillis()
     }
 
-    fun getCachedMasterKey(): SecretKey? {
+    suspend fun getCachedMasterKey(): SecretKey? {
         val key = cachedMasterKey?.get()
-        if (key != null && System.currentTimeMillis() - lastUnlockTime < sessionTimeout) {
+        val sessionTimeout = getSessionTimeoutMillis()
+        
+        // If timeout is 0, session never expires
+        if (key != null && (sessionTimeout == 0L || System.currentTimeMillis() - lastUnlockTime < sessionTimeout)) {
             return key
         }
         cachedMasterKey = null
@@ -132,9 +148,12 @@ class SecureCredentialStore @Inject constructor(
         lastUnlockTime = 0
     }
 
-    fun isSessionValid(): Boolean {
-        return cachedMasterKey?.get() != null &&
-               System.currentTimeMillis() - lastUnlockTime < sessionTimeout
+    suspend fun isSessionValid(): Boolean {
+        val key = cachedMasterKey?.get()
+        val sessionTimeout = getSessionTimeoutMillis()
+        
+        // If timeout is 0, session never expires
+        return key != null && (sessionTimeout == 0L || System.currentTimeMillis() - lastUnlockTime < sessionTimeout)
     }
 
     suspend fun getCredentialDataWithDecryptedSecrets(masterKey: SecretKey): CredentialData {

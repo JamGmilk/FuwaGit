@@ -19,11 +19,11 @@ interface CredentialRepository {
 
     fun getMasterPasswordHint(): String?
 
-    fun isUnlocked(): Boolean
+    suspend fun isUnlocked(): Boolean
 
     fun lock()
 
-    fun getCachedMasterKey(): SecretKey?
+    suspend fun getCachedMasterKey(): SecretKey?
 
     fun setMasterKey(key: SecretKey)
 
