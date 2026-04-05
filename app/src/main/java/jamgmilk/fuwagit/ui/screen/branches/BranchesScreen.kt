@@ -29,6 +29,7 @@ import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.ImportExport
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.outlined.AccountTree
@@ -66,8 +67,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import jamgmilk.fuwagit.domain.model.git.GitBranch
 import jamgmilk.fuwagit.ui.components.ConflictResolutionDialog
 import jamgmilk.fuwagit.ui.components.DangerousOperationType
+import jamgmilk.fuwagit.ui.components.DialogWithIcon
 import jamgmilk.fuwagit.ui.components.OperationResultDialog
 import jamgmilk.fuwagit.ui.components.ScreenTemplate
+import jamgmilk.fuwagit.ui.components.TipInDialog
 import jamgmilk.fuwagit.ui.components.TwoStepConfirmDialog
 import jamgmilk.fuwagit.ui.theme.AppShapes
 
@@ -724,27 +727,11 @@ private fun CreateBranchDialog(
     var branchName by remember { mutableStateOf("") }
     val colors = MaterialTheme.colorScheme
 
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Create New Branch") },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                OutlinedTextField(
-                    value = branchName,
-                    onValueChange = { branchName = it },
-                    label = { Text("Branch Name") },
-                    placeholder = { Text("feature/my-new-feature") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp)
-                )
-                Text(
-                    text = "Branch will be created from the current HEAD",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = colors.onSurfaceVariant
-                )
-            }
-        },
+    DialogWithIcon(
+        onDismiss = onDismiss,
+        icon = Icons.Default.Add,
+        title = "Create New Branch",
+        subtitle = "Create a new branch from the current HEAD",
         confirmButton = {
             Button(
                 onClick = { onCreate(branchName) },
@@ -759,5 +746,19 @@ private fun CreateBranchDialog(
                 Text("Cancel")
             }
         }
-    )
+    ) {
+        OutlinedTextField(
+            value = branchName,
+            onValueChange = { branchName = it },
+            label = { Text("Branch Name") },
+            placeholder = { Text("feature/my-new-feature") },
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(12.dp)
+        )
+        TipInDialog(
+            icon = Icons.Default.Info,
+            text = "Branch will be created from the current HEAD"
+        )
+    }
 }

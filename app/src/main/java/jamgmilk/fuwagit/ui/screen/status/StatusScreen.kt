@@ -1,6 +1,7 @@
 package jamgmilk.fuwagit.ui.screen.status
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -23,6 +24,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import jamgmilk.fuwagit.domain.model.git.GitChangeType
@@ -79,16 +81,10 @@ fun StatusScreen(
         title = "Status",
         modifier = modifier,
         actions = {
-            FilledTonalIconButton(
+            RefreshIconButton(
                 onClick = { statusViewModel.refreshWorkspace() },
                 modifier = Modifier.size(36.dp)
-            ) {
-                Icon(
-                    Icons.Default.Refresh,
-                    contentDescription = "Refresh",
-                    modifier = Modifier.size(18.dp)
-                )
-            }
+            )
         }
     ) {
         RepositoryStatusCard(
@@ -202,7 +198,7 @@ fun StatusScreen(
         }
     }
 
-    // 鍗遍櫓鎿嶄綔鍙岀‘璁ゅ璇濇
+    // Dangerous operation double-confirmation dialog
     val pendingOperation = uiState.pendingOperation
     val pendingTarget = uiState.pendingOperationTarget
     if (pendingOperation != null && pendingTarget != null) {
@@ -222,7 +218,7 @@ fun StatusScreen(
         }
     }
 
-    // 鎿嶄綔缁撴灉鍙嶉瀵硅瘽妗?
+    // Operation result feedback dialog
     val operationResult = uiState.operationResult
     if (operationResult != null) {
         val operationType = pendingOperation ?: DangerousOperationType.DISCARD_CHANGES
@@ -230,6 +226,35 @@ fun StatusScreen(
             result = operationResult,
             operationType = operationType,
             onDismiss = { statusViewModel.clearOperationResult() }
+        )
+    }
+}
+
+@Composable
+private fun RefreshIconButton(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    var rotationCount by remember { mutableStateOf(0) }
+    val targetRotation = rotationCount * 360f
+    val animatedRotation by animateFloatAsState(
+        targetValue = targetRotation,
+        animationSpec = androidx.compose.animation.core.tween(durationMillis = 1500)
+    )
+
+    FilledTonalIconButton(
+        onClick = {
+            rotationCount += 3
+            onClick()
+        },
+        modifier = modifier
+    ) {
+        Icon(
+            Icons.Default.Refresh,
+            contentDescription = "Refresh",
+            modifier = Modifier
+                .size(18.dp)
+                .graphicsLayer { rotationZ = animatedRotation }
         )
     }
 }

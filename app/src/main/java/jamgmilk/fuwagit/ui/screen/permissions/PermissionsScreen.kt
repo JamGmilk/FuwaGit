@@ -178,7 +178,7 @@ private fun SystemPermissionsCard(
                     title = "All Files Access",
                     description = "Required for Git operations on all directories",
                     status = allFilesStatus,
-                    actionLabel = if (allFilesStatus == PermissionStatus.Granted) "Open Settings" else "Grant",
+                    actionLabel = "Grant",
                     onAction = onRequestAllFilesAccess,
                     actionEnabled = true,
                     accentColor = colors.primary

@@ -151,7 +151,10 @@ fun SettingsScreen(
         title = "Settings",
         modifier = modifier
     ) {
-        BetaWarningCard(modifier = Modifier.fillMaxWidth())
+        BetaWarningCard(
+            darkMode = settingsUiState.darkMode,
+            modifier = Modifier.fillMaxWidth()
+        )
 
         StorageSettingsCard(
             onPermissionsClick = onNavigateToPermissions,
@@ -287,9 +290,16 @@ fun SettingsScreen(
 }
 
 @Composable
-private fun BetaWarningCard(modifier: Modifier = Modifier) {
+private fun BetaWarningCard(
+    modifier: Modifier = Modifier,
+    darkMode: String = "system"
+) {
     val colors = MaterialTheme.colorScheme
-    val isDark = isSystemInDarkTheme()
+    val isDark = when (darkMode) {
+        "always_on" -> true
+        "always_off" -> false
+        else -> isSystemInDarkTheme()
+    }
 
     val warningOrange = Color(0xFFFF9800)
     val warningBackground = if (isDark) {
