@@ -25,8 +25,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import jamgmilk.fuwagit.R
 import jamgmilk.fuwagit.domain.model.git.GitChangeType
 import jamgmilk.fuwagit.ui.components.DangerousOperationType
 import jamgmilk.fuwagit.ui.components.OperationResultDialog
@@ -78,7 +80,7 @@ fun StatusScreen(
     }
 
     ScreenTemplate(
-        title = "Status",
+        title = stringResource(R.string.screen_status),
         modifier = modifier,
         actions = {
             RefreshIconButton(
@@ -139,8 +141,8 @@ fun StatusScreen(
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 FileSectionCard(
-                    title = "Workspace",
-                    subtitle = "Unstaged changes",
+                    title = stringResource(R.string.status_workspace),
+                    subtitle = stringResource(R.string.status_workspace_subtitle),
                     files = workspace,
                     modifier = Modifier.weight(1f),
                     accentColor = colors.primary,
@@ -150,17 +152,17 @@ fun StatusScreen(
                     onDiscard = { file ->
                         statusViewModel.requestDiscardChanges(file.path)
                     },
-                    emptyMessage = "Working directory clean"
+                    emptyMessage = stringResource(R.string.status_working_directory_clean)
                 )
 
                 FileSectionCard(
-                    title = "Staged",
-                    subtitle = "Ready to commit",
+                    title = stringResource(R.string.status_staged),
+                    subtitle = stringResource(R.string.status_staged_subtitle),
                     files = staged,
                     modifier = Modifier.weight(1f),
                     accentColor = colors.tertiary,
                     onFileAction = { file -> statusViewModel.unstageFile(file.path) },
-                    emptyMessage = "Nothing to commit"
+                    emptyMessage = stringResource(R.string.status_nothing_to_commit)
                 )
             }
         }
@@ -207,9 +209,9 @@ fun StatusScreen(
                 TwoStepConfirmDialog(
                     operationType = DangerousOperationType.DISCARD_CHANGES,
                     targetName = pendingTarget,
-                    description = "You are about to discard all changes to:",
-                    warningMessage = "Any unstaged modifications will be permanently lost. This action cannot be undone.",
-                    confirmText = "DISCARD",
+                    description = stringResource(R.string.status_discard_description),
+                    warningMessage = stringResource(R.string.status_discard_warning),
+                    confirmText = stringResource(R.string.status_discard_confirm),
                     onConfirm = { statusViewModel.confirmDiscardChanges() },
                     onDismiss = { statusViewModel.cancelPendingOperation() }
                 )
@@ -251,7 +253,7 @@ private fun RefreshIconButton(
     ) {
         Icon(
             Icons.Default.Refresh,
-            contentDescription = "Refresh",
+            contentDescription = stringResource(R.string.status_refresh_description),
             modifier = Modifier
                 .size(18.dp)
                 .graphicsLayer { rotationZ = animatedRotation }

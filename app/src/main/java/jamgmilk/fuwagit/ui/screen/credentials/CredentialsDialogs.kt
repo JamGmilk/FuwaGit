@@ -63,6 +63,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -73,6 +74,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import jamgmilk.fuwagit.R
 import jamgmilk.fuwagit.domain.model.credential.HttpsCredential
 import jamgmilk.fuwagit.domain.model.credential.SshKey
 import kotlinx.coroutines.launch
@@ -91,11 +93,11 @@ fun SetupPasswordDialog(
     var showConfirmPassword by remember { mutableStateOf(false) }
 
     val passwordMatchError = if (confirmPassword.isNotEmpty() && password != confirmPassword) {
-        "Passwords do not match"
+        stringResource(R.string.credentials_passwords_do_not_match)
     } else null
 
     val passwordLengthError = if (password.isNotEmpty() && password.length < 8) {
-        "At least 8 characters"
+        stringResource(R.string.credentials_at_least_8_characters)
     } else null
 
     AlertDialog(
@@ -103,7 +105,7 @@ fun SetupPasswordDialog(
         shape = RoundedCornerShape(20.dp),
         title = {
             Text(
-                text = "Set Master Password",
+                text = stringResource(R.string.credentials_setup_master_password),
                 style = MaterialTheme.typography.titleLarge
             )
         },
@@ -113,7 +115,7 @@ fun SetupPasswordDialog(
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 Text(
-                    text = "Create a master password to protect your sensitive credentials.",
+                    text = stringResource(R.string.credentials_setup_description),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -123,8 +125,8 @@ fun SetupPasswordDialog(
                 OutlinedTextField(
                     value = password,
                     onValueChange = { password = it },
-                    label = { Text("Password") },
-                    placeholder = { Text("At least 8 characters") },
+                    label = { Text(stringResource(R.string.credentials_password_label)) },
+                    placeholder = { Text(stringResource(R.string.credentials_password_placeholder)) },
                     visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
                     keyboardOptions = KeyboardOptions(
                         keyboardType = KeyboardType.Password,
@@ -139,7 +141,7 @@ fun SetupPasswordDialog(
                 OutlinedTextField(
                     value = confirmPassword,
                     onValueChange = { confirmPassword = it },
-                    label = { Text("Confirm Password") },
+                    label = { Text(stringResource(R.string.credentials_confirm_password_label)) },
                     visualTransformation = if (showConfirmPassword) VisualTransformation.None else PasswordVisualTransformation(),
                     keyboardOptions = KeyboardOptions(
                         keyboardType = KeyboardType.Password,
@@ -154,8 +156,8 @@ fun SetupPasswordDialog(
                 OutlinedTextField(
                     value = hint,
                     onValueChange = { hint = it },
-                    label = { Text("Password Hint (optional)") },
-                    placeholder = { Text("Help you remember") },
+                    label = { Text(stringResource(R.string.credentials_password_hint_optional)) },
+                    placeholder = { Text(stringResource(R.string.credentials_password_hint_placeholder)) },
                     keyboardOptions = KeyboardOptions(
                         imeAction = ImeAction.Done
                     ),
@@ -177,12 +179,12 @@ fun SetupPasswordDialog(
                 onClick = { onConfirm(password, hint.ifBlank { null }) },
                 enabled = !isLoading && password.length >= 8 && password == confirmPassword
             ) {
-                Text(if (isLoading) "Setting..." else "Set Password")
+                Text(if (isLoading) stringResource(R.string.credentials_setting) else stringResource(R.string.credentials_set_password))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel")
+                Text(stringResource(R.string.action_cancel))
             }
         }
     )
@@ -217,14 +219,14 @@ fun UnlockDialog(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Unlock Credentials",
+                    text = stringResource(R.string.credentials_unlock_credentials),
                     style = MaterialTheme.typography.titleLarge
                 )
                 if (biometricEnabled) {
                     IconButton(onClick = onUnlockWithBiometric) {
                         Icon(
                             imageVector = Icons.Default.Fingerprint,
-                            contentDescription = "Unlock with biometric",
+                            contentDescription = stringResource(R.string.credentials_unlock_with_biometric),
                             tint = MaterialTheme.colorScheme.primary
                         )
                     }
@@ -237,7 +239,7 @@ fun UnlockDialog(
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 Text(
-                    text = "Enter your master password to access sensitive credentials.",
+                    text = stringResource(R.string.credentials_unlock_description),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -247,13 +249,13 @@ fun UnlockDialog(
                 OutlinedTextField(
                     value = password,
                     onValueChange = { password = it },
-                    label = { Text("Master Password") },
+                    label = { Text(stringResource(R.string.credentials_master_password_label)) },
                     visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
                     trailingIcon = {
                         IconButton(onClick = { showPassword = !showPassword }) {
                             Icon(
                                 if (showPassword) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                                contentDescription = if (showPassword) "Hide" else "Show"
+                                contentDescription = if (showPassword) stringResource(R.string.credentials_hide) else stringResource(R.string.credentials_show_hide)
                             )
                         }
                     },
@@ -267,7 +269,7 @@ fun UnlockDialog(
 
                 passwordHint?.let { hint ->
                     Text(
-                        text = "Hint: $hint",
+                        text = stringResource(R.string.credentials_hint_format, hint),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -287,12 +289,12 @@ fun UnlockDialog(
                 onClick = { onUnlock(password) },
                 enabled = !isLoading && password.isNotBlank()
             ) {
-                Text(if (isLoading) "Unlocking..." else "Unlock")
+                Text(if (isLoading) stringResource(R.string.credentials_unlocking) else stringResource(R.string.credentials_unlock))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel")
+                Text(stringResource(R.string.action_cancel))
             }
         }
     )
@@ -328,7 +330,7 @@ fun AddHttpsCredentialDialog(
         },
         title = {
             Text(
-                text = "Add HTTPS Credential",
+                text = stringResource(R.string.credentials_add_https_credential),
                 fontWeight = FontWeight.Bold
             )
         },
@@ -337,8 +339,8 @@ fun AddHttpsCredentialDialog(
                 OutlinedTextField(
                     value = host,
                     onValueChange = { host = it },
-                    label = { Text("Host") },
-                    placeholder = { Text("github.com") },
+                    label = { Text(stringResource(R.string.credentials_host_label)) },
+                    placeholder = { Text(stringResource(R.string.credentials_host_placeholder)) },
                     leadingIcon = {
                         Icon(
                             Icons.Default.Link,
@@ -359,7 +361,7 @@ fun AddHttpsCredentialDialog(
                 OutlinedTextField(
                     value = username,
                     onValueChange = { username = it },
-                    label = { Text("Username") },
+                    label = { Text(stringResource(R.string.credentials_username_label)) },
                     leadingIcon = {
                         Icon(
                             Icons.Default.Person,
@@ -380,7 +382,7 @@ fun AddHttpsCredentialDialog(
                 OutlinedTextField(
                     value = password,
                     onValueChange = { password = it },
-                    label = { Text("Password / PAT") },
+                    label = { Text(stringResource(R.string.credentials_password_pat_label)) },
                     leadingIcon = {
                         Icon(
                             Icons.Default.Lock,
@@ -392,7 +394,7 @@ fun AddHttpsCredentialDialog(
                         IconButton(onClick = { showPassword = !showPassword }) {
                             Icon(
                                 if (showPassword) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                                contentDescription = if (showPassword) "Hide" else "Show"
+                                contentDescription = if (showPassword) stringResource(R.string.credentials_hide) else stringResource(R.string.credentials_show_hide)
                             )
                         }
                     },
@@ -421,12 +423,12 @@ fun AddHttpsCredentialDialog(
                     modifier = Modifier.size(18.dp)
                 )
                 Spacer(Modifier.width(6.dp))
-                Text("Save")
+                Text(stringResource(R.string.action_save))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel")
+                Text(stringResource(R.string.action_cancel))
             }
         },
         shape = RoundedCornerShape(24.dp)
@@ -451,11 +453,11 @@ fun ChangeMasterPasswordDialog(
     var showConfirmPassword by remember { mutableStateOf(false) }
 
     val passwordMatchError = if (confirmPassword.isNotEmpty() && newPassword != confirmPassword) {
-        "Passwords do not match"
+        stringResource(R.string.credentials_passwords_do_not_match)
     } else null
 
     val passwordLengthError = if (newPassword.isNotEmpty() && newPassword.length < 8) {
-        "At least 8 characters"
+        stringResource(R.string.credentials_at_least_8_characters)
     } else null
 
     val isFormValid = oldPassword.isNotBlank() && newPassword.length >= 8 && newPassword == confirmPassword
@@ -479,7 +481,7 @@ fun ChangeMasterPasswordDialog(
         },
         title = {
             Text(
-                text = "Change Master Password",
+                text = stringResource(R.string.credentials_change_master_password),
                 fontWeight = FontWeight.Bold
             )
         },
@@ -489,7 +491,7 @@ fun ChangeMasterPasswordDialog(
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 Text(
-                    text = "Enter your current password and set a new one. This will also disable biometric unlock if enabled.",
+                    text = stringResource(R.string.credentials_change_password_description),
                     style = MaterialTheme.typography.bodyMedium,
                     color = colors.onSurfaceVariant
                 )
@@ -499,13 +501,13 @@ fun ChangeMasterPasswordDialog(
                 OutlinedTextField(
                     value = oldPassword,
                     onValueChange = { oldPassword = it },
-                    label = { Text("Current Password") },
+                    label = { Text(stringResource(R.string.credentials_current_password_label)) },
                     visualTransformation = if (showOldPassword) VisualTransformation.None else PasswordVisualTransformation(),
                     trailingIcon = {
                         IconButton(onClick = { showOldPassword = !showOldPassword }) {
                             Icon(
                                 if (showOldPassword) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                                contentDescription = if (showOldPassword) "Hide" else "Show"
+                                contentDescription = if (showOldPassword) stringResource(R.string.credentials_hide) else stringResource(R.string.credentials_show_hide)
                             )
                         }
                     },
@@ -533,14 +535,14 @@ fun ChangeMasterPasswordDialog(
                 OutlinedTextField(
                     value = newPassword,
                     onValueChange = { newPassword = it },
-                    label = { Text("New Password") },
-                    placeholder = { Text("At least 8 characters") },
+                    label = { Text(stringResource(R.string.credentials_new_password_label)) },
+                    placeholder = { Text(stringResource(R.string.credentials_password_placeholder)) },
                     visualTransformation = if (showNewPassword) VisualTransformation.None else PasswordVisualTransformation(),
                     trailingIcon = {
                         IconButton(onClick = { showNewPassword = !showNewPassword }) {
                             Icon(
                                 if (showNewPassword) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                                contentDescription = if (showNewPassword) "Hide" else "Show"
+                                contentDescription = if (showNewPassword) stringResource(R.string.credentials_hide) else stringResource(R.string.credentials_show_hide)
                             )
                         }
                     },
@@ -563,13 +565,13 @@ fun ChangeMasterPasswordDialog(
                 OutlinedTextField(
                     value = confirmPassword,
                     onValueChange = { confirmPassword = it },
-                    label = { Text("Confirm New Password") },
+                    label = { Text(stringResource(R.string.credentials_confirm_new_password_label)) },
                     visualTransformation = if (showConfirmPassword) VisualTransformation.None else PasswordVisualTransformation(),
                     trailingIcon = {
                         IconButton(onClick = { showConfirmPassword = !showConfirmPassword }) {
                             Icon(
                                 if (showConfirmPassword) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                                contentDescription = if (showConfirmPassword) "Hide" else "Show"
+                                contentDescription = if (showConfirmPassword) stringResource(R.string.credentials_hide) else stringResource(R.string.credentials_show_hide)
                             )
                         }
                     },
@@ -592,8 +594,8 @@ fun ChangeMasterPasswordDialog(
                 OutlinedTextField(
                     value = hint,
                     onValueChange = { hint = it },
-                    label = { Text("Password Hint (optional)") },
-                    placeholder = { Text("Help you remember") },
+                    label = { Text(stringResource(R.string.credentials_password_hint_optional)) },
+                    placeholder = { Text(stringResource(R.string.credentials_password_hint_placeholder)) },
                     keyboardOptions = KeyboardOptions(
                         imeAction = ImeAction.Done
                     ),
@@ -610,7 +612,7 @@ fun ChangeMasterPasswordDialog(
                 passwordHint?.let { existingHint ->
                     if (existingHint.isNotBlank() && hint.isBlank()) {
                         Text(
-                            text = "Current hint: $existingHint",
+                            text = stringResource(R.string.credentials_current_hint_format, existingHint),
                             style = MaterialTheme.typography.bodySmall,
                             color = colors.onSurfaceVariant
                         )
@@ -639,12 +641,12 @@ fun ChangeMasterPasswordDialog(
                     )
                 }
                 Spacer(Modifier.width(6.dp))
-                Text("Change Password")
+                Text(stringResource(R.string.credentials_change_password))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel")
+                Text(stringResource(R.string.action_cancel))
             }
         },
         shape = RoundedCornerShape(24.dp)
@@ -666,11 +668,11 @@ fun SetupMasterPasswordDialog(
     var showConfirmPassword by remember { mutableStateOf(false) }
 
     val passwordMatchError = if (confirmPassword.isNotEmpty() && password != confirmPassword) {
-        "Passwords do not match"
+        stringResource(R.string.credentials_passwords_do_not_match)
     } else null
 
     val passwordLengthError = if (password.isNotEmpty() && password.length < 8) {
-        "At least 8 characters"
+        stringResource(R.string.credentials_at_least_8_characters)
     } else null
 
     val isFormValid = password.length >= 8 && password == confirmPassword
@@ -694,14 +696,14 @@ fun SetupMasterPasswordDialog(
         },
         title = {
             Text(
-                text = "Set Master Password",
+                text = stringResource(R.string.credentials_setup_master_password_full),
                 fontWeight = FontWeight.Bold
             )
         },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(
-                    text = "Create a master password to protect your sensitive credentials. You'll need this password to view passwords and private keys.",
+                    text = stringResource(R.string.credentials_setup_full_description),
                     style = MaterialTheme.typography.bodyMedium,
                     color = colors.onSurfaceVariant
                 )
@@ -711,14 +713,14 @@ fun SetupMasterPasswordDialog(
                 OutlinedTextField(
                     value = password,
                     onValueChange = { password = it },
-                    label = { Text("Password") },
-                    placeholder = { Text("At least 8 characters") },
+                    label = { Text(stringResource(R.string.credentials_password_label)) },
+                    placeholder = { Text(stringResource(R.string.credentials_password_placeholder)) },
                     visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
                     trailingIcon = {
                         IconButton(onClick = { showPassword = !showPassword }) {
                             Icon(
                                 if (showPassword) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                                contentDescription = if (showPassword) "Hide" else "Show"
+                                contentDescription = if (showPassword) stringResource(R.string.credentials_hide) else stringResource(R.string.credentials_show_hide)
                             )
                         }
                     },
@@ -741,13 +743,13 @@ fun SetupMasterPasswordDialog(
                 OutlinedTextField(
                     value = confirmPassword,
                     onValueChange = { confirmPassword = it },
-                    label = { Text("Confirm Password") },
+                    label = { Text(stringResource(R.string.credentials_confirm_password_label)) },
                     visualTransformation = if (showConfirmPassword) VisualTransformation.None else PasswordVisualTransformation(),
                     trailingIcon = {
                         IconButton(onClick = { showConfirmPassword = !showConfirmPassword }) {
                             Icon(
                                 if (showConfirmPassword) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                                contentDescription = if (showConfirmPassword) "Hide" else "Show"
+                                contentDescription = if (showConfirmPassword) stringResource(R.string.credentials_hide) else stringResource(R.string.credentials_show_hide)
                             )
                         }
                     },
@@ -770,8 +772,8 @@ fun SetupMasterPasswordDialog(
                 OutlinedTextField(
                     value = hint,
                     onValueChange = { hint = it },
-                    label = { Text("Password Hint (optional)") },
-                    placeholder = { Text("Help you remember") },
+                    label = { Text(stringResource(R.string.credentials_password_hint_optional)) },
+                    placeholder = { Text(stringResource(R.string.credentials_password_hint_placeholder)) },
                     keyboardOptions = KeyboardOptions(
                         imeAction = ImeAction.Done
                     ),
@@ -815,12 +817,12 @@ fun SetupMasterPasswordDialog(
                     )
                 }
                 Spacer(Modifier.width(6.dp))
-                Text("Set Password")
+                Text(stringResource(R.string.credentials_set_password))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel")
+                Text(stringResource(R.string.action_cancel))
             }
         },
         shape = RoundedCornerShape(24.dp)
@@ -842,15 +844,15 @@ fun SetupMasterPasswordContent(
     var showConfirmPassword by remember { mutableStateOf(false) }
     
     val passwordMatchError = if (confirmPassword.isNotEmpty() && password != confirmPassword) {
-        "Passwords do not match"
+        stringResource(R.string.credentials_passwords_do_not_match)
     } else null
-    
+
     val passwordLengthError = if (password.isNotEmpty() && password.length < 8) {
-        "At least 8 characters"
+        stringResource(R.string.credentials_at_least_8_characters)
     } else null
-    
+
     val isFormValid = password.length >= 8 && password == confirmPassword
-    
+
     Column(
         modifier = Modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally
@@ -871,29 +873,29 @@ fun SetupMasterPasswordContent(
                 modifier = Modifier.size(36.dp)
             )
         }
-        
+
         Spacer(Modifier.height(16.dp))
-        
+
         Text(
-            text = "Create a master password to protect your sensitive credentials.",
+            text = stringResource(R.string.credentials_setup_description),
             style = MaterialTheme.typography.bodyMedium,
             color = colors.onSurfaceVariant,
             textAlign = androidx.compose.ui.text.style.TextAlign.Center
         )
-        
+
         Spacer(Modifier.height(20.dp))
-        
+
         OutlinedTextField(
             value = password,
             onValueChange = { password = it },
-            label = { Text("Password") },
-            placeholder = { Text("At least 8 characters") },
+            label = { Text(stringResource(R.string.credentials_password_label)) },
+            placeholder = { Text(stringResource(R.string.credentials_password_placeholder)) },
             visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
             trailingIcon = {
                 IconButton(onClick = { showPassword = !showPassword }) {
                     Icon(
                         if (showPassword) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                        contentDescription = if (showPassword) "Hide" else "Show"
+                        contentDescription = if (showPassword) stringResource(R.string.credentials_hide) else stringResource(R.string.credentials_show_hide)
                     )
                 }
             },
@@ -912,13 +914,13 @@ fun SetupMasterPasswordContent(
         OutlinedTextField(
             value = confirmPassword,
             onValueChange = { confirmPassword = it },
-            label = { Text("Confirm Password") },
+            label = { Text(stringResource(R.string.credentials_confirm_password_label)) },
             visualTransformation = if (showConfirmPassword) VisualTransformation.None else PasswordVisualTransformation(),
             trailingIcon = {
                 IconButton(onClick = { showConfirmPassword = !showConfirmPassword }) {
                     Icon(
                         if (showConfirmPassword) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                        contentDescription = if (showConfirmPassword) "Hide" else "Show"
+                        contentDescription = if (showConfirmPassword) stringResource(R.string.credentials_hide) else stringResource(R.string.credentials_show_hide)
                     )
                 }
             },
@@ -931,14 +933,14 @@ fun SetupMasterPasswordContent(
             supportingText = passwordMatchError?.let { { Text(it) } },
             modifier = Modifier.fillMaxWidth()
         )
-        
+
         Spacer(Modifier.height(16.dp))
-        
+
         OutlinedTextField(
             value = hint,
             onValueChange = { hint = it },
-            label = { Text("Password Hint (optional)") },
-            placeholder = { Text("Help you remember") },
+            label = { Text(stringResource(R.string.credentials_password_hint_optional)) },
+            placeholder = { Text(stringResource(R.string.credentials_password_hint_placeholder)) },
             keyboardOptions = KeyboardOptions(
                 imeAction = ImeAction.Done
             ),
@@ -972,9 +974,9 @@ fun SetupMasterPasswordContent(
                     strokeWidth = 2.dp
                 )
                 Spacer(Modifier.width(8.dp))
-                Text("Setting...")
+                Text(stringResource(R.string.credentials_setting))
             } else {
-                Text("Set Password", fontSize = 16.sp)
+                Text(stringResource(R.string.credentials_set_password), fontSize = 16.sp)
             }
         }
     }
@@ -1009,7 +1011,7 @@ fun GenerateSshKeyDialog(
         },
         title = {
             Text(
-                text = "Generate SSH Key",
+                text = stringResource(R.string.credentials_generate_ssh_key),
                 fontWeight = FontWeight.Bold
             )
         },
@@ -1018,8 +1020,8 @@ fun GenerateSshKeyDialog(
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
-                    label = { Text("Key Name") },
-                    placeholder = { Text("My Key") },
+                    label = { Text(stringResource(R.string.credentials_key_name_label)) },
+                    placeholder = { Text(stringResource(R.string.credentials_key_name_placeholder)) },
                     singleLine = true,
                     shape = RoundedCornerShape(12.dp),
                     modifier = Modifier.fillMaxWidth(),
@@ -1031,7 +1033,7 @@ fun GenerateSshKeyDialog(
                 )
 
                 Text(
-                    text = "Key Type",
+                    text = stringResource(R.string.credentials_key_type_label),
                     style = MaterialTheme.typography.labelMedium,
                     color = colors.onSurfaceVariant
                 )
@@ -1041,15 +1043,15 @@ fun GenerateSshKeyDialog(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     SshTypeChip(
-                        label = "Ed25519",
-                        description = "Recommended",
+                        label = stringResource(R.string.credentials_ed25519_label),
+                        description = stringResource(R.string.credentials_ed25519_description),
                         selected = selectedType == "Ed25519",
                         onClick = { selectedType = "Ed25519" },
                         modifier = Modifier.weight(1f)
                     )
                     SshTypeChip(
-                        label = "RSA",
-                        description = "Legacy",
+                        label = stringResource(R.string.credentials_rsa_label),
+                        description = stringResource(R.string.credentials_rsa_description),
                         selected = selectedType == "RSA",
                         onClick = { selectedType = "RSA" },
                         modifier = Modifier.weight(1f)
@@ -1059,8 +1061,8 @@ fun GenerateSshKeyDialog(
                 OutlinedTextField(
                     value = comment,
                     onValueChange = { comment = it },
-                    label = { Text("Comment (optional)") },
-                    placeholder = { Text("user@host") },
+                    label = { Text(stringResource(R.string.credentials_comment_optional_label)) },
+                    placeholder = { Text(stringResource(R.string.credentials_comment_placeholder)) },
                     singleLine = true,
                     shape = RoundedCornerShape(12.dp),
                     modifier = Modifier.fillMaxWidth(),
@@ -1085,12 +1087,12 @@ fun GenerateSshKeyDialog(
                     modifier = Modifier.size(18.dp)
                 )
                 Spacer(Modifier.width(6.dp))
-                Text("Generate")
+                Text(stringResource(R.string.action_generate))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel")
+                Text(stringResource(R.string.action_cancel))
             }
         },
         shape = RoundedCornerShape(24.dp)
@@ -1174,7 +1176,7 @@ fun ImportSshKeyDialog(
         },
         title = {
             Text(
-                text = "Import SSH Key",
+                text = stringResource(R.string.credentials_import_ssh_key),
                 fontWeight = FontWeight.Bold
             )
         },
@@ -1183,7 +1185,7 @@ fun ImportSshKeyDialog(
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
-                    label = { Text("Key Name") },
+                    label = { Text(stringResource(R.string.credentials_key_name_label)) },
                     singleLine = true,
                     shape = RoundedCornerShape(12.dp),
                     modifier = Modifier.fillMaxWidth(),
@@ -1197,13 +1199,13 @@ fun ImportSshKeyDialog(
                 OutlinedTextField(
                     value = privateKey,
                     onValueChange = { privateKey = it },
-                    label = { Text("Private Key") },
-                    placeholder = { Text("Paste your private key here...") },
+                    label = { Text(stringResource(R.string.credentials_private_key_label)) },
+                    placeholder = { Text(stringResource(R.string.credentials_private_key_placeholder)) },
                     trailingIcon = {
                         IconButton(onClick = { showPrivateKey = !showPrivateKey }) {
                             Icon(
                                 if (showPrivateKey) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                                contentDescription = if (showPrivateKey) "Hide" else "Show"
+                                contentDescription = if (showPrivateKey) stringResource(R.string.credentials_hide) else stringResource(R.string.credentials_show_hide)
                             )
                         }
                     },
@@ -1222,12 +1224,12 @@ fun ImportSshKeyDialog(
                 OutlinedTextField(
                     value = passphrase,
                     onValueChange = { passphrase = it },
-                    label = { Text("Passphrase (if encrypted)") },
+                    label = { Text(stringResource(R.string.credentials_passphrase_if_encrypted)) },
                     trailingIcon = {
                         IconButton(onClick = { showPassphrase = !showPassphrase }) {
                             Icon(
                                 if (showPassphrase) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                                contentDescription = if (showPassphrase) "Hide" else "Show"
+                                contentDescription = if (showPassphrase) stringResource(R.string.credentials_hide) else stringResource(R.string.credentials_show_hide)
                             )
                         }
                     },
@@ -1245,8 +1247,8 @@ fun ImportSshKeyDialog(
                 OutlinedTextField(
                     value = publicKey,
                     onValueChange = { publicKey = it },
-                    label = { Text("Public Key (optional)") },
-                    placeholder = { Text("ssh-rsa AAAA...") },
+                    label = { Text(stringResource(R.string.credentials_public_key_optional)) },
+                    placeholder = { Text(stringResource(R.string.credentials_public_key_placeholder)) },
                     minLines = 2,
                     maxLines = 3,
                     shape = RoundedCornerShape(12.dp),
@@ -1279,12 +1281,12 @@ fun ImportSshKeyDialog(
                     modifier = Modifier.size(18.dp)
                 )
                 Spacer(Modifier.width(6.dp))
-                Text("Import")
+                Text(stringResource(R.string.action_import))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel")
+                Text(stringResource(R.string.action_cancel))
             }
         },
         shape = RoundedCornerShape(24.dp)
@@ -1304,6 +1306,9 @@ fun HttpsCredentialInfoDialog(
     val clipboardManager = LocalClipboardManager.current
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
+    val hostCopiedText = stringResource(R.string.credentials_host_copied)
+    val usernameCopiedText = stringResource(R.string.credentials_username_copied)
+    val passwordCopiedText = stringResource(R.string.credentials_password_copied)
 
     var passwordValue by remember { mutableStateOf<String?>(null) }
     var showPassword by remember { mutableStateOf(false) }
@@ -1356,7 +1361,7 @@ fun HttpsCredentialInfoDialog(
                     onCopy = {
                         clipboardManager.setText(AnnotatedString(credential.host))
                         scope.launch {
-                            snackbarHostState.showSnackbar(message = "Host copied", duration = SnackbarDuration.Short)
+                            snackbarHostState.showSnackbar(message = hostCopiedText, duration = SnackbarDuration.Short)
                         }
                     }
                 )
@@ -1367,7 +1372,7 @@ fun HttpsCredentialInfoDialog(
                     onCopy = {
                         clipboardManager.setText(AnnotatedString(credential.username))
                         scope.launch {
-                            snackbarHostState.showSnackbar(message = "Username copied", duration = SnackbarDuration.Short)
+                            snackbarHostState.showSnackbar(message = usernameCopiedText, duration = SnackbarDuration.Short)
                         }
                     }
                 )
@@ -1379,7 +1384,7 @@ fun HttpsCredentialInfoDialog(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "Password",
+                            text = stringResource(R.string.credentials_password_label),
                             style = MaterialTheme.typography.bodyMedium,
                             color = colors.onSurfaceVariant,
                             modifier = Modifier.width(80.dp)
@@ -1393,7 +1398,7 @@ fun HttpsCredentialInfoDialog(
                         ) {
                             Icon(Icons.Default.Lock, contentDescription = null, modifier = Modifier.size(16.dp))
                             Spacer(Modifier.width(4.dp))
-                            Text("Unlock to Reveal")
+                            Text(stringResource(R.string.credentials_unlock_to_reveal))
                         }
                     }
                 } else {
@@ -1406,7 +1411,7 @@ fun HttpsCredentialInfoDialog(
                         onCopy = {
                             clipboardManager.setText(AnnotatedString(passwordValue ?: ""))
                             scope.launch {
-                                snackbarHostState.showSnackbar(message = "Password copied", duration = SnackbarDuration.Short)
+                                snackbarHostState.showSnackbar(message = passwordCopiedText, duration = SnackbarDuration.Short)
                             }
                         }
                     )
@@ -1427,10 +1432,10 @@ fun HttpsCredentialInfoDialog(
                 ) {
                     Icon(Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(4.dp))
-                    Text("Delete")
+                    Text(stringResource(R.string.action_delete))
                 }
                 TextButton(onClick = onDismiss) {
-                    Text("Close")
+                    Text(stringResource(R.string.action_close))
                 }
             }
         },
@@ -1450,6 +1455,12 @@ fun SshKeyInfoDialog(
     val colors = MaterialTheme.colorScheme
     val clipboardManager = LocalClipboardManager.current
     val scope = rememberCoroutineScope()
+    val nameCopiedText = stringResource(R.string.credentials_name_copied)
+    val typeCopiedText = stringResource(R.string.credentials_type_copied)
+    val fingerprintCopiedText = stringResource(R.string.credentials_fingerprint_copied)
+    val commentCopiedText = stringResource(R.string.credentials_comment_copied)
+    val publicKeyCopiedText = stringResource(R.string.credentials_public_key_copied)
+    val privateKeyCopiedText = stringResource(R.string.credentials_private_key_copied)
 
     var privateKeyValue by remember { mutableStateOf<String?>(null) }
     var showPrivateKey by remember { mutableStateOf(false) }
@@ -1504,7 +1515,7 @@ fun SshKeyInfoDialog(
                     onCopy = {
                         clipboardManager.setText(AnnotatedString(key.name))
                         scope.launch {
-                            snackbarHostState.showSnackbar(message = "Name copied", duration = SnackbarDuration.Short)
+                            snackbarHostState.showSnackbar(message = nameCopiedText, duration = SnackbarDuration.Short)
                         }
                     }
                 )
@@ -1516,7 +1527,7 @@ fun SshKeyInfoDialog(
                     onCopy = {
                         clipboardManager.setText(AnnotatedString(key.type))
                         scope.launch {
-                            snackbarHostState.showSnackbar(message = "Type copied", duration = SnackbarDuration.Short)
+                            snackbarHostState.showSnackbar(message = typeCopiedText, duration = SnackbarDuration.Short)
                         }
                     }
                 )
@@ -1528,7 +1539,7 @@ fun SshKeyInfoDialog(
                     onCopy = {
                         clipboardManager.setText(AnnotatedString(key.fingerprint))
                         scope.launch {
-                            snackbarHostState.showSnackbar(message = "Fingerprint copied", duration = SnackbarDuration.Short)
+                            snackbarHostState.showSnackbar(message = fingerprintCopiedText, duration = SnackbarDuration.Short)
                         }
                     }
                 )
@@ -1540,7 +1551,7 @@ fun SshKeyInfoDialog(
                         onCopy = {
                             clipboardManager.setText(AnnotatedString(key.comment))
                             scope.launch {
-                                snackbarHostState.showSnackbar(message = "Comment copied", duration = SnackbarDuration.Short)
+                                snackbarHostState.showSnackbar(message = commentCopiedText, duration = SnackbarDuration.Short)
                             }
                         }
                     )
@@ -1556,7 +1567,7 @@ fun SshKeyInfoDialog(
                     onCopy = {
                         clipboardManager.setText(AnnotatedString(key.publicKey))
                         scope.launch {
-                            snackbarHostState.showSnackbar(message = "Public key copied", duration = SnackbarDuration.Short)
+                            snackbarHostState.showSnackbar(message = publicKeyCopiedText, duration = SnackbarDuration.Short)
                         }
                     }
                 )
@@ -1568,7 +1579,7 @@ fun SshKeyInfoDialog(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "Private Key",
+                            text = stringResource(R.string.credentials_private_key_label),
                             style = MaterialTheme.typography.bodyMedium,
                             color = colors.onSurfaceVariant,
                             modifier = Modifier.width(80.dp)
@@ -1582,7 +1593,7 @@ fun SshKeyInfoDialog(
                         ) {
                             Icon(Icons.Default.Lock, contentDescription = null, modifier = Modifier.size(16.dp))
                             Spacer(Modifier.width(4.dp))
-                            Text("Unlock to Reveal")
+                            Text(stringResource(R.string.credentials_unlock_to_reveal))
                         }
                     }
                     HorizontalDivider(color = colors.outline.copy(alpha = 0.2f))
@@ -1597,7 +1608,7 @@ fun SshKeyInfoDialog(
                         onCopy = {
                             clipboardManager.setText(AnnotatedString(privateKeyValue ?: ""))
                             scope.launch {
-                                snackbarHostState.showSnackbar(message = "Private key copied", duration = SnackbarDuration.Short)
+                                snackbarHostState.showSnackbar(message = privateKeyCopiedText, duration = SnackbarDuration.Short)
                             }
                         }
                     )
@@ -1622,10 +1633,10 @@ fun SshKeyInfoDialog(
                 ) {
                     Icon(Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(4.dp))
-                    Text("Delete")
+                    Text(stringResource(R.string.action_delete))
                 }
                 TextButton(onClick = onDismiss) {
-                    Text("Close")
+                    Text(stringResource(R.string.action_close))
                 }
             }
         },
@@ -1644,6 +1655,7 @@ fun ExportCredentialsDialog(
     val clipboardManager = LocalClipboardManager.current
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var isLoading by remember { mutableStateOf(false) }
+    val copiedText = stringResource(R.string.action_copy)
 
     LaunchedEffect(Unit) {
         isLoading = true
@@ -1672,7 +1684,7 @@ fun ExportCredentialsDialog(
         },
         title = {
             Text(
-                text = "Export Credentials",
+                text = stringResource(R.string.credentials_export_title),
                 fontWeight = FontWeight.Bold
             )
         },
@@ -1688,11 +1700,11 @@ fun ExportCredentialsDialog(
                             color = colors.primary
                         )
                         Spacer(Modifier.width(8.dp))
-                        Text("Exporting...")
+                        Text(stringResource(R.string.credentials_exporting))
                     }
                 } else if (exportedData != null) {
                     Text(
-                        text = "Credentials exported. Copy and save securely.",
+                        text = stringResource(R.string.credentials_export_success),
                         style = MaterialTheme.typography.bodyMedium,
                         color = colors.onSurfaceVariant
                     )
@@ -1721,13 +1733,13 @@ fun ExportCredentialsDialog(
                                 onClick = {
                                     clipboardManager.setText(AnnotatedString(exportedData))
                                     scope.launch {
-                                        snackbarHostState.showSnackbar("Copied to clipboard!")
+                                        snackbarHostState.showSnackbar(copiedText)
                                     }
                                 }
                             ) {
                                 Icon(
                                     Icons.Default.ContentCopy,
-                                    contentDescription = "Copy",
+                                    contentDescription = stringResource(R.string.action_copy),
                                     tint = colors.onSurfaceVariant
                                 )
                             }
@@ -1755,7 +1767,7 @@ fun ExportCredentialsDialog(
                         )
                         Spacer(Modifier.width(8.dp))
                         Text(
-                            text = "Contains plaintext passwords and private keys. Clear your clipboard after saving.",
+                            text = stringResource(R.string.credentials_export_warning),
                             style = MaterialTheme.typography.bodySmall,
                             color = colors.onSurfaceVariant
                         )
@@ -1769,7 +1781,7 @@ fun ExportCredentialsDialog(
                 colors = ButtonDefaults.buttonColors(containerColor = colors.primary),
                 shape = RoundedCornerShape(12.dp)
             ) {
-                Text("Done")
+                Text(stringResource(R.string.action_done))
             }
         },
         shape = RoundedCornerShape(24.dp)
@@ -1786,6 +1798,7 @@ fun ImportCredentialsDialog(
     val scope = rememberCoroutineScope()
     var importData by remember { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(false) }
+    val importedText = stringResource(R.string.credentials_import_success)
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -1806,7 +1819,7 @@ fun ImportCredentialsDialog(
         },
         title = {
             Text(
-                text = "Import Credentials",
+                text = stringResource(R.string.credentials_import_title),
                 fontWeight = FontWeight.Bold
             )
         },
@@ -1826,7 +1839,7 @@ fun ImportCredentialsDialog(
                         )
                         Spacer(Modifier.width(8.dp))
                         Text(
-                            text = "Importing will replace existing credentials",
+                            text = stringResource(R.string.credentials_import_warning),
                             style = MaterialTheme.typography.bodySmall,
                             color = colors.tertiary
                         )
@@ -1834,7 +1847,7 @@ fun ImportCredentialsDialog(
                 }
                 Spacer(Modifier.height(12.dp))
                 Text(
-                    text = "Paste your exported credentials data below:",
+                    text = stringResource(R.string.credentials_import_paste_description),
                     style = MaterialTheme.typography.bodyMedium,
                     color = colors.onSurfaceVariant
                 )
@@ -1842,8 +1855,8 @@ fun ImportCredentialsDialog(
                 OutlinedTextField(
                     value = importData,
                     onValueChange = { importData = it },
-                    label = { Text("Credentials Data") },
-                    placeholder = { Text("Paste JSON data here...") },
+                    label = { Text(stringResource(R.string.credentials_import_data_label)) },
+                    placeholder = { Text(stringResource(R.string.credentials_import_paste_placeholder)) },
                     minLines = 3,
                     maxLines = 5,
                     shape = RoundedCornerShape(12.dp),
@@ -1861,7 +1874,7 @@ fun ImportCredentialsDialog(
                     isLoading = true
                     viewModel.importCredentials(importData)
                     scope.launch {
-                        snackbarHostState.showSnackbar("Credentials imported successfully!")
+                        snackbarHostState.showSnackbar(importedText)
                         onDismiss()
                     }
                 },
@@ -1883,12 +1896,12 @@ fun ImportCredentialsDialog(
                     )
                 }
                 Spacer(Modifier.width(6.dp))
-                Text("Import")
+                Text(stringResource(R.string.action_import))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel")
+                Text(stringResource(R.string.action_cancel))
             }
         },
         shape = RoundedCornerShape(24.dp)

@@ -85,6 +85,7 @@ import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -97,6 +98,7 @@ import androidx.core.net.toUri
 import androidx.fragment.app.FragmentActivity
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import jamgmilk.fuwagit.R
 import jamgmilk.fuwagit.ui.components.FilePickerDialog
 import jamgmilk.fuwagit.ui.components.ScreenTemplate
 import jamgmilk.fuwagit.ui.screen.credentials.ChangeMasterPasswordDialog
@@ -169,7 +171,7 @@ fun SettingsScreen(
     }
 
     ScreenTemplate(
-        title = "Settings",
+        title = stringResource(R.string.screen_settings),
         modifier = modifier
     ) {
         BetaWarningCard(
@@ -261,7 +263,7 @@ fun SettingsScreen(
 
     if (showFilePicker) {
         FilePickerDialog(
-            title = "Test File Picker",
+            title = stringResource(R.string.test_file_picker_title),
             onDismiss = { showFilePicker = false },
             onSelect = { showFilePicker = false }
         )
@@ -344,7 +346,7 @@ private fun BetaWarningCard(
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
             SettingsSectionHeader(
-                title = "Beta Version Notice",
+                title = stringResource(R.string.settings_beta_version_notice),
                 icon = Icons.Default.Warning,
                 color = contentOrange
             )
@@ -369,7 +371,7 @@ private fun BetaWarningCard(
                         modifier = Modifier.size(18.dp)
                     )
                     Text(
-                        text = "Features may be unstable or change.",
+                        text = stringResource(R.string.settings_beta_features_unstable),
                         style = MaterialTheme.typography.bodyMedium,
                         color = colors.onSurfaceVariant,
                         lineHeight = 20.sp
@@ -387,7 +389,7 @@ private fun BetaWarningCard(
                         modifier = Modifier.size(18.dp)
                     )
                     Text(
-                        text = "Important: Backup your repositories and credentials.",
+                        text = stringResource(R.string.settings_beta_backup_warning),
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Bold,
                         color = colors.onSurfaceVariant,
@@ -414,14 +416,14 @@ private fun StorageSettingsCard(
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
             SettingsSectionHeader(
-                title = "Storage",
+                title = stringResource(R.string.settings_storage),
                 icon = Icons.Default.Storage,
                 color = colors.primary
             )
 
             SettingsNavigationItem(
-                title = "Permissions",
-                subtitle = "Manage storage access permissions",
+                title = stringResource(R.string.settings_permissions),
+                subtitle = stringResource(R.string.settings_permissions_subtitle),
                 icon = Icons.Default.Security,
                 onClick = onPermissionsClick
             )
@@ -454,14 +456,14 @@ private fun SecuritySettingsCard(
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
             SettingsSectionHeader(
-                title = "Security",
+                title = stringResource(R.string.settings_security),
                 icon = Icons.Default.Shield,
                 color = colors.tertiary
             )
 
             SettingsNavigationItem(
-                title = "Credentials",
-                subtitle = "HTTPS passwords & SSH keys",
+                title = stringResource(R.string.settings_credentials_title),
+                subtitle = stringResource(R.string.settings_credentials_subtitle),
                 icon = Icons.Default.Key,
                 onClick = onCredentialsClick
             )
@@ -469,8 +471,8 @@ private fun SecuritySettingsCard(
             HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
 
             SettingsClickableItem(
-                title = if (isMasterPasswordSet) "Change Master Password" else "Set Master Password",
-                subtitle = if (isMasterPasswordSet) "Update your master password" else "Protect your credentials",
+                title = if (isMasterPasswordSet) stringResource(R.string.settings_change_master_password) else stringResource(R.string.settings_set_master_password),
+                subtitle = if (isMasterPasswordSet) stringResource(R.string.settings_change_master_password_subtitle) else stringResource(R.string.settings_set_master_password_subtitle),
                 icon = Icons.Default.Lock,
                 onClick = onMasterPasswordClick
             )
@@ -479,11 +481,11 @@ private fun SecuritySettingsCard(
                 HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
 
                 SettingsSwitchItem(
-                    title = "Biometric Unlock",
+                    title = stringResource(R.string.settings_biometric_unlock),
                     subtitle = when {
-                        !isDecryptionUnlocked -> "Tap to unlock credentials first"
-                        biometricEnabled -> "Enabled"
-                        else -> "Use fingerprint to unlock"
+                        !isDecryptionUnlocked -> stringResource(R.string.settings_biometric_tap_to_unlock)
+                        biometricEnabled -> stringResource(R.string.settings_biometric_enabled)
+                        else -> stringResource(R.string.settings_biometric_use_fingerprint)
                     },
                     icon = Icons.Default.Fingerprint,
                     checked = biometricEnabled,
@@ -492,19 +494,20 @@ private fun SecuritySettingsCard(
 
                 HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
 
-                val displayTimeout = when (val seconds = autoLockTimeout.toLongOrNull()) {
-                    0L -> "Never"
-                    60L -> "1 minute"
-                    300L -> "5 minutes"
-                    600L -> "10 minutes"
-                    1800L -> "30 minutes"
-                    3600L -> "1 hour"
-                    else -> "$seconds seconds"
+                val seconds = autoLockTimeout.toLongOrNull()
+                val displayTimeout = when (seconds) {
+                    0L -> stringResource(R.string.settings_auto_lock_never)
+                    60L -> stringResource(R.string.settings_auto_lock_1_minute)
+                    300L -> stringResource(R.string.settings_auto_lock_5_minutes)
+                    600L -> stringResource(R.string.settings_auto_lock_10_minutes)
+                    1800L -> stringResource(R.string.settings_auto_lock_30_minutes)
+                    3600L -> stringResource(R.string.settings_auto_lock_1_hour)
+                    else -> stringResource(R.string.settings_auto_lock_seconds_format, seconds ?: 0L)
                 }
 
                 ExpandableSettingsItem(
-                    title = "Auto-Lock Timeout",
-                    subtitle = "Session expires after $displayTimeout",
+                    title = stringResource(R.string.settings_auto_lock_timeout),
+                    subtitle = stringResource(R.string.settings_auto_lock_subtitle_format, displayTimeout),
                     icon = Icons.Default.Schedule,
                     expanded = autoLockExpanded,
                     onExpandedChange = { autoLockExpanded = it }
@@ -517,7 +520,7 @@ private fun SecuritySettingsCard(
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         Text(
-                            text = "Set the timeout duration in seconds after which the credentials will be automatically locked. Set to 0 to disable auto-lock.",
+                            text = stringResource(R.string.settings_auto_lock_description),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -525,8 +528,8 @@ private fun SecuritySettingsCard(
                         OutlinedTextField(
                             value = localTimeout,
                             onValueChange = { localTimeout = it.filter { c -> c.isDigit() } },
-                            label = { Text("Timeout (seconds)") },
-                            placeholder = { Text("300") },
+                            label = { Text(stringResource(R.string.settings_timeout_label)) },
+                            placeholder = { Text(stringResource(R.string.settings_timeout_placeholder)) },
                             singleLine = true,
                             shape = RoundedCornerShape(12.dp),
                             modifier = Modifier.fillMaxWidth(),
@@ -542,7 +545,7 @@ private fun SecuritySettingsCard(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             TextButton(onClick = { autoLockExpanded = false }) {
-                                Text("Cancel")
+                                Text(stringResource(R.string.action_cancel))
                             }
                             Spacer(Modifier.width(8.dp))
                             Button(
@@ -556,7 +559,7 @@ private fun SecuritySettingsCard(
                                 },
                                 shape = RoundedCornerShape(12.dp)
                             ) {
-                                Text("Save")
+                                Text(stringResource(R.string.action_save))
                             }
                         }
                     }
@@ -586,14 +589,14 @@ private fun SyncSettingsCard(
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
             SettingsSectionHeader(
-                title = "Sync & Backup",
+                title = stringResource(R.string.settings_sync_backup),
                 icon = Icons.Default.CloudSync,
                 color = colors.secondary
             )
 
             SettingsSwitchItem(
-                title = "Auto Sync",
-                subtitle = "Periodic pull/push in background",
+                title = stringResource(R.string.settings_auto_sync),
+                subtitle = stringResource(R.string.settings_auto_sync_subtitle),
                 icon = Icons.Default.Schedule,
                 checked = autoSync,
                 onCheckedChange = onAutoSyncChange
@@ -602,8 +605,8 @@ private fun SyncSettingsCard(
             HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
 
             SettingsSwitchItem(
-                title = "Safe Conflict Strategy",
-                subtitle = "Prefer no-overwrite during merge",
+                title = stringResource(R.string.settings_conflict_safe_mode),
+                subtitle = stringResource(R.string.settings_conflict_safe_mode_subtitle),
                 icon = Icons.Default.Shield,
                 checked = conflictSafeMode,
                 onCheckedChange = onConflictSafeModeChange
@@ -612,8 +615,8 @@ private fun SyncSettingsCard(
             HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
 
             SettingsSwitchItem(
-                title = "Backup Before Sync",
-                subtitle = "Create snapshot before pull/rebase",
+                title = stringResource(R.string.settings_backup_before_sync),
+                subtitle = stringResource(R.string.settings_backup_before_sync_subtitle),
                 icon = Icons.Default.Backup,
                 checked = backupBeforeSync,
                 onCheckedChange = onBackupBeforeSyncChange
@@ -639,14 +642,14 @@ private fun DeveloperOptionsCard(
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
             SettingsSectionHeader(
-                title = "Developer Options",
+                title = stringResource(R.string.settings_developer_options),
                 icon = Icons.Default.Build,
                 color = colors.primary
             )
 
             SettingsSwitchItem(
-                title = "Verbose Logging",
-                subtitle = "Show detailed Git operations in terminal",
+                title = stringResource(R.string.settings_verbose_logging),
+                subtitle = stringResource(R.string.settings_verbose_logging_subtitle),
                 icon = Icons.Default.Terminal,
                 checked = verboseLogging,
                 onCheckedChange = onVerboseLoggingChange
@@ -655,8 +658,8 @@ private fun DeveloperOptionsCard(
             HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
 
             SettingsClickableItem(
-                title = "Test File Picker",
-                subtitle = "Open file picker and show selected path",
+                title = stringResource(R.string.settings_test_file_picker),
+                subtitle = stringResource(R.string.settings_test_file_picker_subtitle),
                 icon = Icons.Default.FolderOpen,
                 onClick = onTestFilePicker
             )
@@ -692,28 +695,28 @@ private fun AboutCard(
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
             SettingsSectionHeader(
-                title = "About",
+                title = stringResource(R.string.settings_about),
                 icon = Icons.Outlined.Info,
                 color = colors.tertiary
             )
 
             SettingsInfoItem(
-                title = "Version",
+                title = stringResource(R.string.settings_version),
                 value = versionName
             )
 
             HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
 
             SettingsInfoItem(
-                title = "Build",
+                title = stringResource(R.string.settings_build),
                 value = versionCode
             )
 
             HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
 
             SettingsLinkItem(
-                title = "Source Code",
-                subtitle = "JamGmilk/FuwaGit",
+                title = stringResource(R.string.settings_source_code),
+                subtitle = stringResource(R.string.settings_source_code_subtitle),
                 icon = Icons.Default.Code,
                 onClick = {
                     val intent = Intent(Intent.ACTION_VIEW, "https://github.com/JamGmilk/FuwaGit".toUri())
@@ -724,8 +727,8 @@ private fun AboutCard(
             HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
 
             SettingsLinkItem(
-                title = "Report Issue",
-                subtitle = "Submit bug reports or feature requests",
+                title = stringResource(R.string.settings_report_issue),
+                subtitle = stringResource(R.string.settings_report_issue_subtitle),
                 icon = Icons.Default.BugReport,
                 onClick = {
                     val intent = Intent(Intent.ACTION_VIEW, "https://github.com/JamGmilk/FuwaGit/issues/new".toUri())
@@ -799,14 +802,14 @@ private fun GlobalConfigCard(
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
             SettingsSectionHeader(
-                title = "Configuration",
+                title = stringResource(R.string.settings_configuration),
                 icon = Icons.Default.Code,
                 color = colors.secondary
             )
 
             ExpandableSettingsItem(
-                title = "User & Email",
-                subtitle = "Set global author information for commits",
+                title = stringResource(R.string.settings_user_email),
+                subtitle = stringResource(R.string.settings_user_email_subtitle),
                 icon = Icons.Default.CreditCard,
                 expanded = userConfigExpanded,
                 onExpandedChange = { userConfigExpanded = it }
@@ -819,7 +822,7 @@ private fun GlobalConfigCard(
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     Text(
-                        text = "Set the default author information. This saves to the global Git config (~/.gitconfig).\nWhen cloning or initializing a repo, you can choose to copy this to the repository's local config.",
+                        text = stringResource(R.string.settings_user_email_description),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -827,8 +830,8 @@ private fun GlobalConfigCard(
                     OutlinedTextField(
                         value = localUserName,
                         onValueChange = { localUserName = it },
-                        label = { Text("user.name") },
-                        placeholder = { Text("Your Name") },
+                        label = { Text(stringResource(R.string.settings_user_name_label)) },
+                        placeholder = { Text(stringResource(R.string.settings_user_name_placeholder)) },
                         singleLine = true,
                         shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.fillMaxWidth(),
@@ -838,8 +841,8 @@ private fun GlobalConfigCard(
                     OutlinedTextField(
                         value = localUserEmail,
                         onValueChange = { localUserEmail = it },
-                        label = { Text("user.email") },
-                        placeholder = { Text("your.email@example.com") },
+                        label = { Text(stringResource(R.string.settings_user_email_input_label)) },
+                        placeholder = { Text(stringResource(R.string.settings_user_email_input_placeholder)) },
                         singleLine = true,
                         shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.fillMaxWidth(),
@@ -855,7 +858,7 @@ private fun GlobalConfigCard(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         TextButton(onClick = { userConfigExpanded = false }) {
-                            Text("Cancel")
+                            Text(stringResource(R.string.action_cancel))
                         }
                         Spacer(Modifier.width(8.dp))
                         Button(
@@ -868,7 +871,7 @@ private fun GlobalConfigCard(
                             },
                             shape = RoundedCornerShape(12.dp)
                         ) {
-                            Text("Save")
+                            Text(stringResource(R.string.action_save))
                         }
                     }
                 }
@@ -888,8 +891,8 @@ private fun GlobalConfigCard(
             )
 
             ExpandableSettingsItem(
-                title = "Default Branch",
-                subtitle = "init.defaultBranch = ${defaultBranch.ifBlank { "main" }}",
+                title = stringResource(R.string.settings_default_branch),
+                subtitle = stringResource(R.string.settings_default_branch_subtitle, defaultBranch.ifBlank { "main" }),
                 icon = Icons.Default.AccountTree,
                 expanded = branchConfigExpanded,
                 onExpandedChange = { branchConfigExpanded = it }
@@ -902,7 +905,7 @@ private fun GlobalConfigCard(
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     Text(
-                        text = "Set the default branch name for new repositories.",
+                        text = stringResource(R.string.settings_default_branch_description),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -910,8 +913,8 @@ private fun GlobalConfigCard(
                     OutlinedTextField(
                         value = localDefaultBranch,
                         onValueChange = { localDefaultBranch = it },
-                        label = { Text("init.defaultbranch") },
-                        placeholder = { Text("main") },
+                        label = { Text(stringResource(R.string.settings_default_branch_label)) },
+                        placeholder = { Text(stringResource(R.string.settings_default_branch_placeholder)) },
                         singleLine = true,
                         shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.fillMaxWidth(),
@@ -924,7 +927,7 @@ private fun GlobalConfigCard(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         TextButton(onClick = { branchConfigExpanded = false }) {
-                            Text("Cancel")
+                            Text(stringResource(R.string.action_cancel))
                         }
                         Spacer(Modifier.width(8.dp))
                         Button(
@@ -937,7 +940,7 @@ private fun GlobalConfigCard(
                             },
                             shape = RoundedCornerShape(12.dp)
                         ) {
-                            Text("Save")
+                            Text(stringResource(R.string.action_save))
                         }
                     }
                 }
