@@ -58,12 +58,14 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import jamgmilk.fuwagit.R
 import jamgmilk.fuwagit.domain.model.credential.HttpsCredential
 import jamgmilk.fuwagit.domain.model.credential.SshKey
 import jamgmilk.fuwagit.domain.model.git.CloneOptions
@@ -141,7 +143,7 @@ internal fun CloneContent(
         Column(modifier = Modifier.fillMaxWidth()) {
             // Section Header
             Text(
-                text = "Remote URL",
+                text = stringResource(R.string.clone_remote_url_header),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(start = 4.dp, bottom = 4.dp)
@@ -151,7 +153,7 @@ internal fun CloneContent(
             OutlinedTextField(
                 value = cloneUrl,
                 onValueChange = { cloneUrl = it },
-                label = { Text("Repository URL") },
+                label = { Text(stringResource(R.string.clone_repository_url_label)) },
                 leadingIcon = {
                     Icon(
                         Icons.Default.Link,
@@ -167,7 +169,7 @@ internal fun CloneContent(
                             color = colors.secondaryContainer
                         ) {
                             Text(
-                                text = if (isHttps) "HTTPS" else "SSH",
+                                text = if (isHttps) stringResource(R.string.clone_protocol_https) else stringResource(R.string.clone_protocol_ssh),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = colors.onSecondaryContainer,
                                 fontWeight = FontWeight.Bold,
@@ -195,7 +197,7 @@ internal fun CloneContent(
         if (isHttps && httpsCredentials.isNotEmpty()) {
             val selectedCred = httpsCredentials.find { it.uuid == selectedHttpsUuid }
             CredentialSelector(
-                label = if (selectedCred != null) "HTTPS: ${selectedCred.username}" else "Select HTTPS Credential",
+                label = if (selectedCred != null) stringResource(R.string.clone_credential_selected_format, selectedCred.username) else stringResource(R.string.clone_credential_selector_https),
                 isEnabled = true,
                 onClick = { showCredentialDialog = true }
             )
@@ -204,7 +206,7 @@ internal fun CloneContent(
         if (isSsh && sshKeys.isNotEmpty()) {
             val selectedKey = sshKeys.find { it.uuid == selectedSshUuid }
             CredentialSelector(
-                label = if (selectedKey != null) "SSH: ${selectedKey.name}" else "Select SSH Key",
+                label = if (selectedKey != null) stringResource(R.string.clone_credential_selected_ssh, selectedKey.name) else stringResource(R.string.clone_credential_selector_ssh),
                 isEnabled = true,
                 onClick = { showCredentialDialog = true }
             )
@@ -291,12 +293,12 @@ internal fun CloneContent(
                 ) { result ->
                     isLoading = false
                     result.onSuccess {
-                        Toast.makeText(context, "Repository cloned successfully", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, stringResource(R.string.clone_clone_success), Toast.LENGTH_SHORT).show()
                         onCloneComplete(fullPath)
                     }.onFailure { e ->
                         error = e.message
                         if (e.message?.contains("401") == true) {
-                            error = "Authentication failed. Please select credentials."
+                            error = stringResource(R.string.clone_auth_failed)
                         }
                     }
                 }
@@ -315,7 +317,7 @@ internal fun CloneContent(
                     strokeWidth = 2.dp
                 )
                 Spacer(Modifier.width(8.dp))
-                Text("Cloning...", fontSize = 16.sp)
+                Text(stringResource(R.string.clone_cloning), fontSize = 16.sp)
             } else {
                 Icon(
                     Icons.Default.CloudDownload,
@@ -323,14 +325,14 @@ internal fun CloneContent(
                     modifier = Modifier.size(18.dp)
                 )
                 Spacer(Modifier.width(6.dp))
-                Text("Clone Repository", fontSize = 16.sp)
+                Text(stringResource(R.string.clone_repository_button), fontSize = 16.sp)
             }
         }
     }
 
     if (showFolderPicker) {
         FilePickerDialog(
-            title = "Select Clone Destination",
+            title = stringResource(R.string.clone_select_destination),
             onDismiss = { showFolderPicker = false },
             onSelect = { path ->
                 localPath = path
@@ -341,7 +343,7 @@ internal fun CloneContent(
 
     if (showCredentialDialog) {
         CredentialSelectDialog(
-            title = "Select Credential",
+            title = stringResource(R.string.clone_select_credential),
             httpsCredentials = httpsCredentials,
             sshKeys = sshKeys,
             onDismiss = { showCredentialDialog = false },
@@ -421,7 +423,7 @@ internal fun TargetFolderSelector(
 
     Column(modifier = Modifier.fillMaxWidth()) {
         Text(
-            text = "Destination",
+            text = stringResource(R.string.clone_destination_label),
             style = MaterialTheme.typography.labelMedium,
             color = colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(start = 4.dp, bottom = 8.dp)
@@ -460,7 +462,7 @@ internal fun TargetFolderSelector(
 
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = if (isSelected) "Target Path" else "No folder selected",
+                            text = if (isSelected) stringResource(R.string.clone_target_path) else stringResource(R.string.clone_no_folder_selected),
                             style = MaterialTheme.typography.titleSmall,
                             color = colorScheme.onSurface
                         )
@@ -502,8 +504,8 @@ internal fun TargetFolderSelector(
                             )
                             Text(
                                 text = if (isDirectoryEmpty) {
-                                    if (suggestedFolderName.isNotBlank()) "Creating: $suggestedFolderName" else "Ready to clone"
-                                } else "Directory not empty",
+                                    if (suggestedFolderName.isNotBlank()) stringResource(R.string.clone_creating_format, suggestedFolderName) else stringResource(R.string.clone_ready_to_clone)
+                                } else stringResource(R.string.clone_directory_not_empty),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = statusColor,
                                 fontWeight = FontWeight.SemiBold
@@ -533,7 +535,7 @@ private fun CloneOptionsSection(
     ) {
         // Section Header
         Text(
-            text = "Advanced Options",
+            text = stringResource(R.string.clone_advanced_options),
             style = MaterialTheme.typography.labelMedium,
             color = colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(start = 4.dp, bottom = 4.dp)
@@ -548,8 +550,8 @@ private fun CloneOptionsSection(
         ) {
             // Clone All Branches
             CloneOptionToggleRow(
-                title = "Clone all branches",
-                description = "Download entire remote history",
+                title = stringResource(R.string.clone_all_branches),
+                description = stringResource(R.string.clone_all_branches_desc),
                 checked = cloneAllBranches,
                 onCheckedChange = onCloneAllBranchesChange,
                 icon = Icons.Default.AccountTree
@@ -562,8 +564,8 @@ private fun CloneOptionsSection(
 
             // Shallow Clone
             CloneOptionToggleRow(
-                title = "Shallow clone",
-                description = "Only download the latest commits",
+                title = stringResource(R.string.clone_shallow_clone),
+                description = stringResource(R.string.clone_shallow_clone_desc),
                 checked = enableShallowClone,
                 onCheckedChange = onEnableShallowCloneChange,
                 icon = Icons.Default.Speed
@@ -579,8 +581,8 @@ private fun CloneOptionsSection(
                     OutlinedTextField(
                         value = shallowDepth,
                         onValueChange = { if (it.all { char -> char.isDigit() }) onShallowDepthChange(it) },
-                        label = { Text("Commit Depth") },
-                        placeholder = { Text("e.g. 1") },
+                        label = { Text(stringResource(R.string.clone_commit_depth_label)) },
+                        placeholder = { Text(stringResource(R.string.clone_commit_depth_placeholder)) },
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(12.dp),
                         singleLine = true,

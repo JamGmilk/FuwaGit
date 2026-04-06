@@ -62,6 +62,59 @@ import java.io.File
 
 private val externalStorageDirPrefix: String = Environment.getExternalStorageDirectory().absolutePath
 
+/**
+ * 禁止选择的目录列表，包括根目录和重要系统目录
+ * 这些目录不应该被用户选择为仓库路径
+ * 注意：这些目录仍然可以在文件浏览器中显示和导航，但不能被选中
+ */
+private val restrictedPaths: Set<String> by lazy {
+    val externalStorage = Environment.getExternalStorageDirectory().absolutePath
+    setOf(
+        externalStorage, // 根目录
+        "$externalStorage/Android",
+        "$externalStorage/Pictures",
+        "$externalStorage/DCIM",
+        "$externalStorage/Download",
+        "$externalStorage/Downloads",
+        "$externalStorage/Movies",
+        "$externalStorage/Music",
+        "$externalStorage/Notifications",
+        "$externalStorage/Alarms",
+        "$externalStorage/Ringtones",
+        "$externalStorage/Podcasts",
+        "$externalStorage/Documents"
+    )
+}
+
+/**
+ * 检查路径是否被限制选择（用于验证用户是否可以选中该路径）
+ */
+private fun isPathRestrictedForSelection(path: String): Boolean {
+    val normalizedPath = path.trimEnd(File.separatorChar)
+    return restrictedPaths.any { restricted ->
+        normalizedPath == restricted.trimEnd(File.separatorChar)
+    }
+}
+
+/**
+ * 检查目录是否应该对用户隐藏（用于过滤目录列表）
+ */
+private fun shouldHideDirectory(file: File): Boolean {
+    val externalStorage = Environment.getExternalStorageDirectory().absolutePath
+    // 隐藏外部存储根目录下的一些系统目录
+    if (file.absolutePath == externalStorage) {
+        // 在根目录下，隐藏系统目录
+        val hiddenNames = setOf(
+            "Android", "Pictures", "DCIM", "Download", "Downloads",
+            "Movies", "Music", "Notifications", "Alarms", 
+            "Ringtones", "Podcasts", "Documents", "LOST.DIR",
+            "obb", "data"
+        )
+        return file.name in hiddenNames
+    }
+    return false
+}
+
 data class FileItem(
     val name: String,
     val path: String,
@@ -77,7 +130,15 @@ fun FilePickerDialog(
     onDismiss: () -> Unit,
     onSelect: (String) -> Unit
 ) {
-    var currentPath by remember { mutableStateOf(initialPath ?: externalStorageDirPrefix) }
+    // 如果初始路径是受限目录，则使用一个安全的默认路径
+    val safeInitialPath = if (initialPath != null && !isPathRestrictedForSelection(initialPath)) {
+        initialPath
+    } else {
+        // 使用外部存储目录作为默认路径（它会显示内容但禁止选择）
+        Environment.getExternalStorageDirectory().absolutePath
+    }
+    
+    var currentPath by remember { mutableStateOf(safeInitialPath) }
     var files by remember { mutableStateOf<List<FileItem>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
     var error by remember { mutableStateOf<String?>(null) }
@@ -95,16 +156,26 @@ fun FilePickerDialog(
             try {
                 val dir = File(path)
                 if (dir.exists() && dir.isDirectory && dir.canRead()) {
-                    val items = dir.listFiles()?.map { file ->
-                        FileItem(
-                            name = file.name,
-                            path = file.absolutePath,
-                            isDirectory = file.isDirectory,
-                            size = if (file.isFile) file.length() else 0,
-                            lastModified = file.lastModified()
-                        )
-                    }?.sortedWith(compareBy({ !it.isDirectory }, { it.name.lowercase() }))
-                        ?: emptyList()
+                    val allItems = dir.listFiles()?.toList() ?: emptyList()
+                    val items = allItems.mapNotNull { file ->
+                        // 跳过应该隐藏的目录
+                        if (file.isDirectory && shouldHideDirectory(file)) {
+                            return@mapNotNull null
+                        }
+                        
+                        try {
+                            FileItem(
+                                name = file.name,
+                                path = file.absolutePath,
+                                isDirectory = file.isDirectory,
+                                size = if (file.isFile) file.length() else 0,
+                                lastModified = file.lastModified()
+                            )
+                        } catch (e: Exception) {
+                            null
+                        }
+                    }.sortedWith(compareBy({ !it.isDirectory }, { it.name.lowercase() }))
+                    
                     if (targetPath == path) {
                         files = items
                         isLoading = false
@@ -175,7 +246,7 @@ fun FilePickerDialog(
                     IconButton(onClick = { loadFiles(currentPath) }) {
                         Icon(
                             Icons.Default.Refresh,
-                            contentDescription = "Refresh",
+                            contentDescription = stringResource(R.string.action_refresh),
                             tint = colors.onSurfaceVariant,
                             modifier = Modifier.size(28.dp)
                         )
@@ -212,7 +283,7 @@ fun FilePickerDialog(
                     ) {
                         Icon(
                             imageVector = Icons.Default.KeyboardArrowUp,
-                            contentDescription = "Back",
+                            contentDescription = stringResource(R.string.action_back),
                             tint = if (canGoBack) colors.onSurface else colors.onSurface.copy(alpha = 0.38f)
                         )
                     }
@@ -255,7 +326,7 @@ fun FilePickerDialog(
                         }
                         files.isEmpty() -> {
                             Text(
-                                text = "Empty folder",
+                                text = stringResource(R.string.filepicker_empty_folder),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = colors.onSurfaceVariant,
                                 textAlign = TextAlign.Center,
@@ -288,14 +359,19 @@ fun FilePickerDialog(
                         modifier = Modifier.weight(1f),
                         shape = AppShapes.extraSmall
                     ) {
-                        Text("Cancel")
+                        Text(stringResource(R.string.action_cancel))
                     }
 
                     Button(
                         onClick = {
+                            if (isPathRestrictedForSelection(currentPath)) {
+                                error = "无法选择该目录，请选择其他路径"
+                                return@Button
+                            }
                             Log.d("FilePickerDialog", "Selected path: $currentPath")
                             onSelect(currentPath)
                         },
+                        enabled = !isPathRestrictedForSelection(currentPath),
                         modifier = Modifier.weight(1f),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = MaterialTheme.colorScheme.primary,
@@ -309,7 +385,7 @@ fun FilePickerDialog(
                             modifier = Modifier.size(18.dp)
                         )
                         Spacer(Modifier.width(6.dp))
-                        Text("Select")
+                        Text(stringResource(R.string.action_select))
                     }
                 }
             }

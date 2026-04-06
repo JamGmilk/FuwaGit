@@ -25,8 +25,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import jamgmilk.fuwagit.R
 
 @Composable
 fun SubSettingsTemplate(
@@ -62,7 +64,7 @@ fun SubSettingsTemplate(
                 IconButton(onClick = onBack) {
                     Icon(
                         Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Back",
+                        contentDescription = stringResource(R.string.action_back),
                         tint = colors.primary
                     )
                 }

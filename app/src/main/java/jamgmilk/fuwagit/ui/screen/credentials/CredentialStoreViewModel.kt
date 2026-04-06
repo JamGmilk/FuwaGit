@@ -7,23 +7,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import jamgmilk.fuwagit.core.result.AppResult
 import jamgmilk.fuwagit.domain.model.credential.HttpsCredential
 import jamgmilk.fuwagit.domain.model.credential.SshKey
-import jamgmilk.fuwagit.data.local.security.MasterKeyManager
-import jamgmilk.fuwagit.domain.repository.CredentialRepository
-import jamgmilk.fuwagit.domain.usecase.credential.AddHttpsCredentialUseCase
-import jamgmilk.fuwagit.domain.usecase.credential.AddSshKeyUseCase
-import jamgmilk.fuwagit.domain.usecase.credential.DeleteHttpsCredentialUseCase
-import jamgmilk.fuwagit.domain.usecase.credential.DeleteSshKeyUseCase
-import jamgmilk.fuwagit.domain.usecase.credential.EnableBiometricUseCase
-import jamgmilk.fuwagit.domain.usecase.credential.ExportCredentialsUseCase
-import jamgmilk.fuwagit.domain.usecase.credential.GetHttpsCredentialsUseCase
-import jamgmilk.fuwagit.domain.usecase.credential.GetHttpsPasswordUseCase
-import jamgmilk.fuwagit.domain.usecase.credential.GetSshKeysUseCase
-import jamgmilk.fuwagit.domain.usecase.credential.GetSshPrivateKeyUseCase
-import jamgmilk.fuwagit.domain.usecase.credential.ImportCredentialsUseCase
-import jamgmilk.fuwagit.domain.usecase.credential.SetupMasterPasswordUseCase
-import jamgmilk.fuwagit.domain.usecase.credential.UnlockWithBiometricUseCase
-import jamgmilk.fuwagit.domain.usecase.credential.UnlockWithPasswordUseCase
-import jamgmilk.fuwagit.domain.usecase.credential.UpdateHttpsCredentialUseCase
+import jamgmilk.fuwagit.domain.usecase.credential.CredentialStoreFacade
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -54,23 +38,7 @@ data class CredentialsStoreUiState(
 
 @HiltViewModel
 class CredentialStoreViewModel @Inject constructor(
-    private val setupMasterPasswordUseCase: SetupMasterPasswordUseCase,
-    private val unlockWithPasswordUseCase: UnlockWithPasswordUseCase,
-    private val getHttpsCredentialsUseCase: GetHttpsCredentialsUseCase,
-    private val addHttpsCredentialUseCase: AddHttpsCredentialUseCase,
-    private val updateHttpsCredentialUseCase: UpdateHttpsCredentialUseCase,
-    private val deleteHttpsCredentialUseCase: DeleteHttpsCredentialUseCase,
-    private val getHttpsPasswordUseCase: GetHttpsPasswordUseCase,
-    private val getSshKeysUseCase: GetSshKeysUseCase,
-    private val addSshKeyUseCase: AddSshKeyUseCase,
-    private val deleteSshKeyUseCase: DeleteSshKeyUseCase,
-    private val getSshPrivateKeyUseCase: GetSshPrivateKeyUseCase,
-    private val exportCredentialsUseCase: ExportCredentialsUseCase,
-    private val importCredentialsUseCase: ImportCredentialsUseCase,
-    private val enableBiometricUseCase: EnableBiometricUseCase,
-    private val unlockWithBiometricUseCase: UnlockWithBiometricUseCase,
-    private val masterKeyManager: MasterKeyManager,
-    private val credentialRepository: CredentialRepository
+    private val credentialFacade: CredentialStoreFacade
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(CredentialsStoreUiState())
@@ -83,9 +51,9 @@ class CredentialStoreViewModel @Inject constructor(
     fun initialize() {
         _uiState.update {
             it.copy(
-                isMasterPasswordSet = credentialRepository.isMasterPasswordSet(),
-                isBiometricEnabled = credentialRepository.isBiometricEnabled(),
-                passwordHint = credentialRepository.getMasterPasswordHint()
+                isMasterPasswordSet = credentialFacade.isMasterPasswordSet(),
+                isBiometricEnabled = credentialFacade.isBiometricEnabled(),
+                passwordHint = credentialFacade.getMasterPasswordHint()
             )
         }
         loadCredentials()
@@ -93,7 +61,7 @@ class CredentialStoreViewModel @Inject constructor(
 
     fun setupMasterPassword(password: String, confirmPassword: String, hint: String?) {
         executeWithLoading {
-            setupMasterPasswordUseCase(password, confirmPassword, hint)
+            credentialFacade.setupMasterPassword(password, confirmPassword, hint)
                 .onSuccess {
                     _uiState.update {
                         it.copy(
@@ -108,7 +76,7 @@ class CredentialStoreViewModel @Inject constructor(
 
     fun unlockWithPassword(password: String) {
         executeWithLoading {
-            unlockWithPasswordUseCase(password)
+            credentialFacade.unlockWithPassword(password)
                 .onSuccess {
                     _uiState.update {
                         it.copy(
@@ -124,15 +92,15 @@ class CredentialStoreViewModel @Inject constructor(
     private fun loadCredentials() {
         viewModelScope.launch {
             _uiState.update {
-                it.copy(isDecryptionUnlocked = credentialRepository.isUnlocked())
+                it.copy(isDecryptionUnlocked = credentialFacade.isUnlocked())
             }
 
-            getHttpsCredentialsUseCase()
+            credentialFacade.getHttpsCredentials()
                 .onSuccess { credentials ->
                     _uiState.update { it.copy(httpsCredentials = credentials) }
                 }
 
-            getSshKeysUseCase()
+            credentialFacade.getSshKeys()
                 .onSuccess { keys ->
                     _uiState.update { it.copy(sshKeys = keys) }
                 }
@@ -141,42 +109,42 @@ class CredentialStoreViewModel @Inject constructor(
 
     fun addHttpsCredential(host: String, username: String, password: String) {
         executeWithLoading {
-            addHttpsCredentialUseCase(host, username, password)
+            credentialFacade.addHttpsCredential(host, username, password)
                 .onSuccess { loadCredentials() }
         }
     }
 
     fun updateHttpsCredential(uuid: String, host: String?, username: String?, password: String?) {
         executeWithLoading {
-            updateHttpsCredentialUseCase(uuid, host, username, password)
+            credentialFacade.updateHttpsCredential(uuid, host, username, password)
                 .onSuccess { loadCredentials() }
         }
     }
 
     fun deleteHttpsCredential(uuid: String) {
         executeWithLoading {
-            deleteHttpsCredentialUseCase(uuid)
+            credentialFacade.deleteHttpsCredential(uuid)
                 .onSuccess { loadCredentials() }
         }
     }
 
     fun addSshKey(name: String, type: String, publicKey: String, privateKey: String, passphrase: String?, fingerprint: String) {
         executeWithLoading {
-            addSshKeyUseCase(name, type, publicKey, privateKey, passphrase, fingerprint)
+            credentialFacade.addSshKey(name, type, publicKey, privateKey, passphrase, fingerprint)
                 .onSuccess { loadCredentials() }
         }
     }
 
     fun deleteSshKey(uuid: String) {
         executeWithLoading {
-            deleteSshKeyUseCase(uuid)
+            credentialFacade.deleteSshKey(uuid)
                 .onSuccess { loadCredentials() }
         }
     }
 
     fun exportCredentials() {
         executeWithLoading {
-            exportCredentialsUseCase()
+            credentialFacade.exportCredentials()
                 .onSuccess { data ->
                     _uiState.update {
                         it.copy(
@@ -190,7 +158,7 @@ class CredentialStoreViewModel @Inject constructor(
 
     fun importCredentials(jsonData: String) {
         executeWithLoading {
-            importCredentialsUseCase(jsonData)
+            credentialFacade.importCredentials(jsonData)
                 .onSuccess {
                     _uiState.update {
                         it.copy(
@@ -205,7 +173,7 @@ class CredentialStoreViewModel @Inject constructor(
 
     fun enableBiometric(activity: FragmentActivity) {
         viewModelScope.launch {
-            enableBiometricUseCase(activity) { result ->
+            credentialFacade.enableBiometric(activity) { result ->
                 when (result) {
                     is AppResult.Success -> {
                         _uiState.update { it.copy(isBiometricEnabled = true) }
@@ -219,7 +187,7 @@ class CredentialStoreViewModel @Inject constructor(
     }
 
     fun unlockWithBiometric(activity: FragmentActivity) {
-        unlockWithBiometricUseCase(activity) { result ->
+        credentialFacade.unlockWithBiometric(activity) { result ->
             when (result) {
                 is AppResult.Success -> {
                     _uiState.update {
@@ -240,13 +208,13 @@ class CredentialStoreViewModel @Inject constructor(
 
     fun disableBiometric() {
         viewModelScope.launch {
-            credentialRepository.disableBiometric()
+            credentialFacade.disableBiometric()
             _uiState.update { it.copy(isBiometricEnabled = false) }
         }
     }
 
     fun lock() {
-        credentialRepository.lock()
+        credentialFacade.lock()
         _uiState.update {
             it.copy(isDecryptionUnlocked = false)
         }
@@ -296,12 +264,9 @@ class CredentialStoreViewModel @Inject constructor(
 
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, changePasswordError = null) }
-            
-            masterKeyManager.changeMasterPassword(oldPassword, newPassword)
+
+            credentialFacade.changeMasterPassword(oldPassword, newPassword, hint)
                 .onSuccess {
-                    if (hint != null) {
-                        masterKeyManager.setPasswordHint(hint)
-                    }
                     _uiState.update {
                         it.copy(
                             isLoading = false,
@@ -312,7 +277,7 @@ class CredentialStoreViewModel @Inject constructor(
                         )
                     }
                 }
-                .onFailure { e ->
+                .onError { e ->
                     _uiState.update {
                         it.copy(
                             isLoading = false,
@@ -328,11 +293,11 @@ class CredentialStoreViewModel @Inject constructor(
     }
 
     suspend fun getHttpsPassword(uuid: String): String? {
-        return getHttpsPasswordUseCase(uuid).getOrNull()
+        return credentialFacade.getHttpsPassword(uuid).getOrNull()
     }
 
     suspend fun getSshPrivateKey(uuid: String): String? {
-        return getSshPrivateKeyUseCase(uuid).getOrNull()
+        return credentialFacade.getSshPrivateKey(uuid).getOrNull()
     }
 
     private inline fun executeWithLoading(crossinline block: suspend () -> AppResult<*>) {

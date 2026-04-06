@@ -69,33 +69,22 @@ class JGitCoreDataSource @Inject constructor(
                 return Result.failure(Exception("Failed to create directory: $repoPath"))
             }
 
+            val defaultBranch = gitConfigDataStore.configFlow.first().defaultBranch
+            val branchName = if (defaultBranch.isNotBlank()) defaultBranch else "main"
+
             FileRepositoryBuilder()
                 .setGitDir(File(repoPath, ".git"))
                 .setMustExist(false)
                 .build().use { repository ->
                     repository.create()
+                    
+                    // 设置默认分支名称（在创建初始提交之前，HEAD 指向不存在的分支是正常的）
+                    // 通过直接设置 HEAD 引用来指定默认分支名称
+                    val headFile = File(repository.directory, "HEAD")
+                    headFile.writeText("ref: refs/heads/$branchName\n")
+                    
+                    Log.d(TAG, "Repository initialized with default branch: $branchName")
                 }
-
-            Git.open(File(repoPath)).use { git ->
-                val defaultBranch = gitConfigDataStore.configFlow.first().defaultBranch
-
-                if (defaultBranch.isNotBlank() && defaultBranch != "master") {
-                    git.branchCreate().setName(defaultBranch).call()
-                    git.checkout().setName(defaultBranch).call()
-
-                    try {
-                        git.branchDelete()
-                            .setBranchNames("master")
-                            .setForce(false)
-                            .call()
-                        Log.d(TAG, "Deleted original master branch")
-                    } catch (e: Exception) {
-                        Log.w(TAG, "Could not delete master branch: ${e.message}")
-                    }
-
-                    Log.d(TAG, "Created and checked out default branch: $defaultBranch")
-                }
-            }
 
             Result.success("Repository initialized at $repoPath")
         } catch (e: Exception) {

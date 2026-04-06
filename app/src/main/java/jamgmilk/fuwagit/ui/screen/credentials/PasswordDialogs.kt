@@ -54,6 +54,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import jamgmilk.fuwagit.R
+import jamgmilk.fuwagit.ui.util.ViewModelMessagesMapper
 
 @Composable
 fun SetupPasswordDialog(
@@ -140,8 +141,9 @@ fun SetupPasswordDialog(
                 )
 
                 if (error != null) {
+                    val localizedError = stringResource(ViewModelMessagesMapper.mapMessageToResource(error))
                     Text(
-                        text = error,
+                        text = localizedError,
                         color = MaterialTheme.colorScheme.error,
                         style = MaterialTheme.typography.bodySmall
                     )
@@ -250,8 +252,9 @@ fun UnlockDialog(
                 }
 
                 if (error != null) {
+                    val localizedError = stringResource(ViewModelMessagesMapper.mapMessageToResource(error))
                     Text(
-                        text = error,
+                        text = localizedError,
                         color = MaterialTheme.colorScheme.error,
                         style = MaterialTheme.typography.bodySmall
                     )
@@ -573,7 +576,8 @@ fun SetupMasterPasswordDialog(
                 )
 
                 if (error != null) {
-                    Text(text = error, color = colors.error, style = MaterialTheme.typography.bodySmall)
+                    val localizedError = stringResource(ViewModelMessagesMapper.mapMessageToResource(error))
+                    Text(text = localizedError, color = colors.error, style = MaterialTheme.typography.bodySmall)
                 }
             }
         },
@@ -697,7 +701,8 @@ fun SetupMasterPasswordContent(
 
         if (error != null) {
             Spacer(Modifier.height(12.dp))
-            Text(text = error, color = colors.error, style = MaterialTheme.typography.bodySmall)
+            val localizedError = stringResource(ViewModelMessagesMapper.mapMessageToResource(error))
+            Text(text = localizedError, color = colors.error, style = MaterialTheme.typography.bodySmall)
         }
 
         Spacer(Modifier.height(24.dp))

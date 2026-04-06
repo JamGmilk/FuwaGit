@@ -105,6 +105,7 @@ import jamgmilk.fuwagit.ui.screen.credentials.ChangeMasterPasswordDialog
 import jamgmilk.fuwagit.ui.screen.credentials.CredentialStoreViewModel
 import jamgmilk.fuwagit.ui.screen.credentials.SetupMasterPasswordDialog
 import jamgmilk.fuwagit.ui.screen.credentials.UnlockDialog
+import jamgmilk.fuwagit.ui.util.ViewModelMessagesMapper
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -147,7 +148,9 @@ fun SettingsScreen(
 
     LaunchedEffect(credentialsUiState.error) {
         credentialsUiState.error?.let {
-            android.widget.Toast.makeText(context, it, android.widget.Toast.LENGTH_SHORT).show()
+            val messageResId = ViewModelMessagesMapper.mapMessageToResource(it)
+            val message = context.getString(messageResId)
+            android.widget.Toast.makeText(context, message, android.widget.Toast.LENGTH_SHORT).show()
             credentialsViewModel.clearError()
         }
     }
@@ -1074,7 +1077,7 @@ private fun ApplyToAllReposDialog(
         },
         title = {
             Text(
-                text = "Apply to All Repositories",
+                text = stringResource(R.string.apply_to_all_repos_title),
                 fontWeight = FontWeight.Bold,
                 style = MaterialTheme.typography.titleLarge
             )
@@ -1084,7 +1087,7 @@ private fun ApplyToAllReposDialog(
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 Text(
-                    text = "This will apply the following settings to all saved repositories:",
+                    text = stringResource(R.string.apply_to_all_repos_description),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -1142,12 +1145,12 @@ private fun ApplyToAllReposDialog(
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = "Also apply to Global Config",
+                            text = stringResource(R.string.apply_to_all_repos_also_global),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
-                            text = "This will update ~/.gitconfig",
+                            text = stringResource(R.string.apply_to_all_repos_also_global_subtitle),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -1170,12 +1173,12 @@ private fun ApplyToAllReposDialog(
                     modifier = Modifier.size(18.dp)
                 )
                 Spacer(Modifier.width(6.dp))
-                Text("Apply")
+                Text(stringResource(R.string.action_apply))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel")
+                Text(stringResource(R.string.action_cancel))
             }
         },
         shape = RoundedCornerShape(24.dp)
@@ -1214,7 +1217,7 @@ private fun ApplyConfigResultDialog(
         },
         title = {
             Text(
-                text = if (result.allSuccess) "Success" else "Completed with Issues",
+                text = if (result.allSuccess) stringResource(R.string.apply_config_result_success) else stringResource(R.string.apply_config_result_issues),
                 fontWeight = FontWeight.Bold,
                 style = MaterialTheme.typography.titleLarge
             )
@@ -1224,14 +1227,14 @@ private fun ApplyConfigResultDialog(
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 Text(
-                    text = "${result.successCount}/${result.totalCount} repositories updated successfully",
+                    text = stringResource(R.string.apply_config_result_success_format, result.successCount, result.totalCount),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
 
                 if (result.failures.isNotEmpty()) {
                     Text(
-                        text = "Failed repositories:",
+                        text = stringResource(R.string.apply_config_result_failed_repos),
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.error
                     )
@@ -1261,7 +1264,7 @@ private fun ApplyConfigResultDialog(
                 onClick = onDismiss,
                 shape = RoundedCornerShape(12.dp)
             ) {
-                Text("OK")
+                Text(stringResource(R.string.action_ok))
             }
         },
         shape = RoundedCornerShape(24.dp)
@@ -1559,9 +1562,9 @@ private fun AppearanceSettingsCard(
     var showDarkModeMenu by remember { mutableStateOf(false) }
 
     val darkModeLabel = when (darkMode) {
-        "always_on" -> "Always On"
-        "always_off" -> "Always Off"
-        else -> "Follow System"
+        "always_on" -> stringResource(R.string.settings_dark_mode_always_on)
+        "always_off" -> stringResource(R.string.settings_dark_mode_always_off)
+        else -> stringResource(R.string.settings_dark_mode_system)
     }
 
     ElevatedCard(
@@ -1572,14 +1575,14 @@ private fun AppearanceSettingsCard(
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
             SettingsSectionHeader(
-                title = "Appearance",
+                title = stringResource(R.string.settings_appearance),
                 icon = Icons.Default.DarkMode,
                 color = colors.primary
             )
 
             Box {
                 SettingsClickableItem(
-                    title = "Dark Mode",
+                    title = stringResource(R.string.settings_dark_mode),
                     subtitle = darkModeLabel,
                     icon = Icons.Default.DarkMode,
                     onClick = { showDarkModeMenu = true }
@@ -1590,9 +1593,9 @@ private fun AppearanceSettingsCard(
                     onDismissRequest = { showDarkModeMenu = false }
                 ) {
                     val options = listOf(
-                        "system" to "Follow System",
-                        "always_on" to "Always On",
-                        "always_off" to "Always Off"
+                        "system" to stringResource(R.string.settings_dark_mode_system),
+                        "always_on" to stringResource(R.string.settings_dark_mode_always_on),
+                        "always_off" to stringResource(R.string.settings_dark_mode_always_off)
                     )
 
                     options.forEach { (value, label) ->

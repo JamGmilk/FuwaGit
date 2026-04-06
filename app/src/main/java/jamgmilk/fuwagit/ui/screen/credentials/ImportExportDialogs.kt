@@ -97,7 +97,7 @@ fun ExportCredentialsDialog(
                     Surface(shape = RoundedCornerShape(12.dp), color = colors.surfaceVariant.copy(alpha = 0.5f), modifier = Modifier.fillMaxWidth()) {
                         Row(modifier = Modifier.fillMaxWidth().padding(12.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                             Text(text = "${exportedData.take(50)}...", style = MaterialTheme.typography.bodySmall, fontFamily = FontFamily.Monospace, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
-                            IconButton(onClick = { clipboardManager.setText(AnnotatedString(exportedData)); scope.launch { snackbarHostState.showSnackbar("Copied to clipboard!") } }) {
+                            IconButton(onClick = { clipboardManager.setText(AnnotatedString(exportedData)); scope.launch { snackbarHostState.showSnackbar(stringResource(R.string.credentials_copied_to_clipboard)) } }) {
                                 Icon(Icons.Default.ContentCopy, contentDescription = stringResource(R.string.action_copy), tint = colors.onSurfaceVariant)
                             }
                         }
@@ -113,7 +113,7 @@ fun ExportCredentialsDialog(
                         Icon(imageVector = Icons.Default.Warning, contentDescription = null, tint = warningOrange, modifier = Modifier.size(20.dp))
                         Spacer(Modifier.width(8.dp))
                         Column {
-                            Text(text = "Security Warning", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold, color = warningOrange)
+                            Text(text = stringResource(R.string.credentials_security_warning), style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold, color = warningOrange)
                             Spacer(Modifier.height(4.dp))
                             Text(text = stringResource(R.string.credentials_export_warning), style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
                         }
@@ -180,7 +180,7 @@ fun ImportCredentialsDialog(
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
                         CircularProgressIndicator(modifier = Modifier.size(24.dp), color = colors.primary)
                         Spacer(Modifier.width(8.dp))
-                        Text("Importing...")
+                        Text(stringResource(R.string.credentials_importing))
                     }
                 }
             }
