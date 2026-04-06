@@ -46,6 +46,7 @@ sealed class AppResult<out T> {
 }
 
 sealed class AppException : Exception() {
+    // ========== Credential Exceptions ==========
     data class CredentialNotFound(val uuid: String) : AppException() {
         override val message: String = "Credential not found: $uuid"
     }
@@ -64,16 +65,60 @@ sealed class AppException : Exception() {
 
     data class ExportFailed(override val message: String = "Failed to export credentials") : AppException()
 
+    data class EncryptionFailed(override val message: String = "Encryption failed") : AppException()
+
+    data class DecryptionFailed(override val message: String = "Decryption failed") : AppException()
+
+    // ========== Git Exceptions ==========
     data class GitOperationFailed(val operation: String, override val message: String) : AppException()
 
     data class RepositoryNotFound(val path: String) : AppException() {
         override val message: String = "Repository not found: $path"
     }
 
-    data class EncryptionFailed(override val message: String = "Encryption failed") : AppException()
+    data class RepositoryAlreadyExists(val path: String) : AppException() {
+        override val message: String = "Repository already exists: $path"
+    }
 
-    data class DecryptionFailed(override val message: String = "Decryption failed") : AppException()
+    data class BranchNotFound(val branchName: String) : AppException() {
+        override val message: String = "Branch not found: $branchName"
+    }
 
+    data class BranchAlreadyExists(val branchName: String) : AppException() {
+        override val message: String = "Branch already exists: $branchName"
+    }
+
+    data class MergeConflict(val message: String) : AppException()
+
+    data class RebaseConflict(val message: String) : AppException()
+
+    data class CheckoutConflict(val message: String) : AppException()
+
+    data class RemoteNotFound(val remoteName: String) : AppException() {
+        override val message: String = "Remote not found: $remoteName"
+    }
+
+    data class PushRejected(val message: String) : AppException()
+
+    data class PullRejected(val message: String) : AppException()
+
+    data class InvalidRepository(val path: String, override val message: String) : AppException()
+
+    data class NoRemoteConfigured(val message: String = "No remote repository configured") : AppException()
+
+    data class CommitFailed(override val message: String) : AppException()
+
+    data class ResetFailed(override val message: String) : AppException()
+
+    data class CloneFailed(override val message: String) : AppException()
+
+    data class AuthenticationFailed(override val message: String = "Authentication failed") : AppException()
+
+    data class NetworkError(override val message: String) : AppException()
+
+    data class Validation(override val message: String) : AppException()
+
+    // ========== Generic ==========
     data class Unknown(override val message: String) : AppException()
 }
 

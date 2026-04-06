@@ -1,5 +1,7 @@
 package jamgmilk.fuwagit.domain.usecase.git
 
+import jamgmilk.fuwagit.core.result.AppResult
+import jamgmilk.fuwagit.core.result.AppException
 import jamgmilk.fuwagit.domain.model.git.ConflictResult
 import jamgmilk.fuwagit.domain.repository.GitRepository
 import javax.inject.Inject
@@ -11,31 +13,31 @@ import javax.inject.Inject
 class MergeUseCase @Inject constructor(
     private val repository: GitRepository
 ) {
-    suspend fun merge(repoPath: String, branchName: String): Result<ConflictResult> {
-        if (repoPath.isBlank()) return Result.failure(IllegalArgumentException("Repository path cannot be empty"))
-        if (branchName.isBlank()) return Result.failure(IllegalArgumentException("Branch name cannot be empty"))
+    suspend fun merge(repoPath: String, branchName: String): AppResult<ConflictResult> {
+        if (repoPath.isBlank()) return AppResult.Error(AppException.Validation("Repository path cannot be empty"))
+        if (branchName.isBlank()) return AppResult.Error(AppException.Validation("Branch name cannot be empty"))
         return repository.mergeBranch(repoPath, branchName)
     }
 
-    suspend fun rebase(repoPath: String, branchName: String): Result<ConflictResult> {
-        if (repoPath.isBlank()) return Result.failure(IllegalArgumentException("Repository path cannot be empty"))
-        if (branchName.isBlank()) return Result.failure(IllegalArgumentException("Branch name cannot be empty"))
+    suspend fun rebase(repoPath: String, branchName: String): AppResult<ConflictResult> {
+        if (repoPath.isBlank()) return AppResult.Error(AppException.Validation("Repository path cannot be empty"))
+        if (branchName.isBlank()) return AppResult.Error(AppException.Validation("Branch name cannot be empty"))
         return repository.rebaseBranch(repoPath, branchName)
     }
 
-    suspend fun getConflicts(repoPath: String): Result<ConflictResult> {
-        if (repoPath.isBlank()) return Result.failure(IllegalArgumentException("Repository path cannot be empty"))
+    suspend fun getConflicts(repoPath: String): AppResult<ConflictResult> {
+        if (repoPath.isBlank()) return AppResult.Error(AppException.Validation("Repository path cannot be empty"))
         return repository.getConflictStatus(repoPath)
     }
 
-    suspend fun resolveConflict(repoPath: String, filePath: String): Result<Unit> {
-        if (repoPath.isBlank()) return Result.failure(IllegalArgumentException("Repository path cannot be empty"))
-        if (filePath.isBlank()) return Result.failure(IllegalArgumentException("File path cannot be empty"))
+    suspend fun resolveConflict(repoPath: String, filePath: String): AppResult<Unit> {
+        if (repoPath.isBlank()) return AppResult.Error(AppException.Validation("Repository path cannot be empty"))
+        if (filePath.isBlank()) return AppResult.Error(AppException.Validation("File path cannot be empty"))
         return repository.markConflictResolved(repoPath, filePath)
     }
 
-    suspend fun abortRebase(repoPath: String): Result<String> {
-        if (repoPath.isBlank()) return Result.failure(IllegalArgumentException("Repository path cannot be empty"))
+    suspend fun abortRebase(repoPath: String): AppResult<String> {
+        if (repoPath.isBlank()) return AppResult.Error(AppException.Validation("Repository path cannot be empty"))
         return repository.abortRebase(repoPath)
     }
 }

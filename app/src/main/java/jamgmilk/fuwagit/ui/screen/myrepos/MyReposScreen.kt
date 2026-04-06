@@ -85,6 +85,7 @@ import jamgmilk.fuwagit.ui.components.ConfigureRemoteDialog
 import jamgmilk.fuwagit.ui.components.EmptyState
 import jamgmilk.fuwagit.ui.components.ScreenTemplate
 import jamgmilk.fuwagit.ui.theme.AppShapes
+import jamgmilk.fuwagit.ui.util.ViewModelMessagesMapper
 import kotlinx.coroutines.launch
 import java.text.DateFormat
 import java.util.Date
@@ -124,7 +125,7 @@ fun MyReposScreen(
 
     Box(modifier = modifier.fillMaxSize()) {
         ScreenTemplate(
-            title = "My Repos",
+            title = stringResource(R.string.myrepos_screen_title),
             modifier = Modifier.fillMaxSize()
         ) {
             Surface(
@@ -138,8 +139,8 @@ fun MyReposScreen(
                 if (folders.isEmpty()) {
                     EmptyState(
                         icon = Icons.Outlined.FolderOpen,
-                        title = "No repositories yet",
-                        description = "Use the + button to add a repository",
+                        title = stringResource(R.string.myrepos_no_repos_title),
+                        description = stringResource(R.string.myrepos_no_repos_description),
                         modifier = modifier
                     )
                 } else {
@@ -169,7 +170,7 @@ fun MyReposScreen(
         ) {
             Icon(
                 Icons.Default.Add,
-                contentDescription = "Add Repository"
+                contentDescription = stringResource(R.string.myrepos_add_repository_description)
             )
         }
 
@@ -259,9 +260,12 @@ fun MyReposScreen(
     val cleanMessage = uiState.cleanMessage
 
     if (untrackedFiles.isNotEmpty() || cleanMessage != null || isCleanPreviewing) {
+        val localizedMessage = if (cleanMessage != null) {
+            context.getString(ViewModelMessagesMapper.mapMessageToResource(cleanMessage))
+        } else null
         CleanPreviewDialog(
             untrackedFiles = untrackedFiles,
-            message = if (isCleanPreviewing) "Scanning for untracked files..." else cleanMessage,
+            message = if (isCleanPreviewing) stringResource(R.string.myrepos_scanning_files) else localizedMessage,
             onConfirm = { myReposViewModel.confirmCleanUntracked() },
             onDismiss = { myReposViewModel.clearCleanPreview() }
         )
@@ -299,14 +303,14 @@ fun MyReposScreen(
             },
             title = {
                 Text(
-                    text = "Clean Untracked Files",
+                    text = stringResource(R.string.myrepos_clean_untracked_title),
                     fontWeight = FontWeight.Bold,
                     style = MaterialTheme.typography.titleLarge
                 )
             },
             text = {
                 Text(
-                    text = "Remove untracked files from the working directory. This action cannot be undone. Click 'Preview' to see which files will be deleted.",
+                    text = stringResource(R.string.myrepos_clean_untracked_description),
                     style = MaterialTheme.typography.bodyMedium,
                     color = colors.onSurfaceVariant
                 )
@@ -328,12 +332,12 @@ fun MyReposScreen(
                         modifier = Modifier.size(18.dp)
                     )
                     Spacer(Modifier.width(6.dp))
-                    Text("Preview")
+                    Text(stringResource(R.string.action_preview))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showCleanDialog = false }) {
-                    Text("Cancel")
+                    Text(stringResource(R.string.action_cancel))
                 }
             },
             shape = RoundedCornerShape(24.dp)
@@ -365,7 +369,7 @@ fun RepoListContent(
             )
             Spacer(Modifier.width(6.dp))
             Text(
-                text = "Tap to select, long press for options",
+                text = stringResource(R.string.myrepos_tap_select_hint),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -402,7 +406,7 @@ fun RepoItemCard(
     val lastModifiedText = if (item.lastModified > 0) {
         dateFormat.format(Date(item.lastModified))
     } else {
-        "Unknown"
+        stringResource(R.string.myrepos_unknown_date)
     }
 
     ElevatedCard(
@@ -468,7 +472,7 @@ fun RepoItemCard(
                             color = colors.primary
                         ) {
                             Text(
-                                text = "ACTIVE",
+                                text = stringResource(R.string.myrepos_active_badge),
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.Bold,
                                 color = colors.onPrimary,
@@ -497,7 +501,7 @@ fun RepoItemCard(
                                 modifier = Modifier.size(11.dp)
                             )
                             Text(
-                                text = "Not a Git",
+                                text = stringResource(R.string.myrepos_not_git_label),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = colors.onErrorContainer,
                                 fontWeight = FontWeight.Medium
@@ -592,7 +596,7 @@ fun RepoOptionsSheet(
             )
 
             Text(
-                text = "OPTIONS",
+                text = stringResource(R.string.myrepos_options_header),
                 style = MaterialTheme.typography.labelSmall,
                 fontWeight = FontWeight.SemiBold,
                 color = colors.onSurfaceVariant.copy(alpha = 0.6f),
@@ -602,16 +606,16 @@ fun RepoOptionsSheet(
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 RepoOptionsSheetItem(
                     icon = Icons.Default.Info,
-                    title = "Show Info",
-                    subtitle = "View repository details",
+                    title = stringResource(R.string.myrepos_show_info),
+                    subtitle = stringResource(R.string.myrepos_show_info_subtitle),
                     accentColor = colors.primary,
                     onClick = onShowInfo
                 )
 
                 RepoOptionsSheetItem(
                     icon = Icons.Default.Link,
-                    title = "Configure Remote",
-                    subtitle = "Set push/pull remote URL",
+                    title = stringResource(R.string.myrepos_configure_remote),
+                    subtitle = stringResource(R.string.myrepos_configure_remote_subtitle),
                     accentColor = colors.secondary,
                     onClick = onConfigureRemote
                 )
@@ -624,7 +628,7 @@ fun RepoOptionsSheet(
             )
 
             Text(
-                text = "DANGER ZONE",
+                text = stringResource(R.string.myrepos_danger_zone),
                 style = MaterialTheme.typography.labelSmall,
                 fontWeight = FontWeight.SemiBold,
                 color = colors.error.copy(alpha = 0.7f),
@@ -634,16 +638,16 @@ fun RepoOptionsSheet(
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 RepoOptionsSheetItem(
                     icon = Icons.Default.CleaningServices,
-                    title = "Clean Repository",
-                    subtitle = "Remove untracked files",
+                    title = stringResource(R.string.myrepos_clean_repository),
+                    subtitle = stringResource(R.string.myrepos_clean_repository_subtitle),
                     accentColor = colors.error,
                     onClick = onClean
                 )
 
                 RepoOptionsSheetItem(
                     icon = Icons.Default.Delete,
-                    title = "Remove from List",
-                    subtitle = "Remove this repository from the list",
+                    title = stringResource(R.string.myrepos_remove_from_list),
+                    subtitle = stringResource(R.string.myrepos_remove_from_list_subtitle),
                     accentColor = colors.error,
                     onClick = onRemove
                 )
@@ -715,8 +719,7 @@ private fun RepoHeader(
                         onClick = {},
                         onLongClick = {
                             onCopyPath()
-                            // TODO: Toast 报看喵
-                            Toast.makeText(context, "Path copied", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, stringResource(R.string.myrepos_path_copied), Toast.LENGTH_SHORT).show()
                         }
                     )
             )
@@ -819,7 +822,7 @@ fun RepoInfoDialog(
         title = {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(
-                    text = "Repository Info",
+                    text = stringResource(R.string.myrepos_repo_info_title),
                     fontWeight = FontWeight.Bold,
                     style = MaterialTheme.typography.titleLarge
                 )
@@ -849,7 +852,7 @@ fun RepoInfoDialog(
                             )
                             Spacer(Modifier.width(8.dp))
                             Text(
-                                text = "This directory is not a Git repository",
+                                text = stringResource(R.string.myrepos_not_git_repo_warning),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = colors.error
                             )
@@ -882,7 +885,7 @@ fun RepoInfoDialog(
                 colors = ButtonDefaults.buttonColors(containerColor = colors.primary),
                 shape = RoundedCornerShape(12.dp)
             ) {
-                Text("Close")
+                Text(stringResource(R.string.action_close))
             }
         },
         shape = RoundedCornerShape(24.dp)
@@ -950,7 +953,7 @@ private fun RepoInfoItem(
             ) {
                 Icon(
                     Icons.Default.ContentCopy,
-                    contentDescription = "Copy",
+                    contentDescription = stringResource(R.string.action_copy),
                     tint = colors.onSurfaceVariant.copy(alpha = 0.5f),
                     modifier = Modifier.size(16.dp)
                 )

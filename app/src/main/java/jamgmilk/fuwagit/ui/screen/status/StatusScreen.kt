@@ -34,6 +34,7 @@ import jamgmilk.fuwagit.ui.components.DangerousOperationType
 import jamgmilk.fuwagit.ui.components.OperationResultDialog
 import jamgmilk.fuwagit.ui.components.ScreenTemplate
 import jamgmilk.fuwagit.ui.components.TwoStepConfirmDialog
+import jamgmilk.fuwagit.ui.util.ViewModelMessagesMapper
 
 data class StatusStats(
     val totalChanges: Int,

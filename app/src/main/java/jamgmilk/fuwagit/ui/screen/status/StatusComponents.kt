@@ -62,6 +62,7 @@ import jamgmilk.fuwagit.core.util.PathUtils
 import jamgmilk.fuwagit.domain.model.git.GitBranch
 import jamgmilk.fuwagit.domain.model.git.GitChangeType
 import jamgmilk.fuwagit.domain.model.git.GitFileStatus
+import jamgmilk.fuwagit.ui.util.ViewModelMessagesMapper
 
 @Composable
 internal fun ActionToolbar(
@@ -259,8 +260,9 @@ internal fun RepositoryStatusCard(
                     }
                     if (!isRepo && !isLoading && error != null) {
                         Spacer(Modifier.height(4.dp))
+                        val localizedError = stringResource(ViewModelMessagesMapper.mapMessageToResource(error))
                         Text(
-                            text = error,
+                            text = localizedError,
                             style = MaterialTheme.typography.bodySmall,
                             color = colors.error
                         )
@@ -781,13 +783,13 @@ internal fun TerminalLogsCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Terminal",
+                    text = stringResource(R.string.status_terminal),
                     style = MaterialTheme.typography.labelLarge,
                     color = colors.onSurfaceVariant
                 )
                 if (logs.isNotEmpty()) {
                     Text(
-                        text = "${logs.size} lines",
+                        text = stringResource(R.string.terminal_lines_format, logs.size),
                         style = MaterialTheme.typography.labelSmall,
                         color = colors.onSurfaceVariant.copy(alpha = 0.6f)
                     )
@@ -808,7 +810,7 @@ internal fun TerminalLogsCard(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = "No output yet",
+                            text = stringResource(R.string.terminal_no_output),
                             style = MaterialTheme.typography.bodySmall,
                             color = colors.onSurfaceVariant.copy(alpha = 0.5f)
                         )

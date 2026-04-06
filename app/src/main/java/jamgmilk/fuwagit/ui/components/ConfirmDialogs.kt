@@ -58,16 +58,19 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import jamgmilk.fuwagit.R
 import jamgmilk.fuwagit.domain.model.git.ConflictResult
 import jamgmilk.fuwagit.domain.model.git.ConflictStatus
 import jamgmilk.fuwagit.domain.model.git.GitCommit
 import jamgmilk.fuwagit.domain.model.git.GitConflict
 import jamgmilk.fuwagit.domain.model.git.GitResetMode
+import jamgmilk.fuwagit.ui.util.ViewModelMessagesMapper
 
 enum class DangerousOperationType {
     DELETE_BRANCH,
@@ -131,7 +134,7 @@ fun TwoStepConfirmDialog(
         },
         title = {
             Text(
-                text = "Confirm Dangerous Operation",
+                text = stringResource(R.string.dialog_confirm_dangerous_title),
                 fontWeight = FontWeight.Bold,
                 style = MaterialTheme.typography.titleLarge
             )
@@ -183,7 +186,7 @@ fun TwoStepConfirmDialog(
                 if (step >= 2) {
                     Spacer(Modifier.height(8.dp))
                     Text(
-                        text = "Type \"$confirmText\" to confirm:",
+                        text = stringResource(R.string.dialog_confirm_type_confirm_format, confirmText),
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Bold,
                         color = colors.error
@@ -215,7 +218,7 @@ fun TwoStepConfirmDialog(
                         modifier = Modifier.size(18.dp)
                     )
                     Spacer(Modifier.width(6.dp))
-                    Text("I Understand")
+                    Text(stringResource(R.string.action_i_understand))
                 }
             } else {
                 Button(
@@ -236,7 +239,7 @@ fun TwoStepConfirmDialog(
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel")
+                Text(stringResource(R.string.action_cancel))
             }
         },
         shape = RoundedCornerShape(24.dp)
@@ -289,11 +292,7 @@ fun ResetConfirmDialog(
         },
         title = {
             Text(
-                text = "Confirm ${when (mode) {
-                    GitResetMode.SOFT -> "Soft"
-                    GitResetMode.MIXED -> "Mixed"
-                    GitResetMode.HARD -> "Hard"
-                }} Reset",
+                text = stringResource(R.string.dialog_reset_confirm_title_format, mode.name),
                 fontWeight = FontWeight.Bold,
                 style = MaterialTheme.typography.titleLarge
             )
@@ -303,7 +302,7 @@ fun ResetConfirmDialog(
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 Text(
-                    text = "Reset current branch to commit:",
+                    text = stringResource(R.string.dialog_reset_to_commit),
                     style = MaterialTheme.typography.bodyMedium,
                     color = colors.onSurfaceVariant
                 )
@@ -319,7 +318,7 @@ fun ResetConfirmDialog(
                     ) {
                         Row {
                             Text(
-                                text = "Hash: ",
+                                text = stringResource(R.string.dialog_reset_hash_label),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = colors.onSurfaceVariant
                             )
@@ -354,9 +353,9 @@ fun ResetConfirmDialog(
                     ) {
                         Text(
                             text = when (mode) {
-                                GitResetMode.SOFT -> "Soft Reset: Move HEAD only"
-                                GitResetMode.MIXED -> "Mixed Reset: Move HEAD and unstage changes"
-                                GitResetMode.HARD -> "Hard Reset: Discard ALL changes"
+                                GitResetMode.SOFT -> stringResource(R.string.dialog_reset_soft)
+                                GitResetMode.MIXED -> stringResource(R.string.dialog_reset_mixed)
+                                GitResetMode.HARD -> stringResource(R.string.dialog_reset_hard)
                             },
                             style = MaterialTheme.typography.labelLarge,
                             fontWeight = FontWeight.Bold,
@@ -376,7 +375,7 @@ fun ResetConfirmDialog(
                             Spacer(Modifier.height(4.dp))
 
                             Text(
-                                text = "This will:",
+                                text = stringResource(R.string.dialog_reset_hard_will),
                                 style = MaterialTheme.typography.labelMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = colors.error
@@ -387,17 +386,17 @@ fun ResetConfirmDialog(
                                 modifier = Modifier.padding(start = 8.dp)
                             ) {
                                 Text(
-                                    text = "• Discard ALL uncommitted changes",
+                                    text = stringResource(R.string.dialog_reset_hard_discard_all),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = colors.error
                                 )
                                 Text(
-                                    text = "• Remove ALL staged changes",
+                                    text = stringResource(R.string.dialog_reset_hard_remove_staged),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = colors.error
                                 )
                                 Text(
-                                    text = "• Reset working directory to match the selected commit",
+                                    text = stringResource(R.string.dialog_reset_hard_reset_working),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = colors.onSurfaceVariant
                                 )
@@ -411,7 +410,7 @@ fun ResetConfirmDialog(
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 Text(
-                                    text = "⚠️ This action CANNOT be undone!",
+                                    text = stringResource(R.string.dialog_reset_hard_cannot_undo),
                                     style = MaterialTheme.typography.bodySmall,
                                     fontWeight = FontWeight.Bold,
                                     color = colors.error,
@@ -445,16 +444,12 @@ fun ResetConfirmDialog(
                     modifier = Modifier.size(18.dp)
                 )
                 Spacer(Modifier.width(6.dp))
-                Text("Reset ${when (mode) {
-                    GitResetMode.SOFT -> "Soft"
-                    GitResetMode.MIXED -> "Mixed"
-                    GitResetMode.HARD -> "Hard"
-                }}")
+                Text(stringResource(R.string.dialog_reset_button_format, mode.name))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel")
+                Text(stringResource(R.string.action_cancel))
             }
         },
         shape = RoundedCornerShape(24.dp)
@@ -470,9 +465,9 @@ fun OperationResultDialog(
 ) {
     val colors = MaterialTheme.colorScheme
     val (icon, iconColor, title) = when (result) {
-        is OperationResult.Success -> Triple(Icons.Default.CheckCircle, colors.primary, "Operation Successful")
-        is OperationResult.Failure -> Triple(Icons.Default.Warning, colors.error, "Operation Failed")
-        is OperationResult.Conflict -> Triple(Icons.Default.Warning, colors.tertiary, "Merge Conflicts Detected")
+        is OperationResult.Success -> Triple(Icons.Default.CheckCircle, colors.primary, stringResource(R.string.dialog_operation_successful))
+        is OperationResult.Failure -> Triple(Icons.Default.Warning, colors.error, stringResource(R.string.dialog_operation_failed))
+        is OperationResult.Conflict -> Triple(Icons.Default.Warning, colors.tertiary, stringResource(R.string.dialog_merge_conflicts))
     }
 
     AlertDialog(
@@ -505,19 +500,22 @@ fun OperationResultDialog(
             ) {
                 when (result) {
                     is OperationResult.Success -> {
+                        val messageResId = ViewModelMessagesMapper.mapMessageToResource(result.message)
                         Text(
-                            text = result.message,
+                            text = stringResource(messageResId),
                             style = MaterialTheme.typography.bodyMedium,
                             color = colors.onSurfaceVariant
                         )
                     }
                     is OperationResult.Failure -> {
+                        val errorResId = ViewModelMessagesMapper.mapMessageToResource(result.error)
                         Text(
-                            text = "Error: ${result.error}",
+                            text = stringResource(R.string.dialog_error_format, stringResource(errorResId)),
                             style = MaterialTheme.typography.bodyMedium,
                             color = colors.error
                         )
                         if (result.suggestion.isNotBlank()) {
+                            val suggestionResId = ViewModelMessagesMapper.mapMessageToResource(result.suggestion)
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -525,7 +523,7 @@ fun OperationResultDialog(
                                     .padding(10.dp)
                             ) {
                                 Text(
-                                    text = "Suggestion: ${result.suggestion}",
+                                    text = stringResource(R.string.dialog_suggestion_format, stringResource(suggestionResId)),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = colors.onSurfaceVariant
                                 )
@@ -533,13 +531,14 @@ fun OperationResultDialog(
                         }
                     }
                     is OperationResult.Conflict -> {
+                        val messageResId = ViewModelMessagesMapper.mapMessageToResource(result.message)
                         Text(
-                            text = result.message,
+                            text = stringResource(messageResId),
                             style = MaterialTheme.typography.bodyMedium,
                             color = colors.onSurfaceVariant
                         )
                         Text(
-                            text = "The following files have conflicts:",
+                            text = stringResource(R.string.dialog_conflict_files_message),
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.Bold,
                             color = colors.error
@@ -579,7 +578,7 @@ fun OperationResultDialog(
                 onClick = onDismiss,
                 shape = RoundedCornerShape(12.dp)
             ) {
-                Text("OK")
+                Text(stringResource(R.string.action_ok))
             }
         },
         shape = RoundedCornerShape(24.dp)
@@ -598,7 +597,7 @@ fun CleanPreviewDialog(
 ) {
     val colors = MaterialTheme.colorScheme
     val isError = message?.startsWith("Failed") == true || message?.contains("error", ignoreCase = true) == true
-    val isLoading = message == "Scanning for untracked files..."
+    val isLoading = message == stringResource(R.string.dialog_scanning_files)
     val isInfo = message != null && !isError && untrackedFiles.isEmpty() && !isLoading
 
     AlertDialog(
@@ -645,10 +644,10 @@ fun CleanPreviewDialog(
         title = {
             Text(
                 text = when {
-                    isLoading -> "Scanning Files"
-                    isInfo -> "Clean Info"
-                    isError -> "Clean Failed"
-                    else -> "Clean Untracked Files"
+                    isLoading -> stringResource(R.string.dialog_scanning_files)
+                    isInfo -> stringResource(R.string.dialog_clean_info)
+                    isError -> stringResource(R.string.dialog_clean_failed)
+                    else -> stringResource(R.string.dialog_clean_untracked_title)
                 },
                 fontWeight = FontWeight.Bold,
                 style = MaterialTheme.typography.titleLarge
@@ -670,7 +669,7 @@ fun CleanPreviewDialog(
                 // 显示文件列表（如果有）
                 if (untrackedFiles.isNotEmpty()) {
                     Text(
-                        text = "The following ${untrackedFiles.size} untracked file(s) will be permanently deleted:",
+                        text = stringResource(R.string.dialog_clean_files_to_delete_format, untrackedFiles.size),
                         style = MaterialTheme.typography.bodyMedium,
                         color = colors.onSurfaceVariant
                     )
@@ -713,7 +712,7 @@ fun CleanPreviewDialog(
                             .padding(10.dp)
                     ) {
                         Text(
-                            text = "⚠️ This action CANNOT be undone!",
+                            text = stringResource(R.string.dialog_reset_hard_cannot_undo),
                             style = MaterialTheme.typography.bodySmall,
                             fontWeight = FontWeight.Bold,
                             color = colors.onErrorContainer
@@ -728,7 +727,7 @@ fun CleanPreviewDialog(
                             .padding(16.dp)
                     ) {
                         Text(
-                            text = "No untracked files found.",
+                            text = stringResource(R.string.dialog_clean_no_files),
                             style = MaterialTheme.typography.bodyMedium,
                             color = colors.onSurfaceVariant,
                             textAlign = TextAlign.Center
@@ -750,13 +749,13 @@ fun CleanPreviewDialog(
                         modifier = Modifier.size(18.dp)
                     )
                     Spacer(Modifier.width(6.dp))
-                    Text("Delete All")
+                    Text(stringResource(R.string.dialog_delete_all))
                 }
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Close")
+                Text(stringResource(R.string.action_close))
             }
         },
         shape = RoundedCornerShape(24.dp)
@@ -793,7 +792,7 @@ fun CleanResultDialog(
         },
         title = {
             Text(
-                text = "Clean Completed",
+                text = stringResource(R.string.dialog_clean_completed),
                 fontWeight = FontWeight.Bold,
                 style = MaterialTheme.typography.titleLarge
             )
@@ -803,7 +802,7 @@ fun CleanResultDialog(
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 Text(
-                    text = "Successfully deleted ${cleanedFiles.size} file(s):",
+                    text = stringResource(R.string.dialog_clean_deleted_count_format, cleanedFiles.size),
                     style = MaterialTheme.typography.bodyMedium,
                     color = colors.onSurfaceVariant
                 )
@@ -847,7 +846,7 @@ fun CleanResultDialog(
                             .padding(16.dp)
                     ) {
                         Text(
-                            text = "No files were deleted",
+                            text = stringResource(R.string.dialog_clean_no_files_deleted),
                             style = MaterialTheme.typography.bodyMedium,
                             color = colors.onSurfaceVariant,
                             textAlign = TextAlign.Center
@@ -864,7 +863,7 @@ fun CleanResultDialog(
                 },
                 shape = RoundedCornerShape(12.dp)
             ) {
-                Text("OK")
+                Text(stringResource(R.string.action_ok))
             }
         },
         shape = RoundedCornerShape(24.dp)
@@ -908,12 +907,12 @@ fun ConflictResolutionDialog(
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 Text(
-                    text = "${conflictResult.operationType} Conflicts",
+                    text = stringResource(R.string.dialog_merge_conflict_title_format, conflictResult.operationType),
                     fontWeight = FontWeight.Bold,
                     style = MaterialTheme.typography.titleLarge
                 )
                 Text(
-                    text = "${conflictResult.unresolvedCount} conflict(s) need resolution",
+                    text = stringResource(R.string.dialog_conflict_count_format, conflictResult.unresolvedCount),
                     style = MaterialTheme.typography.bodyMedium,
                     color = colors.onSurfaceVariant
                 )
@@ -934,23 +933,23 @@ fun ConflictResolutionDialog(
                         verticalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
                         Text(
-                            text = "How to resolve:",
+                            text = stringResource(R.string.dialog_how_to_resolve),
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.Bold,
                             color = colors.onSurfaceVariant
                         )
                         Text(
-                            text = "1. Edit each file to resolve conflict markers (<<<<<<, ======, >>>>>>)",
+                            text = stringResource(R.string.dialog_resolve_step1),
                             style = MaterialTheme.typography.bodySmall,
                             color = colors.onSurfaceVariant
                         )
                         Text(
-                            text = "2. Click 'Mark as Resolved' for each file after editing",
+                            text = stringResource(R.string.dialog_resolve_step2),
                             style = MaterialTheme.typography.bodySmall,
                             color = colors.onSurfaceVariant
                         )
                         Text(
-                            text = "3. Click 'Finish' when all conflicts are resolved",
+                            text = stringResource(R.string.dialog_resolve_step3),
                             style = MaterialTheme.typography.bodySmall,
                             color = colors.onSurfaceVariant
                         )
@@ -959,7 +958,7 @@ fun ConflictResolutionDialog(
 
                 // 冲突文件列表
                 Text(
-                    text = "Conflicting Files:",
+                    text = stringResource(R.string.dialog_conflicting_files),
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.Bold,
                     color = colors.onSurfaceVariant
@@ -998,7 +997,7 @@ fun ConflictResolutionDialog(
                     modifier = Modifier.size(18.dp)
                 )
                 Spacer(Modifier.width(6.dp))
-                Text("Finish")
+                Text(stringResource(R.string.action_finish))
             }
         },
         dismissButton = {
@@ -1006,10 +1005,10 @@ fun ConflictResolutionDialog(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 TextButton(onClick = onAbort) {
-                    Text("Abort ${conflictResult.operationType}")
+                    Text(stringResource(R.string.dialog_abort_format, conflictResult.operationType))
                 }
                 TextButton(onClick = onDismiss) {
-                    Text("Cancel")
+                    Text(stringResource(R.string.action_cancel))
                 }
             }
         },
@@ -1105,11 +1104,14 @@ private fun ConflictFileItem(
                     HorizontalDivider()
 
                     Text(
-                        text = "Status: ${when (conflict.status) {
-                            ConflictStatus.UNRESOLVED -> "Unresolved"
-                            ConflictStatus.RESOLVED -> "Resolved"
-                            ConflictStatus.STAGED -> "Staged"
-                        }}",
+                        text = stringResource(
+                            R.string.dialog_conflict_status_format,
+                            when (conflict.status) {
+                                ConflictStatus.UNRESOLVED -> stringResource(R.string.dialog_conflict_status_unresolved)
+                                ConflictStatus.RESOLVED -> stringResource(R.string.dialog_conflict_status_resolved)
+                                ConflictStatus.STAGED -> stringResource(R.string.dialog_conflict_status_staged)
+                            }
+                        ),
                         style = MaterialTheme.typography.bodySmall,
                         color = when (conflict.status) {
                             ConflictStatus.UNRESOLVED -> colors.tertiary
@@ -1132,7 +1134,7 @@ private fun ConflictFileItem(
                                 modifier = Modifier.size(16.dp)
                             )
                             Spacer(Modifier.width(6.dp))
-                            Text("Mark as Resolved")
+                            Text(stringResource(R.string.action_mark_as_resolved))
                         }
                     }
                 }

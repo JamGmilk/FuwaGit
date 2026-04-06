@@ -1,5 +1,8 @@
 package jamgmilk.fuwagit.ui.screen.branches
 
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
 import android.widget.Toast
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
@@ -75,6 +78,7 @@ import jamgmilk.fuwagit.ui.components.ScreenTemplate
 import jamgmilk.fuwagit.ui.components.TipInDialog
 import jamgmilk.fuwagit.ui.components.TwoStepConfirmDialog
 import jamgmilk.fuwagit.ui.theme.AppShapes
+import jamgmilk.fuwagit.ui.util.ViewModelMessagesMapper
 
 
 @Composable
@@ -411,7 +415,10 @@ private fun BranchListContent(
                     onRename = {
                         onRenameRequest(branch.name)
                     },
-                    onDelete = { branchesViewModel.requestDeleteBranch(branch.name) }
+                    onDelete = { branchesViewModel.requestDeleteBranch(branch.name) },
+                    onCreateTag = {
+                        // TODO: 实现创建 Tag 功能
+                    }
                 )
             }
         }
@@ -445,6 +452,7 @@ private fun BranchListContent(
                     onRebase = null,
                     onRename = null,
                     onDelete = null,
+                    onCreateTag = null,
                     isRemote = true
                 )
             }
@@ -513,6 +521,7 @@ private fun BranchItem(
     onRebase: (() -> Unit)?,
     onRename: (() -> Unit)?,
     onDelete: (() -> Unit)?,
+    onCreateTag: (() -> Unit)?,
     isRemote: Boolean = false
 ) {
     var expanded by remember { mutableStateOf(false) }
@@ -525,6 +534,7 @@ private fun BranchItem(
     val strRebaseOnlyLocal = stringResource(R.string.branches_rebase_only_local)
     val strDeleteOnlyLocal = stringResource(R.string.branches_delete_only_local)
     val strRenameOnlyLocal = stringResource(R.string.branches_rename_only_local)
+    val strNameCopied = stringResource(R.string.branches_name_copied)
 
     val accentColor = if (isRemote) colors.secondary else colors.primary
 
@@ -600,7 +610,48 @@ private fun BranchItem(
                 expanded = showMenu,
                 onDismissRequest = { showMenu = false }
             ) {
-                if (!isCurrent) {
+                // 当前分支的选项：Rename, Create Tag, Copy Name
+                if (isCurrent) {
+                    // Rename
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.branches_rename)) },
+                        onClick = {
+                            onRename?.invoke()
+                            showMenu = false
+                        },
+                        leadingIcon = {
+                            Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(18.dp))
+                        }
+                    )
+                    
+                    // Create Tag
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.branches_create_tag)) },
+                        onClick = {
+                            onCreateTag?.invoke()
+                            showMenu = false
+                        },
+                        leadingIcon = {
+                            Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+                        }
+                    )
+                    
+                    // Copy Name
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.branches_copy_name)) },
+                        onClick = {
+                            val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                            clipboard.setPrimaryClip(ClipData.newPlainText("branch name", branch.name))
+                            Toast.makeText(context, strNameCopied, Toast.LENGTH_SHORT).show()
+                            showMenu = false
+                        },
+                        leadingIcon = {
+                            Icon(Icons.Default.Code, contentDescription = null, modifier = Modifier.size(18.dp))
+                        }
+                    )
+                } else {
+                    // 非当前分支的选项：Checkout, Merge into Current, Rebase onto Current, Rename, Delete
+                    // Checkout
                     DropdownMenuItem(
                         text = {
                             Text(
@@ -616,84 +667,95 @@ private fun BranchItem(
                             Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(18.dp))
                         }
                     )
-                }
-                if (!isRemote) {
-                    DropdownMenuItem(
-                        text = { Text(stringResource(R.string.branches_merge_into_current)) },
-                        onClick = {
-                            onMerge?.invoke() ?: run {
+                    
+                    // Merge into Current (仅本地分支)
+                    if (!isRemote) {
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.branches_merge_into_current)) },
+                            onClick = {
+                                onMerge?.invoke() ?: run {
+                                    Toast.makeText(context, strMergeOnlyLocal, Toast.LENGTH_SHORT).show()
+                                }
+                                showMenu = false
+                            },
+                            leadingIcon = {
+                                Icon(Icons.AutoMirrored.Filled.MergeType, contentDescription = null, modifier = Modifier.size(18.dp))
+                            }
+                        )
+                        
+                        // Rebase onto Current (仅本地分支)
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.branches_rebase_onto_current)) },
+                            onClick = {
+                                onRebase?.invoke() ?: run {
+                                    Toast.makeText(context, strRebaseOnlyLocal, Toast.LENGTH_SHORT).show()
+                                }
+                                showMenu = false
+                            },
+                            leadingIcon = {
+                                Icon(Icons.Default.ImportExport, contentDescription = null, modifier = Modifier.size(18.dp))
+                            }
+                        )
+                    }
+                    
+                    // Rename (仅本地分支)
+                    if (!isRemote) {
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.branches_rename)) },
+                            onClick = {
+                                onRename?.invoke() ?: run {
+                                    Toast.makeText(context, strRenameOnlyLocal, Toast.LENGTH_SHORT).show()
+                                }
+                                showMenu = false
+                            },
+                            leadingIcon = {
+                                Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(18.dp))
+                            }
+                        )
+                    }
+                    
+                    // Delete (仅本地分支)
+                    if (!isRemote) {
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.branches_delete_branch)) },
+                            onClick = {
+                                onDelete?.invoke() ?: run {
+                                    Toast.makeText(context, strDeleteOnlyLocal, Toast.LENGTH_SHORT).show()
+                                }
+                                showMenu = false
+                            },
+                            leadingIcon = {
+                                Icon(Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(18.dp))
+                            }
+                        )
+                    }
+                    
+                    // 远程分支的禁用提示
+                    if (isRemote) {
+                        HorizontalDivider()
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.branches_merge_into_current)) },
+                            onClick = {
                                 Toast.makeText(context, strMergeOnlyLocal, Toast.LENGTH_SHORT).show()
-                            }
-                            showMenu = false
-                        },
-                        leadingIcon = {
-                            Icon(Icons.AutoMirrored.Filled.MergeType, contentDescription = null, modifier = Modifier.size(18.dp))
-                        }
-                    )
-                    DropdownMenuItem(
-                        text = { Text(stringResource(R.string.branches_rebase_onto_current)) },
-                        onClick = {
-                            onRebase?.invoke() ?: run {
+                                showMenu = false
+                            },
+                            leadingIcon = {
+                                Icon(Icons.AutoMirrored.Filled.MergeType, contentDescription = null, modifier = Modifier.size(18.dp))
+                            },
+                            enabled = false
+                        )
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.branches_rebase_onto_current)) },
+                            onClick = {
                                 Toast.makeText(context, strRebaseOnlyLocal, Toast.LENGTH_SHORT).show()
-                            }
-                            showMenu = false
-                        },
-                        leadingIcon = {
-                            Icon(Icons.Default.ImportExport, contentDescription = null, modifier = Modifier.size(18.dp))
-                        }
-                    )
-                }
-                if (!isCurrent && !isRemote) {
-                    DropdownMenuItem(
-                        text = { Text(stringResource(R.string.branches_delete_branch)) },
-                        onClick = {
-                            onDelete?.invoke() ?: run {
-                                Toast.makeText(context, strDeleteOnlyLocal, Toast.LENGTH_SHORT).show()
-                            }
-                            showMenu = false
-                        },
-                        leadingIcon = {
-                            Icon(Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(18.dp))
-                        }
-                    )
-                    DropdownMenuItem(
-                        text = { Text(stringResource(R.string.action_rename)) },
-                        onClick = {
-                            onRename?.invoke() ?: run {
-                                Toast.makeText(context, strRenameOnlyLocal, Toast.LENGTH_SHORT).show()
-                            }
-                            showMenu = false
-                        },
-                        leadingIcon = {
-                            Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(18.dp))
-                        }
-                    )
-                }
-
-                // 杩滅▼鍒嗘敮鐨勬彁绀鸿彍鍗曢」
-                if (isRemote) {
-                    DropdownMenuItem(
-                        text = { Text(stringResource(R.string.branches_merge_into_current)) },
-                        onClick = {
-                            Toast.makeText(context, strMergeOnlyLocal, Toast.LENGTH_SHORT).show()
-                            showMenu = false
-                        },
-                        leadingIcon = {
-                            Icon(Icons.AutoMirrored.Filled.MergeType, contentDescription = null, modifier = Modifier.size(18.dp))
-                        },
-                        enabled = false
-                    )
-                    DropdownMenuItem(
-                        text = { Text(stringResource(R.string.branches_rebase_onto_current)) },
-                        onClick = {
-                            Toast.makeText(context, strRebaseOnlyLocal, Toast.LENGTH_SHORT).show()
-                            showMenu = false
-                        },
-                        leadingIcon = {
-                            Icon(Icons.Default.ImportExport, contentDescription = null, modifier = Modifier.size(18.dp))
-                        },
-                        enabled = false
-                    )
+                                showMenu = false
+                            },
+                            leadingIcon = {
+                                Icon(Icons.Default.ImportExport, contentDescription = null, modifier = Modifier.size(18.dp))
+                            },
+                            enabled = false
+                        )
+                    }
                 }
             }
         }

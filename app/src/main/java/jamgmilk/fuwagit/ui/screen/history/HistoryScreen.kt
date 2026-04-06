@@ -67,12 +67,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import jamgmilk.fuwagit.R
 import jamgmilk.fuwagit.domain.model.git.GitCommit
 import jamgmilk.fuwagit.domain.model.git.GitResetMode
 import jamgmilk.fuwagit.ui.components.ResetConfirmDialog
@@ -92,11 +94,11 @@ fun HistoryScreen(
     val colors = MaterialTheme.colorScheme
 
     ScreenTemplate(
-        title = "History",
+        title = stringResource(R.string.screen_history),
         modifier = modifier,
         actions = {
             Text(
-                text = "${history.size} commits",
+                text = stringResource(R.string.history_commits_count_format, history.size),
                 style = MaterialTheme.typography.bodySmall,
                 color = colors.onSurfaceVariant
             )
@@ -154,12 +156,12 @@ private fun EmptyHistoryState() {
                 modifier = Modifier.size(48.dp)
             )
             Text(
-                "No commits yet",
+                stringResource(R.string.history_no_commits),
                 style = MaterialTheme.typography.titleMedium,
                 color = colors.onSurfaceVariant
             )
             Text(
-                "Make your first commit to see history",
+                stringResource(R.string.history_first_commit_message),
                 style = MaterialTheme.typography.bodySmall,
                 color = colors.onSurfaceVariant.copy(alpha = 0.7f)
             )
@@ -295,7 +297,7 @@ private fun CommitTimelineItem(
                 ) {
                     Icon(
                         imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                        contentDescription = if (expanded) "Collapse" else "Expand",
+                        contentDescription = if (expanded) stringResource(R.string.action_collapse) else stringResource(R.string.action_expand),
                         tint = colors.onSurfaceVariant,
                         modifier = Modifier.size(20.dp)
                     )
@@ -359,7 +361,7 @@ private fun TimelineIndicator(
             if (isMerge) {
                 Icon(
                     Icons.AutoMirrored.Filled.MergeType,
-                    contentDescription = "Merge",
+                    contentDescription = stringResource(R.string.history_merge_badge),
                     tint = Color.White,
                     modifier = Modifier.size(10.dp)
                 )
@@ -390,7 +392,7 @@ private fun MergeBadge() {
                 modifier = Modifier.size(12.dp)
             )
             Text(
-                text = "MERGE",
+                text = stringResource(R.string.history_merge_badge),
                 style = MaterialTheme.typography.labelSmall,
                 fontWeight = FontWeight.Bold,
                 color = colors.tertiary,
@@ -453,34 +455,34 @@ private fun CommitDetails(
     ) {
         DetailRow(
             icon = Icons.Default.Code,
-            label = "Hash",
+            label = stringResource(R.string.credential_info_hash),
             value = commit.hash,
             isMonospace = true
         )
 
         DetailRow(
             icon = Icons.Default.Person,
-            label = "Author",
+            label = stringResource(R.string.credential_info_author),
             value = commit.authorName
         )
 
         DetailRow(
             icon = Icons.Default.Email,
-            label = "Email",
+            label = stringResource(R.string.credential_info_email),
             value = commit.authorEmail,
             isMonospace = true
         )
 
         DetailRow(
             icon = Icons.Default.Schedule,
-            label = "Date",
+            label = stringResource(R.string.credential_info_date),
             value = timeFmt.format(Date(commit.timestamp))
         )
 
         if (commit.isMerge) {
             DetailRow(
                 icon = Icons.Default.AccountTree,
-                label = "Parents",
+                label = stringResource(R.string.history_parents_label),
                 value = commit.parentHashes.map { it.take(7) }.joinToString(", ")
             )
         }
@@ -505,24 +507,24 @@ private fun CommitDetails(
             ) {
                 StatChip(
                     value = "${commitDetail.totalFiles}",
-                    label = "Files",
+                    label = stringResource(R.string.history_files_label),
                     color = colors.primary
                 )
                 StatChip(
                     value = "+${commitDetail.totalAdditions}",
-                    label = "Additions",
+                    label = stringResource(R.string.history_additions_label),
                     color = colors.primary
                 )
                 StatChip(
                     value = "-${commitDetail.totalDeletions}",
-                    label = "Deletions",
+                    label = stringResource(R.string.history_deletions_label),
                     color = colors.error
                 )
             }
 
             Spacer(Modifier.height(8.dp))
             Text(
-                text = "Changed Files",
+                text = stringResource(R.string.history_changed_files),
                 style = MaterialTheme.typography.labelMedium,
                 color = colors.onSurfaceVariant,
                 fontWeight = FontWeight.Bold
@@ -530,7 +532,7 @@ private fun CommitDetails(
 
             if (commitDetail.fileChanges.isEmpty()) {
                 Text(
-                    text = "No file changes",
+                    text = stringResource(R.string.history_no_file_changes),
                     style = MaterialTheme.typography.bodySmall,
                     color = colors.onSurfaceVariant.copy(alpha = 0.5f),
                     modifier = Modifier.padding(vertical = 8.dp)
@@ -563,7 +565,7 @@ private fun CommitDetails(
                     modifier = Modifier.size(18.dp)
                 )
                 Spacer(Modifier.width(8.dp))
-                Text("Reset to this commit", style = MaterialTheme.typography.labelLarge)
+                Text(stringResource(R.string.history_reset_to_commit), style = MaterialTheme.typography.labelLarge)
                 Spacer(Modifier.width(8.dp))
                 Icon(
                     Icons.Default.ExpandMore,
@@ -577,7 +579,7 @@ private fun CommitDetails(
                 onDismissRequest = { showResetMenu = false }
             ) {
                 DropdownMenuItem(
-                    text = { Text("Soft Reset", color = colors.primary) },
+                    text = { Text(stringResource(R.string.dialog_reset_soft_label), color = colors.primary) },
                     leadingIcon = {
                         Icon(
                             Icons.Default.ArrowUpward,
@@ -592,7 +594,7 @@ private fun CommitDetails(
                     }
                 )
                 DropdownMenuItem(
-                    text = { Text("Mixed Reset", color = colors.tertiary) },
+                    text = { Text(stringResource(R.string.dialog_reset_mixed_label), color = colors.tertiary) },
                     leadingIcon = {
                         Icon(
                             Icons.Default.Replay,
@@ -607,7 +609,7 @@ private fun CommitDetails(
                     }
                 )
                 DropdownMenuItem(
-                    text = { Text("Hard Reset", color = colors.error) },
+                    text = { Text(stringResource(R.string.dialog_reset_hard_label), color = colors.error) },
                     leadingIcon = {
                         Icon(
                             Icons.Default.DeleteForever,

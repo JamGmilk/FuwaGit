@@ -98,12 +98,12 @@ fun HttpsCredentialInfoDialog(
         text = {
             Column(modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 SensitiveInfoRow(
-                    label = "Host", value = credential.host,
+                    label = stringResource(R.string.credential_info_host), value = credential.host,
                     onCopy = { clipboardManager.setText(AnnotatedString(credential.host)); scope.launch { snackbarHostState.showSnackbar(message = hostCopiedText, duration = SnackbarDuration.Short) } }
                 )
                 HorizontalDivider(color = colors.outline.copy(alpha = 0.2f))
                 SensitiveInfoRow(
-                    label = "Username", value = credential.username,
+                    label = stringResource(R.string.credential_info_username), value = credential.username,
                     onCopy = { clipboardManager.setText(AnnotatedString(credential.username)); scope.launch { snackbarHostState.showSnackbar(message = usernameCopiedText, duration = SnackbarDuration.Short) } }
                 )
                 HorizontalDivider(color = colors.outline.copy(alpha = 0.2f))
@@ -121,15 +121,15 @@ fun HttpsCredentialInfoDialog(
                     }
                 } else {
                     SensitiveInfoRow(
-                        label = "Password", value = passwordValue ?: "", isSensitive = true, isRevealed = showPassword,
+                        label = stringResource(R.string.credential_info_password), value = passwordValue ?: "", isSensitive = true, isRevealed = showPassword,
                         onToggleReveal = { showPassword = !showPassword },
                         onCopy = { clipboardManager.setText(AnnotatedString(passwordValue ?: "")); scope.launch { snackbarHostState.showSnackbar(message = passwordCopiedText, duration = SnackbarDuration.Short) } }
                     )
                 }
                 HorizontalDivider(color = colors.outline.copy(alpha = 0.2f))
-                InfoRow(label = "Created", value = formatTimestamp(credential.createdAt))
+                InfoRow(label = stringResource(R.string.credential_info_created), value = formatTimestamp(credential.createdAt))
                 HorizontalDivider(color = colors.outline.copy(alpha = 0.2f))
-                InfoRow(label = "Updated", value = formatTimestamp(credential.updatedAt))
+                InfoRow(label = stringResource(R.string.credential_info_updated), value = formatTimestamp(credential.updatedAt))
             }
         },
         confirmButton = {
@@ -195,17 +195,17 @@ fun SshKeyInfoDialog(
         },
         text = {
             Column(modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                SensitiveInfoRow(label = "Name", value = key.name, onCopy = { clipboardManager.setText(AnnotatedString(key.name)); scope.launch { snackbarHostState.showSnackbar(message = nameCopiedText, duration = SnackbarDuration.Short) } })
+                SensitiveInfoRow(label = stringResource(R.string.credential_info_name), value = key.name, onCopy = { clipboardManager.setText(AnnotatedString(key.name)); scope.launch { snackbarHostState.showSnackbar(message = nameCopiedText, duration = SnackbarDuration.Short) } })
                 HorizontalDivider(color = colors.outline.copy(alpha = 0.2f))
-                SensitiveInfoRow(label = "Type", value = key.type, valueColor = colors.tertiary, onCopy = { clipboardManager.setText(AnnotatedString(key.type)); scope.launch { snackbarHostState.showSnackbar(message = typeCopiedText, duration = SnackbarDuration.Short) } })
+                SensitiveInfoRow(label = stringResource(R.string.credential_info_type), value = key.type, valueColor = colors.tertiary, onCopy = { clipboardManager.setText(AnnotatedString(key.type)); scope.launch { snackbarHostState.showSnackbar(message = typeCopiedText, duration = SnackbarDuration.Short) } })
                 HorizontalDivider(color = colors.outline.copy(alpha = 0.2f))
-                SensitiveInfoRow(label = "Fingerprint", value = key.fingerprint, isMonospace = true, onCopy = { clipboardManager.setText(AnnotatedString(key.fingerprint)); scope.launch { snackbarHostState.showSnackbar(message = fingerprintCopiedText, duration = SnackbarDuration.Short) } })
+                SensitiveInfoRow(label = stringResource(R.string.credential_info_fingerprint), value = key.fingerprint, isMonospace = true, onCopy = { clipboardManager.setText(AnnotatedString(key.fingerprint)); scope.launch { snackbarHostState.showSnackbar(message = fingerprintCopiedText, duration = SnackbarDuration.Short) } })
                 HorizontalDivider(color = colors.outline.copy(alpha = 0.2f))
                 if (key.comment.isNotBlank()) {
-                    SensitiveInfoRow(label = "Comment", value = key.comment, onCopy = { clipboardManager.setText(AnnotatedString(key.comment)); scope.launch { snackbarHostState.showSnackbar(message = commentCopiedText, duration = SnackbarDuration.Short) } })
+                    SensitiveInfoRow(label = stringResource(R.string.credential_info_comment), value = key.comment, onCopy = { clipboardManager.setText(AnnotatedString(key.comment)); scope.launch { snackbarHostState.showSnackbar(message = commentCopiedText, duration = SnackbarDuration.Short) } })
                     HorizontalDivider(color = colors.outline.copy(alpha = 0.2f))
                 }
-                SensitiveInfoRow(label = "Public Key", value = key.publicKey, isMonospace = true, isSensitive = false, isRevealed = true, showToggle = false, onCopy = { clipboardManager.setText(AnnotatedString(key.publicKey)); scope.launch { snackbarHostState.showSnackbar(message = publicKeyCopiedText, duration = SnackbarDuration.Short) } })
+                SensitiveInfoRow(label = stringResource(R.string.credential_info_public_key), value = key.publicKey, isMonospace = true, isSensitive = false, isRevealed = true, showToggle = false, onCopy = { clipboardManager.setText(AnnotatedString(key.publicKey)); scope.launch { snackbarHostState.showSnackbar(message = publicKeyCopiedText, duration = SnackbarDuration.Short) } })
                 HorizontalDivider(color = colors.outline.copy(alpha = 0.2f))
                 if (!isDecryptionUnlocked && privateKeyValue == null) {
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
@@ -221,12 +221,12 @@ fun SshKeyInfoDialog(
                     }
                     HorizontalDivider(color = colors.outline.copy(alpha = 0.2f))
                 } else if (privateKeyValue != null) {
-                    SensitiveInfoRow(label = "Private Key", value = privateKeyValue ?: "", isMonospace = true, isSensitive = true, isRevealed = showPrivateKey, onToggleReveal = { showPrivateKey = !showPrivateKey }, onCopy = { clipboardManager.setText(AnnotatedString(privateKeyValue ?: "")); scope.launch { snackbarHostState.showSnackbar(message = privateKeyCopiedText, duration = SnackbarDuration.Short) } })
+                    SensitiveInfoRow(label = stringResource(R.string.credential_info_private_key), value = privateKeyValue ?: "", isMonospace = true, isSensitive = true, isRevealed = showPrivateKey, onToggleReveal = { showPrivateKey = !showPrivateKey }, onCopy = { clipboardManager.setText(AnnotatedString(privateKeyValue ?: "")); scope.launch { snackbarHostState.showSnackbar(message = privateKeyCopiedText, duration = SnackbarDuration.Short) } })
                     HorizontalDivider(color = colors.outline.copy(alpha = 0.2f))
                 }
-                InfoRow(label = "Passphrase", value = if (key.passphrase != null) "Protected" else "None", valueColor = if (key.passphrase != null) colors.tertiary else colors.onSurfaceVariant)
+                InfoRow(label = stringResource(R.string.credential_info_passphrase), value = if (key.passphrase != null) stringResource(R.string.credential_info_passphrase_protected) else stringResource(R.string.credential_info_passphrase_none), valueColor = if (key.passphrase != null) colors.tertiary else colors.onSurfaceVariant)
                 HorizontalDivider(color = colors.outline.copy(alpha = 0.2f))
-                InfoRow(label = "Created", value = formatTimestamp(key.createdAt))
+                InfoRow(label = stringResource(R.string.credential_info_created), value = formatTimestamp(key.createdAt))
             }
         },
         confirmButton = {

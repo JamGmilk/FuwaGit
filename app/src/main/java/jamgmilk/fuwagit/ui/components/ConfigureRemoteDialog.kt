@@ -32,8 +32,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import jamgmilk.fuwagit.R
 import jamgmilk.fuwagit.domain.model.credential.HttpsCredential
 import jamgmilk.fuwagit.domain.model.credential.SshKey
 import jamgmilk.fuwagit.ui.screen.credentials.CredentialSelectDialog
@@ -56,7 +58,7 @@ fun ConfigureRemoteDialog(
 
     if (showCredentialDialog) {
         CredentialSelectDialog(
-            title = "Select Credential",
+            title = stringResource(R.string.remote_configure_select_credential),
             httpsCredentials = httpsCredentials,
             sshKeys = sshKeys,
             onDismiss = { showCredentialDialog = false },
@@ -80,7 +82,7 @@ fun ConfigureRemoteDialog(
     DialogWithIcon(
         onDismiss = onDismiss,
         icon = Icons.Filled.Link,
-        title = "Configure Remote",
+        title = stringResource(R.string.myrepos_configure_remote),
         subtitle = repoName,
         content = {
 //            TipInDialog(
@@ -90,7 +92,7 @@ fun ConfigureRemoteDialog(
             OutlinedTextField(
                 value = url,
                 onValueChange = { url = it },
-                label = { Text("Remote URL") },
+                label = { Text(stringResource(R.string.remote_url_label)) },
                 leadingIcon = {
                     Icon(
                         Icons.Default.Source,
@@ -129,12 +131,12 @@ fun ConfigureRemoteDialog(
                     modifier = Modifier.size(18.dp)
                 )
                 Spacer(Modifier.width(6.dp))
-                Text("Save")
+                Text(stringResource(R.string.action_save))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel")
+                Text(stringResource(R.string.action_cancel))
             }
         }
     )
@@ -150,16 +152,20 @@ private fun CredentialSelectionButton(
 ) {
     val hasSelection = selectedHttpsUuid != null || selectedSshUuid != null
 
+    val httpsLabel = stringResource(R.string.credentials_host_label)
+    val sshLabel = stringResource(R.string.remote_ssh_key_label)
+    val credentialLabel = stringResource(R.string.remote_credential_label)
+    
     val label = when {
         selectedHttpsUuid != null -> {
             val cred = httpsCredentials.find { it.uuid == selectedHttpsUuid }
-            "${cred?.username ?: "HTTPS"}@${cred?.host ?: ""}"
+            "${cred?.username ?: httpsLabel}@${cred?.host ?: ""}"
         }
         selectedSshUuid != null -> {
             val key = sshKeys.find { it.uuid == selectedSshUuid }
-            key?.name ?: "SSH Key"
+            key?.name ?: sshLabel
         }
-        else -> "Credential"
+        else -> credentialLabel
     }
 
     val icon = when {
