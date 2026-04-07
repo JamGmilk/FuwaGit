@@ -28,11 +28,15 @@ import androidx.compose.material.icons.automirrored.filled.MergeType
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Cloud
-import androidx.compose.material.icons.filled.Code
+import androidx.compose.material.icons.filled.CloudDownload
+import androidx.compose.material.icons.filled.CloudUpload
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.ImportExport
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Label
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.outlined.AccountTree
@@ -85,7 +89,8 @@ import jamgmilk.fuwagit.ui.util.ViewModelMessagesMapper
 fun BranchesScreen(
     branchesViewModel: BranchesViewModel,
     modifier: Modifier = Modifier,
-    onCreateTag: ((String) -> Unit)? = null
+    onCreateTag: ((String) -> Unit)? = null,
+    onShowInHistory: ((String) -> Unit)? = null
 ) {
     val uiState by branchesViewModel.uiState.collectAsStateWithLifecycle()
     val local = uiState.localBranches
@@ -160,6 +165,7 @@ fun BranchesScreen(
                         showRenameDialog = true
                     },
                     onCreateTag = onCreateTag,
+                    onShowInHistory = onShowInHistory,
                     modifier = Modifier.fillMaxSize()
                 )
             }
@@ -392,6 +398,7 @@ private fun BranchListContent(
     branchToRename: String?,
     onRenameRequest: (String) -> Unit,
     onCreateTag: ((String) -> Unit)?,
+    onShowInHistory: ((String) -> Unit)?,
     modifier: Modifier = Modifier
 ) {
     val colors = MaterialTheme.colorScheme
@@ -421,6 +428,7 @@ private fun BranchListContent(
                 BranchItem(
                     branch = branch,
                     isCurrent = branch.name == currentBranch,
+                    branchesViewModel = branchesViewModel,
                     onCheckout = { branchesViewModel.checkoutBranch(branch.name) },
                     onMerge = { branchesViewModel.requestMergeBranch(branch.name) },
                     onRebase = { branchesViewModel.requestRebaseBranch(branch.name) },
@@ -428,9 +436,8 @@ private fun BranchListContent(
                         onRenameRequest(branch.name)
                     },
                     onDelete = { branchesViewModel.requestDeleteBranch(branch.name) },
-                    onCreateTag = {
-                        onCreateTag?.invoke(branch.name)
-                    }
+                    onCreateTag = onCreateTag,
+                    onShowInHistory = onShowInHistory
                 )
             }
         }
@@ -459,12 +466,14 @@ private fun BranchListContent(
                 BranchItem(
                     branch = branch,
                     isCurrent = branch.name == currentBranch,
+                    branchesViewModel = branchesViewModel,
                     onCheckout = { branchesViewModel.checkoutBranch(branch.name) },
                     onMerge = null,
                     onRebase = null,
                     onRename = null,
                     onDelete = null,
                     onCreateTag = null,
+                    onShowInHistory = null,
                     isRemote = true
                 )
             }
@@ -528,12 +537,14 @@ private fun EmptySectionMessage(message: String) {
 private fun BranchItem(
     branch: GitBranch,
     isCurrent: Boolean,
+    branchesViewModel: BranchesViewModel,
     onCheckout: () -> Unit,
     onMerge: (() -> Unit)?,
     onRebase: (() -> Unit)?,
     onRename: (() -> Unit)?,
     onDelete: (() -> Unit)?,
-    onCreateTag: (() -> Unit)?,
+    onCreateTag: ((String) -> Unit)?,
+    onShowInHistory: ((String) -> Unit)?,
     isRemote: Boolean = false
 ) {
     var expanded by remember { mutableStateOf(false) }
@@ -622,8 +633,34 @@ private fun BranchItem(
                 expanded = showMenu,
                 onDismissRequest = { showMenu = false }
             ) {
-                // 当前分支的选项：Rename, Create Tag, Copy Name
+                // 当前分支的选项
                 if (isCurrent) {
+                    // Push
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.branches_push)) },
+                        onClick = {
+                            branchesViewModel.pushCurrentBranch()
+                            showMenu = false
+                        },
+                        leadingIcon = {
+                            Icon(Icons.Default.CloudUpload, contentDescription = null, modifier = Modifier.size(18.dp))
+                        }
+                    )
+
+                    // Pull
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.branches_pull)) },
+                        onClick = {
+                            branchesViewModel.pullCurrentBranch()
+                            showMenu = false
+                        },
+                        leadingIcon = {
+                            Icon(Icons.Default.CloudDownload, contentDescription = null, modifier = Modifier.size(18.dp))
+                        }
+                    )
+
+                    HorizontalDivider()
+
                     // Rename
                     DropdownMenuItem(
                         text = { Text(stringResource(R.string.branches_rename)) },
@@ -635,19 +672,31 @@ private fun BranchItem(
                             Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(18.dp))
                         }
                     )
-                    
+
                     // Create Tag
                     DropdownMenuItem(
                         text = { Text(stringResource(R.string.branches_create_tag)) },
                         onClick = {
-                            onCreateTag?.invoke()
+                            onCreateTag?.invoke(branch.name)
                             showMenu = false
                         },
                         leadingIcon = {
-                            Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Icon(Icons.Default.Label, contentDescription = null, modifier = Modifier.size(18.dp))
                         }
                     )
-                    
+
+                    // Show in History
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.branches_show_in_history)) },
+                        onClick = {
+                            onShowInHistory?.invoke(branch.name)
+                            showMenu = false
+                        },
+                        leadingIcon = {
+                            Icon(Icons.Default.History, contentDescription = null, modifier = Modifier.size(18.dp))
+                        }
+                    )
+
                     // Copy Name
                     DropdownMenuItem(
                         text = { Text(stringResource(R.string.branches_copy_name)) },
@@ -658,7 +707,7 @@ private fun BranchItem(
                             showMenu = false
                         },
                         leadingIcon = {
-                            Icon(Icons.Default.Code, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Icon(Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(18.dp))
                         }
                     )
                 } else {
@@ -793,7 +842,7 @@ private fun BranchTypeIndicator(
         contentAlignment = Alignment.Center
     ) {
         Icon(
-            imageVector = if (isRemote) Icons.Default.Cloud else Icons.Default.Code,
+            imageVector = if (isRemote) Icons.Default.Cloud else Icons.Outlined.AccountTree,
             contentDescription = null,
             tint = if (isCurrent) Color.White else accentColor,
             modifier = Modifier.size(18.dp)

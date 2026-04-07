@@ -8,6 +8,7 @@ import jamgmilk.fuwagit.core.result.AppResult
 import jamgmilk.fuwagit.ui.state.RepoStateManager
 import jamgmilk.fuwagit.domain.model.git.GitBranch
 import jamgmilk.fuwagit.domain.model.git.GitFileStatus
+import jamgmilk.fuwagit.domain.model.git.ConflictResult
 import jamgmilk.fuwagit.domain.model.credential.CloneCredential
 import jamgmilk.fuwagit.domain.model.credential.HttpsCredential
 import jamgmilk.fuwagit.domain.model.credential.SshKey
@@ -15,6 +16,7 @@ import jamgmilk.fuwagit.ui.components.DangerousOperationType
 import jamgmilk.fuwagit.ui.components.OperationResult
 import jamgmilk.fuwagit.domain.usecase.git.GitStatusFacade
 import jamgmilk.fuwagit.domain.usecase.git.GitSyncFacade
+import jamgmilk.fuwagit.domain.usecase.git.MergeUseCase
 import jamgmilk.fuwagit.domain.usecase.credential.CredentialFacade
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -48,6 +50,9 @@ data class StatusUiState(
     val pendingOperation: DangerousOperationType? = null,
     val pendingOperationTarget: String? = null,
     val operationResult: OperationResult? = null,
+    // 冲突解决相关状态
+    val conflictResult: ConflictResult? = null,
+    val isResolvingConflict: Boolean = false,
     // 凭证相关状态
     val selectedCredentialUuid: String? = null,
     val selectedSshKeyUuid: String? = null,
@@ -60,6 +65,7 @@ class StatusViewModel @Inject constructor(
     private val currentRepoManager: RepoStateManager,
     private val gitStatus: GitStatusFacade,
     private val gitSync: GitSyncFacade,
+    private val mergeUseCase: MergeUseCase,
     private val credential: CredentialFacade
 ) : ViewModel() {
 
@@ -302,7 +308,20 @@ class StatusViewModel @Inject constructor(
             gitSync.pull(path, credentials)
                 .onSuccess { result ->
                     appendTerminalLog("git pull", result.toString())
-                    refreshWorkspace()
+                    if (result.hasConflicts) {
+                        // Pull 产生冲突，显示冲突解决 UI
+                        val conflictResult = mergeUseCase.getConflicts(path)
+                        conflictResult.onSuccess { conflicts ->
+                            _uiState.update {
+                                it.copy(
+                                    conflictResult = conflicts,
+                                    isResolvingConflict = true
+                                )
+                            }
+                        }
+                    } else {
+                        refreshWorkspace()
+                    }
                 }
                 .onError { e ->
                     appendTerminalLog("git pull", "Error: ${e.message}")
@@ -429,6 +448,87 @@ class StatusViewModel @Inject constructor(
                 pendingOperation = null,
                 pendingOperationTarget = null
             )
+        }
+    }
+
+    // ============ 冲突处理方法 ============
+
+    fun markConflictResolved(filePath: String) {
+        val path = currentRepoPath ?: return
+        viewModelScope.launch {
+            mergeUseCase.resolveConflict(path, filePath)
+                .onSuccess { checkConflictStatus() }
+                .onError { e -> _uiState.update { it.copy(error = e.message) } }
+        }
+    }
+
+    fun checkConflictStatus() {
+        val path = currentRepoPath ?: return
+        viewModelScope.launch {
+            mergeUseCase.getConflicts(path)
+                .onSuccess { result ->
+                    if (result.isConflicting) {
+                        _uiState.update { it.copy(conflictResult = result, isResolvingConflict = true) }
+                    } else {
+                        refreshWorkspace()
+                        _uiState.update {
+                            it.copy(isResolvingConflict = false, conflictResult = null,
+                                operationResult = OperationResult.Success("Conflicts resolved"))
+                        }
+                    }
+                }
+                .onError { e -> _uiState.update { it.copy(error = e.message) } }
+        }
+    }
+
+    fun finishConflictResolution() {
+        val path = currentRepoPath ?: return
+        viewModelScope.launch {
+            mergeUseCase.getConflicts(path)
+                .onSuccess { result ->
+                    if (result.allResolved || result.allStaged) {
+                        refreshWorkspace()
+                        _uiState.update {
+                            it.copy(isResolvingConflict = false, conflictResult = null,
+                                operationResult = OperationResult.Success("Conflicts resolved"))
+                        }
+                    }
+                }
+                .onError { e -> _uiState.update { it.copy(error = e.message) } }
+        }
+    }
+
+    fun cancelConflictResolution() {
+        _uiState.update { it.copy(isResolvingConflict = false, conflictResult = null) }
+    }
+
+    fun abortRebase() {
+        val path = currentRepoPath ?: return
+        viewModelScope.launch {
+            mergeUseCase.abortRebase(path)
+                .onSuccess { result ->
+                    _uiState.update {
+                        it.copy(isResolvingConflict = false, conflictResult = null,
+                            operationResult = OperationResult.Success(result))
+                    }
+                    refreshWorkspace()
+                }
+                .onError { e -> _uiState.update { it.copy(error = e.message) } }
+        }
+    }
+
+    fun continueRebase() {
+        val path = currentRepoPath ?: return
+        viewModelScope.launch {
+            mergeUseCase.continueRebase(path)
+                .onSuccess { result ->
+                    _uiState.update {
+                        it.copy(isResolvingConflict = false, conflictResult = null,
+                            operationResult = OperationResult.Success(result))
+                    }
+                    refreshWorkspace()
+                }
+                .onError { e -> _uiState.update { it.copy(error = e.message) } }
         }
     }
 }

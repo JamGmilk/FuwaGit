@@ -154,6 +154,9 @@ class GitRepositoryImpl @Inject constructor(
     override suspend fun pushAllTags(repoPath: String, remoteName: String): AppResult<String> =
         withContext(Dispatchers.IO) { tag.pushAllTags(repoPath, remoteName).toAppResult() }
 
+    override suspend fun checkoutTag(repoPath: String, tagName: String): AppResult<String> =
+        withContext(Dispatchers.IO) { tag.checkoutTag(repoPath, tagName).toAppResult() }
+
     // ==================== Diff 相关操作 ====================
 
     override suspend fun getWorkingTreeDiff(repoPath: String, filePath: String): AppResult<FileDiff> =

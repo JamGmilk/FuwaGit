@@ -228,6 +228,35 @@ fun StatusScreen(
         }
     }
 
+    // 冲突解决对话框
+    val conflictResult = uiState.conflictResult
+    if (conflictResult != null && uiState.isResolvingConflict) {
+        val isRebase = conflictResult.operationType == "REBASE"
+        val allResolved = conflictResult.allResolved
+
+        jamgmilk.fuwagit.ui.components.ConflictResolutionDialog(
+            conflictResult = conflictResult,
+            onResolveConflict = { filePath ->
+                statusViewModel.markConflictResolved(filePath)
+            },
+            onFinish = {
+                if (isRebase && allResolved) {
+                    statusViewModel.continueRebase()
+                } else {
+                    statusViewModel.finishConflictResolution()
+                }
+            },
+            onAbort = {
+                if (conflictResult.operationType == "REBASE") {
+                    statusViewModel.abortRebase()
+                } else {
+                    statusViewModel.cancelConflictResolution()
+                }
+            },
+            onDismiss = { statusViewModel.cancelConflictResolution() }
+        )
+    }
+
     // Operation result feedback dialog
     val operationResult = uiState.operationResult
     if (operationResult != null) {

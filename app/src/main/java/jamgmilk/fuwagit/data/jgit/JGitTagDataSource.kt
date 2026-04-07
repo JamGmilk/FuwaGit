@@ -168,6 +168,23 @@ class JGitTagDataSource @Inject constructor(
             "All tags pushed to $remoteName successfully"
         }
 
+    /**
+     * Checks out a tag (creates detached HEAD state).
+     */
+    override fun checkoutTag(repoPath: String, tagName: String): Result<String> =
+        core.withGit(repoPath) { git ->
+            val repository = git.repository
+            val ref = repository.findRef("refs/tags/$tagName")
+            require(ref != null) { "Tag '$tagName' not found" }
+
+            // Checkout tag（会进入 detached HEAD 状态）
+            git.checkout()
+                .setName(tagName)
+                .call()
+
+            "Checked out tag '$tagName' (detached HEAD state)"
+        }
+
     // ==================== 私有辅助方法 ====================
 
     /**

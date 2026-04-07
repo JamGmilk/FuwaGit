@@ -1,6 +1,32 @@
 package jamgmilk.fuwagit.domain.model.git
 
 /**
+ * 行内差异（character-level diff）
+ * 用于高亮显示一行中哪些具体字符发生了变化
+ *
+ * @param content 字符内容
+ * @param isAdded true 表示这些字符是新增的，false 表示这些字符是删除的
+ * @param startIndex 在原行内容中的起始位置
+ */
+data class InlineDiffSegment(
+    val content: String,
+    val isAdded: Boolean,
+    val startIndex: Int
+)
+
+/**
+ * 行内差异信息
+ *
+ * @param segments 行内的差异段列表
+ * @param hasInlineDiff 是否有行内差异
+ */
+data class InlineDiff(
+    val segments: List<InlineDiffSegment>
+) {
+    val hasInlineDiff: Boolean get() = segments.size > 1
+}
+
+/**
  * Diff 行类型
  */
 enum class DiffLineType {
@@ -21,12 +47,14 @@ enum class DiffLineType {
  * @param lineType 行类型
  * @param oldLineNumber 旧文件中的行号（从 1 开始，null 表示新增）
  * @param newLineNumber 新文件中的行号（从 1 开始，null 表示删除）
+ * @param inlineDiff 行内差异信息（用于高亮行内变化的字符）
  */
 data class DiffLine(
     val content: String,
     val lineType: DiffLineType,
     val oldLineNumber: Int? = null,
-    val newLineNumber: Int? = null
+    val newLineNumber: Int? = null,
+    val inlineDiff: InlineDiff? = null
 ) {
     /**
      * 获取带符号的行显示（用于原始 diff 显示）

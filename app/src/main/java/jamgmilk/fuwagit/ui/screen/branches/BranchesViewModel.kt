@@ -8,6 +8,7 @@ import jamgmilk.fuwagit.domain.model.git.GitBranch
 import jamgmilk.fuwagit.ui.components.DangerousOperationType
 import jamgmilk.fuwagit.ui.components.OperationResult
 import jamgmilk.fuwagit.domain.usecase.git.BranchUseCase
+import jamgmilk.fuwagit.domain.usecase.git.GitSyncFacade
 import jamgmilk.fuwagit.domain.usecase.git.MergeUseCase
 import jamgmilk.fuwagit.ui.state.RepoStateManager
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -41,7 +42,8 @@ data class BranchesUiState(
 class BranchesViewModel @Inject constructor(
     private val currentRepoManager: RepoStateManager,
     private val branchUseCase: BranchUseCase,
-    private val mergeUseCase: MergeUseCase
+    private val mergeUseCase: MergeUseCase,
+    private val gitSync: GitSyncFacade
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(BranchesUiState())
@@ -182,23 +184,35 @@ class BranchesViewModel @Inject constructor(
 
         viewModelScope.launch {
             mergeUseCase.merge(path, branchName)
-                .onSuccess {
-                    _uiState.update {
-                        it.copy(
-                            operationResult = OperationResult.Success("Successfully merged '$branchName' into current branch"),
-                            pendingOperation = null,
-                            pendingOperationTarget = null
-                        )
+                .onSuccess { result ->
+                    if (result.isConflicting) {
+                        // 有冲突，显示冲突解决 UI
+                        _uiState.update {
+                            it.copy(
+                                conflictResult = result,
+                                isResolvingConflict = true,
+                                pendingOperation = null,
+                                pendingOperationTarget = null
+                            )
+                        }
+                    } else {
+                        // 合并成功
+                        loadBranches()
+                        _uiState.update {
+                            it.copy(
+                                operationResult = OperationResult.Success(result.message),
+                                pendingOperation = null,
+                                pendingOperationTarget = null,
+                                conflictResult = null
+                            )
+                        }
                     }
-                    loadBranches()
                 }
                 .onError { e ->
                     val suggestion = when {
-                        e.message?.contains("conflict") == true ->
-                            "Resolve the conflicts manually in the Status screen, then commit the changes."
                         e.message?.contains("not fully merged") == true ->
                             "The branch contains unmerged commits. This is expected for a merge operation."
-                        else -> "Check if the current branch is up to date and try again."
+                        else -> "Please try again or check the git logs for more details."
                     }
                     _uiState.update {
                         it.copy(
@@ -217,20 +231,32 @@ class BranchesViewModel @Inject constructor(
 
         viewModelScope.launch {
             mergeUseCase.rebase(path, branchName)
-                .onSuccess {
-                    _uiState.update {
-                        it.copy(
-                            operationResult = OperationResult.Success("Successfully rebased onto '$branchName'"),
-                            pendingOperation = null,
-                            pendingOperationTarget = null
-                        )
+                .onSuccess { result ->
+                    if (result.isConflicting) {
+                        // 有冲突，显示冲突解决 UI
+                        _uiState.update {
+                            it.copy(
+                                conflictResult = result,
+                                isResolvingConflict = true,
+                                pendingOperation = null,
+                                pendingOperationTarget = null
+                            )
+                        }
+                    } else {
+                        // Rebase 成功
+                        loadBranches()
+                        _uiState.update {
+                            it.copy(
+                                operationResult = OperationResult.Success(result.message),
+                                pendingOperation = null,
+                                pendingOperationTarget = null,
+                                conflictResult = null
+                            )
+                        }
                     }
-                    loadBranches()
                 }
                 .onError { e ->
                     val suggestion = when {
-                        e.message?.contains("conflict") == true ->
-                            "Resolve conflicts and run 'git rebase --continue', or 'git rebase --abort' to cancel."
                         e.message?.contains("up to date") == true ->
                             "The current branch is already up to date with the target branch."
                         else -> "Run 'git rebase --abort' to cancel the rebase operation."
@@ -300,6 +326,64 @@ class BranchesViewModel @Inject constructor(
                 }
                 .onError { e ->
                     _uiState.update { it.copy(error = e.message) }
+                }
+        }
+    }
+
+    /**
+     * Push 当前分支到远程
+     */
+    fun pushCurrentBranch() {
+        val path = currentRepoPath ?: return
+        val branchName = _uiState.value.currentBranch?.name ?: return
+
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true) }
+            gitSync.push(path, null)
+                .onSuccess {
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            operationResult = OperationResult.Success("Branch '$branchName' pushed successfully")
+                        )
+                    }
+                }
+                .onError { e ->
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            operationResult = OperationResult.Failure(e.message ?: "Failed to push branch")
+                        )
+                    }
+                }
+        }
+    }
+
+    /**
+     * Pull 远程更新到当前分支
+     */
+    fun pullCurrentBranch() {
+        val path = currentRepoPath ?: return
+
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true) }
+            gitSync.pull(path, null)
+                .onSuccess { result ->
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            operationResult = OperationResult.Success(result.message)
+                        )
+                    }
+                    loadBranches()
+                }
+                .onError { e ->
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            operationResult = OperationResult.Failure(e.message ?: "Failed to pull")
+                        )
+                    }
                 }
         }
     }

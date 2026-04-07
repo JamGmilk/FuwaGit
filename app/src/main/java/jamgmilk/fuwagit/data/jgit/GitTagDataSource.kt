@@ -40,4 +40,9 @@ interface GitTagDataSource {
      * Pushes all tags to remote.
      */
     fun pushAllTags(repoPath: String, remoteName: String = "origin"): Result<String>
+
+    /**
+     * Checks out a tag (creates detached HEAD state).
+     */
+    fun checkoutTag(repoPath: String, tagName: String): Result<String>
 }

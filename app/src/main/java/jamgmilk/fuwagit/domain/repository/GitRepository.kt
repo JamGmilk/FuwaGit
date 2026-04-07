@@ -116,6 +116,8 @@ interface GitRepository {
 
     suspend fun pushAllTags(repoPath: String, remoteName: String = "origin"): AppResult<String>
 
+    suspend fun checkoutTag(repoPath: String, tagName: String): AppResult<String>
+
     // ==================== Diff 相关操作 ====================
 
     suspend fun getWorkingTreeDiff(repoPath: String, filePath: String): AppResult<FileDiff>

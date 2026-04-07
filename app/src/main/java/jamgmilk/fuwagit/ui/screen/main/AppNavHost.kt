@@ -263,7 +263,15 @@ fun MainScreen(
                     )
                     2 -> BranchesScreen(
                         branchesViewModel = branchesViewModel,
-                        modifier = Modifier.fillMaxSize()
+                        modifier = Modifier.fillMaxSize(),
+                        onCreateTag = { branchName ->
+                            // 导航到 Tags 页面，传递分支名称用于创建标签
+                            tagsViewModel.showCreateDialog()
+                        },
+                        onShowInHistory = { branchName ->
+                            // 切换到 History 页面 (pager index = 1)
+                            navigateToPage(1)
+                        }
                     )
                     3 -> TagsScreen(
                         tagsViewModel = tagsViewModel,

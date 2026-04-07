@@ -104,6 +104,19 @@ class TagUseCase @Inject constructor(
     }
 
     /**
+     * 检出标签（进入 detached HEAD 状态）
+     */
+    suspend fun checkoutTag(repoPath: String, tagName: String): AppResult<String> {
+        if (repoPath.isBlank()) {
+            return AppResult.Error(AppException.Validation("Repository path cannot be empty"))
+        }
+        if (tagName.isBlank()) {
+            return AppResult.Error(AppException.Validation("Tag name cannot be empty"))
+        }
+        return repository.checkoutTag(repoPath, tagName)
+    }
+
+    /**
      * 验证标签名称是否合法
      * Git 标签名称规则：
      * - 不能包含空格、~、^、:、?、*、[、\

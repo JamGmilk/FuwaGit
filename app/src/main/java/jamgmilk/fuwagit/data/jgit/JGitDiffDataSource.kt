@@ -5,6 +5,8 @@ import jamgmilk.fuwagit.domain.model.git.DiffLine
 import jamgmilk.fuwagit.domain.model.git.DiffLineType
 import jamgmilk.fuwagit.domain.model.git.FileDiff
 import jamgmilk.fuwagit.domain.model.git.GitChangeType
+import jamgmilk.fuwagit.domain.model.git.InlineDiff
+import jamgmilk.fuwagit.domain.model.git.InlineDiffSegment
 import org.eclipse.jgit.api.Git
 import org.eclipse.jgit.diff.DiffEntry
 import org.eclipse.jgit.diff.DiffEntry.ChangeType
@@ -192,13 +194,28 @@ class JGitDiffDataSource @Inject constructor(
 
     /**
      * 获取 Index（暂存区）的树
+     * 使用 DirCache 读取暂存区内容并构建为树
      */
     private fun getTreeForIndex(repository: Repository): RevTree {
-        val revWalk = RevWalk(repository)
-        val headCommit = revWalk.parseCommit(repository.resolve("HEAD"))
-        val tree = headCommit.tree
-        revWalk.dispose()
-        return tree
+        return try {
+            // 使用 DirCache 读取暂存区
+            val dirCache = repository.readDirCache()
+            val inserter = repository.newObjectInserter()
+            
+            // 将 DirCache 转换为树
+            val treeId = dirCache.writeTree(inserter)
+            inserter.flush()
+            inserter.close()
+            
+            // 解析树
+            val revWalk = RevWalk(repository)
+            val tree = revWalk.parseTree(treeId)
+            revWalk.dispose()
+            tree
+        } catch (e: Exception) {
+            // 如果暂存区为空或不存在，返回 HEAD 的树作为后备
+            getTreeForCommit(repository, "HEAD")
+        }
     }
 
     /**
@@ -274,7 +291,7 @@ class JGitDiffDataSource @Inject constructor(
         val newContent = if (changeType != GitChangeType.Removed) {
             if (isStaged) {
                 // 读取暂存区内容
-                readIndexFileContent(filePath)
+                readIndexFileContent(repository, filePath)
             } else {
                 // 读取工作区内容
                 readWorkingFileContent(repository.workTree, filePath)
@@ -417,12 +434,23 @@ class JGitDiffDataSource @Inject constructor(
     }
 
     /**
-     * 读取暂存区文件
+     * 读取暂存区文件内容
+     * 使用 DirCache 读取指定文件的内容
      */
-    private fun readIndexFileContent(filePath: String): String? {
-        // 简化实现：实际上需要从 Git index 中读取
-        // 这里暂时返回 null，实际应该使用 DirCache 读取
-        return null
+    private fun readIndexFileContent(repository: Repository, filePath: String): String? {
+        return try {
+            val dirCache = repository.readDirCache()
+            val entry = dirCache.getEntry(filePath)
+            if (entry != null) {
+                val objectId = entry.objectId
+                val loader = repository.open(objectId)
+                String(loader.bytes)
+            } else {
+                null
+            }
+        } catch (e: Exception) {
+            null
+        }
     }
 
     /**
@@ -454,7 +482,11 @@ class JGitDiffDataSource @Inject constructor(
                 end = minOf(diffLines.size, end + contextLines)
 
                 // 创建 hunk
-                val hunkLines = diffLines.slice(start until end)
+                var hunkLines = diffLines.slice(start until end)
+                
+                // 计算行内差异
+                hunkLines = computeInlineDiffs(hunkLines)
+                
                 val oldStart = hunkLines.firstOrNull { it.oldLineNumber != null }?.oldLineNumber ?: 0
                 val newStart = hunkLines.firstOrNull { it.newLineNumber != null }?.newLineNumber ?: 0
 
@@ -475,6 +507,164 @@ class JGitDiffDataSource @Inject constructor(
         }
 
         return hunks
+    }
+    
+    /**
+     * 计算行内差异（character-level diff）
+     * 对于相邻的 Added/Deleted 行，计算哪些字符发生了变化
+     */
+    private fun computeInlineDiffs(lines: List<DiffLine>): List<DiffLine> {
+        val result = lines.toMutableList()
+        var i = 0
+        
+        while (i < result.size - 1) {
+            val current = result[i]
+            val next = result[i + 1]
+            
+            // 查找相邻的 Deleted 和 Added 行
+            if ((current.lineType == DiffLineType.Deleted && next.lineType == DiffLineType.Added) ||
+                (current.lineType == DiffLineType.Added && next.lineType == DiffLineType.Deleted)) {
+                
+                val deletedLine = if (current.lineType == DiffLineType.Deleted) current else next
+                val addedLine = if (current.lineType == DiffLineType.Added) current else next
+                
+                // 计算行内差异
+                val inlineDiff = computeCharDiff(deletedLine.content, addedLine.content)
+                
+                val deletedIndex = if (current.lineType == DiffLineType.Deleted) i else i + 1
+                val addedIndex = if (current.lineType == DiffLineType.Added) i else i + 1
+                
+                result[deletedIndex] = deletedLine.copy(inlineDiff = inlineDiff.deleted)
+                result[addedIndex] = addedLine.copy(inlineDiff = inlineDiff.added)
+                
+                i += 2
+            } else {
+                i++
+            }
+        }
+        
+        return result
+    }
+    
+    /**
+     * 计算两个字符串之间的字符级差异
+     * 返回新增和删除的 InlineDiff
+     */
+    private fun computeCharDiff(oldStr: String, newStr: String): InlineDiffPair {
+        // 使用简单的字符级 LCS 算法
+        val m = oldStr.length
+        val n = newStr.length
+        
+        // 构建 LCS DP 表
+        val dp = Array(m + 1) { IntArray(n + 1) }
+        for (i in 1..m) {
+            for (j in 1..n) {
+                if (oldStr[i - 1] == newStr[j - 1]) {
+                    dp[i][j] = dp[i - 1][j - 1] + 1
+                } else {
+                    dp[i][j] = maxOf(dp[i - 1][j], dp[i][j - 1])
+                }
+            }
+        }
+        
+        // 回溯找出差异
+        val deletedSegments = mutableListOf<InlineDiffSegment>()
+        val addedSegments = mutableListOf<InlineDiffSegment>()
+        
+        var i = m
+        var j = n
+        var lastOldPos = m
+        var lastNewPos = n
+        
+        val operations = mutableListOf<Triple<String, Int, Int>>() // type, oldPos, newPos
+        
+        while (i > 0 || j > 0) {
+            when {
+                i > 0 && j > 0 && oldStr[i - 1] == newStr[j - 1] -> {
+                    i--
+                    j--
+                }
+                j > 0 && (i == 0 || dp[i][j - 1] >= dp[i - 1][j]) -> {
+                    operations.add(Triple("added", -1, j - 1))
+                    j--
+                }
+                i > 0 && (j == 0 || dp[i][j - 1] < dp[i - 1][j]) -> {
+                    operations.add(Triple("deleted", i - 1, -1))
+                    i--
+                }
+                else -> break
+            }
+        }
+        
+        // 构建分段
+        var oldPos = 0
+        var newPos = 0
+        var pendingDeleteStart = -1
+        var pendingAddStart = -1
+        
+        for (k in operations.size - 1 downTo 0) {
+            val (type, opOldPos, opNewPos) = operations[k]
+            
+            when (type) {
+                "deleted" -> {
+                    if (pendingDeleteStart == -1) pendingDeleteStart = opOldPos
+                }
+                "added" -> {
+                    if (pendingAddStart == -1) pendingAddStart = opNewPos
+                }
+            }
+        }
+        
+        // 简化实现：标记整个字符串中不同的部分
+        val commonPrefix = computeCommonPrefix(oldStr, newStr)
+        val commonSuffix = computeCommonSuffix(oldStr, newStr, commonPrefix)
+        
+        val deletedContent = oldStr.substring(commonPrefix, oldStr.length - commonSuffix)
+        val addedContent = newStr.substring(commonPrefix, newStr.length - commonSuffix)
+        
+        val deletedInline = if (deletedContent.isNotEmpty()) {
+            InlineDiff(
+                segments = listOf(
+                    InlineDiffSegment(oldStr.substring(0, commonPrefix), false, 0),
+                    InlineDiffSegment(deletedContent, true, commonPrefix),
+                    InlineDiffSegment(oldStr.substring(oldStr.length - commonSuffix), false, oldStr.length - commonSuffix)
+                ).filter { it.content.isNotEmpty() }
+            )
+        } else null
+        
+        val addedInline = if (addedContent.isNotEmpty()) {
+            InlineDiff(
+                segments = listOf(
+                    InlineDiffSegment(newStr.substring(0, commonPrefix), false, 0),
+                    InlineDiffSegment(addedContent, true, commonPrefix),
+                    InlineDiffSegment(newStr.substring(newStr.length - commonSuffix), false, newStr.length - commonSuffix)
+                ).filter { it.content.isNotEmpty() }
+            )
+        } else null
+        
+        return InlineDiffPair(deletedInline, addedInline)
+    }
+    
+    private data class InlineDiffPair(
+        val deleted: InlineDiff?,
+        val added: InlineDiff?
+    )
+    
+    private fun computeCommonPrefix(s1: String, s2: String): Int {
+        var i = 0
+        while (i < s1.length && i < s2.length && s1[i] == s2[i]) {
+            i++
+        }
+        return i
+    }
+    
+    private fun computeCommonSuffix(s1: String, s2: String, prefixLength: Int): Int {
+        var i = 0
+        while (i < s1.length - prefixLength && i < s2.length - prefixLength &&
+               s1[s1.length - 1 - i] == s2[s2.length - 1 - i]) {
+            i++
+        }
+        return i
     }
 
     /**
