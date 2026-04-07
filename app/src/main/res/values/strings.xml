@@ -163,6 +163,9 @@
     <string name="branches_rename">Rename</string>
     <string name="branches_copy_name">Copy Name</string>
     <string name="branches_create_tag">Create Tag</string>
+    <string name="branches_push">Push</string>
+    <string name="branches_pull">Pull</string>
+    <string name="branches_show_in_history">Show in History</string>
     <string name="branches_name_copied">Branch name copied</string>
     <string name="branches_merge_only_local">Merge is only available for local branches</string>
     <string name="branches_rebase_only_local">Rebase is only available for local branches</string>
@@ -587,6 +590,7 @@
     <string name="tags_annotated_badge">annotated</string>
     <string name="tags_target_commit">Target: %1$s</string>
     <string name="tags_push_tag">Push Tag</string>
+    <string name="tags_checkout_tag">Checkout Tag</string>
     <string name="tags_push_all_tags">Push All Tags</string>
     <string name="tags_delete_tag">Delete Tag</string>
     <string name="tags_create_lightweight_tag">Create Lightweight Tag</string>
@@ -614,6 +618,13 @@
     <string name="tags_tag_exists">Tag \'%1$s\' already exists</string>
     <string name="tags_invalid_tag_name">Invalid tag name</string>
     <string name="tags_tag_name_validation_hint">Tag names cannot contain spaces, ~, ^, :, ?, *, [, \\, or begin with a dot</string>
+    <string name="tags_tag_details">Tag Details</string>
+    <string name="tags_tag_name_label">Tag Name</string>
+    <string name="tags_tag_type_label">Tag Type</string>
+    <string name="tags_tag_target_commit">Target Commit</string>
+    <string name="tags_tag_tagger">Tagger</string>
+    <string name="tags_tag_created">Created</string>
+    <string name="tags_tag_view_details">View Details</string>
 
     <!-- File Diff Screen -->
     <string name="screen_file_diff">File Diff</string>

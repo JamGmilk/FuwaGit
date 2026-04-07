@@ -66,9 +66,20 @@ fun FileDiffScreen(
         ) {
             when {
                 uiState.value.isLoading -> {
-                    CircularProgressIndicator(
-                        modifier = Modifier.align(Alignment.Center)
-                    )
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        CircularProgressIndicator()
+                        Text(
+                            text = "Loading diff...",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = colors.onSurfaceVariant
+                        )
+                    }
                 }
                 uiState.value.error != null -> {
                     ErrorContent(
@@ -77,7 +88,13 @@ fun FileDiffScreen(
                             val repoPath = uiState.value.repoPath
                             val filePath = uiState.value.filePath
                             if (repoPath != null && filePath != null) {
-                                // Reload will be triggered automatically via ViewModel
+                                fileDiffViewModel.loadDiff(
+                                    repoPath,
+                                    filePath,
+                                    uiState.value.diffType,
+                                    null,
+                                    null
+                                )
                             }
                         }
                     )
@@ -87,6 +104,19 @@ fun FileDiffScreen(
                         fileDiff = uiState.value.fileDiff!!,
                         modifier = Modifier.fillMaxSize()
                     )
+                }
+                else -> {
+                    // 空状态
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "No diff to display",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = colors.onSurfaceVariant
+                        )
+                    }
                 }
             }
         }

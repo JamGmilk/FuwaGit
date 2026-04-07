@@ -27,6 +27,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Cloud
+import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.Label
@@ -89,6 +90,7 @@ fun TagsScreen(
 
     var showCreateDialog by remember { mutableStateOf(false) }
     var createTagType by remember { mutableStateOf(CreateTagType.Annotated) }
+    var tagForDetail by remember { mutableStateOf<GitTag?>(null) }
 
     ScreenTemplate(
         title = stringResource(R.string.screen_tags),
@@ -145,7 +147,8 @@ fun TagsScreen(
                 TagsListContent(
                     tagsViewModel = tagsViewModel,
                     uiState = uiState,
-                    modifier = Modifier.fillMaxSize()
+                    modifier = Modifier.fillMaxSize(),
+                    onTagDetail = { tagForDetail = it }
                 )
             }
         }
@@ -194,6 +197,14 @@ fun TagsScreen(
             onPushAll = {
                 tagsViewModel.pushAllTags()
             }
+        )
+    }
+
+    // Tag 详情对话框
+    if (tagForDetail != null) {
+        TagDetailDialog(
+            tag = tagForDetail!!,
+            onDismiss = { tagForDetail = null }
         )
     }
 
@@ -255,7 +266,8 @@ private fun EmptyTagsState() {
 private fun TagsListContent(
     tagsViewModel: TagsViewModel,
     uiState: TagsUiState,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onTagDetail: (GitTag) -> Unit = {}
 ) {
     val colors = MaterialTheme.colorScheme
 
@@ -292,7 +304,9 @@ private fun TagsListContent(
                         tag = tag,
                         onDelete = { tagsViewModel.showDeleteDialog(tag) },
                         onPush = { tagsViewModel.showPushDialog(tag) },
-                        onPushAll = { tagsViewModel.showPushDialog() }
+                        onPushAll = { tagsViewModel.showPushDialog() },
+                        onCheckout = { tagsViewModel.checkoutTag(tag.name) },
+                        onViewDetail = { onTagDetail(tag) }
                     )
                 }
             }
@@ -393,7 +407,9 @@ private fun TagItem(
     tag: GitTag,
     onDelete: () -> Unit,
     onPush: () -> Unit,
-    onPushAll: () -> Unit
+    onPushAll: () -> Unit,
+    onCheckout: () -> Unit,
+    onViewDetail: () -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
     val colors = MaterialTheme.colorScheme
@@ -434,7 +450,11 @@ private fun TagItem(
             Spacer(Modifier.width(10.dp))
 
             // 标签信息
-            Column(modifier = Modifier.weight(1f)) {
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .clickable(onClick = onViewDetail)
+            ) {
                 Text(
                     text = tag.name,
                     style = MaterialTheme.typography.bodyMedium,
@@ -511,6 +531,18 @@ private fun TagItem(
                 expanded = expanded,
                 onDismissRequest = { expanded = false }
             ) {
+                // 检出标签
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.tags_checkout_tag)) },
+                    onClick = {
+                        onCheckout()
+                        expanded = false
+                    },
+                    leadingIcon = {
+                        Icon(Icons.Default.Code, contentDescription = null, modifier = Modifier.size(18.dp))
+                    }
+                )
+
                 // 推送标签
                 DropdownMenuItem(
                     text = { Text(stringResource(R.string.tags_push_tag)) },

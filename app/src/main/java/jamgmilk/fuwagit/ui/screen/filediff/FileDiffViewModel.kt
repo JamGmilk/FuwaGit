@@ -81,15 +81,15 @@ class FileDiffViewModel @Inject constructor(
         }
     }
 
-    private fun loadDiff(
+    fun loadDiff(
         repoPath: String,
         filePath: String,
         diffType: DiffType,
-        oldCommit: String?,
-        newCommit: String?
+        oldCommit: String? = null,
+        newCommit: String? = null
     ) {
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, error = null) }
+            _uiState.update { it.copy(isLoading = true, error = null, fileDiff = null) }
 
             val result = when (diffType) {
                 DiffType.WORKING_TREE -> diffUseCase.getWorkingTreeDiff(repoPath, filePath)
@@ -118,7 +118,7 @@ class FileDiffViewModel @Inject constructor(
                 .onError { e ->
                     _uiState.update {
                         it.copy(
-                            error = e.message,
+                            error = "Failed to load diff: ${e.message}",
                             isLoading = false
                         )
                     }

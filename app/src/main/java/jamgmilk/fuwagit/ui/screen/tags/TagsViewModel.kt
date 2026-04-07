@@ -263,6 +263,32 @@ class TagsViewModel @Inject constructor(
     }
 
     /**
+     * 检出标签（进入 detached HEAD 状态）
+     */
+    fun checkoutTag(tagName: String) {
+        val path = currentRepoPath ?: return
+
+        viewModelScope.launch {
+            tagUseCase.checkoutTag(path, tagName)
+                .onSuccess { message ->
+                    _uiState.update {
+                        it.copy(
+                            operationResult = OperationResult.Success(message)
+                        )
+                    }
+                    loadTags()
+                }
+                .onError { e ->
+                    _uiState.update {
+                        it.copy(
+                            operationResult = OperationResult.Failure(e.message ?: "Failed to checkout tag")
+                        )
+                    }
+                }
+        }
+    }
+
+    /**
      * 更新搜索查询
      */
     fun updateSearchQuery(query: String) {
