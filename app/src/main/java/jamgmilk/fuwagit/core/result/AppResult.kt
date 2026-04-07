@@ -88,23 +88,23 @@ sealed class AppException : Exception() {
         override val message: String = "Branch already exists: $branchName"
     }
 
-    data class MergeConflict(val message: String) : AppException()
+    data class MergeConflict(override val message: String) : AppException()
 
-    data class RebaseConflict(val message: String) : AppException()
+    data class RebaseConflict(override val message: String) : AppException()
 
-    data class CheckoutConflict(val message: String) : AppException()
+    data class CheckoutConflict(override val message: String) : AppException()
 
     data class RemoteNotFound(val remoteName: String) : AppException() {
         override val message: String = "Remote not found: $remoteName"
     }
 
-    data class PushRejected(val message: String) : AppException()
+    data class PushRejected(override val message: String) : AppException()
 
-    data class PullRejected(val message: String) : AppException()
+    data class PullRejected(override val message: String) : AppException()
 
     data class InvalidRepository(val path: String, override val message: String) : AppException()
 
-    data class NoRemoteConfigured(val message: String = "No remote repository configured") : AppException()
+    data class NoRemoteConfigured(override val message: String = "No remote repository configured") : AppException()
 
     data class CommitFailed(override val message: String) : AppException()
 

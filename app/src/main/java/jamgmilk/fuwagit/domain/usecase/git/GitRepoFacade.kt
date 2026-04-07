@@ -1,5 +1,6 @@
 package jamgmilk.fuwagit.domain.usecase.git
 
+import jamgmilk.fuwagit.core.result.AppResult
 import jamgmilk.fuwagit.domain.model.git.CleanResult
 import javax.inject.Inject
 
@@ -16,7 +17,7 @@ class GitRepoFacade @Inject constructor(
     private val initRepoUseCase: InitRepoUseCase,
     private val getRemotesUseCase: GetRemotesUseCase
 ) {
-    suspend fun clean(repoPath: String, dryRun: Boolean = false): Result<CleanResult> =
+    suspend fun clean(repoPath: String, dryRun: Boolean = false): AppResult<CleanResult> =
         cleanUseCase(repoPath, dryRun)
 
     suspend fun clone(
@@ -24,14 +25,14 @@ class GitRepoFacade @Inject constructor(
         localPath: String,
         credentials: jamgmilk.fuwagit.domain.model.credential.CloneCredential?,
         options: jamgmilk.fuwagit.domain.model.git.CloneOptions
-    ): Result<String> =
+    ): AppResult<String> =
         cloneRepositoryUseCase(remoteUrl, localPath, credentials, options)
 
     suspend fun configureRemote(
         repoPath: String,
         name: String,
         url: String
-    ): Result<String> =
+    ): AppResult<String> =
         configureRemoteUseCase(repoPath, name, url)
 
     suspend fun getRepoInfo(localPath: String): Map<String, String> =
@@ -40,9 +41,9 @@ class GitRepoFacade @Inject constructor(
     suspend fun getRemoteUrl(localPath: String, name: String = "origin"): String? =
         getRemoteUrlUseCase(localPath, name)
 
-    suspend fun initRepo(repoPath: String): Result<String> =
+    suspend fun initRepo(repoPath: String): AppResult<String> =
         initRepoUseCase(repoPath)
 
-    suspend fun getRemotes(localPath: String): Result<List<jamgmilk.fuwagit.domain.model.git.GitRemote>> =
+    suspend fun getRemotes(localPath: String): AppResult<List<jamgmilk.fuwagit.domain.model.git.GitRemote>> =
         getRemotesUseCase(localPath)
 }

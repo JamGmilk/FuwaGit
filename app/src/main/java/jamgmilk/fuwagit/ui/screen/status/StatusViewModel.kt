@@ -107,16 +107,15 @@ class StatusViewModel @Inject constructor(
 
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
-            gitStatus.initRepo(path).fold(
-                onSuccess = { result ->
+            gitStatus.initRepo(path)
+                .onSuccess { result ->
                     appendTerminalLog("git init", result)
                     refreshAll()
-                },
-                onFailure = { e ->
+                }
+                .onError { e ->
                     appendTerminalLog("git init", "Error: ${e.message}")
                     _uiState.update { it.copy(isLoading = false, error = e.message) }
                 }
-            )
         }
     }
 
@@ -155,29 +154,27 @@ class StatusViewModel @Inject constructor(
             val filesResult = withContext(Dispatchers.IO) { gitStatus.getDetailedStatus(path) }
             val branchesResult = withContext(Dispatchers.IO) { gitStatus.getBranches(path) }
 
-            filesResult.fold(
-                onSuccess = { files ->
+            filesResult
+                .onSuccess { files ->
                     _uiState.update {
                         it.copy(
                             workspaceFiles = files,
                             isLoading = false
                         )
                     }
-                },
-                onFailure = { e ->
+                }
+                .onError { e ->
                     _uiState.update { it.copy(error = e.message, isLoading = false) }
                 }
-            )
 
-            branchesResult.fold(
-                onSuccess = { branches ->
+            branchesResult
+                .onSuccess { branches ->
                     val currentBranch = branches.find { it.isCurrent }
                     _uiState.update { it.copy(branches = branches, currentBranch = currentBranch) }
-                },
-                onFailure = { e ->
+                }
+                .onError { e ->
                     appendTerminalLog("git branch", "Error: ${e.message}")
                 }
-            )
         }
     }
 
@@ -185,15 +182,14 @@ class StatusViewModel @Inject constructor(
         val path = currentRepoPath ?: return
 
         viewModelScope.launch {
-            gitStatus.stageAll(path).fold(
-                onSuccess = { result ->
+            gitStatus.stageAll(path)
+                .onSuccess { result ->
                     appendTerminalLog("git add -A", result)
                     refreshWorkspace()
-                },
-                onFailure = { e ->
+                }
+                .onError { e ->
                     appendTerminalLog("git add -A", "Error: ${e.message}")
                 }
-            )
         }
     }
 
@@ -201,15 +197,14 @@ class StatusViewModel @Inject constructor(
         val path = currentRepoPath ?: return
 
         viewModelScope.launch {
-            gitStatus.unstageAll(path).fold(
-                onSuccess = { result ->
+            gitStatus.unstageAll(path)
+                .onSuccess { result ->
                     appendTerminalLog("git reset", result)
                     refreshWorkspace()
-                },
-                onFailure = { e ->
+                }
+                .onError { e ->
                     appendTerminalLog("git reset", "Error: ${e.message}")
                 }
-            )
         }
     }
 
@@ -217,12 +212,11 @@ class StatusViewModel @Inject constructor(
         val path = currentRepoPath ?: return
 
         viewModelScope.launch {
-            gitStatus.stageFile(path, filePath).fold(
-                onSuccess = { refreshWorkspace() },
-                onFailure = { e ->
+            gitStatus.stageFile(path, filePath)
+                .onSuccess { refreshWorkspace() }
+                .onError { e ->
                     appendTerminalLog("git add $filePath", "Error: ${e.message}")
                 }
-            )
         }
     }
 
@@ -230,12 +224,11 @@ class StatusViewModel @Inject constructor(
         val path = currentRepoPath ?: return
 
         viewModelScope.launch {
-            gitStatus.unstageFile(path, filePath).fold(
-                onSuccess = { refreshWorkspace() },
-                onFailure = { e ->
+            gitStatus.unstageFile(path, filePath)
+                .onSuccess { refreshWorkspace() }
+                .onError { e ->
                     appendTerminalLog("git reset $filePath", "Error: ${e.message}")
                 }
-            )
         }
     }
 
@@ -257,8 +250,8 @@ class StatusViewModel @Inject constructor(
         val filePath = _uiState.value.pendingOperationTarget ?: return
 
         viewModelScope.launch {
-            gitStatus.discardChanges(path, filePath).fold(
-                onSuccess = {
+            gitStatus.discardChanges(path, filePath)
+                .onSuccess {
                     _uiState.update {
                         it.copy(
                             operationResult = OperationResult.Success("Changes to '$filePath' have been discarded"),
@@ -267,8 +260,8 @@ class StatusViewModel @Inject constructor(
                         )
                     }
                     refreshWorkspace()
-                },
-                onFailure = { e ->
+                }
+                .onError { e ->
                     _uiState.update {
                         it.copy(
                             operationResult = OperationResult.Failure(
@@ -280,7 +273,6 @@ class StatusViewModel @Inject constructor(
                         )
                     }
                 }
-            )
         }
     }
 
@@ -288,15 +280,14 @@ class StatusViewModel @Inject constructor(
         val path = currentRepoPath ?: return
 
         viewModelScope.launch {
-            gitStatus.commit(path, message).fold(
-                onSuccess = { result ->
+            gitStatus.commit(path, message)
+                .onSuccess { result ->
                     appendTerminalLog("git commit -m \"${message.trim()}\"", result)
                     refreshWorkspace()
-                },
-                onFailure = { e ->
+                }
+                .onError { e ->
                     appendTerminalLog("git commit", "Error: ${e.message}")
                 }
-            )
         }
     }
 
@@ -307,15 +298,14 @@ class StatusViewModel @Inject constructor(
             appendTerminalLog("git pull", "Attempting pull. Remote auth may be required")
             val remoteUrl = gitStatus.getRemoteUrl(path)
             val credentials = loadSelectedCredentials(remoteUrl)
-            gitSync.pull(path, credentials).fold(
-                onSuccess = { result ->
+            gitSync.pull(path, credentials)
+                .onSuccess { result ->
                     appendTerminalLog("git pull", result.toString())
                     refreshWorkspace()
-                },
-                onFailure = { e ->
+                }
+                .onError { e ->
                     appendTerminalLog("git pull", "Error: ${e.message}")
                 }
-            )
         }
     }
 
@@ -326,14 +316,13 @@ class StatusViewModel @Inject constructor(
             appendTerminalLog("git push", "Attempting push. Remote auth may be required")
             val remoteUrl = gitStatus.getRemoteUrl(path)
             val credentials = loadSelectedCredentials(remoteUrl)
-            gitSync.push(path, credentials).fold(
-                onSuccess = { result ->
+            gitSync.push(path, credentials)
+                .onSuccess { result ->
                     appendTerminalLog("git push", result)
-                },
-                onFailure = { e ->
+                }
+                .onError { e ->
                     appendTerminalLog("git push", "Error: ${e.message}")
                 }
-            )
         }
     }
 
@@ -344,15 +333,14 @@ class StatusViewModel @Inject constructor(
             appendTerminalLog("git fetch", "Fetching from remote...")
             val remoteUrl = gitStatus.getRemoteUrl(path)
             val credentials = loadSelectedCredentials(remoteUrl)
-            gitSync.fetch(path, credentials).fold(
-                onSuccess = { result ->
+            gitSync.fetch(path, credentials)
+                .onSuccess { result ->
                     appendTerminalLog("git fetch", result)
                     refreshAll()
-                },
-                onFailure = { e ->
+                }
+                .onError { e ->
                     appendTerminalLog("git fetch", "Error: ${e.message}")
                 }
-            )
         }
     }
 

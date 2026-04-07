@@ -12,6 +12,7 @@ import jamgmilk.fuwagit.domain.model.git.CloneOptions
 import jamgmilk.fuwagit.domain.model.repo.RepoData
 import jamgmilk.fuwagit.domain.usecase.credential.CredentialFacade
 import jamgmilk.fuwagit.domain.usecase.git.GitRepoFacade
+import jamgmilk.fuwagit.core.result.AppResult
 import jamgmilk.fuwagit.ui.state.RepoInfo
 import jamgmilk.fuwagit.ui.state.RepoStateManager
 import kotlinx.coroutines.Dispatchers
@@ -180,7 +181,7 @@ class MyReposViewModel @Inject constructor(
         loadSavedRepos()
     }
 
-    suspend fun cleanRepo(path: String, dryRun: Boolean = false): Result<String> {
+    suspend fun cleanRepo(path: String, dryRun: Boolean = false): AppResult<String> {
         return gitRepo.clean(path, dryRun).map { result ->
             if (dryRun) {
                 // Update untracked files list for previewing
@@ -198,26 +199,24 @@ class MyReposViewModel @Inject constructor(
 
         viewModelScope.launch {
             _uiState.update { it.copy(isCleanPreviewing = true, cleanMessage = null, untrackedFilesForClean = emptyList()) }
-            gitRepo.clean(path, dryRun = true).fold(
-                onSuccess = { result ->
-                    _uiState.update {
-                        it.copy(
-                            isCleanPreviewing = false,
-                            cleanMessage = if (result.files.isEmpty()) "No untracked files to clean" else null,
-                            untrackedFilesForClean = result.files
-                        )
-                    }
-                },
-                onFailure = { e ->
-                    _uiState.update {
-                        it.copy(
-                            isCleanPreviewing = false,
-                            cleanMessage = "Failed to get untracked files: ${e.message}",
-                            untrackedFilesForClean = emptyList()
-                        )
-                    }
+            val result = gitRepo.clean(path, dryRun = true)
+            result.onSuccess { cleanResult ->
+                _uiState.update {
+                    it.copy(
+                        isCleanPreviewing = false,
+                        cleanMessage = if (cleanResult.files.isEmpty()) "No untracked files to clean" else null,
+                        untrackedFilesForClean = cleanResult.files
+                    )
                 }
-            )
+            }.onError { e ->
+                _uiState.update {
+                    it.copy(
+                        isCleanPreviewing = false,
+                        cleanMessage = "Failed to get untracked files: ${e.message}",
+                        untrackedFilesForClean = emptyList()
+                    )
+                }
+            }
         }
     }
 
@@ -227,40 +226,36 @@ class MyReposViewModel @Inject constructor(
 
         viewModelScope.launch {
             _uiState.update { it.copy(isCleanPreviewing = true, cleanMessage = null) }
-            gitRepo.clean(path, dryRun = true).fold(
-                onSuccess = { dryRunResult ->
-                    gitRepo.clean(path, dryRun = false).fold(
-                        onSuccess = {
-                            _uiState.update {
-                                it.copy(
-                                    isCleanPreviewing = false,
-                                    cleanedFilesForResult = dryRunResult.files,
-                                    untrackedFilesForClean = emptyList(),
-                                    cleanMessage = null
-                                )
-                            }
-                        },
-                        onFailure = { e ->
-                            _uiState.update {
-                                it.copy(
-                                    isCleanPreviewing = false,
-                                    cleanMessage = "Failed to clean: ${e.message}",
-                                    untrackedFilesForClean = emptyList()
-                                )
-                            }
-                        }
-                    )
-                },
-                onFailure = { e ->
+            val dryRunResult = gitRepo.clean(path, dryRun = true)
+            dryRunResult.onSuccess { dryRunResult ->
+                val executeResult = gitRepo.clean(path, dryRun = false)
+                executeResult.onSuccess {
                     _uiState.update {
                         it.copy(
                             isCleanPreviewing = false,
-                            cleanMessage = "Failed to get file list: ${e.message}",
+                            cleanedFilesForResult = dryRunResult.files,
+                            untrackedFilesForClean = emptyList(),
+                            cleanMessage = null
+                        )
+                    }
+                }.onError { e ->
+                    _uiState.update {
+                        it.copy(
+                            isCleanPreviewing = false,
+                            cleanMessage = "Failed to clean: ${e.message}",
                             untrackedFilesForClean = emptyList()
                         )
                     }
                 }
-            )
+            }.onError { e ->
+                _uiState.update {
+                    it.copy(
+                        isCleanPreviewing = false,
+                        cleanMessage = "Failed to get file list: ${e.message}",
+                        untrackedFilesForClean = emptyList()
+                    )
+                }
+            }
         }
     }
 
@@ -291,9 +286,9 @@ class MyReposViewModel @Inject constructor(
         withContext(Dispatchers.IO) {
             val gitDir = File(path, ".git")
             if (!gitDir.exists()) {
-                gitRepo.initRepo(path).getOrThrow()
+                gitRepo.initRepo(path).getOrNull() ?: throw Exception("Failed to initialize repository")
                 if (!remoteUrl.isNullOrBlank()) {
-                    gitRepo.configureRemote(path, "origin", remoteUrl).getOrThrow()
+                    gitRepo.configureRemote(path, "origin", remoteUrl).getOrNull() ?: throw Exception("Failed to configure remote")
                 }
             }
         }
@@ -354,7 +349,7 @@ class MyReposViewModel @Inject constructor(
         httpsCredentialUuid: String? = null,
         sshKeyUuid: String? = null,
         cloneOptions: CloneOptions = CloneOptions(),
-        onResult: (Result<String>) -> Unit
+        onResult: (AppResult<String>) -> Unit
     ) {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
@@ -362,7 +357,7 @@ class MyReposViewModel @Inject constructor(
             val httpsCreds = getHttpsCredentials()
             val sshKeys = getSshKeys()
 
-            val credentials: CloneCredential? = credential.resolveCredentials(
+            val credentials: jamgmilk.fuwagit.domain.model.credential.CloneCredential? = credential.resolveCredentials(
                 httpsCredentialUuid,
                 sshKeyUuid,
                 httpsCreds,
@@ -370,21 +365,20 @@ class MyReposViewModel @Inject constructor(
                 uri
             )
 
-            gitRepo.clone(uri, localPath, credentials, cloneOptions)
-                .onSuccess { result ->
-                    _uiState.update { it.copy(isLoading = false) }
-                    addRepo(localPath, null)
-                    onResult(Result.success(result))
+            val result = gitRepo.clone(uri, localPath, credentials, cloneOptions)
+            result.onSuccess { cloneResult ->
+                _uiState.update { it.copy(isLoading = false) }
+                addRepo(localPath, null)
+                onResult(AppResult.Success(cloneResult))
+            }.onError { e ->
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        error = e.message
+                    )
                 }
-                .onFailure { e ->
-                    _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            error = e.message
-                        )
-                    }
-                    onResult(Result.failure(e))
-                }
+                onResult(AppResult.Error(e))
+            }
         }
     }
 

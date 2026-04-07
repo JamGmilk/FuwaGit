@@ -719,7 +719,7 @@ private fun RepoHeader(
                         onClick = {},
                         onLongClick = {
                             onCopyPath()
-                            Toast.makeText(context, stringResource(R.string.myrepos_path_copied), Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, context.getString(R.string.myrepos_path_copied), Toast.LENGTH_SHORT).show()
                         }
                     )
             )

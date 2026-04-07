@@ -99,7 +99,7 @@ class BranchesViewModel @Inject constructor(
                         )
                     }
                 }
-                .onFailure { e ->
+                .onError { e ->
                     _uiState.update {
                         it.copy(
                             error = e.message,
@@ -157,7 +157,7 @@ class BranchesViewModel @Inject constructor(
                     }
                     loadBranches()
                 }
-                .onFailure { e ->
+                .onError { e ->
                     val suggestion = when {
                         e.message?.contains("not fully merged") == true ->
                             "The branch contains commits that haven't been merged. Use force delete to remove it anyway."
@@ -192,7 +192,7 @@ class BranchesViewModel @Inject constructor(
                     }
                     loadBranches()
                 }
-                .onFailure { e ->
+                .onError { e ->
                     val suggestion = when {
                         e.message?.contains("conflict") == true ->
                             "Resolve the conflicts manually in the Status screen, then commit the changes."
@@ -227,7 +227,7 @@ class BranchesViewModel @Inject constructor(
                     }
                     loadBranches()
                 }
-                .onFailure { e ->
+                .onError { e ->
                     val suggestion = when {
                         e.message?.contains("conflict") == true ->
                             "Resolve conflicts and run 'git rebase --continue', or 'git rebase --abort' to cancel."
@@ -256,7 +256,7 @@ class BranchesViewModel @Inject constructor(
                 .onSuccess {
                     loadBranches()
                 }
-                .onFailure { e ->
+                .onError { e ->
                     _uiState.update { it.copy(error = e.message) }
                 }
         }
@@ -270,7 +270,7 @@ class BranchesViewModel @Inject constructor(
                 .onSuccess {
                     loadBranches()
                 }
-                .onFailure { e ->
+                .onError { e ->
                     _uiState.update { it.copy(error = e.message) }
                 }
         }
@@ -284,7 +284,7 @@ class BranchesViewModel @Inject constructor(
                 .onSuccess {
                     loadBranches()
                 }
-                .onFailure { e ->
+                .onError { e ->
                     _uiState.update { it.copy(error = e.message) }
                 }
         }
@@ -298,7 +298,7 @@ class BranchesViewModel @Inject constructor(
                 .onSuccess {
                     loadBranches()
                 }
-                .onFailure { e ->
+                .onError { e ->
                     _uiState.update { it.copy(error = e.message) }
                 }
         }
@@ -329,7 +329,7 @@ class BranchesViewModel @Inject constructor(
                         }
                     }
                 }
-                .onFailure { e ->
+                .onError { e ->
                     _uiState.update { it.copy(error = e.message) }
                 }
         }
@@ -360,7 +360,7 @@ class BranchesViewModel @Inject constructor(
                         }
                     }
                 }
-                .onFailure { e ->
+                .onError { e ->
                     _uiState.update { it.copy(error = e.message) }
                 }
         }
@@ -386,7 +386,7 @@ class BranchesViewModel @Inject constructor(
                         }
                     }
                 }
-                .onFailure { e ->
+                .onError { e ->
                     _uiState.update { it.copy(error = e.message) }
                 }
         }
@@ -404,7 +404,7 @@ class BranchesViewModel @Inject constructor(
                     // 閲嶆柊鑾峰彇鍐茬獊鐘舵€?
                     checkConflictStatus()
                 }
-                .onFailure { e ->
+                .onError { e ->
                     _uiState.update { it.copy(error = e.message) }
                 }
         }
@@ -432,7 +432,7 @@ class BranchesViewModel @Inject constructor(
                         loadBranches()
                     }
                 }
-                .onFailure { e ->
+                .onError { e ->
                     _uiState.update { it.copy(error = e.message) }
                 }
         }
@@ -468,7 +468,7 @@ class BranchesViewModel @Inject constructor(
                     }
                     loadBranches()
                 }
-                .onFailure { e ->
+                .onError { e ->
                     _uiState.update { it.copy(error = e.message) }
                 }
         }
