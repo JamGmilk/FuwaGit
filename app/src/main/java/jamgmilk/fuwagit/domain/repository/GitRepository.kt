@@ -15,6 +15,9 @@ import jamgmilk.fuwagit.domain.model.git.GitRepoStatus
 import jamgmilk.fuwagit.domain.model.git.PullResult
 import jamgmilk.fuwagit.domain.model.git.GitResetMode
 
+import jamgmilk.fuwagit.domain.model.git.GitTag
+import jamgmilk.fuwagit.domain.model.git.FileDiff
+
 interface GitRepository {
 
     suspend fun getStatus(repoPath: String): AppResult<GitRepoStatus>
@@ -61,6 +64,8 @@ interface GitRepository {
 
     suspend fun rebaseBranch(repoPath: String, branchName: String): AppResult<ConflictResult>
 
+    suspend fun continueRebase(repoPath: String): AppResult<String>
+
     suspend fun getConflictStatus(repoPath: String): AppResult<ConflictResult>
 
     suspend fun markConflictResolved(repoPath: String, filePath: String): AppResult<Unit>
@@ -91,4 +96,48 @@ interface GitRepository {
     suspend fun renameBranch(repoPath: String, oldName: String, newName: String): AppResult<String>
 
     suspend fun clean(repoPath: String, dryRun: Boolean = false): AppResult<CleanResult>
+
+    // ==================== Tag 相关操作 ====================
+
+    suspend fun getTags(repoPath: String): AppResult<List<GitTag>>
+
+    suspend fun createLightweightTag(repoPath: String, tagName: String, commitHash: String? = null): AppResult<String>
+
+    suspend fun createAnnotatedTag(
+        repoPath: String,
+        tagName: String,
+        message: String,
+        commitHash: String? = null
+    ): AppResult<String>
+
+    suspend fun deleteTag(repoPath: String, tagName: String): AppResult<Unit>
+
+    suspend fun pushTag(repoPath: String, tagName: String, remoteName: String = "origin"): AppResult<String>
+
+    suspend fun pushAllTags(repoPath: String, remoteName: String = "origin"): AppResult<String>
+
+    // ==================== Diff 相关操作 ====================
+
+    suspend fun getWorkingTreeDiff(repoPath: String, filePath: String): AppResult<FileDiff>
+
+    suspend fun getStagedDiff(repoPath: String, filePath: String): AppResult<FileDiff>
+
+    suspend fun getCommitFileDiff(
+        repoPath: String,
+        filePath: String,
+        oldCommit: String,
+        newCommit: String
+    ): AppResult<FileDiff>
+
+    suspend fun getCommitDiff(
+        repoPath: String,
+        oldCommit: String,
+        newCommit: String
+    ): AppResult<List<FileDiff>>
+
+    suspend fun getFileContent(
+        repoPath: String,
+        filePath: String,
+        commitHash: String? = null
+    ): AppResult<String>
 }

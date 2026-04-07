@@ -84,7 +84,8 @@ import jamgmilk.fuwagit.ui.util.ViewModelMessagesMapper
 @Composable
 fun BranchesScreen(
     branchesViewModel: BranchesViewModel,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onCreateTag: ((String) -> Unit)? = null
 ) {
     val uiState by branchesViewModel.uiState.collectAsStateWithLifecycle()
     val local = uiState.localBranches
@@ -96,6 +97,7 @@ fun BranchesScreen(
     var showCreateDialog by remember { mutableStateOf(false) }
     var showRenameDialog by remember { mutableStateOf(false) }
     var branchToRename by remember { mutableStateOf<String?>(null) }
+    var branchForTag by remember { mutableStateOf<String?>(null) }
 
     ScreenTemplate(
         title = stringResource(R.string.screen_branches),
@@ -157,6 +159,7 @@ fun BranchesScreen(
                         branchToRename = name
                         showRenameDialog = true
                     },
+                    onCreateTag = onCreateTag,
                     modifier = Modifier.fillMaxSize()
                 )
             }
@@ -264,7 +267,7 @@ fun BranchesScreen(
         )
     }
 
-    // 鍗遍櫓鎿嶄綔鍙岀‘璁ゅ璇濇
+    // 危险操作双确认对话框
     val pendingOperation = uiState.pendingOperation
     val pendingTarget = uiState.pendingOperationTarget
     if (pendingOperation != null && pendingTarget != null) {
@@ -306,16 +309,24 @@ fun BranchesScreen(
         }
     }
 
-    // 鍐茬獊瑙ｅ喅瀵硅瘽妗?
+    // 冲突解决对话框
     val conflictResult = uiState.conflictResult
     if (conflictResult != null && uiState.isResolvingConflict) {
+        val isRebase = conflictResult.operationType == "REBASE"
+        val allResolved = conflictResult.allResolved
+
         ConflictResolutionDialog(
             conflictResult = conflictResult,
             onResolveConflict = { filePath ->
                 branchesViewModel.markConflictResolved(filePath)
             },
             onFinish = {
-                branchesViewModel.finishConflictResolution()
+                if (isRebase && allResolved) {
+                    // 对于 Rebase，调用 continueRebase
+                    branchesViewModel.continueRebase()
+                } else {
+                    branchesViewModel.finishConflictResolution()
+                }
             },
             onAbort = {
                 if (conflictResult.operationType == "REBASE") {
@@ -328,7 +339,7 @@ fun BranchesScreen(
         )
     }
 
-    // 鎿嶄綔缁撴灉鍙嶉瀵硅瘽妗?
+    // 操作结果反馈对话框
     val operationResult = uiState.operationResult
     if (operationResult != null) {
         val operationType = pendingOperation ?: DangerousOperationType.DELETE_BRANCH
@@ -380,6 +391,7 @@ private fun BranchListContent(
     showRenameDialog: Boolean,
     branchToRename: String?,
     onRenameRequest: (String) -> Unit,
+    onCreateTag: ((String) -> Unit)?,
     modifier: Modifier = Modifier
 ) {
     val colors = MaterialTheme.colorScheme
@@ -417,7 +429,7 @@ private fun BranchListContent(
                     },
                     onDelete = { branchesViewModel.requestDeleteBranch(branch.name) },
                     onCreateTag = {
-                        // TODO: 实现创建 Tag 功能
+                        onCreateTag?.invoke(branch.name)
                     }
                 )
             }

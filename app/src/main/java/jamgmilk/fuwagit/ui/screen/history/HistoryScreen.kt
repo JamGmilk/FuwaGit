@@ -87,7 +87,8 @@ import kotlin.math.abs
 @Composable
 fun HistoryScreen(
     historyViewModel: HistoryViewModel,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onViewCommitDiff: ((String, String, String) -> Unit)? = null
 ) {
     val uiState by historyViewModel.uiState.collectAsStateWithLifecycle()
     val history = uiState.commits
@@ -119,7 +120,8 @@ fun HistoryScreen(
                 CommitTimelineList(
                     commits = history,
                     viewModel = historyViewModel,
-                    modifier = Modifier.fillMaxSize()
+                    modifier = Modifier.fillMaxSize(),
+                    onViewCommitDiff = onViewCommitDiff
                 )
             }
         }
@@ -173,7 +175,8 @@ private fun EmptyHistoryState() {
 private fun CommitTimelineList(
     commits: List<GitCommit>,
     viewModel: HistoryViewModel,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onViewCommitDiff: ((String, String, String) -> Unit)? = null
 ) {
     LazyColumn(
         modifier = modifier.padding(vertical = 8.dp),
@@ -187,7 +190,8 @@ private fun CommitTimelineList(
             CommitTimelineItem(
                 commit = commit,
                 isLast = commit == commits.last(),
-                viewModel = viewModel
+                viewModel = viewModel,
+                onViewDiff = onViewCommitDiff
             )
         }
     }
@@ -197,7 +201,8 @@ private fun CommitTimelineList(
 private fun CommitTimelineItem(
     commit: GitCommit,
     isLast: Boolean,
-    viewModel: HistoryViewModel
+    viewModel: HistoryViewModel,
+    onViewDiff: ((String, String, String) -> Unit)? = null
 ) {
     var expanded by remember { mutableStateOf(false) }
     val colors = MaterialTheme.colorScheme
@@ -315,7 +320,8 @@ private fun CommitTimelineItem(
                     viewModel = viewModel,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(top = 8.dp)
+                        .padding(top = 8.dp),
+                    onViewDiff = onViewDiff
                 )
             }
         }
@@ -435,7 +441,8 @@ private fun CommitDetails(
     commit: GitCommit,
     timeFmt: SimpleDateFormat,
     viewModel: HistoryViewModel,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onViewDiff: ((String, String, String) -> Unit)? = null
 ) {
     val colors = MaterialTheme.colorScheme
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -487,7 +494,7 @@ private fun CommitDetails(
             )
         }
 
-        // 鏂囦欢鍙樻洿缁熻
+        // 文件变更统计
         HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
 
         if (isLoadingDetail) {
@@ -500,7 +507,7 @@ private fun CommitDetails(
                 CircularProgressIndicator(modifier = Modifier.size(24.dp))
             }
         } else if (commitDetail != null) {
-            // 鍙樻洿缁熻鎽樿
+            // 变更统计摘要
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceEvenly
@@ -543,13 +550,17 @@ private fun CommitDetails(
                     modifier = Modifier.heightIn(max = 200.dp)
                 ) {
                     commitDetail.fileChanges.forEach { fileChange ->
-                        FileChangeItem(fileChange = fileChange)
+                        FileChangeItem(
+                            fileChange = fileChange,
+                            commitHash = commit.hash,
+                            onViewDiff = onViewDiff
+                        )
                     }
                 }
             }
         }
 
-        // Reset 鎿嶄綔鎸夐挳
+        // Reset 操作按钮
         HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
         var showResetMenu by remember { mutableStateOf(false) }
@@ -711,14 +722,23 @@ private fun StatChip(
 
 @Composable
 private fun FileChangeItem(
-    fileChange: jamgmilk.fuwagit.domain.model.git.GitCommitFileChange
+    fileChange: jamgmilk.fuwagit.domain.model.git.GitCommitFileChange,
+    commitHash: String,
+    onViewDiff: ((String, String, String) -> Unit)? = null
 ) {
     val colors = MaterialTheme.colorScheme
-    
+
     Surface(
         shape = RoundedCornerShape(6.dp),
         color = colors.surfaceVariant.copy(alpha = 0.3f),
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = {
+                if (onViewDiff != null) {
+                    val parentHash = "$commitHash^"
+                    onViewDiff(fileChange.path, parentHash, commitHash)
+                }
+            })
     ) {
         Row(
             modifier = Modifier
@@ -732,7 +752,7 @@ private fun FileChangeItem(
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // 鍙樻洿绫诲瀷鍥炬爣
+                    // 变更类型图标
                     Icon(
                         imageVector = when (fileChange.changeType) {
                             jamgmilk.fuwagit.domain.model.git.GitChangeType.Added -> Icons.Default.Add
@@ -768,7 +788,7 @@ private fun FileChangeItem(
                 )
             }
             
-            // 琛屾暟鍙樺寲
+            // 行数变化
             Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically

@@ -12,11 +12,15 @@ interface GitMergeDataSource {
 
     fun rebaseBranch(repoPath: String, branchName: String): Result<ConflictResult>
 
+    fun continueRebase(repoPath: String): Result<String>
+
     fun getConflictStatus(repoPath: String): Result<ConflictResult>
 
     fun markConflictResolved(repoPath: String, filePath: String): Result<Unit>
 
     fun abortRebase(repoPath: String): Result<String>
+
+    fun getConflictFiles(repoPath: String): Result<List<String>>
 
     fun clean(repoPath: String, dryRun: Boolean): Result<CleanResult>
 }

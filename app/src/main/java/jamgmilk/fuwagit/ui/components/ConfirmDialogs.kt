@@ -79,7 +79,9 @@ enum class DangerousOperationType {
     MERGE,
     REBASE,
     FORCE_PUSH,
-    RESET_HARD
+    RESET_HARD,
+    DELETE_TAG,
+    PUSH_TAG
 }
 
 sealed class OperationResult {

@@ -53,6 +53,10 @@ import jamgmilk.fuwagit.ui.screen.settings.SettingsScreen
 import jamgmilk.fuwagit.ui.screen.settings.SettingsViewModel
 import jamgmilk.fuwagit.ui.screen.status.StatusScreen
 import jamgmilk.fuwagit.ui.screen.status.StatusViewModel
+import jamgmilk.fuwagit.ui.screen.tags.TagsScreen
+import jamgmilk.fuwagit.ui.screen.tags.TagsViewModel
+import jamgmilk.fuwagit.ui.screen.filediff.FileDiffScreen
+import jamgmilk.fuwagit.ui.screen.filediff.FileDiffViewModel
 import kotlinx.coroutines.launch
 
 @Composable
@@ -93,7 +97,17 @@ fun AppNavHost(navController: NavHostController) {
                 MainScreen(
                     onNavigateToAddRepository = { navController.navigate(NavRoutes.ADD_REPOSITORY) },
                     onNavigateToPermissions = { navController.navigate(NavRoutes.PERMISSIONS) },
-                    onNavigateToCredentials = { navController.navigate(NavRoutes.CREDENTIALS) }
+                    onNavigateToCredentials = { navController.navigate(NavRoutes.CREDENTIALS) },
+                    onViewFileDiff = { filePath, diffType ->
+                        val encodedPath = java.net.URLEncoder.encode(filePath, "UTF-8")
+                        navController.navigate("${NavRoutes.FILE_DIFF}?filePath=$encodedPath&diffType=$diffType")
+                    },
+                    onViewCommitDiff = { filePath, oldCommit, newCommit ->
+                        val encodedPath = java.net.URLEncoder.encode(filePath, "UTF-8")
+                        val encodedOld = java.net.URLEncoder.encode(oldCommit, "UTF-8")
+                        val encodedNew = java.net.URLEncoder.encode(newCommit, "UTF-8")
+                        navController.navigate("${NavRoutes.FILE_DIFF}?filePath=$encodedPath&diffType=COMMIT&oldCommit=$encodedOld&newCommit=$encodedNew")
+                    }
                 )
             }
 
@@ -134,6 +148,33 @@ fun AppNavHost(navController: NavHostController) {
                     onBack = { navController.popBackStack() }
                 )
             }
+
+            composable(
+                route = "${NavRoutes.FILE_DIFF}?filePath={filePath}&diffType={diffType}&oldCommit={oldCommit}&newCommit={newCommit}",
+                arguments = listOf(
+                    androidx.navigation.navArgument("filePath") { type = androidx.navigation.NavType.StringType },
+                    androidx.navigation.navArgument("diffType") { 
+                        type = androidx.navigation.NavType.StringType
+                        defaultValue = "WORKING_TREE"
+                    },
+                    androidx.navigation.navArgument("oldCommit") { 
+                        type = androidx.navigation.NavType.StringType
+                        nullable = true
+                        defaultValue = null
+                    },
+                    androidx.navigation.navArgument("newCommit") { 
+                        type = androidx.navigation.NavType.StringType
+                        nullable = true
+                        defaultValue = null
+                    }
+                )
+            ) { backStackEntry ->
+                val fileDiffViewModel: FileDiffViewModel = hiltViewModel()
+                FileDiffScreen(
+                    fileDiffViewModel = fileDiffViewModel,
+                    onNavigateBack = { navController.popBackStack() }
+                )
+            }
         }
     }
 }
@@ -142,13 +183,16 @@ fun AppNavHost(navController: NavHostController) {
 fun MainScreen(
     onNavigateToAddRepository: () -> Unit,
     onNavigateToPermissions: () -> Unit,
-    onNavigateToCredentials: () -> Unit
+    onNavigateToCredentials: () -> Unit,
+    onViewFileDiff: ((String, String) -> Unit)? = null,
+    onViewCommitDiff: ((String, String, String) -> Unit)? = null
 ) {
     // Hoist ViewModels to MainScreen scope so they are created once
     // and reused across page swipes, rather than being recreated inside the Pager.
     val statusViewModel: StatusViewModel = hiltViewModel()
     val historyViewModel: HistoryViewModel = hiltViewModel()
     val branchesViewModel: BranchesViewModel = hiltViewModel()
+    val tagsViewModel: TagsViewModel = hiltViewModel()
     val myReposViewModel: MyReposViewModel = hiltViewModel()
 
     val navItems = rememberNavItems()
@@ -204,22 +248,33 @@ fun MainScreen(
                 when (page) {
                     0 -> StatusScreen(
                         statusViewModel = statusViewModel,
-                        modifier = Modifier.fillMaxSize()
+                        modifier = Modifier.fillMaxSize(),
+                        onViewDiff = { filePath, isStaged ->
+                            val diffType = if (isStaged) "STAGED" else "WORKING_TREE"
+                            onViewFileDiff?.invoke(filePath, diffType)
+                        }
                     )
                     1 -> HistoryScreen(
                         historyViewModel = historyViewModel,
-                        modifier = Modifier.fillMaxSize()
+                        modifier = Modifier.fillMaxSize(),
+                        onViewCommitDiff = { filePath, oldCommit, newCommit ->
+                            onViewCommitDiff?.invoke(filePath, oldCommit, newCommit)
+                        }
                     )
                     2 -> BranchesScreen(
                         branchesViewModel = branchesViewModel,
                         modifier = Modifier.fillMaxSize()
                     )
-                    3 -> MyReposScreen(
+                    3 -> TagsScreen(
+                        tagsViewModel = tagsViewModel,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                    4 -> MyReposScreen(
                         myReposViewModel = myReposViewModel,
                         modifier = Modifier.fillMaxSize(),
                         onNavigateToAddRepository = onNavigateToAddRepository
                     )
-                    4 -> SettingsScreen(
+                    5 -> SettingsScreen(
                         modifier = Modifier.fillMaxSize(),
                         onNavigateToPermissions = onNavigateToPermissions,
                         onNavigateToCredentials = onNavigateToCredentials
