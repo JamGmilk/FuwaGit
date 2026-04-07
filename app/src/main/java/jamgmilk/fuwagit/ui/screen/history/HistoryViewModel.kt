@@ -26,11 +26,11 @@ data class HistoryUiState(
     val error: String? = null,
     val repoPath: String? = null,
     val commits: List<GitCommit> = emptyList(),
-    // Reset 鐩稿叧鐘舵€?
+    // Reset 相关状态
     val pendingResetCommit: GitCommit? = null,
     val pendingResetMode: GitResetMode? = null,
     val isResetting: Boolean = false,
-    // Commit 璇︽儏鐩稿叧鐘舵€?
+    // Commit 详情相关状态
     val selectedCommitDetail: GitCommitDetail? = null,
     val isLoadingCommitDetail: Boolean = false
 )
@@ -97,7 +97,7 @@ class HistoryViewModel @Inject constructor(
     }
 
     /**
-     * 璇锋眰 Reset 鎿嶄綔锛氳缃緟澶勭悊鐨?commit 鍜屾ā寮?
+     * 请求 Reset 操作：设置待处理的 commit 和模式
      */
     fun requestReset(commit: GitCommit, mode: GitResetMode) {
         _uiState.update {
@@ -109,7 +109,7 @@ class HistoryViewModel @Inject constructor(
     }
 
     /**
-     * 纭鎵ц Reset 鎿嶄綔
+     * 确认执行 Reset 操作
      */
     fun confirmReset() {
         val path = currentRepoPath ?: return
@@ -144,7 +144,7 @@ class HistoryViewModel @Inject constructor(
     }
 
     /**
-     * 鍙栨秷 Reset 鎿嶄綔
+     * 取消 Reset 操作
      */
     fun cancelReset() {
         _uiState.update {
@@ -156,7 +156,7 @@ class HistoryViewModel @Inject constructor(
     }
 
     /**
-     * 鍔犺浇 commit 璇︽儏锛堝寘鍚枃浠跺彉鏇村垪琛級
+     * 加载 commit 详情（包含文件变更列表）
      */
     fun loadCommitDetail(commit: GitCommit) {
         val path = currentRepoPath ?: return
@@ -184,7 +184,7 @@ class HistoryViewModel @Inject constructor(
     }
 
     /**
-     * 娓呴櫎 commit 璇︽儏
+     * 清除 commit 详情
      */
     fun clearCommitDetail() {
         _uiState.update {

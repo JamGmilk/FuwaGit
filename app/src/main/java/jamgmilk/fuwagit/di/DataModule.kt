@@ -6,14 +6,18 @@ import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import jamgmilk.fuwagit.data.jgit.GitCommitDataSource
 import jamgmilk.fuwagit.data.jgit.GitCoreDataSource
+import jamgmilk.fuwagit.data.jgit.GitDiffDataSource
 import jamgmilk.fuwagit.data.jgit.GitMergeDataSource
 import jamgmilk.fuwagit.data.jgit.GitRemoteDataSource
 import jamgmilk.fuwagit.data.jgit.GitStatusDataSource
+import jamgmilk.fuwagit.data.jgit.GitTagDataSource
 import jamgmilk.fuwagit.data.jgit.JGitCommitDataSource
 import jamgmilk.fuwagit.data.jgit.JGitCoreDataSource
+import jamgmilk.fuwagit.data.jgit.JGitDiffDataSource
 import jamgmilk.fuwagit.data.jgit.JGitMergeDataSource
 import jamgmilk.fuwagit.data.jgit.JGitRemoteDataSource
 import jamgmilk.fuwagit.data.jgit.JGitStatusDataSource
+import jamgmilk.fuwagit.data.jgit.JGitTagDataSource
 import jamgmilk.fuwagit.data.repository.BiometricRepositoryImpl
 import jamgmilk.fuwagit.data.repository.ConfigRepositoryImpl
 import jamgmilk.fuwagit.data.repository.CredentialRepositoryImpl
@@ -59,6 +63,14 @@ abstract class DataModule {
     @Binds
     @Singleton
     abstract fun bindGitMergeDataSource(impl: JGitMergeDataSource): GitMergeDataSource
+
+    @Binds
+    @Singleton
+    abstract fun bindGitTagDataSource(impl: JGitTagDataSource): GitTagDataSource
+
+    @Binds
+    @Singleton
+    abstract fun bindGitDiffDataSource(impl: JGitDiffDataSource): GitDiffDataSource
 
     @Binds
     @Singleton

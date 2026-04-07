@@ -21,7 +21,7 @@ private val Context.gitConfigDataStore: DataStore<Preferences> by preferencesDat
 object GitConfigKeys {
     val USER_NAME = stringPreferencesKey("user.name")
     val USER_EMAIL = stringPreferencesKey("user.email")
-    val DEFAULT_BRANCH = stringPreferencesKey("init.defaultbranch")
+    val DEFAULT_BRANCH = stringPreferencesKey("init.defaultBranch")
 }
 
 // Git config data class (for type-safe access)

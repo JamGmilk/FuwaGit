@@ -3,6 +3,7 @@ package jamgmilk.fuwagit.ui.screen.status
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import jamgmilk.fuwagit.R
 import jamgmilk.fuwagit.core.result.AppResult
 import jamgmilk.fuwagit.ui.state.RepoStateManager
 import jamgmilk.fuwagit.domain.model.git.GitBranch
@@ -344,7 +345,7 @@ class StatusViewModel @Inject constructor(
         }
     }
 
-    // ============ 鍑嵁绠＄悊 ============
+    // ============ 凭证管理 ============
 
     fun loadCredentials() {
         viewModelScope.launch {

@@ -83,7 +83,7 @@ class GitConfigManager @Inject constructor() {
     }
 
     /**
-     * 璁剧疆 global git 閰嶇疆锛坣ame 鍜?email锛?
+     * 设置 global git 配置（name 和 email）
      */
     fun setGlobalUserConfig(name: String, email: String): Result<Unit> {
         return try {
@@ -275,7 +275,7 @@ class GitConfigManager @Inject constructor() {
             return Pair(repoName, repoEmail)
         }
         
-        // 鍚﹀垯浣跨敤 global config
+        // 否则使用 global config
         return Pair(getGlobalUserName(), getGlobalUserEmail())
     }
 }

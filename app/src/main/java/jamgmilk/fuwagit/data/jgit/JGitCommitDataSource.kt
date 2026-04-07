@@ -50,6 +50,8 @@ class JGitCommitDataSource @Inject constructor(
 
             val revCommit = repository.parseCommit(objectId)
             val fileChanges = mutableListOf<GitCommitFileChange>()
+            var totalAdditions = 0
+            var totalDeletions = 0
 
             try {
                 val revWalk = org.eclipse.jgit.revwalk.RevWalk(repository)
@@ -78,34 +80,80 @@ class JGitCommitDataSource @Inject constructor(
                                     else -> GitChangeType.Modified
                                 }
                                 val path = diffEntry.newPath.ifBlank { diffEntry.oldPath }
+
+                                // 计算行数变化 - 简化方法：直接比较文件大小和内容
+                                var additions = 0
+                                var deletions = 0
+                                try {
+                                    if (changeType == GitChangeType.Added && diffEntry.newId != null) {
+                                        val newLoader = repository.open(diffEntry.newId.toObjectId())
+                                        additions = String(newLoader.bytes).lines().size
+                                    } else if (changeType == GitChangeType.Removed && diffEntry.oldId != null) {
+                                        val oldLoader = repository.open(diffEntry.oldId.toObjectId())
+                                        deletions = String(oldLoader.bytes).lines().size
+                                    } else if (changeType == GitChangeType.Modified) {
+                                        // 对于修改，尝试计算差异
+                                        if (diffEntry.newId != null && diffEntry.oldId != null) {
+                                            val newLoader = repository.open(diffEntry.newId.toObjectId())
+                                            val oldLoader = repository.open(diffEntry.oldId.toObjectId())
+                                            val newLines = String(newLoader.bytes).lines().size
+                                            val oldLines = String(oldLoader.bytes).lines().size
+                                            additions = maxOf(0, newLines - oldLines)
+                                            deletions = maxOf(0, oldLines - newLines)
+                                        }
+                                    }
+                                } catch (e: Exception) {
+                                    // 如果失败，使用默认值
+                                }
+
                                 fileChanges.add(
                                     GitCommitFileChange(
                                         path = path,
                                         name = java.io.File(path).name,
                                         changeType = changeType,
-                                        additions = 0,
-                                        deletions = 0
+                                        additions = additions,
+                                        deletions = deletions
                                     )
                                 )
+                                totalAdditions += additions
+                                totalDeletions += deletions
                             }
                         } finally {
                             diffFormatter.close()
                         }
                     } else {
+                        // 初始提交 - 所有文件都是新增
                         val walk = org.eclipse.jgit.treewalk.TreeWalk(repository)
                         walk.addTree(tree)
                         walk.isRecursive = true
                         while (walk.next()) {
                             val path = walk.pathString
-                            fileChanges.add(
-                                GitCommitFileChange(
-                                    path = path,
-                                    name = java.io.File(path).name,
-                                    changeType = GitChangeType.Added,
-                                    additions = 0,
-                                    deletions = 0
+                            try {
+                                val objectId = walk.getObjectId(0)
+                                val loader = repository.open(objectId)
+                                val lineCount = String(loader.bytes).lines().size
+                                totalAdditions += lineCount
+
+                                fileChanges.add(
+                                    GitCommitFileChange(
+                                        path = path,
+                                        name = java.io.File(path).name,
+                                        changeType = GitChangeType.Added,
+                                        additions = lineCount,
+                                        deletions = 0
+                                    )
                                 )
-                            )
+                            } catch (e: Exception) {
+                                fileChanges.add(
+                                    GitCommitFileChange(
+                                        path = path,
+                                        name = java.io.File(path).name,
+                                        changeType = GitChangeType.Added,
+                                        additions = 0,
+                                        deletions = 0
+                                    )
+                                )
+                            }
                         }
                     }
                 } finally {
@@ -129,8 +177,8 @@ class JGitCommitDataSource @Inject constructor(
             GitCommitDetail(
                 commit = commit,
                 fileChanges = fileChanges,
-                totalAdditions = 0,
-                totalDeletions = 0,
+                totalAdditions = totalAdditions,
+                totalDeletions = totalDeletions,
                 totalFiles = fileChanges.size
             )
         }

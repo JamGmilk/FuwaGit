@@ -96,7 +96,7 @@
     <string name="settings_default_branch">Default Branch</string>
     <string name="settings_default_branch_subtitle">init.defaultBranch = %1$s</string>
     <string name="settings_default_branch_description">Set the default branch name for new repositories.</string>
-    <string name="settings_default_branch_label">init.defaultbranch</string>
+    <string name="settings_default_branch_label">init.defaultBranch</string>
     <string name="settings_default_branch_placeholder">main</string>
 
     <!-- Test File Picker Dialog Title -->
@@ -563,4 +563,85 @@
     <string name="vm_clean_failed">Failed to clean: %1$s</string>
     <string name="vm_clean_get_files_failed">Failed to get untracked files: %1$s</string>
     <string name="vm_clean_get_list_failed">Failed to get file list: %1$s</string>
+
+    <!-- Status Screen ViewModel Messages -->
+    <string name="status_select_target_repo">Select a target repo</string>
+    <string name="status_select_target_repo_path">Select a target repo path</string>
+    <string name="status_git_repository">Git repository</string>
+    <string name="status_not_git_repository">Not a git repository</string>
+    <string name="status_changes_discarded">Changes to \'%1$s\' have been discarded</string>
+    <string name="status_unknown_error">Unknown error</string>
+    <string name="status_discard_error_hint">Make sure the file is not staged or locked by another process.</string>
+    <string name="status_attempting_pull">Attempting pull. Remote auth may be required</string>
+    <string name="status_attempting_push">Attempting push. Remote auth may be required</string>
+    <string name="status_fetching_remote">Fetching from remote…</string>
+
+    <!-- Tags Screen -->
+    <string name="screen_tags">Tags</string>
+    <string name="tags_refresh_description">Refresh tags list</string>
+    <string name="tags_create_tag_description">Create new tag</string>
+    <string name="tags_no_tags_found">No tags found</string>
+    <string name="tags_init_repo_message">Initialize a repository to see tags</string>
+    <string name="tags_count_format">%1$d tags</string>
+    <string name="tags_lightweight_badge">lightweight</string>
+    <string name="tags_annotated_badge">annotated</string>
+    <string name="tags_target_commit">Target: %1$s</string>
+    <string name="tags_push_tag">Push Tag</string>
+    <string name="tags_push_all_tags">Push All Tags</string>
+    <string name="tags_delete_tag">Delete Tag</string>
+    <string name="tags_create_lightweight_tag">Create Lightweight Tag</string>
+    <string name="tags_create_annotated_tag">Create Annotated Tag</string>
+    <string name="tags_tag_name">Tag Name</string>
+    <string name="tags_tag_name_placeholder">v1.0.0</string>
+    <string name="tags_tag_message">Tag Message</string>
+    <string name="tags_tag_message_placeholder">Release version 1.0.0</string>
+    <string name="tags_commit_hash">Commit Hash (optional)</string>
+    <string name="tags_commit_hash_placeholder">HEAD or specific commit</string>
+    <string name="tags_remote_name">Remote</string>
+    <string name="tags_remote_origin">origin</string>
+    <string name="tags_delete_confirmation">Are you sure you want to delete tag \'%1$s\'?</string>
+    <string name="tags_delete_warning">This action cannot be undone.</string>
+    <string name="tags_push_single_tag">Push tag \'%1$s\' to \'%2$s\'?</string>
+    <string name="tags_push_all_confirmation">Push all tags to \'%1$s\'?</string>
+    <string name="tags_filter_all">All</string>
+    <string name="tags_filter_lightweight">Lightweight</string>
+    <string name="tags_filter_annotated">Annotated</string>
+    <string name="tags_search_hint">Search tags…</string>
+    <string name="tags_created_success">Tag \'%1$s\' created successfully</string>
+    <string name="tags_deleted_success">Tag \'%1$s\' deleted successfully</string>
+    <string name="tags_pushed_success">Tag \'%1$s\' pushed to \'%2$s\' successfully</string>
+    <string name="tags_all_pushed_success">All tags pushed to \'%1$s\' successfully</string>
+    <string name="tags_tag_exists">Tag \'%1$s\' already exists</string>
+    <string name="tags_invalid_tag_name">Invalid tag name</string>
+    <string name="tags_tag_name_validation_hint">Tag names cannot contain spaces, ~, ^, :, ?, *, [, \\, or begin with a dot</string>
+
+    <!-- File Diff Screen -->
+    <string name="screen_file_diff">File Diff</string>
+    <string name="diff_view_title">Changes</string>
+    <string name="diff_loading">Loading diff…</string>
+    <string name="diff_failed_to_load">Failed to load diff</string>
+    <string name="diff_binary_file">Binary file not shown</string>
+    <string name="diff_no_changes">No changes</string>
+    <string name="diff_added_line">Added line</string>
+    <string name="diff_deleted_line">Deleted line</string>
+    <string name="diff_context_line">Context line</string>
+    <string name="diff_line_number">Line %1$d</string>
+    <string name="diff_view_changes">View Changes</string>
+    <string name="diff_file_header">Diff: %1$s</string>
+
+    <!-- Push Options -->
+    <string name="push_options_title">Push Options</string>
+    <string name="push_normal">Normal Push</string>
+    <string name="push_normal_description">Push only if remote has no new commits</string>
+    <string name="push_force">Force Push</string>
+    <string name="push_force_description">Override remote branch (dangerous)</string>
+    <string name="push_force_lease">Force with Lease</string>
+    <string name="push_force_lease_description">Safer force push (rejects if remote has new commits)</string>
+    <string name="push_select_mode">Select Push Mode</string>
+
+    <!-- Rebase Continue -->
+    <string name="rebase_continue">Continue Rebase</string>
+    <string name="rebase_continue_description">Continue rebase after resolving conflicts</string>
+    <string name="rebase_abort">Abort Rebase</string>
+    <string name="rebase_in_progress">Rebase in progress</string>
 </resources>

@@ -25,6 +25,11 @@ class MergeUseCase @Inject constructor(
         return repository.rebaseBranch(repoPath, branchName)
     }
 
+    suspend fun continueRebase(repoPath: String): AppResult<String> {
+        if (repoPath.isBlank()) return AppResult.Error(AppException.Validation("Repository path cannot be empty"))
+        return repository.continueRebase(repoPath)
+    }
+
     suspend fun getConflicts(repoPath: String): AppResult<ConflictResult> {
         if (repoPath.isBlank()) return AppResult.Error(AppException.Validation("Repository path cannot be empty"))
         return repository.getConflictStatus(repoPath)

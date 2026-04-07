@@ -320,6 +320,7 @@ internal fun FileSectionCard(
     accentColor: Color,
     onFileAction: (GitFileStatus) -> Unit,
     onDiscard: ((GitFileStatus) -> Unit)? = null,
+    onViewDiff: ((GitFileStatus) -> Unit)? = null,
     emptyMessage: String
 ) {
     val colors = MaterialTheme.colorScheme
@@ -414,7 +415,8 @@ internal fun FileSectionCard(
                             file = file,
                             accentColor = accentColor,
                             onAction = { onFileAction(file) },
-                            onDiscard = onDiscard?.let { { it(file) } }
+                            onDiscard = onDiscard?.let { { it(file) } },
+                            onViewDiff = onViewDiff?.let { { it(file) } }
                         )
                     }
                 }
@@ -428,7 +430,8 @@ private fun FileStatusItem(
     file: GitFileStatus,
     accentColor: Color,
     onAction: () -> Unit,
-    onDiscard: (() -> Unit)? = null
+    onDiscard: (() -> Unit)? = null,
+    onViewDiff: (() -> Unit)? = null
 ) {
     val showMenuState = remember { mutableStateOf(false) }
     val colors = MaterialTheme.colorScheme
@@ -506,20 +509,38 @@ private fun FileStatusItem(
                     expanded = showMenuState.value,
                     onDismissRequest = { showMenuState.value = false }
                 ) {
-                    DropdownMenuItem(
-                        text = { Text("Discard Changes") },
-                        onClick = {
-                            onDiscard()
-                            showMenuState.value = false
-                        },
-                        leadingIcon = {
-                            Icon(
-                                Icons.AutoMirrored.Filled.Undo,
-                                contentDescription = null,
-                                modifier = Modifier.size(18.dp)
-                            )
-                        }
-                    )
+                    if (onViewDiff != null) {
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.diff_view_changes)) },
+                            onClick = {
+                                onViewDiff()
+                                showMenuState.value = false
+                            },
+                            leadingIcon = {
+                                Icon(
+                                    Icons.Default.Code,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+                        )
+                    }
+                    if (onDiscard != null) {
+                        DropdownMenuItem(
+                            text = { Text("Discard Changes") },
+                            onClick = {
+                                onDiscard()
+                                showMenuState.value = false
+                            },
+                            leadingIcon = {
+                                Icon(
+                                    Icons.AutoMirrored.Filled.Undo,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+                        )
+                    }
                 }
             } else {
                 Icon(

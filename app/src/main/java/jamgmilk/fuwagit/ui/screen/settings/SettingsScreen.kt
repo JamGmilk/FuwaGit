@@ -1046,7 +1046,7 @@ private fun SettingsNavigationItem(
 }
 
 /**
- * 搴旂敤鍒版墍鏈変粨搴撳璇濇
+ * 应用到所有仓库对话框
  */
 @Composable
 private fun ApplyToAllReposDialog(
@@ -1186,7 +1186,7 @@ private fun ApplyToAllReposDialog(
 }
 
 /**
- * 搴旂敤閰嶇疆缁撴灉瀵硅瘽锟?
+ * 应用配置结果对话框
  */
 @Composable
 private fun ApplyConfigResultDialog(

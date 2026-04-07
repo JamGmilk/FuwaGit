@@ -134,18 +134,46 @@ class JGitRemoteDataSource @Inject constructor(
         repoPath: String,
         credentials: CloneCredential?,
         options: GitPushOptions
-    ): Result<String> = core.withGit(repoPath) { git ->
-        try {
-            val pushCommand = git.push().setRemote(options.remote)
-            when {
-                options.pushAllBranches -> pushCommand.setPushAll()
-                options.branch != null -> pushCommand.add(options.branch)
-                options.pushCurrentBranch -> pushCommand.add(git.repository.branch)
+    ): Result<String> {
+        return try {
+            val result = core.withGit(repoPath) { git ->
+                val pushCommand = git.push().setRemote(options.remote)
+
+                // 设置推送的分支
+                when {
+                    options.pushAllBranches -> pushCommand.setPushAll()
+                    options.branch != null -> pushCommand.add(options.branch)
+                    options.pushCurrentBranch -> pushCommand.add(git.repository.branch)
+                }
+
+                // 设置标签推送
+                if (options.pushTags) pushCommand.setPushTags()
+
+                // 设置强制推送
+                when {
+                    options.forceWithLease || options.forcePush -> {
+                        pushCommand.setForce(true)
+                    }
+                }
+
+                core.configureCredentials(pushCommand, credentials)
+                pushCommand.call()
+
+                val forceIndicator = when {
+                    options.forceWithLease -> " (force-with-lease)"
+                    options.forcePush -> " (force)"
+                    else -> ""
+                }
+                "Push completed$forceIndicator"
             }
-            if (options.pushTags) pushCommand.setPushTags()
-            core.configureCredentials(pushCommand, credentials)
-            pushCommand.call()
-            "Push completed"
+            result
+        } catch (e: org.eclipse.jgit.api.errors.TransportException) {
+            // 处理 force-with-lease 失败（远程有新提交）
+            if (options.forceWithLease && e.message?.contains("rejected") == true) {
+                Result.failure(Exception("Push rejected: remote branch has new commits. Fetch and merge first, or use force push to override."))
+            } else {
+                Result.failure(Exception("Push failed: ${e.message}"))
+            }
         } finally {
             core.clearSshCredentials()
         }

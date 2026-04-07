@@ -93,6 +93,36 @@ class JGitMergeDataSource @Inject constructor(
         }
 
     /**
+     * Continues a rebase operation after conflicts are resolved.
+     */
+    override fun continueRebase(repoPath: String): Result<String> =
+        core.withGit(repoPath) { git ->
+            try {
+                val rebaseResult = git.rebase()
+                    .setOperation(org.eclipse.jgit.api.RebaseCommand.Operation.CONTINUE)
+                    .call()
+
+                when (rebaseResult.status) {
+                    org.eclipse.jgit.api.RebaseResult.Status.OK ->
+                        "Rebase continued successfully"
+                    org.eclipse.jgit.api.RebaseResult.Status.UP_TO_DATE ->
+                        "Rebase completed: branch is up to date"
+                    org.eclipse.jgit.api.RebaseResult.Status.FAST_FORWARD ->
+                        "Rebase completed: fast-forward"
+                    else ->
+                        "Rebase continued: ${rebaseResult.status.name}"
+                }
+            } catch (e: org.eclipse.jgit.api.errors.JGitInternalException) {
+                if (e.message?.contains("conflict") == true || e.message?.contains("CONFLICTING") == true) {
+                    throw Exception("Still have conflicts to resolve before continuing rebase")
+                }
+                throw Exception("Failed to continue rebase: ${e.message}")
+            } catch (e: Exception) {
+                throw Exception("Failed to continue rebase: ${e.message}")
+            }
+        }
+
+    /**
      * Gets the current conflict status.
      */
     override fun getConflictStatus(repoPath: String): Result<ConflictResult> =
@@ -152,7 +182,16 @@ class JGitMergeDataSource @Inject constructor(
         }
 
     /**
-     * Gets the list of conflicting files.
+     * Gets the list of conflicting file paths.
+     */
+    override fun getConflictFiles(repoPath: String): Result<List<String>> =
+        core.withGit(repoPath) { git ->
+            val status = git.status().call()
+            status.conflicting.toList()
+        }
+
+    /**
+     * Gets detailed conflict information.
      */
     private fun getConflictFiles(git: Git): List<GitConflict> {
         val status = git.status().call()

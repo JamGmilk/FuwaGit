@@ -5,9 +5,11 @@ import jamgmilk.fuwagit.core.result.AppException
 import jamgmilk.fuwagit.core.result.toAppResult
 import jamgmilk.fuwagit.data.jgit.GitCommitDataSource
 import jamgmilk.fuwagit.data.jgit.GitCoreDataSource
+import jamgmilk.fuwagit.data.jgit.GitDiffDataSource
 import jamgmilk.fuwagit.data.jgit.GitMergeDataSource
 import jamgmilk.fuwagit.data.jgit.GitRemoteDataSource
 import jamgmilk.fuwagit.data.jgit.GitStatusDataSource
+import jamgmilk.fuwagit.data.jgit.GitTagDataSource
 import jamgmilk.fuwagit.domain.model.credential.CloneCredential
 import jamgmilk.fuwagit.domain.model.git.*
 import jamgmilk.fuwagit.domain.repository.GitRepository
@@ -20,7 +22,9 @@ class GitRepositoryImpl @Inject constructor(
     private val status: GitStatusDataSource,
     private val commit: GitCommitDataSource,
     private val remote: GitRemoteDataSource,
-    private val merge: GitMergeDataSource
+    private val merge: GitMergeDataSource,
+    private val tag: GitTagDataSource,
+    private val diff: GitDiffDataSource
 ) : GitRepository {
 
     override suspend fun getStatus(repoPath: String): AppResult<GitRepoStatus> =
@@ -83,6 +87,9 @@ class GitRepositoryImpl @Inject constructor(
     override suspend fun rebaseBranch(repoPath: String, branchName: String): AppResult<ConflictResult> =
         withContext(Dispatchers.IO) { merge.rebaseBranch(repoPath, branchName).toAppResult() }
 
+    override suspend fun continueRebase(repoPath: String): AppResult<String> =
+        withContext(Dispatchers.IO) { merge.continueRebase(repoPath).toAppResult() }
+
     override suspend fun getConflictStatus(repoPath: String): AppResult<ConflictResult> =
         withContext(Dispatchers.IO) { merge.getConflictStatus(repoPath).toAppResult() }
 
@@ -121,4 +128,59 @@ class GitRepositoryImpl @Inject constructor(
 
     override suspend fun clean(repoPath: String, dryRun: Boolean): AppResult<CleanResult> =
         withContext(Dispatchers.IO) { merge.clean(repoPath, dryRun).toAppResult() }
+
+    // ==================== Tag 相关操作 ====================
+
+    override suspend fun getTags(repoPath: String): AppResult<List<GitTag>> =
+        withContext(Dispatchers.IO) { tag.getTags(repoPath).toAppResult() }
+
+    override suspend fun createLightweightTag(repoPath: String, tagName: String, commitHash: String?): AppResult<String> =
+        withContext(Dispatchers.IO) { tag.createLightweightTag(repoPath, tagName, commitHash).toAppResult() }
+
+    override suspend fun createAnnotatedTag(
+        repoPath: String,
+        tagName: String,
+        message: String,
+        commitHash: String?
+    ): AppResult<String> =
+        withContext(Dispatchers.IO) { tag.createAnnotatedTag(repoPath, tagName, message, commitHash).toAppResult() }
+
+    override suspend fun deleteTag(repoPath: String, tagName: String): AppResult<Unit> =
+        withContext(Dispatchers.IO) { tag.deleteTag(repoPath, tagName).toAppResult() }
+
+    override suspend fun pushTag(repoPath: String, tagName: String, remoteName: String): AppResult<String> =
+        withContext(Dispatchers.IO) { tag.pushTag(repoPath, tagName, remoteName).toAppResult() }
+
+    override suspend fun pushAllTags(repoPath: String, remoteName: String): AppResult<String> =
+        withContext(Dispatchers.IO) { tag.pushAllTags(repoPath, remoteName).toAppResult() }
+
+    // ==================== Diff 相关操作 ====================
+
+    override suspend fun getWorkingTreeDiff(repoPath: String, filePath: String): AppResult<FileDiff> =
+        withContext(Dispatchers.IO) { diff.getWorkingTreeDiff(repoPath, filePath).toAppResult() }
+
+    override suspend fun getStagedDiff(repoPath: String, filePath: String): AppResult<FileDiff> =
+        withContext(Dispatchers.IO) { diff.getStagedDiff(repoPath, filePath).toAppResult() }
+
+    override suspend fun getCommitFileDiff(
+        repoPath: String,
+        filePath: String,
+        oldCommit: String,
+        newCommit: String
+    ): AppResult<FileDiff> =
+        withContext(Dispatchers.IO) { diff.getCommitFileDiff(repoPath, filePath, oldCommit, newCommit).toAppResult() }
+
+    override suspend fun getCommitDiff(
+        repoPath: String,
+        oldCommit: String,
+        newCommit: String
+    ): AppResult<List<FileDiff>> =
+        withContext(Dispatchers.IO) { diff.getCommitDiff(repoPath, oldCommit, newCommit).toAppResult() }
+
+    override suspend fun getFileContent(
+        repoPath: String,
+        filePath: String,
+        commitHash: String?
+    ): AppResult<String> =
+        withContext(Dispatchers.IO) { diff.getFileContent(repoPath, filePath, commitHash).toAppResult() }
 }

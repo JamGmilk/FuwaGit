@@ -49,7 +49,8 @@ data class StatusStats(
 @Composable
 fun StatusScreen(
     statusViewModel: StatusViewModel,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onViewDiff: ((String, Boolean) -> Unit)? = null
 ) {
     val uiState by statusViewModel.uiState.collectAsStateWithLifecycle()
     val files = uiState.workspaceFiles
@@ -153,6 +154,9 @@ fun StatusScreen(
                     onDiscard = { file ->
                         statusViewModel.requestDiscardChanges(file.path)
                     },
+                    onViewDiff = { file ->
+                        onViewDiff?.invoke(file.path, false)
+                    },
                     emptyMessage = stringResource(R.string.status_working_directory_clean)
                 )
 
@@ -163,6 +167,9 @@ fun StatusScreen(
                     modifier = Modifier.weight(1f),
                     accentColor = colors.tertiary,
                     onFileAction = { file -> statusViewModel.unstageFile(file.path) },
+                    onViewDiff = { file ->
+                        onViewDiff?.invoke(file.path, true)
+                    },
                     emptyMessage = stringResource(R.string.status_nothing_to_commit)
                 )
             }
