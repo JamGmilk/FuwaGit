@@ -1,5 +1,6 @@
 package jamgmilk.fuwagit.domain.usecase.git
 
+import jamgmilk.fuwagit.core.result.AppResult
 import jamgmilk.fuwagit.domain.model.git.GitBranch
 import jamgmilk.fuwagit.domain.model.git.GitFileStatus
 import javax.inject.Inject
@@ -20,28 +21,28 @@ class GitStatusFacade @Inject constructor(
 ) {
     suspend fun hasGitDir(repoPath: String): Boolean = hasGitDirUseCase(repoPath)
 
-    suspend fun initRepo(repoPath: String): Result<String> = initRepoUseCase(repoPath)
+    suspend fun initRepo(repoPath: String): AppResult<String> = initRepoUseCase(repoPath)
 
-    suspend fun getDetailedStatus(repoPath: String): Result<List<GitFileStatus>> =
+    suspend fun getDetailedStatus(repoPath: String): AppResult<List<GitFileStatus>> =
         getDetailedStatusUseCase(repoPath)
 
-    suspend fun getBranches(repoPath: String): Result<List<GitBranch>> =
+    suspend fun getBranches(repoPath: String): AppResult<List<GitBranch>> =
         branchUseCase.list(repoPath)
 
-    suspend fun stageAll(repoPath: String): Result<String> = stageUseCase.all(repoPath)
+    suspend fun stageAll(repoPath: String): AppResult<String> = stageUseCase.all(repoPath)
 
-    suspend fun unstageAll(repoPath: String): Result<String> = stageUseCase.unstageAll(repoPath)
+    suspend fun unstageAll(repoPath: String): AppResult<String> = stageUseCase.unstageAll(repoPath)
 
-    suspend fun stageFile(repoPath: String, filePath: String): Result<Unit> =
+    suspend fun stageFile(repoPath: String, filePath: String): AppResult<Unit> =
         stageUseCase.file(repoPath, filePath)
 
-    suspend fun unstageFile(repoPath: String, filePath: String): Result<Unit> =
+    suspend fun unstageFile(repoPath: String, filePath: String): AppResult<Unit> =
         stageUseCase.unstageFile(repoPath, filePath)
 
-    suspend fun discardChanges(repoPath: String, filePath: String): Result<Unit> =
+    suspend fun discardChanges(repoPath: String, filePath: String): AppResult<Unit> =
         discardChangesUseCase(repoPath, filePath)
 
-    suspend fun commit(repoPath: String, message: String): Result<String> =
+    suspend fun commit(repoPath: String, message: String): AppResult<String> =
         commitUseCase(repoPath, message)
 
     suspend fun getRemoteUrl(repoPath: String, remoteName: String = "origin"): String? =

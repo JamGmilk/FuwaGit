@@ -2,6 +2,7 @@ package jamgmilk.fuwagit.domain.usecase.credential
 
 import androidx.fragment.app.FragmentActivity
 import jamgmilk.fuwagit.core.result.AppResult
+import jamgmilk.fuwagit.core.result.AppException
 import jamgmilk.fuwagit.domain.model.credential.HttpsCredential
 import jamgmilk.fuwagit.domain.model.credential.SshKey
 import javax.inject.Inject
@@ -19,7 +20,7 @@ class CredentialStoreFacade @Inject constructor(
 
     fun isBiometricEnabled(): Boolean = credentialRepository.isBiometricEnabled()
 
-    fun isUnlocked(): Boolean = credentialRepository.isUnlocked()
+    suspend fun isUnlocked(): Boolean = credentialRepository.isUnlocked()
 
     fun getMasterPasswordHint(): String? = credentialRepository.getMasterPasswordHint()
 
@@ -100,9 +101,8 @@ class CredentialStoreFacade @Inject constructor(
         onResult: (AppResult<Unit>) -> Unit
     ) = biometricAuthFacade.unlockWithBiometric(activity, onResult)
 
-    fun disableBiometric() {
+    suspend fun disableBiometric(): AppResult<Unit> =
         credentialRepository.disableBiometric()
-    }
 }
 
 /**
@@ -180,12 +180,15 @@ class MasterPasswordFacade @Inject constructor(
         newPassword: String,
         hint: String?
     ): AppResult<Unit> {
-        return masterKeyManager.changeMasterPassword(oldPassword, newPassword)
-            .onSuccess {
-                if (hint != null) {
-                    masterKeyManager.setPasswordHint(hint)
-                }
+        val result = masterKeyManager.changeMasterPassword(oldPassword, newPassword)
+        return if (result.isSuccess) {
+            if (hint != null) {
+                masterKeyManager.setPasswordHint(hint)
             }
+            AppResult.Success(Unit)
+        } else {
+            AppResult.Error(AppException.Unknown(result.exceptionOrNull()?.message ?: "Unknown error"))
+        }
     }
 }
 
@@ -197,7 +200,7 @@ class BiometricAuthFacade @Inject constructor(
     private val enableBiometricUseCase: EnableBiometricUseCase,
     private val unlockWithBiometricUseCase: UnlockWithBiometricUseCase
 ) {
-    fun enableBiometric(
+    suspend fun enableBiometric(
         activity: FragmentActivity,
         onResult: (AppResult<Unit>) -> Unit
     ) {

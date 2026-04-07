@@ -293,12 +293,12 @@ internal fun CloneContent(
                 ) { result ->
                     isLoading = false
                     result.onSuccess {
-                        Toast.makeText(context, stringResource(R.string.clone_clone_success), Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, context.getString(R.string.clone_clone_success), Toast.LENGTH_SHORT).show()
                         onCloneComplete(fullPath)
-                    }.onFailure { e ->
+                    }.onError { e ->
                         error = e.message
                         if (e.message?.contains("401") == true) {
-                            error = stringResource(R.string.clone_auth_failed)
+                            error = context.getString(R.string.clone_auth_failed)
                         }
                     }
                 }

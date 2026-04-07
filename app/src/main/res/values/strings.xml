@@ -109,7 +109,7 @@
     <string name="status_action_fetch">Fetch</string>
     <string name="status_action_stage_all">Stage All</string>
     <string name="status_action_unstage">Unstage</string>
-    <string name="status_checking_repo">Checking repository...</string>
+    <string name="status_checking_repo">Checking repository…</string>
     <string name="status_not_a_repo">Not a git repository</string>
     <string name="status_repo_active">Repository Active</string>
     <string name="status_select_repo">Select a repository</string>
@@ -123,10 +123,10 @@
     <string name="status_nothing_to_commit">Nothing to commit</string>
     <string name="status_commit_changes">Commit Changes</string>
     <string name="status_staged_count">%1$d staged</string>
-    <string name="status_commit_message_placeholder">Enter commit message...</string>
+    <string name="status_commit_message_placeholder">Enter commit message…</string>
     <string name="status_initialize_repository">Initialize Repository</string>
     <string name="status_not_git_repo_yet">This directory is not a Git repository yet.</string>
-    <string name="status_initializing">Initializing...</string>
+    <string name="status_initializing">Initializing…</string>
     <string name="status_execute_git_init">Execute git init</string>
     <string name="status_terminal">Terminal</string>
     <string name="status_terminal_lines">%1$d lines</string>
@@ -266,19 +266,19 @@
     <string name="credentials_public_key_copied">Public key copied</string>
     <string name="credentials_private_key_copied">Private key copied</string>
     <string name="credentials_export_title">Export Credentials</string>
-    <string name="credentials_exporting">Exporting...</string>
+    <string name="credentials_exporting">Exporting…</string>
     <string name="credentials_export_success">Credentials exported. Copy and save securely.</string>
     <string name="credentials_export_warning">Contains plaintext passwords and private keys. Clear your clipboard after saving.</string>
     <string name="credentials_import_title">Import Credentials</string>
     <string name="credentials_import_warning">Importing will replace existing credentials</string>
     <string name="credentials_import_paste_description">Paste your exported credentials data below:</string>
     <string name="credentials_import_data_label">Credentials Data</string>
-    <string name="credentials_import_paste_placeholder">Paste JSON data here...</string>
+    <string name="credentials_import_paste_placeholder">Paste JSON data here…</string>
     <string name="credentials_import_success">Credentials imported successfully!</string>
     <string name="credentials_current_hint_format">Current hint: %1$s</string>
     <string name="credentials_copied_to_clipboard">Copied to clipboard!</string>
     <string name="credentials_security_warning">Security Warning</string>
-    <string name="credentials_importing">Importing...</string>
+    <string name="credentials_importing">Importing…</string>
     
     <!-- Credential Info Dialog Labels -->
     <string name="credential_info_host">Host</string>
@@ -333,10 +333,7 @@
     <string name="myrepos_not_git_repo_warning">This directory is not a Git repository</string>
     <string name="myrepos_clone_success">Repository cloned successfully</string>
     <string name="myrepos_auth_failed">Authentication failed. Please select credentials.</string>
-    <string name="myrepos_scanning_files">Scanning for untracked files...</string>
-    <string name="action_preview">Preview</string>
-    <string name="action_close">Close</string>
-    <string name="action_copy">Copy</string>
+    <string name="myrepos_scanning_files">Scanning for untracked files…</string>
     <string name="myrepos_screen_title">My Repos</string>
 
     <!-- Local Content -->
@@ -386,7 +383,6 @@
     <string name="clone_auth_failed">Authentication failed. Please select credentials.</string>
 
     <!-- Add Repository Screen -->
-    <string name="screen_add_repository">Add Repository</string>
     <string name="add_repo_tab_clone">Clone Remote</string>
     <string name="add_repo_tab_local">Add Local</string>
     <string name="add_repo_repository_added">Repository added</string>
@@ -477,7 +473,6 @@
     <!-- (Title and subtitle are passed as parameters) -->
 
     <!-- Terminal Logs -->
-    <string name="status_terminal">Terminal</string>
     <string name="terminal_lines_format">%1$d lines</string>
     <string name="terminal_no_output">No output yet</string>
 
@@ -489,17 +484,8 @@
     <string name="action_apply">Apply</string>
 
     <!-- Credential Screen -->
-    <string name="screen_credentials">Credentials</string>
-    <string name="credentials_failed_to_generate_key">Failed to generate SSH key pair</string>
     <string name="credentials_errors_generating_key">Error generating SSH key: %1$s</string>
     <string name="credentials_errors_importing_key">Error importing SSH key: %1$s</string>
-
-    <!-- Credential Select Dialog -->
-    <string name="credential_select_title">Select Credential</string>
-    <string name="credential_tab_https">HTTPS</string>
-    <string name="credential_tab_ssh">SSH</string>
-    <string name="credential_no_https">No HTTPS Credentials</string>
-    <string name="credential_no_ssh">No SSH Keys</string>
 
     <!-- History Screen -->
     <string name="screen_history">History</string>
@@ -540,62 +526,6 @@
 
     <!-- Configure Remote Dialog -->
     <string name="remote_configure_select_credential">Select Credential</string>
-    <string name="remote_url_label">Remote URL</string>
-    <string name="remote_credential_label">Credential</string>
-    <string name="remote_ssh_key_label">SSH Key</string>
-
-    <!-- Confirm Dialogs -->
-    <string name="dialog_confirm_dangerous_title">Confirm Dangerous Operation</string>
-    <string name="dialog_confirm_type_confirm_format">Type \"%1$s\" to confirm:</string>
-    <string name="dialog_reset_confirm_title_format">Confirm %1$s Reset</string>
-    <string name="dialog_reset_to_commit">Reset current branch to commit:</string>
-    <string name="dialog_reset_hash_label">Hash:</string>
-    <string name="dialog_reset_soft">Soft Reset: Move HEAD only</string>
-    <string name="dialog_reset_mixed">Mixed Reset: Move HEAD and unstage changes</string>
-    <string name="dialog_reset_hard">Hard Reset: Discard ALL changes</string>
-    <string name="dialog_reset_hard_will">This will:</string>
-    <string name="dialog_reset_hard_discard_all">• Discard ALL uncommitted changes</string>
-    <string name="dialog_reset_hard_remove_staged">• Remove ALL staged changes</string>
-    <string name="dialog_reset_hard_reset_working">• Reset working directory to match the selected commit</string>
-    <string name="dialog_reset_hard_cannot_undo">⚠️ This action CANNOT be undone!</string>
-    <string name="dialog_reset_soft_label">Soft</string>
-    <string name="dialog_reset_mixed_label">Mixed</string>
-    <string name="dialog_reset_hard_label">Hard</string>
-    <string name="dialog_reset_button_format">Reset %1$s</string>
-    <string name="dialog_operation_successful">Operation Successful</string>
-    <string name="dialog_operation_failed">Operation Failed</string>
-    <string name="dialog_merge_conflicts">Merge Conflicts Detected</string>
-    <string name="dialog_error_format">Error: %1$s</string>
-    <string name="dialog_suggestion_format">Suggestion: %1$s</string>
-    <string name="dialog_conflict_files_message">The following files have conflicts:</string>
-    <string name="dialog_scanning_files">Scanning Files</string>
-    <string name="dialog_clean_info">Clean Info</string>
-    <string name="dialog_clean_failed">Clean Failed</string>
-    <string name="dialog_clean_untracked_title">Clean Untracked Files</string>
-    <string name="dialog_clean_files_to_delete_format">The following %1$d untracked file(s) will be permanently deleted:</string>
-    <string name="dialog_clean_cannot_undo">⚠️ This action CANNOT be undone!</string>
-    <string name="dialog_clean_no_files">No untracked files found.</string>
-    <string name="dialog_delete_all">Delete All</string>
-    <string name="dialog_clean_completed">Clean Completed</string>
-    <string name="dialog_clean_deleted_count_format">Successfully deleted %1$d file(s):</string>
-    <string name="dialog_clean_no_files_deleted">No files were deleted</string>
-    <string name="dialog_merge_conflict_title_format">%1$s Conflicts</string>
-    <string name="dialog_conflict_count_format">%1$s conflict(s) need resolution</string>
-    <string name="dialog_how_to_resolve">How to resolve:</string>
-    <string name="dialog_resolve_step1">1. Edit each file to resolve conflict markers (&lt;&lt;&lt;&lt;&lt;&lt;, ======, &gt;&gt;&gt;&gt;&gt;&gt;)</string>
-    <string name="dialog_resolve_step2">2. Click \'Mark as Resolved\' for each file after editing</string>
-    <string name="dialog_resolve_step3">3. Click \'Finish\' when all conflicts are resolved</string>
-    <string name="dialog_conflicting_files">Conflicting Files:</string>
-    <string name="dialog_abort_format">Abort %1$s</string>
-    <string name="dialog_conflict_status_unresolved">Unresolved</string>
-    <string name="dialog_conflict_status_resolved">Resolved</string>
-    <string name="dialog_conflict_status_staged">Staged</string>
-    <string name="dialog_conflict_status_format">Status: %1$s</string>
-
-    <!-- File Picker Dialog -->
-    <string name="filepicker_title">Select Folder</string>
-    <string name="filepicker_cannot_access">Cannot access this directory</string>
-    <string name="filepicker_empty_folder">Empty folder</string>
 
     <!-- Empty State -->
     <!-- (Title and description are passed as parameters) -->

@@ -63,6 +63,7 @@ fun ExportCredentialsDialog(
     val clipboardManager = LocalClipboardManager.current
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var isLoading by remember { mutableStateOf(false) }
+    val copiedMessage = stringResource(R.string.credentials_copied_to_clipboard)
 
     LaunchedEffect(Unit) {
         isLoading = true
@@ -97,7 +98,7 @@ fun ExportCredentialsDialog(
                     Surface(shape = RoundedCornerShape(12.dp), color = colors.surfaceVariant.copy(alpha = 0.5f), modifier = Modifier.fillMaxWidth()) {
                         Row(modifier = Modifier.fillMaxWidth().padding(12.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                             Text(text = "${exportedData.take(50)}...", style = MaterialTheme.typography.bodySmall, fontFamily = FontFamily.Monospace, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
-                            IconButton(onClick = { clipboardManager.setText(AnnotatedString(exportedData)); scope.launch { snackbarHostState.showSnackbar(stringResource(R.string.credentials_copied_to_clipboard)) } }) {
+                            IconButton(onClick = { clipboardManager.setText(AnnotatedString(exportedData)); scope.launch { snackbarHostState.showSnackbar(copiedMessage) } }) {
                                 Icon(Icons.Default.ContentCopy, contentDescription = stringResource(R.string.action_copy), tint = colors.onSurfaceVariant)
                             }
                         }

@@ -1,5 +1,6 @@
 package jamgmilk.fuwagit.domain.usecase.git
 
+import jamgmilk.fuwagit.core.result.AppResult
 import javax.inject.Inject
 
 /**
@@ -14,18 +15,18 @@ class GitSyncFacade @Inject constructor(
     suspend fun pull(
         repoPath: String,
         credentials: jamgmilk.fuwagit.domain.model.credential.CloneCredential?
-    ): Result<jamgmilk.fuwagit.domain.model.git.PullResult> =
+    ): AppResult<jamgmilk.fuwagit.domain.model.git.PullResult> =
         pullUseCase(repoPath, credentials)
 
     suspend fun push(
         repoPath: String,
         credentials: jamgmilk.fuwagit.domain.model.credential.CloneCredential?
-    ): Result<String> =
+    ): AppResult<String> =
         pushUseCase(repoPath, credentials)
 
     suspend fun fetch(
         repoPath: String,
         credentials: jamgmilk.fuwagit.domain.model.credential.CloneCredential?
-    ): Result<String> =
+    ): AppResult<String> =
         fetchUseCase(repoPath, credentials)
 }

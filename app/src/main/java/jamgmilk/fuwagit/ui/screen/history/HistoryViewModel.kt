@@ -81,7 +81,7 @@ class HistoryViewModel @Inject constructor(
                         )
                     }
                 }
-                .onFailure { e ->
+                .onError { e ->
                     _uiState.update {
                         it.copy(
                             error = e.message,
@@ -118,8 +118,8 @@ class HistoryViewModel @Inject constructor(
 
         viewModelScope.launch {
             _uiState.update { it.copy(isResetting = true) }
-            resetUseCase(path, commit.hash, mode).fold(
-                onSuccess = { result ->
+            resetUseCase(path, commit.hash, mode)
+                .onSuccess { result ->
                     _uiState.update {
                         it.copy(
                             isResetting = false,
@@ -128,9 +128,9 @@ class HistoryViewModel @Inject constructor(
                             error = null
                         )
                     }
-                    loadCommitHistory() // 鍒锋柊鍘嗗彶璁板綍
-                },
-                onFailure = { e ->
+                    loadCommitHistory()
+                }
+                .onError { e ->
                     _uiState.update {
                         it.copy(
                             isResetting = false,
@@ -140,7 +140,6 @@ class HistoryViewModel @Inject constructor(
                         )
                     }
                 }
-            )
         }
     }
 
@@ -164,16 +163,16 @@ class HistoryViewModel @Inject constructor(
 
         viewModelScope.launch {
             _uiState.update { it.copy(isLoadingCommitDetail = true) }
-            getCommitFileChangesUseCase(path, commit.hash).fold(
-                onSuccess = { detail ->
+            getCommitFileChangesUseCase(path, commit.hash)
+                .onSuccess { detail ->
                     _uiState.update {
                         it.copy(
                             selectedCommitDetail = detail,
                             isLoadingCommitDetail = false
                         )
                     }
-                },
-                onFailure = { e ->
+                }
+                .onError { e ->
                     _uiState.update {
                         it.copy(
                             isLoadingCommitDetail = false,
@@ -181,7 +180,6 @@ class HistoryViewModel @Inject constructor(
                         )
                     }
                 }
-            )
         }
     }
 
