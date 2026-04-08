@@ -60,6 +60,7 @@ kotlin {
 dependencies {
     // Core & Lifecycle
     implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.foundation)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
@@ -88,7 +89,10 @@ dependencies {
 
     // Third-party Libraries
     implementation(libs.org.eclipse.jgit)
-    implementation(libs.org.eclipse.jgit.ssh.jsch)
+    implementation(libs.org.eclipse.jgit.ssh.jsch) {
+        exclude(group = "com.jcraft", module = "jsch")
+    }
+    implementation(libs.jsch)
     implementation(libs.bouncycastle)
     implementation(libs.bouncycastle.pkix)
     implementation(libs.kotlinx.serialization.json)

@@ -114,9 +114,9 @@ fun BranchesScreen(
         title = stringResource(R.string.screen_branches),
         modifier = modifier,
         actions = {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                // 分支/标签视图切换
-                if (tagsViewModel != null) {
+            // 分支/标签视图切换
+            if (tagsViewModel != null) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     FilterChip(
                         selected = !showTagsView,
                         onClick = { showTagsView = false },
@@ -127,15 +127,36 @@ fun BranchesScreen(
                         onClick = { showTagsView = true },
                         label = { Text(stringResource(R.string.nav_tags)) }
                     )
-                } else {
-                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                }
+            }
+        }
+    ) {
+        ElevatedCard(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f)
+                .border(1.dp, colors.outlineVariant, AppShapes.medium),
+            shape = AppShapes.medium,
+            colors = CardDefaults.elevatedCardColors(containerColor = colors.surfaceContainerLow),
+            elevation = CardDefaults.elevatedCardElevation(0.dp)
+        ) {
+            if (showTagsView && tagsViewModel != null) {
+                TagsContent(tagsViewModel = tagsViewModel)
+            } else {
+                Column {
+                    // Branches 操作栏（刷新 + 创建）
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(12.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
                         IconButton(
                             onClick = { branchesViewModel.loadBranches() },
                             modifier = Modifier
                                 .size(36.dp)
                                 .background(colors.primaryContainer.copy(alpha = 0.3f), CircleShape)
                                 .clip(CircleShape)
-
                         ) {
                             Icon(
                                 Icons.Default.Refresh,
@@ -160,39 +181,25 @@ fun BranchesScreen(
                             )
                         }
                     }
-                }
-            }
-        }
-    ) {
-        ElevatedCard(
-            modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f)
-                .border(1.dp, colors.outlineVariant, AppShapes.medium),
-            shape = AppShapes.medium,
-            colors = CardDefaults.elevatedCardColors(containerColor = colors.surfaceContainerLow),
-            elevation = CardDefaults.elevatedCardElevation(0.dp)
-        ) {
-            if (showTagsView && tagsViewModel != null) {
-                TagsContent(tagsViewModel = tagsViewModel)
-            } else {
-                if (local.isEmpty() && remote.isEmpty()) {
-                    EmptyBranchesState()
-                } else {
-                    BranchListContent(
-                        localBranches = local,
-                        remoteBranches = remote,
-                        branchesViewModel = branchesViewModel,
-                        showRenameDialog = showRenameDialog,
-                        branchToRename = branchToRename,
-                        onRenameRequest = { name ->
-                            branchToRename = name
-                            showRenameDialog = true
-                        },
-                        onCreateTag = onCreateTag,
-                        onShowInHistory = onShowInHistory,
-                        modifier = Modifier.fillMaxSize()
-                    )
+
+                    if (local.isEmpty() && remote.isEmpty()) {
+                        EmptyBranchesState()
+                    } else {
+                        BranchListContent(
+                            localBranches = local,
+                            remoteBranches = remote,
+                            branchesViewModel = branchesViewModel,
+                            showRenameDialog = showRenameDialog,
+                            branchToRename = branchToRename,
+                            onRenameRequest = { name ->
+                                branchToRename = name
+                                showRenameDialog = true
+                            },
+                            onCreateTag = onCreateTag,
+                            onShowInHistory = onShowInHistory,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    }
                 }
             }
         }
