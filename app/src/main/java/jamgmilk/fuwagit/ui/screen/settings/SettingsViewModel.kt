@@ -31,7 +31,8 @@ data class SettingsUiState(
     val globalUserName: String? = null,
     val globalUserEmail: String? = null,
     val applyResult: ApplyConfigResult? = null,
-    val autoLockTimeout: String = "300" // Auto-lock timeout in seconds (0 = never)
+    val autoLockTimeout: String = "300",
+    val isFirstRun: Boolean = true
 )
 
 data class ApplyConfigResult(
@@ -87,7 +88,8 @@ class SettingsViewModel @Inject constructor(
                             verboseLogging = prefs.verboseLogging,
                             darkMode = prefs.darkMode,
                             language = prefs.language,
-                            autoLockTimeout = prefs.autoLockTimeout
+                            autoLockTimeout = prefs.autoLockTimeout,
+                            isFirstRun = prefs.isFirstRun
                         )
                     }
                 }
@@ -203,5 +205,11 @@ class SettingsViewModel @Inject constructor(
 
     fun clearApplyResult() {
         _uiState.update { it.copy(applyResult = null) }
+    }
+
+    fun resetOnboarding() {
+        viewModelScope.launch {
+            settingsRepository.resetFirstRun()
+        }
     }
 }

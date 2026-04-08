@@ -78,6 +78,9 @@
     <string name="settings_verbose_logging_subtitle">Show detailed Git operations in terminal</string>
     <string name="settings_test_file_picker">Test File Picker</string>
     <string name="settings_test_file_picker_subtitle">Open file picker and show selected path</string>
+    <string name="settings_reset_onboarding">Reset Onboarding</string>
+    <string name="settings_reset_onboarding_subtitle">Show onboarding on next app launch</string>
+    <string name="settings_reset_onboarding_confirm">This will reset the first-run flag. The onboarding screen will appear the next time you open the app.</string>
     <string name="settings_about">About</string>
     <string name="settings_version">Version</string>
     <string name="settings_build">Build</string>
@@ -728,4 +731,44 @@
 
     <!-- Branches Screen -->
     <string name="branches_branch_name_clipboard">branch name</string>
+
+    <!-- Onboarding -->
+    <string name="onboarding_welcome_title">Welcome to FuwaGit</string>
+    <string name="onboarding_welcome_subtitle">A lightweight Git client for Android. Manage repositories, protect credentials, and commit on the go.</string>
+    <string name="onboarding_feature_git_title">Full Git Operations</string>
+    <string name="onboarding_feature_git_desc">Clone, commit, push, pull, branch, merge, and more</string>
+    <string name="onboarding_feature_security_title">Secure Credentials</string>
+    <string name="onboarding_feature_security_desc">Encrypted vault with master password &amp; biometric unlock</string>
+    <string name="onboarding_feature_repos_title">Multi-Repo Management</string>
+    <string name="onboarding_feature_repos_desc">Manage multiple repositories with ease</string>
+    <string name="onboarding_get_started">Get Started</string>
+    <string name="onboarding_back">Back</string>
+    <string name="onboarding_next">Next</string>
+    <string name="onboarding_finish">Start Using FuwaGit</string>
+    <string name="onboarding_permissions_title">Grant Permissions</string>
+    <string name="onboarding_permissions_subtitle">FuwaGit needs storage access to manage your Git repositories.</string>
+    <string name="onboarding_permissions_storage_desc">Required for Git operations on all directories</string>
+    <string name="onboarding_master_password_title">Protect Your Credentials</string>
+    <string name="onboarding_master_password_subtitle">Set a master password to encrypt your HTTPS passwords and SSH keys. You can skip this and set it up later.</string>
+    <string name="onboarding_password_placeholder">At least 6 characters</string>
+    <string name="onboarding_biometric_title">Biometric Unlock</string>
+    <string name="onboarding_biometric_subtitle">Use fingerprint to quickly unlock credentials</string>
+    <string name="onboarding_skip_password">Skip for now</string>
+    <string name="onboarding_git_config_title">Git Configuration</string>
+    <string name="onboarding_git_config_subtitle">Set your default author information for commits. This can be changed later in Settings.</string>
+    <string name="onboarding_saving">Saving…</string>
+    <string name="onboarding_skip_config">Set up later</string>
+    <string name="onboarding_add_repo_title">Add Your First Repository</string>
+    <string name="onboarding_add_repo_subtitle">Clone a remote repository or add an existing local one.</string>
+    <string name="onboarding_clone_repo">Clone Remote</string>
+    <string name="onboarding_clone_repo_desc">Clone from GitHub, GitLab, or any Git server</string>
+    <string name="onboarding_local_repo">Add Local</string>
+    <string name="onboarding_local_repo_desc">Open an existing repository on your device</string>
+    <string name="onboarding_skip_repo">I\'ll add repos later</string>
+    <string name="onboarding_complete_title">You\'re All Set!</string>
+    <string name="onboarding_complete_subtitle">FuwaGit is ready to use. Here are a few tips to get started:</string>
+    <string name="onboarding_complete_tips_title">Quick Tips</string>
+    <string name="onboarding_tip_settings">Configure more options in the Settings tab</string>
+    <string name="onboarding_tip_credentials">Add HTTPS credentials or SSH keys in Credentials</string>
+    <string name="onboarding_tip_help">Long-press items for more options</string>
 </resources>

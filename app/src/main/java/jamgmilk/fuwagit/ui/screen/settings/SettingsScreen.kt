@@ -260,6 +260,7 @@ fun SettingsScreen(
             verboseLogging = settingsUiState.verboseLogging,
             onVerboseLoggingChange = { settingsViewModel.saveVerboseLogging(it) },
             onTestFilePicker = { showFilePicker = true },
+            onResetOnboarding = { settingsViewModel.resetOnboarding() },
             modifier = Modifier.fillMaxWidth()
         )
 
@@ -637,9 +638,11 @@ private fun DeveloperOptionsCard(
     verboseLogging: Boolean,
     onVerboseLoggingChange: (Boolean) -> Unit,
     onTestFilePicker: () -> Unit,
+    onResetOnboarding: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val colors = MaterialTheme.colorScheme
+    var showResetConfirm by remember { mutableStateOf(false) }
 
     ElevatedCard(
         modifier = modifier.border(1.dp, colors.outlineVariant, RoundedCornerShape(24.dp)),
@@ -670,7 +673,68 @@ private fun DeveloperOptionsCard(
                 icon = Icons.Default.FolderOpen,
                 onClick = onTestFilePicker
             )
+
+            HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+
+            SettingsClickableItem(
+                title = stringResource(R.string.settings_reset_onboarding),
+                subtitle = stringResource(R.string.settings_reset_onboarding_subtitle),
+                icon = Icons.Default.AccountTree,
+                onClick = { showResetConfirm = true }
+            )
         }
+    }
+
+    if (showResetConfirm) {
+        AlertDialog(
+            onDismissRequest = { showResetConfirm = false },
+            icon = {
+                Box(
+                    modifier = Modifier
+                        .size(56.dp)
+                        .background(colors.tertiary.copy(alpha = 0.15f), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        Icons.Default.AccountTree,
+                        contentDescription = null,
+                        tint = colors.tertiary,
+                        modifier = Modifier.size(28.dp)
+                    )
+                }
+            },
+            title = {
+                Text(
+                    text = stringResource(R.string.settings_reset_onboarding),
+                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.titleLarge
+                )
+            },
+            text = {
+                Text(
+                    text = stringResource(R.string.settings_reset_onboarding_confirm),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        onResetOnboarding()
+                        showResetConfirm = false
+                    },
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text(stringResource(R.string.action_done))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showResetConfirm = false }) {
+                    Text(stringResource(R.string.action_cancel))
+                }
+            },
+            shape = RoundedCornerShape(24.dp)
+        )
     }
 }
 
