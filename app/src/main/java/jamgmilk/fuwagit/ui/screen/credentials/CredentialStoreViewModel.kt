@@ -331,7 +331,6 @@ class CredentialStoreViewModel @Inject constructor(
             onResult(SshTestResult.Testing)
 
             try {
-                // Retrieve decrypted private key from vault
                 val privateKeyResult = credentialFacade.getSshPrivateKey(sshKeyUuid)
                 val passphraseResult = credentialFacade.getSshPassphrase(sshKeyUuid)
 

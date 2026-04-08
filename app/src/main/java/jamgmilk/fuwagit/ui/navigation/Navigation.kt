@@ -13,6 +13,7 @@ import androidx.compose.ui.res.stringResource
 import jamgmilk.fuwagit.R
 
 object NavRoutes {
+    const val ONBOARDING = "onboarding"
     const val MAIN = "main"
     const val ADD_REPOSITORY = "add_repository"
     const val PERMISSIONS = "permissions"

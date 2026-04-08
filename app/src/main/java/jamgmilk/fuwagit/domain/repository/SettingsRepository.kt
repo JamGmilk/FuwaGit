@@ -21,7 +21,8 @@ data class AppPreferences(
     val verboseLogging: Boolean = false,
     val darkMode: String = "system",
     val language: String = "system",
-    val autoLockTimeout: String = "300"
+    val autoLockTimeout: String = "300",
+    val isFirstRun: Boolean = true
 )
 
 /**
@@ -83,4 +84,8 @@ interface SettingsRepository {
      * Save auto-lock timeout preference.
      */
     suspend fun saveAutoLockTimeout(timeout: String)
+
+    suspend fun setFirstRunCompleted()
+
+    suspend fun resetFirstRun()
 }

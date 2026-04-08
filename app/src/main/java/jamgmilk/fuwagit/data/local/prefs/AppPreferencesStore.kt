@@ -27,6 +27,7 @@ object PreferencesKeys {
     val DARK_MODE = stringPreferencesKey("appearance.darkMode")
     val LANGUAGE = stringPreferencesKey("appearance.language")
     val AUTO_LOCK_TIMEOUT = stringPreferencesKey("security.autoLockTimeout")
+    val IS_FIRST_RUN = booleanPreferencesKey("app.isFirstRun")
 }
 
 // App preferences data class (for type-safe access)
@@ -35,9 +36,10 @@ data class AppPreferences(
     val conflictSafeMode: Boolean = true,
     val backupBeforeSync: Boolean = true,
     val verboseLogging: Boolean = false,
-    val darkMode: String = "system", // "system", "always_on", "always_off"
-    val language: String = "system", // "system", "zh_CN", "en"
-    val autoLockTimeout: String = "300" // Auto-lock timeout in seconds (default: 5 minutes)
+    val darkMode: String = "system",
+    val language: String = "system",
+    val autoLockTimeout: String = "300",
+    val isFirstRun: Boolean = true
 )
 
 @Singleton
@@ -53,7 +55,8 @@ class AppPreferencesStore @Inject constructor(
             verboseLogging = prefs[PreferencesKeys.VERBOSE_LOGGING] ?: false,
             darkMode = prefs[PreferencesKeys.DARK_MODE] ?: "system",
             language = prefs[PreferencesKeys.LANGUAGE] ?: "system",
-            autoLockTimeout = prefs[PreferencesKeys.AUTO_LOCK_TIMEOUT] ?: "300"
+            autoLockTimeout = prefs[PreferencesKeys.AUTO_LOCK_TIMEOUT] ?: "300",
+            isFirstRun = prefs[PreferencesKeys.IS_FIRST_RUN] ?: true
         )
     }
 
@@ -96,6 +99,18 @@ class AppPreferencesStore @Inject constructor(
     suspend fun setLanguage(language: String) {
         context.dataStore.edit { prefs ->
             prefs[PreferencesKeys.LANGUAGE] = language
+        }
+    }
+
+    suspend fun setFirstRunCompleted() {
+        context.dataStore.edit { prefs ->
+            prefs[PreferencesKeys.IS_FIRST_RUN] = false
+        }
+    }
+
+    suspend fun resetFirstRun() {
+        context.dataStore.edit { prefs ->
+            prefs[PreferencesKeys.IS_FIRST_RUN] = true
         }
     }
 }

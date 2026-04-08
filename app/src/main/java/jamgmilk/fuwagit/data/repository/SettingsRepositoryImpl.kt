@@ -34,7 +34,8 @@ class SettingsRepositoryImpl @Inject constructor(
                 backupBeforeSync = prefs.backupBeforeSync,
                 verboseLogging = prefs.verboseLogging,
                 darkMode = prefs.darkMode,
-                autoLockTimeout = prefs.autoLockTimeout
+                autoLockTimeout = prefs.autoLockTimeout,
+                isFirstRun = prefs.isFirstRun
             )
         }
     }
@@ -73,5 +74,13 @@ class SettingsRepositoryImpl @Inject constructor(
 
     override suspend fun saveAutoLockTimeout(timeout: String) {
         appPreferencesStore.setAutoLockTimeout(timeout)
+    }
+
+    override suspend fun setFirstRunCompleted() {
+        appPreferencesStore.setFirstRunCompleted()
+    }
+
+    override suspend fun resetFirstRun() {
+        appPreferencesStore.resetFirstRun()
     }
 }

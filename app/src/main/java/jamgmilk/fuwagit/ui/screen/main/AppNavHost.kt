@@ -60,17 +60,18 @@ import jamgmilk.fuwagit.ui.screen.status.StatusViewModel
 import jamgmilk.fuwagit.ui.screen.tags.TagsViewModel
 import jamgmilk.fuwagit.ui.screen.filediff.FileDiffScreen
 import jamgmilk.fuwagit.ui.screen.filediff.FileDiffViewModel
+import jamgmilk.fuwagit.ui.screen.onboarding.OnboardingScreen
 import kotlinx.coroutines.launch
 
 @Composable
-fun AppNavHost(navController: NavHostController) {
+fun AppNavHost(navController: NavHostController, startDestination: String = NavRoutes.MAIN) {
 
     Surface(
         modifier = Modifier.fillMaxSize()
     ) {
         NavHost(
             navController = navController,
-            startDestination = NavRoutes.MAIN,
+            startDestination = startDestination,
             enterTransition = {
                 slideInHorizontally(
                     animationSpec = tween(220),
@@ -96,6 +97,19 @@ fun AppNavHost(navController: NavHostController) {
                 ) + fadeOut(animationSpec = tween(150))
             }
         ) {
+            composable(NavRoutes.ONBOARDING) {
+                OnboardingScreen(
+                    onComplete = {
+                        navController.navigate(NavRoutes.MAIN) {
+                            popUpTo(NavRoutes.ONBOARDING) { inclusive = true }
+                        }
+                    },
+                    onAddRepository = {
+                        navController.navigate(NavRoutes.ADD_REPOSITORY)
+                    }
+                )
+            }
+
             composable(NavRoutes.MAIN) {
                 MainScreen(
                     onNavigateToAddRepository = { navController.navigate(NavRoutes.ADD_REPOSITORY) },
@@ -140,7 +154,7 @@ fun AppNavHost(navController: NavHostController) {
                 val settingsUiState by settingsViewModel.uiState.collectAsStateWithLifecycle()
                 val credentialUiState by credentialStoreViewModel.uiState.collectAsStateWithLifecycle()
                 var sshTestResult by remember { mutableStateOf<SshTestResult>(SshTestResult.Idle) }
-                
+
                 PermissionsScreen(
                     sshKeys = credentialUiState.sshKeys,
                     onTestSshConnection = { host, sshKeyUuid ->
