@@ -2,6 +2,7 @@ package jamgmilk.fuwagit.ui.screen.settings
 
 import android.content.Intent
 import android.util.Log
+import jamgmilk.fuwagit.BuildConfig
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
@@ -162,9 +163,9 @@ fun SettingsScreen(
     }
 
     LaunchedEffect(credentialsUiState.isDecryptionUnlocked, pendingBiometricEnable) {
-        Log.d(TAG, "LaunchedEffect: isDecryptionUnlocked=${credentialsUiState.isDecryptionUnlocked}, pendingBiometricEnable=$pendingBiometricEnable")
+        if (BuildConfig.DEBUG) Log.d(TAG, "LaunchedEffect: isDecryptionUnlocked=${credentialsUiState.isDecryptionUnlocked}, pendingBiometricEnable=$pendingBiometricEnable")
         if (credentialsUiState.isDecryptionUnlocked && pendingBiometricEnable) {
-            Log.d(TAG, "LaunchedEffect: calling enableBiometric, activity=$activity")
+            if (BuildConfig.DEBUG) Log.d(TAG, "LaunchedEffect: calling enableBiometric, activity=$activity")
             if (activity == null) {
                 Log.e(TAG, "LaunchedEffect: activity is NULL, cannot enable biometric")
             }
@@ -212,22 +213,22 @@ fun SettingsScreen(
             isDecryptionUnlocked = credentialsUiState.isDecryptionUnlocked,
             isMasterPasswordSet = credentialsUiState.isMasterPasswordSet,
             onBiometricEnabledChange = { enabled ->
-                Log.d(TAG, "Switch toggled: enabled=$enabled, isDecryptionUnlocked=${credentialsUiState.isDecryptionUnlocked}, activity=$activity")
+                if (BuildConfig.DEBUG) Log.d(TAG, "Switch toggled: enabled=$enabled, isDecryptionUnlocked=${credentialsUiState.isDecryptionUnlocked}, activity=$activity")
                 if (enabled) {
                     if (!credentialsUiState.isDecryptionUnlocked) {
-                        Log.d(TAG, "Enabling biometric but locked, showing unlock dialog")
+                        if (BuildConfig.DEBUG) Log.d(TAG, "Enabling biometric but locked, showing unlock dialog")
                         pendingBiometricEnable = true
                         credentialsViewModel.showUnlockDialog()
                     } else {
-                        Log.d(TAG, "Calling enableBiometric directly")
+                        if (BuildConfig.DEBUG) Log.d(TAG, "Calling enableBiometric directly")
                         activity?.let { credentialsViewModel.enableBiometric(it) }
                     }
                 } else {
                     if (!credentialsUiState.isDecryptionUnlocked && credentialsUiState.isBiometricEnabled) {
-                        Log.d(TAG, "Already enabled but locked, showing unlock dialog to unlock vault")
+                        if (BuildConfig.DEBUG) Log.d(TAG, "Already enabled but locked, showing unlock dialog to unlock vault")
                         credentialsViewModel.showUnlockDialog()
                     } else {
-                        Log.d(TAG, "Disabling biometric")
+                        if (BuildConfig.DEBUG) Log.d(TAG, "Disabling biometric")
                         credentialsViewModel.disableBiometric()
                     }
                 }

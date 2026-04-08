@@ -47,6 +47,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ElevatedCard
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -81,6 +82,9 @@ import jamgmilk.fuwagit.ui.components.OperationResultDialog
 import jamgmilk.fuwagit.ui.components.ScreenTemplate
 import jamgmilk.fuwagit.ui.components.TipInDialog
 import jamgmilk.fuwagit.ui.components.TwoStepConfirmDialog
+import jamgmilk.fuwagit.ui.screen.tags.TagsContent
+import jamgmilk.fuwagit.ui.screen.tags.TagsDialogs
+import jamgmilk.fuwagit.ui.screen.tags.TagsViewModel
 import jamgmilk.fuwagit.ui.theme.AppShapes
 import jamgmilk.fuwagit.ui.util.ViewModelMessagesMapper
 
@@ -88,6 +92,7 @@ import jamgmilk.fuwagit.ui.util.ViewModelMessagesMapper
 @Composable
 fun BranchesScreen(
     branchesViewModel: BranchesViewModel,
+    tagsViewModel: TagsViewModel? = null,
     modifier: Modifier = Modifier,
     onCreateTag: ((String) -> Unit)? = null,
     onShowInHistory: ((String) -> Unit)? = null
@@ -103,41 +108,58 @@ fun BranchesScreen(
     var showRenameDialog by remember { mutableStateOf(false) }
     var branchToRename by remember { mutableStateOf<String?>(null) }
     var branchForTag by remember { mutableStateOf<String?>(null) }
+    var showTagsView by remember { mutableStateOf(false) }
 
     ScreenTemplate(
         title = stringResource(R.string.screen_branches),
         modifier = modifier,
         actions = {
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                IconButton(
-                    onClick = { branchesViewModel.loadBranches() },
-                    modifier = Modifier
-                        .size(36.dp)
-                        .background(colors.primaryContainer.copy(alpha = 0.3f), CircleShape)
-                        .clip(CircleShape)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                // 分支/标签视图切换
+                if (tagsViewModel != null) {
+                    FilterChip(
+                        selected = !showTagsView,
+                        onClick = { showTagsView = false },
+                        label = { Text(stringResource(R.string.nav_branches)) }
+                    )
+                    FilterChip(
+                        selected = showTagsView,
+                        onClick = { showTagsView = true },
+                        label = { Text(stringResource(R.string.nav_tags)) }
+                    )
+                } else {
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        IconButton(
+                            onClick = { branchesViewModel.loadBranches() },
+                            modifier = Modifier
+                                .size(36.dp)
+                                .background(colors.primaryContainer.copy(alpha = 0.3f), CircleShape)
+                                .clip(CircleShape)
 
-                ) {
-                    Icon(
-                        Icons.Default.Refresh,
-                        contentDescription = stringResource(R.string.branches_refresh_description),
-                        tint = colors.primary,
-                        modifier = Modifier.size(18.dp)
-                    )
-                }
-                IconButton(
-                    onClick = { showCreateDialog = true },
-                    modifier = Modifier
-                        .size(36.dp)
-                        .clip(CircleShape)
-                        .background(colors.primary, CircleShape)
-                        .clip(CircleShape)
-                ) {
-                    Icon(
-                        Icons.Default.Add,
-                        contentDescription = stringResource(R.string.branches_create_branch_description),
-                        tint = colors.onPrimary,
-                        modifier = Modifier.size(18.dp)
-                    )
+                        ) {
+                            Icon(
+                                Icons.Default.Refresh,
+                                contentDescription = stringResource(R.string.branches_refresh_description),
+                                tint = colors.primary,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                        IconButton(
+                            onClick = { showCreateDialog = true },
+                            modifier = Modifier
+                                .size(36.dp)
+                                .clip(CircleShape)
+                                .background(colors.primary, CircleShape)
+                                .clip(CircleShape)
+                        ) {
+                            Icon(
+                                Icons.Default.Add,
+                                contentDescription = stringResource(R.string.branches_create_branch_description),
+                                tint = colors.onPrimary,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -151,25 +173,34 @@ fun BranchesScreen(
             colors = CardDefaults.elevatedCardColors(containerColor = colors.surfaceContainerLow),
             elevation = CardDefaults.elevatedCardElevation(0.dp)
         ) {
-            if (local.isEmpty() && remote.isEmpty()) {
-                EmptyBranchesState()
+            if (showTagsView && tagsViewModel != null) {
+                TagsContent(tagsViewModel = tagsViewModel)
             } else {
-                BranchListContent(
-                    localBranches = local,
-                    remoteBranches = remote,
-                    branchesViewModel = branchesViewModel,
-                    showRenameDialog = showRenameDialog,
-                    branchToRename = branchToRename,
-                    onRenameRequest = { name ->
-                        branchToRename = name
-                        showRenameDialog = true
-                    },
-                    onCreateTag = onCreateTag,
-                    onShowInHistory = onShowInHistory,
-                    modifier = Modifier.fillMaxSize()
-                )
+                if (local.isEmpty() && remote.isEmpty()) {
+                    EmptyBranchesState()
+                } else {
+                    BranchListContent(
+                        localBranches = local,
+                        remoteBranches = remote,
+                        branchesViewModel = branchesViewModel,
+                        showRenameDialog = showRenameDialog,
+                        branchToRename = branchToRename,
+                        onRenameRequest = { name ->
+                            branchToRename = name
+                            showRenameDialog = true
+                        },
+                        onCreateTag = onCreateTag,
+                        onShowInHistory = onShowInHistory,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
             }
         }
+    }
+
+    // Tags 对话框（当在 BranchesScreen 中显示 Tags 时）
+    if (showTagsView && tagsViewModel != null) {
+        TagsDialogs(tagsViewModel = tagsViewModel)
     }
 
     if (showCreateDialog) {
@@ -830,7 +861,6 @@ private fun BranchTypeIndicator(
     isCurrent: Boolean,
     accentColor: Color
 ) {
-    val colors = MaterialTheme.colorScheme
 
     Box(
         modifier = Modifier
@@ -857,7 +887,6 @@ private fun CreateBranchDialog(
     onCreate: (String) -> Unit
 ) {
     var branchName by remember { mutableStateOf("") }
-    val colors = MaterialTheme.colorScheme
 
     DialogWithIcon(
         onDismiss = onDismiss,

@@ -2,11 +2,13 @@ package jamgmilk.fuwagit.data.jgit
 
 import android.content.Context
 import android.util.Log
+import jamgmilk.fuwagit.BuildConfig
 import com.jcraft.jsch.HostKey
 import com.jcraft.jsch.HostKeyRepository
 import com.jcraft.jsch.UserInfo
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.first
+import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.eclipse.jgit.api.Git
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder
 import java.io.BufferedReader
@@ -83,7 +85,7 @@ class JGitCoreDataSource @Inject constructor(
                     val headFile = File(repository.directory, "HEAD")
                     headFile.writeText("ref: refs/heads/$branchName\n")
                     
-                    Log.d(TAG, "Repository initialized with default branch: $branchName")
+                    if (BuildConfig.DEBUG) Log.d(TAG, "Repository initialized with default branch: $branchName")
                 }
 
             Result.success("Repository initialized at $repoPath")
@@ -174,6 +176,8 @@ class JGitCoreDataSource @Inject constructor(
     private fun configureSshForCommand(command: org.eclipse.jgit.api.TransportCommand<*, *>) {
         val sshInfo = currentSshKey.get() ?: return
         try {
+            java.security.Security.addProvider(BouncyCastleProvider())
+
             com.jcraft.jsch.JSch.setConfig("StrictHostKeyChecking", "yes")
             com.jcraft.jsch.JSch.setConfig("PreferredAuthentications", "publickey")
 
@@ -203,7 +207,7 @@ class JGitCoreDataSource @Inject constructor(
                     }
                 }
             }
-            Log.d(TAG, "SSH configured with host key verification enabled")
+            if (BuildConfig.DEBUG) Log.d(TAG, "SSH configured with host key verification enabled")
         } catch (e: Exception) {
             Log.e(TAG, "Failed to configure SSH", e)
         }

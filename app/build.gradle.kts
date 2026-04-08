@@ -41,6 +41,7 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 
@@ -89,6 +90,7 @@ dependencies {
     implementation(libs.org.eclipse.jgit)
     implementation(libs.org.eclipse.jgit.ssh.jsch)
     implementation(libs.bouncycastle)
+    implementation(libs.bouncycastle.pkix)
     implementation(libs.kotlinx.serialization.json)
 
     // Hilt

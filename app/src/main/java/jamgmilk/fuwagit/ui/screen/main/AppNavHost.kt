@@ -57,7 +57,6 @@ import jamgmilk.fuwagit.ui.screen.settings.SettingsScreen
 import jamgmilk.fuwagit.ui.screen.settings.SettingsViewModel
 import jamgmilk.fuwagit.ui.screen.status.StatusScreen
 import jamgmilk.fuwagit.ui.screen.status.StatusViewModel
-import jamgmilk.fuwagit.ui.screen.tags.TagsScreen
 import jamgmilk.fuwagit.ui.screen.tags.TagsViewModel
 import jamgmilk.fuwagit.ui.screen.filediff.FileDiffScreen
 import jamgmilk.fuwagit.ui.screen.filediff.FileDiffViewModel
@@ -144,9 +143,8 @@ fun AppNavHost(navController: NavHostController) {
                 
                 PermissionsScreen(
                     sshKeys = credentialUiState.sshKeys,
-                    onTestSshConnection = { host, privateKey, passphrase ->
-                        // SSH test will be handled by the ViewModel
-                        credentialStoreViewModel.testSshConnection(host, privateKey, passphrase) { result ->
+                    onTestSshConnection = { host, sshKeyUuid ->
+                        credentialStoreViewModel.testSshConnection(host, sshKeyUuid) { result ->
                             sshTestResult = result
                         }
                     },
@@ -277,26 +275,21 @@ fun MainScreen(
                     )
                     2 -> BranchesScreen(
                         branchesViewModel = branchesViewModel,
+                        tagsViewModel = tagsViewModel,
                         modifier = Modifier.fillMaxSize(),
                         onCreateTag = { branchName ->
-                            // 导航到 Tags 页面，传递分支名称用于创建标签
                             tagsViewModel.showCreateDialog()
                         },
                         onShowInHistory = { branchName ->
-                            // 切换到 History 页面 (pager index = 1)
                             navigateToPage(1)
                         }
                     )
-                    3 -> TagsScreen(
-                        tagsViewModel = tagsViewModel,
-                        modifier = Modifier.fillMaxSize()
-                    )
-                    4 -> MyReposScreen(
+                    3 -> MyReposScreen(
                         myReposViewModel = myReposViewModel,
                         modifier = Modifier.fillMaxSize(),
                         onNavigateToAddRepository = onNavigateToAddRepository
                     )
-                    5 -> SettingsScreen(
+                    4 -> SettingsScreen(
                         modifier = Modifier.fillMaxSize(),
                         onNavigateToPermissions = onNavigateToPermissions,
                         onNavigateToCredentials = onNavigateToCredentials

@@ -1,103 +1,135 @@
 package jamgmilk.fuwagit.domain.usecase.git
 
 import android.util.Log
-import com.jcraft.jsch.JSch
-import com.jcraft.jsch.Session
+import jamgmilk.fuwagit.BuildConfig
 import jamgmilk.fuwagit.core.result.AppException
 import jamgmilk.fuwagit.core.result.AppResult
+import org.bouncycastle.jce.provider.BouncyCastleProvider
+import org.bouncycastle.util.io.pem.PemReader
+import java.io.StringReader
+import java.security.Security
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.withContext
 
-/**
- * Use case to test SSH key connectivity by connecting to a remote SSH server.
- * Similar to `ssh -T git@github.com`
- */
 @Singleton
 class TestSshConnectionUseCase @Inject constructor() {
 
-    private val sshTimeout = 15000 // 15 seconds
+    private val sshTimeout = 15000
 
-    /**
-     * Test SSH connection to the given host using the provided private key.
-     *
-     * @param host The SSH host to connect to (e.g., "git@github.com")
-     * @param privateKey The private key content
-     * @param passphrase Optional passphrase for the private key
-     * @return AppResult containing the server response message
-     */
     suspend operator fun invoke(
         host: String,
-        privateKey: String,
+        privateKeyPem: String,
         passphrase: String?
     ): AppResult<String> {
-        return try {
-            Log.d("TestSshConnection", "Testing SSH connection to $host")
-            
-            val jsch = JSch()
-            
-            // Add the private key
-            val keyName = "test-ssh-key"
-            if (passphrase.isNullOrBlank()) {
-                jsch.addIdentity(keyName, privateKey.toByteArray(), null, null)
-            } else {
-                jsch.addIdentity(keyName, privateKey.toByteArray(), null, passphrase.toByteArray())
+        return withContext(Dispatchers.IO) {
+            try {
+                debugLog("Testing SSH connection to $host")
+
+                Security.addProvider(BouncyCastleProvider())
+                debugLog("BouncyCastle provider registered")
+
+                val keyFormat = validateKeyFormat(privateKeyPem)
+                debugLog("Validated key format: $keyFormat")
+
+                val pemObject = parsePemObject(privateKeyPem)
+                debugLog("PEM object type: ${pemObject.type}, size: ${pemObject.content.size} bytes")
+
+                val userHost = host.split("@")
+                if (userHost.size != 2) return@withContext AppResult.Error(AppException.Validation("Invalid host format"))
+
+                val username = userHost[0]
+                val hostname = userHost[1]
+
+                debugLog("Testing SSH connection via JSch to $hostname")
+
+                withTimeout(sshTimeout.toLong()) {
+                    testSshConnectionDirect(username, hostname, privateKeyPem, passphrase)
+                }
+            } catch (e: Exception) {
+                Log.e("TestSshConnection", "SSH test failed: ${e.message}", e)
+                AppResult.Error(AppException.GitOperationFailed("SSH Test", e.message ?: "Connection failed"))
             }
-            
-            // Parse host and user
-            val userHost = host.split("@")
-            if (userHost.size != 2) {
-                return AppResult.Error(AppException.Validation("Invalid host format. Expected: user@host"))
-            }
-            
-            val user = userHost[0]
-            val hostname = userHost[1]
-            
-            Log.d("TestSshConnection", "Connecting to $hostname as $user")
-            
-            // Create session
-            val session: Session = jsch.getSession(user, hostname, 22)
-            
-            // Disable strict host key checking for testing
-            session.setConfig("StrictHostKeyChecking", "no")
-            session.connect(sshTimeout)
-            
-            Log.d("TestSshConnection", "SSH connection established")
-            
-            // Try to execute a simple command or get server banner
-            val channel = session.openChannel("exec")
-            (channel as com.jcraft.jsch.ChannelExec).setCommand("echo 'SSH connection successful'")
-            channel.setInputStream(null)
-            
-            val outputStream = java.io.ByteArrayOutputStream()
-            channel.setOutputStream(outputStream)
-            
-            channel.connect()
-            
-            // Wait for channel to close
-            while (!channel.isClosed) {
-                Thread.sleep(100)
-            }
-            
-            val response = outputStream.toString("UTF-8").trim()
-            val exitStatus = channel.exitStatus
-            
-            channel.disconnect()
-            session.disconnect()
-            
-            Log.d("TestSshConnection", "SSH test completed. Exit status: $exitStatus")
-            
-            if (exitStatus == 0) {
-                AppResult.Success(response.ifBlank { "SSH connection successful" })
-            } else {
-                AppResult.Success("Connected (exit status: $exitStatus)\n$response")
-            }
-            
-        } catch (e: com.jcraft.jsch.JSchException) {
-            Log.e("TestSshConnection", "SSH test failed: ${e.message}", e)
-            AppResult.Error(AppException.GitOperationFailed("SSH Test", e.message ?: "Connection failed"))
-        } catch (e: Exception) {
-            Log.e("TestSshConnection", "Unexpected error during SSH test: ${e.message}", e)
-            AppResult.Error(AppException.Unknown(e.message ?: "Unexpected error"))
         }
     }
+
+    private fun testSshConnectionDirect(
+        username: String,
+        hostname: String,
+        privateKeyPem: String,
+        passphrase: String?
+    ): AppResult<String> {
+        val privateKeyBytes = privateKeyPem.replace("\r\n", "\n").trim().toByteArray(Charsets.UTF_8)
+        val passphraseBytes = passphrase?.toByteArray(Charsets.UTF_8)
+
+        val jsch = com.jcraft.jsch.JSch()
+        try {
+            jsch.addIdentity("fuwa-test-ssh-key", privateKeyBytes, null, passphraseBytes)
+            debugLog("JSch identity added")
+        } catch (e: Exception) {
+            debugLog("JSch addIdentity failed: ${e.message}")
+            return AppResult.Error(AppException.GitOperationFailed("SSH Test", "Invalid private key: ${e.message}"))
+        }
+
+        val session = jsch.getSession(username, hostname, 22)
+        session.setConfig("StrictHostKeyChecking", "no")
+        session.setConfig("PreferredAuthentications", "publickey")
+
+        try {
+            session.connect(sshTimeout)
+            debugLog("SSH session connected successfully to $hostname")
+            session.disconnect()
+            return AppResult.Success("SSH connection successful to $username@$hostname")
+        } catch (e: com.jcraft.jsch.JSchException) {
+            debugLog("SSH connection failed: ${e.message}")
+            session.disconnect()
+            return when {
+                e.message?.contains("Auth fail") == true ->
+                    AppResult.Error(AppException.GitOperationFailed("SSH Test", "Authentication failed - key may not be authorized on $hostname"))
+                e.message?.contains("UnknownHostKey") == true || e.message?.contains("reject HostKey") == true ->
+                    AppResult.Error(AppException.GitOperationFailed("SSH Test", "Host key verification failed for $hostname"))
+                else ->
+                    AppResult.Error(AppException.GitOperationFailed("SSH Test", e.message ?: "Connection failed"))
+            }
+        }
+    }
+
+    private fun parsePemObject(pemContent: String): org.bouncycastle.util.io.pem.PemObject {
+        return StringReader(pemContent).use { reader ->
+            PemReader(reader).use { pemReader ->
+                pemReader.readPemObject()
+                    ?: throw IllegalArgumentException("No PEM object found")
+            }
+        }
+    }
+
+    private fun validateKeyFormat(privateKeyPem: String): String {
+        try {
+            StringReader(privateKeyPem).use { reader ->
+                PemReader(reader).use { pemReader ->
+                    val pemObject = pemReader.readPemObject()
+                    if (pemObject == null) {
+                        throw IllegalArgumentException("Invalid PEM format - no PEM object found")
+                    }
+
+                    val type = pemObject.type
+                    return when {
+                        type.contains("RSA PRIVATE KEY") -> "RSA (PKCS#1)"
+                        type == "PRIVATE KEY" -> "Ed25519 or PKCS#8"
+                        type.contains("OPENSSH PRIVATE KEY") -> "OpenSSH format"
+                        type.contains("EC PRIVATE KEY") -> "EC (ECDSA)"
+                        type.contains("DSA PRIVATE KEY") -> "DSA"
+                        else -> "Unknown ($type)"
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            Log.e("TestSshConnection", "Key format validation failed: ${e.message}", e)
+            throw IllegalArgumentException("Invalid private key format: ${e.message}")
+        }
+    }
+
+    private fun debugLog(msg: String) { if (BuildConfig.DEBUG) Log.d("TestSshConnection", msg) }
 }

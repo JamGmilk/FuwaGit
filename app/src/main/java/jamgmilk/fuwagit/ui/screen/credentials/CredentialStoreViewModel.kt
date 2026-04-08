@@ -315,29 +315,43 @@ class CredentialStoreViewModel @Inject constructor(
     }
 
     /**
-     * Test SSH connection with the given host and key.
-     * 
+     * Test SSH connection with the given host and key UUID.
+     * Retrieves the decrypted private key from the vault (requires unlock).
+     *
      * @param host The SSH host (e.g., "git@github.com")
-     * @param privateKey The private key content
-     * @param passphrase Optional passphrase for the key
+     * @param sshKeyUuid The UUID of the SSH key to test
      * @param onResult Callback to receive the test result
      */
     fun testSshConnection(
         host: String,
-        privateKey: String,
-        passphrase: String?,
+        sshKeyUuid: String,
         onResult: (SshTestResult) -> Unit
     ) {
         viewModelScope.launch {
             onResult(SshTestResult.Testing)
-            
-            testSshConnectionUseCase(host, privateKey, passphrase)
-                .onSuccess { message ->
-                    onResult(SshTestResult.Success(message))
-                }
-                .onError { exception ->
-                    onResult(SshTestResult.Failure(exception.message ?: "Unknown error"))
-                }
+
+            try {
+                // Retrieve decrypted private key from vault
+                val privateKeyResult = credentialFacade.getSshPrivateKey(sshKeyUuid)
+                val passphraseResult = credentialFacade.getSshPassphrase(sshKeyUuid)
+
+                privateKeyResult
+                    .onSuccess { privateKey ->
+                        val passphrase = passphraseResult.getOrNull()
+                        testSshConnectionUseCase(host, privateKey, passphrase)
+                            .onSuccess { message ->
+                                onResult(SshTestResult.Success(message))
+                            }
+                            .onError { exception ->
+                                onResult(SshTestResult.Failure(exception.message ?: "Connection failed"))
+                            }
+                    }
+                    .onError { exception ->
+                        onResult(SshTestResult.Failure("Failed to access key: ${exception.message ?: "Unknown error"}"))
+                    }
+            } catch (e: Exception) {
+                onResult(SshTestResult.Failure("Unexpected error: ${e.message ?: "Unknown error"}"))
+            }
         }
     }
 }
