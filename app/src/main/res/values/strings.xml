@@ -124,6 +124,8 @@
     <string name="status_commit_changes">Commit Changes</string>
     <string name="status_staged_count">%1$d staged</string>
     <string name="status_commit_message_placeholder">Enter commit message…</string>
+    <string name="status_commit_button">Commit</string>
+    <string name="status_actions">Actions</string>
     <string name="status_initialize_repository">Initialize Repository</string>
     <string name="status_not_git_repo_yet">This directory is not a Git repository yet.</string>
     <string name="status_initializing">Initializing…</string>
@@ -259,6 +261,14 @@
     <string name="credentials_failed_to_generate_key">Failed to generate SSH key pair</string>
     <string name="credentials_error_generating_key">Error generating SSH key: %1$s</string>
     <string name="credentials_error_importing_key">Error importing SSH key: %1$s</string>
+    <string name="credentials_invalid_pem_format">Invalid PEM format. Key must contain BEGIN and END markers</string>
+    <string name="credentials_unsupported_algorithm">Unsupported key algorithm. Only RSA and Ed25519 are supported</string>
+    <string name="credentials_invalid_rsa_format">Not a valid RSA private key format. Expected PKCS#1 or PKCS#8 format</string>
+    <string name="credentials_invalid_ed25519_format">Not a valid Ed25519 private key format. Expected OpenSSH format</string>
+    <string name="credentials_empty_key_content">Empty key content</string>
+    <string name="credentials_invalid_base64">Invalid Base64 encoding in private key</string>
+    <string name="credentials_invalid_private_key">Invalid private key: %1$s</string>
+    <string name="credentials_key_type_detected">Key type detected: %1$s</string>
     <string name="credentials_host_copied">Host copied</string>
     <string name="credentials_username_copied">Username copied</string>
     <string name="credentials_password_copied">Password copied</string>
@@ -404,14 +414,24 @@
     <string name="permissions_all_files_access">All Files Access</string>
     <string name="permissions_all_files_access_desc">Required for Git operations on all directories</string>
     <string name="permissions_grant">Grant</string>
-    <string name="permissions_scoped_storage">Scoped Storage</string>
-    <string name="permissions_scoped_storage_subtitle">SAF folder access</string>
-    <string name="permissions_my_repos">My Repos</string>
-    <string name="permissions_saved_count_format">%1$d saved</string>
-    <string name="permissions_folder_grant_info">Folder grants are managed automatically when you add local repositories. Remove them by long-pressing an item in the Repo list.</string>
     <string name="permissions_status_granted">Granted</string>
     <string name="permissions_status_denied">Denied</string>
     <string name="permissions_status_unknown">Unknown</string>
+
+    <!-- SSH Test Card -->
+    <string name="ssh_test_title">Test SSH Key</string>
+    <string name="ssh_test_subtitle">Verify SSH key connectivity</string>
+    <string name="ssh_test_host_label">Host</string>
+    <string name="ssh_test_host_placeholder">git@github.com</string>
+    <string name="ssh_test_select_key">Select SSH Key</string>
+    <string name="ssh_test_key_not_selected">No key selected</string>
+    <string name="ssh_test_button">Test Connection</string>
+    <string name="ssh_test_testing">Testing…</string>
+    <string name="ssh_test_result_success">Connection successful</string>
+    <string name="ssh_test_result_failure">Connection failed</string>
+    <string name="ssh_test_output_title">Server Response</string>
+    <string name="ssh_test_no_output">No output yet</string>
+    <string name="ssh_test_clear">Clear</string>
 
     <!-- Confirm Dialogs -->
     <string name="dialog_confirm_dangerous_title">Confirm Dangerous Operation</string>
@@ -526,6 +546,10 @@
     <string name="settings_dark_mode_system">Follow System</string>
     <string name="settings_dark_mode_always_on">Always On</string>
     <string name="settings_dark_mode_always_off">Always Off</string>
+    <string name="settings_language">Language</string>
+    <string name="settings_language_system">Follow System</string>
+    <string name="settings_language_zh_cn">简体中文</string>
+    <string name="settings_language_en">English</string>
 
     <!-- Configure Remote Dialog -->
     <string name="remote_configure_select_credential">Select Credential</string>
@@ -655,4 +679,53 @@
     <string name="rebase_continue_description">Continue rebase after resolving conflicts</string>
     <string name="rebase_abort">Abort Rebase</string>
     <string name="rebase_in_progress">Rebase in progress</string>
+
+    <!-- Navigation -->
+    <string name="nav_status">Status</string>
+    <string name="nav_history">History</string>
+    <string name="nav_branches">Branches</string>
+    <string name="nav_tags">Tags</string>
+    <string name="nav_my_repos">My Repos</string>
+    <string name="nav_settings">Settings</string>
+
+    <!-- Add Repository Screen -->
+    <string name="add_repo_screen_title">Add Repository</string>
+    <string name="add_repo_default_name">repository</string>
+
+    <!-- Credential Screen -->
+    <string name="credential_screen_title">Credentials</string>
+    <string name="credential_failed_generate_key">Failed to generate SSH key pair</string>
+    <string name="credential_error_generating_key">Error generating SSH key: %1$s</string>
+    <string name="credential_error_importing_key">Error importing SSH key: %1$s</string>
+
+    <!-- Credential Select Dialog -->
+    <string name="credential_select_dialog_title">Select Credential</string>
+    <string name="credential_action_select">Select</string>
+
+    <!-- Import Export Dialogs -->
+    <string name="import_export_warning_icon">\u26A0</string>
+    <string name="import_export_preview_suffix">…</string>
+
+    <!-- File Diff Screen -->
+    <string name="file_diff_screen_title">File Diff</string>
+    <string name="file_diff_back">Back</string>
+    <string name="file_diff_loading">Loading diff…</string>
+    <string name="file_diff_empty">No diff to display</string>
+    <string name="file_diff_error">Failed to load diff</string>
+
+    <!-- Diff Viewer -->
+    <string name="diff_additions_prefix">+%1$d</string>
+    <string name="diff_deletions_prefix">-%1$d</string>
+    <string name="diff_change_type_format">(%1$s)</string>
+
+    <!-- Settings Screen -->
+    <string name="settings_config_name_format">user.name: %1$s</string>
+    <string name="settings_config_email_format">user.email: %1$s</string>
+    <string name="settings_error_format">%1$s: %2$s</string>
+
+    <!-- Tags Screen -->
+    <string name="tags_tag_name_copied">Tag name copied</string>
+
+    <!-- Branches Screen -->
+    <string name="branches_branch_name_clipboard">branch name</string>
 </resources>

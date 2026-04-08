@@ -28,9 +28,12 @@ import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -49,6 +52,7 @@ import jamgmilk.fuwagit.ui.screen.myrepos.AddRepositoryScreen
 import jamgmilk.fuwagit.ui.screen.myrepos.MyReposScreen
 import jamgmilk.fuwagit.ui.screen.myrepos.MyReposViewModel
 import jamgmilk.fuwagit.ui.screen.permissions.PermissionsScreen
+import jamgmilk.fuwagit.ui.screen.permissions.SshTestResult
 import jamgmilk.fuwagit.ui.screen.settings.SettingsScreen
 import jamgmilk.fuwagit.ui.screen.settings.SettingsViewModel
 import jamgmilk.fuwagit.ui.screen.status.StatusScreen
@@ -133,10 +137,20 @@ fun AppNavHost(navController: NavHostController) {
 
             composable(NavRoutes.PERMISSIONS) {
                 val settingsViewModel: SettingsViewModel = hiltViewModel()
+                val credentialStoreViewModel: CredentialStoreViewModel = hiltViewModel()
                 val settingsUiState by settingsViewModel.uiState.collectAsStateWithLifecycle()
+                val credentialUiState by credentialStoreViewModel.uiState.collectAsStateWithLifecycle()
+                var sshTestResult by remember { mutableStateOf<SshTestResult>(SshTestResult.Idle) }
+                
                 PermissionsScreen(
-                    // TODO: 这个可删掉喵~ savedReposCount
-                    savedReposCount = settingsUiState.savedReposCount,
+                    sshKeys = credentialUiState.sshKeys,
+                    onTestSshConnection = { host, privateKey, passphrase ->
+                        // SSH test will be handled by the ViewModel
+                        credentialStoreViewModel.testSshConnection(host, privateKey, passphrase) { result ->
+                            sshTestResult = result
+                        }
+                    },
+                    sshTestResult = sshTestResult,
                     onBack = { navController.popBackStack() }
                 )
             }
@@ -221,7 +235,7 @@ fun MainScreen(
                         selected = currentPage == index,
                         onClick = { navigateToPage(index) },
                         icon = item.icon,
-                        label = { Text(item.title) }
+                        label = { Text(stringResource(item.titleRes)) }
                     )
                 }
             }
@@ -299,7 +313,7 @@ fun MainScreen(
                             selected = currentPage == index,
                             onClick = { navigateToPage(index) },
                             icon = item.icon,
-                            label = { Text(item.title) },
+                            label = { Text(stringResource(item.titleRes)) },
                             alwaysShowLabel = false
                         )
                     }

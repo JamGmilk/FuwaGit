@@ -20,6 +20,7 @@ data class AppPreferences(
     val backupBeforeSync: Boolean = true,
     val verboseLogging: Boolean = false,
     val darkMode: String = "system",
+    val language: String = "system",
     val autoLockTimeout: String = "300"
 )
 
@@ -72,6 +73,11 @@ interface SettingsRepository {
      * Save dark mode preference.
      */
     suspend fun saveDarkMode(mode: String)
+
+    /**
+     * Save language preference.
+     */
+    suspend fun saveLanguage(language: String)
 
     /**
      * Save auto-lock timeout preference.

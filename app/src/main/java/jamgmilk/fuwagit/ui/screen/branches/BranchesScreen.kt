@@ -702,7 +702,8 @@ private fun BranchItem(
                         text = { Text(stringResource(R.string.branches_copy_name)) },
                         onClick = {
                             val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                            clipboard.setPrimaryClip(ClipData.newPlainText("branch name", branch.name))
+                            val clipboardLabel = context.getString(R.string.branches_branch_name_clipboard)
+                            clipboard.setPrimaryClip(ClipData.newPlainText(clipboardLabel, branch.name))
                             Toast.makeText(context, strNameCopied, Toast.LENGTH_SHORT).show()
                             showMenu = false
                         },

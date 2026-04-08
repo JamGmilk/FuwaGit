@@ -8,6 +8,8 @@ import jamgmilk.fuwagit.core.result.AppResult
 import jamgmilk.fuwagit.domain.model.credential.HttpsCredential
 import jamgmilk.fuwagit.domain.model.credential.SshKey
 import jamgmilk.fuwagit.domain.usecase.credential.CredentialStoreFacade
+import jamgmilk.fuwagit.domain.usecase.git.TestSshConnectionUseCase
+import jamgmilk.fuwagit.ui.screen.permissions.SshTestResult
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -38,7 +40,8 @@ data class CredentialsStoreUiState(
 
 @HiltViewModel
 class CredentialStoreViewModel @Inject constructor(
-    private val credentialFacade: CredentialStoreFacade
+    private val credentialFacade: CredentialStoreFacade,
+    private val testSshConnectionUseCase: TestSshConnectionUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(CredentialsStoreUiState())
@@ -308,6 +311,33 @@ class CredentialStoreViewModel @Inject constructor(
                     _uiState.update { it.copy(error = e.message) }
                 }
             _uiState.update { it.copy(isLoading = false) }
+        }
+    }
+
+    /**
+     * Test SSH connection with the given host and key.
+     * 
+     * @param host The SSH host (e.g., "git@github.com")
+     * @param privateKey The private key content
+     * @param passphrase Optional passphrase for the key
+     * @param onResult Callback to receive the test result
+     */
+    fun testSshConnection(
+        host: String,
+        privateKey: String,
+        passphrase: String?,
+        onResult: (SshTestResult) -> Unit
+    ) {
+        viewModelScope.launch {
+            onResult(SshTestResult.Testing)
+            
+            testSshConnectionUseCase(host, privateKey, passphrase)
+                .onSuccess { message ->
+                    onResult(SshTestResult.Success(message))
+                }
+                .onError { exception ->
+                    onResult(SshTestResult.Failure(exception.message ?: "Unknown error"))
+                }
         }
     }
 }

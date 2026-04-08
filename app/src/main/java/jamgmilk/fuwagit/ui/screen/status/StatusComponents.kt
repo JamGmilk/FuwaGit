@@ -499,7 +499,7 @@ private fun FileStatusItem(
                 ) {
                     Icon(
                         Icons.Default.MoreVert,
-                        contentDescription = "Actions",
+                        contentDescription = stringResource(R.string.status_actions),
                         tint = colors.onSurfaceVariant,
                         modifier = Modifier.size(18.dp)
                     )
@@ -527,7 +527,7 @@ private fun FileStatusItem(
                     }
                     if (onDiscard != null) {
                         DropdownMenuItem(
-                            text = { Text("Discard Changes") },
+                            text = { Text(stringResource(R.string.status_discard_changes)) },
                             onClick = {
                                 onDiscard()
                                 showMenuState.value = false
@@ -597,7 +597,7 @@ internal fun CommitCard(
                     }
                     Spacer(Modifier.width(10.dp))
                     Text(
-                        text = "Commit Changes",
+                        text = stringResource(R.string.status_commit_changes),
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold
                     )
@@ -620,7 +620,7 @@ internal fun CommitCard(
                             )
                             Spacer(Modifier.width(4.dp))
                             Text(
-                                text = "$stagedCount staged",
+                                text = stringResource(R.string.status_staged_count, stagedCount),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = colors.primary
                             )
@@ -634,7 +634,7 @@ internal fun CommitCard(
                 onValueChange = onCommitMessageChange,
                 placeholder = {
                     Text(
-                        "Enter commit message...",
+                        stringResource(R.string.status_commit_message_placeholder),
                         color = colors.onSurfaceVariant.copy(alpha = 0.6f)
                     )
                 },
@@ -670,7 +670,7 @@ internal fun CommitCard(
                         )
                         Spacer(Modifier.width(8.dp))
                         Text(
-                            text = "Commit",
+                            text = stringResource(R.string.status_commit_button),
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.Bold,
                             color = if (canCommit) colors.onPrimary else colors.onSurfaceVariant.copy(alpha = 0.5f)
@@ -717,13 +717,13 @@ internal fun InitRepositoryCard(
 
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(
-                    text = "Initialize Repository",
+                    text = stringResource(R.string.status_initialize_repository),
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold
                 )
                 Spacer(Modifier.height(4.dp))
                 Text(
-                    text = "This directory is not a Git repository yet.",
+                    text = stringResource(R.string.status_not_git_repo_yet),
                     style = MaterialTheme.typography.bodyMedium,
                     color = colors.onSurfaceVariant,
                     textAlign = TextAlign.Center
@@ -745,7 +745,7 @@ internal fun InitRepositoryCard(
                 ) {
                     if (isLoading) {
                         Text(
-                            text = "Initializing...",
+                            text = stringResource(R.string.status_initializing),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = colors.onPrimary
@@ -760,7 +760,7 @@ internal fun InitRepositoryCard(
                             )
                             Spacer(Modifier.width(8.dp))
                             Text(
-                                text = "Execute git init",
+                                text = stringResource(R.string.status_execute_git_init),
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = colors.onPrimary

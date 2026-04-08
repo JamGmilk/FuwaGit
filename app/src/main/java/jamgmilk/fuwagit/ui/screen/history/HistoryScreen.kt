@@ -207,9 +207,7 @@ private fun CommitTimelineItem(
     var expanded by remember { mutableStateOf(false) }
     val colors = MaterialTheme.colorScheme
     val timeFmt = remember { SimpleDateFormat("MMM dd, HH:mm", Locale.getDefault()) }
-    val relativeTime = remember(commit.timestamp) {
-        formatRelativeTime(commit.timestamp)
-    }
+    val relativeTime = formatRelativeTime(commit.timestamp)
 
     val branchColors = remember {
         listOf(
@@ -675,15 +673,16 @@ private fun DetailRow(
     }
 }
 
+@Composable
 private fun formatRelativeTime(timestamp: Long): String {
     val now = System.currentTimeMillis()
     val diff = now - timestamp
 
     return when {
-        diff < 60_000 -> "just now"
-        diff < 3_600_000 -> "${diff / 60_000}m ago"
-        diff < 86_400_000 -> "${diff / 3_600_000}h ago"
-        diff < 604_800_000 -> "${diff / 86_400_000}d ago"
+        diff < 60_000 -> stringResource(R.string.history_time_just_now)
+        diff < 3_600_000 -> stringResource(R.string.history_time_minutes_ago, diff / 60_000)
+        diff < 86_400_000 -> stringResource(R.string.history_time_hours_ago, diff / 3_600_000)
+        diff < 604_800_000 -> stringResource(R.string.history_time_days_ago, diff / 86_400_000)
         else -> {
             val sdf = SimpleDateFormat("MMM dd", Locale.getDefault())
             sdf.format(Date(timestamp))

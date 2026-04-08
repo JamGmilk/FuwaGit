@@ -13,8 +13,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Edit
@@ -36,6 +38,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -43,6 +46,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -52,6 +56,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import jamgmilk.fuwagit.R
+import jamgmilk.fuwagit.core.util.validatePrivateKey
 
 @Composable
 fun AddHttpsCredentialDialog(
@@ -270,12 +275,14 @@ fun ImportSshKeyDialog(
     onImport: (name: String, privateKey: String, publicKey: String?, passphrase: String?) -> Unit
 ) {
     val colors = MaterialTheme.colorScheme
+    val context = LocalContext.current
     var name by rememberSaveable { mutableStateOf("") }
     var privateKey by rememberSaveable { mutableStateOf("") }
     var publicKey by rememberSaveable { mutableStateOf("") }
     var passphrase by rememberSaveable { mutableStateOf("") }
     var showPrivateKey by remember { mutableStateOf(false) }
     var showPassphrase by remember { mutableStateOf(false) }
+    var validationError by remember { mutableStateOf<String?>(null) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -349,11 +356,34 @@ fun ImportSshKeyDialog(
                     modifier = Modifier.fillMaxWidth(),
                     colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = colors.tertiary, focusedLabelColor = colors.tertiary, cursorColor = colors.tertiary)
                 )
+                
+                // Validation error message
+                validationError?.let { error ->
+                    Text(
+                        text = error,
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
             }
         },
         confirmButton = {
             Button(
-                onClick = { onImport(name, privateKey, publicKey.ifBlank { null }, passphrase.ifBlank { null }) },
+                onClick = {
+                    validationError = null
+                    try {
+                        val (isValid, keyType) = validatePrivateKey(privateKey)
+                        if (isValid) {
+                            android.util.Log.d("ImportSshKeyDialog", "Key validation successful, type: $keyType")
+                            onImport(name, privateKey, publicKey.ifBlank { null }, passphrase.ifBlank { null })
+                        }
+                    } catch (e: IllegalArgumentException) {
+                        validationError = e.message ?: context.getString(R.string.credentials_invalid_private_key, "")
+                    } catch (e: Exception) {
+                        validationError = context.getString(R.string.credentials_invalid_private_key, e.message ?: "")
+                    }
+                },
                 enabled = name.isNotBlank() && privateKey.isNotBlank(),
                 colors = ButtonDefaults.buttonColors(containerColor = colors.tertiary),
                 shape = RoundedCornerShape(12.dp)

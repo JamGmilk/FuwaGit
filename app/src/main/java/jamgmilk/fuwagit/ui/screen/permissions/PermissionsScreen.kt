@@ -10,6 +10,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,21 +21,31 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.Storage
+import androidx.compose.material.icons.filled.Verified
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -51,7 +62,9 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
@@ -59,11 +72,16 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import jamgmilk.fuwagit.R
+import jamgmilk.fuwagit.domain.model.credential.SshKey
 import jamgmilk.fuwagit.ui.components.SubSettingsTemplate
+import jamgmilk.fuwagit.ui.screen.credentials.CredentialSelectDialog
+import jamgmilk.fuwagit.ui.screen.credentials.CredentialType
 
 @Composable
 fun PermissionsScreen(
-    savedReposCount: Int,
+    sshKeys: List<SshKey> = emptyList(),
+    onTestSshConnection: (host: String, privateKey: String, passphrase: String?) -> Unit,
+    sshTestResult: SshTestResult = SshTestResult.Idle,
     onBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -91,10 +109,22 @@ fun PermissionsScreen(
             }
         )
 
-        ScopedStorageCard(
-            savedReposCount = savedReposCount
+        SshTestCard(
+            sshKeys = sshKeys,
+            onTestSshConnection = onTestSshConnection,
+            sshTestResult = sshTestResult
         )
     }
+}
+
+/**
+ * Represents the result of an SSH connection test.
+ */
+sealed class SshTestResult {
+    data object Idle : SshTestResult()
+    data object Testing : SshTestResult()
+    data class Success(val message: String) : SshTestResult()
+    data class Failure(val message: String) : SshTestResult()
 }
 
 @Composable
@@ -190,12 +220,20 @@ private fun SystemPermissionsCard(
     }
 }
 
+/**
+ * SSH Test Card - allows users to test SSH key connectivity.
+ */
 @Composable
-private fun ScopedStorageCard(
-    savedReposCount: Int,
+private fun SshTestCard(
+    sshKeys: List<SshKey>,
+    onTestSshConnection: (host: String, privateKey: String, passphrase: String?) -> Unit,
+    sshTestResult: SshTestResult,
     modifier: Modifier = Modifier
 ) {
     val colors = MaterialTheme.colorScheme
+    var host by remember { mutableStateOf("git@github.com") }
+    var selectedKey by remember { mutableStateOf<SshKey?>(null) }
+    var showKeySelector by remember { mutableStateOf(false) }
 
     ElevatedCard(
         modifier = modifier
@@ -218,7 +256,7 @@ private fun ScopedStorageCard(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
-                        Icons.Default.FolderOpen,
+                        Icons.Default.Verified,
                         contentDescription = null,
                         tint = colors.primary,
                         modifier = Modifier.size(22.dp)
@@ -226,13 +264,13 @@ private fun ScopedStorageCard(
                     Spacer(Modifier.width(10.dp))
                     Column {
                         Text(
-                            text = stringResource(R.string.permissions_scoped_storage),
+                            text = stringResource(R.string.ssh_test_title),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = colors.primary
                         )
                         Text(
-                            text = stringResource(R.string.permissions_scoped_storage_subtitle),
+                            text = stringResource(R.string.ssh_test_subtitle),
                             style = MaterialTheme.typography.labelSmall,
                             color = colors.onSurfaceVariant
                         )
@@ -241,59 +279,34 @@ private fun ScopedStorageCard(
             }
 
             Column(
-                modifier = Modifier.padding(16.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
+                    .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                Row(
+                // Host input
+                OutlinedTextField(
+                    value = host,
+                    onValueChange = { host = it },
+                    label = { Text(stringResource(R.string.ssh_test_host_label)) },
+                    placeholder = { Text(stringResource(R.string.ssh_test_host_placeholder)) },
+                    singleLine = true,
+                    shape = RoundedCornerShape(12.dp),
                     modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Surface(
-                        shape = RoundedCornerShape(10.dp),
-                        color = colors.primary.copy(alpha = 0.15f),
-                        modifier = Modifier.size(44.dp)
-                    ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Icon(
-                                Icons.Default.Lock,
-                                contentDescription = null,
-                                tint = colors.primary,
-                                modifier = Modifier.size(22.dp)
-                            )
-                        }
-                    }
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = colors.primary,
+                        focusedLabelColor = colors.primary,
+                        cursorColor = colors.primary
+                    )
+                )
 
-                    Spacer(Modifier.width(12.dp))
-
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = stringResource(R.string.permissions_my_repos),
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            text = stringResource(R.string.permissions_saved_count_format, savedReposCount),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = colors.onSurfaceVariant
-                        )
-                    }
-
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = if (savedReposCount > 0) colors.primary.copy(alpha = 0.15f) else colors.surfaceVariant
-                    ) {
-                        Text(
-                            text = savedReposCount.toString(),
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = if (savedReposCount > 0) colors.primary else colors.onSurfaceVariant,
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
-                        )
-                    }
-                }
-
+                // SSH Key selector trigger
                 Surface(
-                    shape = RoundedCornerShape(10.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { showKeySelector = true },
+                    shape = RoundedCornerShape(12.dp),
                     color = colors.surfaceVariant.copy(alpha = 0.3f)
                 ) {
                     Row(
@@ -303,21 +316,146 @@ private fun ScopedStorageCard(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(
-                            Icons.Default.Info,
+                            Icons.Default.Key,
+                            contentDescription = null,
+                            tint = if (selectedKey != null) colors.primary else colors.onSurfaceVariant,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(Modifier.width(10.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = stringResource(R.string.ssh_test_select_key),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = colors.onSurfaceVariant
+                            )
+                            Text(
+                                text = selectedKey?.name ?: stringResource(R.string.ssh_test_key_not_selected),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = if (selectedKey != null) colors.onSurface else colors.onSurfaceVariant
+                            )
+                        }
+                        Icon(
+                            Icons.Default.FolderOpen,
                             contentDescription = null,
                             tint = colors.onSurfaceVariant,
-                            modifier = Modifier.size(16.dp)
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                }
+
+                // Test button
+                val isTesting = sshTestResult is SshTestResult.Testing
+                val hasResult = sshTestResult is SshTestResult.Success || sshTestResult is SshTestResult.Failure
+
+                Button(
+                    onClick = {
+                        if (selectedKey != null && host.isNotBlank()) {
+                            onTestSshConnection(host, selectedKey!!.privateKey, selectedKey!!.passphrase)
+                        }
+                    },
+                    enabled = selectedKey != null && host.isNotBlank() && !isTesting,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = colors.primary,
+                        disabledContainerColor = colors.primary.copy(alpha = 0.3f)
+                    ),
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp)
+                ) {
+                    if (isTesting) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(20.dp),
+                            strokeWidth = 2.dp,
+                            color = colors.onPrimary
                         )
                         Spacer(Modifier.width(8.dp))
-                        Text(
-                            text = stringResource(R.string.permissions_folder_grant_info),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = colors.onSurfaceVariant
+                        Text(stringResource(R.string.ssh_test_testing))
+                    } else {
+                        Icon(
+                            Icons.Default.Verified,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
                         )
+                        Spacer(Modifier.width(6.dp))
+                        Text(stringResource(R.string.ssh_test_button))
+                    }
+                }
+
+                // Result display
+                if (hasResult) {
+                    val isSuccess = sshTestResult is SshTestResult.Success
+                    val message = when (sshTestResult) {
+                        is SshTestResult.Success -> sshTestResult.message
+                        is SshTestResult.Failure -> sshTestResult.message
+                        else -> ""
+                    }
+
+                    Surface(
+                        shape = RoundedCornerShape(10.dp),
+                        color = if (isSuccess) colors.primary.copy(alpha = 0.1f) else colors.error.copy(alpha = 0.1f)
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(12.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    if (isSuccess) Icons.Default.CheckCircle else Icons.Default.Error,
+                                    contentDescription = null,
+                                    tint = if (isSuccess) colors.primary else colors.error,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(Modifier.width(8.dp))
+                                Text(
+                                    text = if (isSuccess) stringResource(R.string.ssh_test_result_success) else stringResource(R.string.ssh_test_result_failure),
+                                    style = MaterialTheme.typography.labelLarge,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (isSuccess) colors.primary else colors.error
+                                )
+                            }
+                            
+                            if (message.isNotBlank()) {
+                                Surface(
+                                    shape = RoundedCornerShape(6.dp),
+                                    color = colors.surface.copy(alpha = 0.5f)
+                                ) {
+                                    Text(
+                                        text = message,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        fontFamily = FontFamily.Monospace,
+                                        color = colors.onSurface,
+                                        modifier = Modifier.padding(8.dp)
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
             }
         }
+    }
+
+    // SSH Key Selection Dialog
+    if (showKeySelector) {
+        CredentialSelectDialog(
+            onDismiss = { showKeySelector = false },
+            onSelect = { uuid, type ->
+                if (type == CredentialType.SSH || type == CredentialType.BOTH) {
+                    val key = sshKeys.find { it.uuid == uuid }
+                    if (key != null) {
+                        selectedKey = key
+                    }
+                }
+                showKeySelector = false
+            },
+            sshKeys = sshKeys,
+            httpsCredentials = emptyList()
+        )
     }
 }
 

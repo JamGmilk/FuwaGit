@@ -24,8 +24,10 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import jamgmilk.fuwagit.R
 import jamgmilk.fuwagit.ui.components.DiffViewer
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -44,7 +46,7 @@ fun FileDiffScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = uiState.value.filePath ?: "File Diff",
+                        text = uiState.value.filePath ?: stringResource(R.string.file_diff_screen_title),
                         maxLines = 1
                     )
                 },
@@ -52,7 +54,7 @@ fun FileDiffScreen(
                     IconButton(onClick = onNavigateBack) {
                         Icon(
                             Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back"
+                            contentDescription = stringResource(R.string.file_diff_back)
                         )
                     }
                 }
@@ -75,7 +77,7 @@ fun FileDiffScreen(
                     ) {
                         CircularProgressIndicator()
                         Text(
-                            text = "Loading diff...",
+                            text = stringResource(R.string.file_diff_loading),
                             style = MaterialTheme.typography.bodyMedium,
                             color = colors.onSurfaceVariant
                         )
@@ -112,7 +114,7 @@ fun FileDiffScreen(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = "No diff to display",
+                            text = stringResource(R.string.file_diff_empty),
                             style = MaterialTheme.typography.bodyLarge,
                             color = colors.onSurfaceVariant
                         )
@@ -145,7 +147,7 @@ private fun ErrorContent(
             modifier = Modifier.size(48.dp)
         )
         Text(
-            text = "Failed to load diff",
+            text = stringResource(R.string.file_diff_error),
             style = MaterialTheme.typography.titleMedium,
             color = colors.onSurface
         )
