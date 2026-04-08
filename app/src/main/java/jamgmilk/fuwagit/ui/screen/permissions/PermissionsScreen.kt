@@ -268,11 +268,6 @@ private fun SshTestCard(
                             fontWeight = FontWeight.Bold,
                             color = colors.primary
                         )
-                        Text(
-                            text = stringResource(R.string.ssh_test_subtitle),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = colors.onSurfaceVariant
-                        )
                     }
                 }
             }
@@ -303,6 +298,7 @@ private fun SshTestCard(
                 Surface(
                     modifier = Modifier
                         .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp))
                         .clickable { showKeySelector = true },
                     shape = RoundedCornerShape(12.dp),
                     color = colors.surfaceVariant.copy(alpha = 0.3f)

@@ -4,6 +4,7 @@ import android.util.Log
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -47,7 +48,9 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -66,15 +69,19 @@ fun AddHttpsCredentialDialog(
     onAdd: (host: String, username: String, password: String) -> Unit
 ) {
     val colors = MaterialTheme.colorScheme
+    val focusManager = LocalFocusManager.current
     var host by rememberSaveable { mutableStateOf("") }
     var username by rememberSaveable { mutableStateOf("") }
     var password by rememberSaveable { mutableStateOf("") }
     var showPassword by remember { mutableStateOf(false) }
 
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        icon = {
-            Box(
+    Box(modifier = Modifier.pointerInput(Unit) {
+        detectTapGestures(onTap = { focusManager.clearFocus() })
+    }) {
+        AlertDialog(
+            onDismissRequest = onDismiss,
+            icon = {
+                Box(
                 modifier = Modifier.size(48.dp).background(colors.primary.copy(alpha = 0.15f), CircleShape),
                 contentAlignment = Alignment.Center
             ) {
@@ -144,6 +151,7 @@ fun AddHttpsCredentialDialog(
         },
         shape = RoundedCornerShape(24.dp)
     )
+    }
 }
 
 @Composable
@@ -155,9 +163,13 @@ fun GenerateSshKeyDialog(
     var selectedType by rememberSaveable { mutableStateOf("Ed25519") }
     var comment by rememberSaveable { mutableStateOf("") }
     val colors = MaterialTheme.colorScheme
+    val focusManager = LocalFocusManager.current
 
-    AlertDialog(
-        onDismissRequest = onDismiss,
+    Box(modifier = Modifier.pointerInput(Unit) {
+        detectTapGestures(onTap = { focusManager.clearFocus() })
+    }) {
+        AlertDialog(
+            onDismissRequest = onDismiss,
         icon = {
             Box(
                 modifier = Modifier.size(48.dp).background(colors.tertiary.copy(alpha = 0.15f), CircleShape),
@@ -232,6 +244,7 @@ fun GenerateSshKeyDialog(
         },
         shape = RoundedCornerShape(24.dp)
     )
+    }
 }
 
 @Composable
@@ -278,6 +291,7 @@ fun ImportSshKeyDialog(
 ) {
     val colors = MaterialTheme.colorScheme
     val context = LocalContext.current
+    val focusManager = LocalFocusManager.current
     var name by rememberSaveable { mutableStateOf("") }
     var privateKey by rememberSaveable { mutableStateOf("") }
     var publicKey by rememberSaveable { mutableStateOf("") }
@@ -286,8 +300,11 @@ fun ImportSshKeyDialog(
     var showPassphrase by remember { mutableStateOf(false) }
     var validationError by remember { mutableStateOf<String?>(null) }
 
-    AlertDialog(
-        onDismissRequest = onDismiss,
+    Box(modifier = Modifier.pointerInput(Unit) {
+        detectTapGestures(onTap = { focusManager.clearFocus() })
+    }) {
+        AlertDialog(
+            onDismissRequest = onDismiss,
         icon = {
             Box(
                 modifier = Modifier.size(48.dp).background(colors.tertiary.copy(alpha = 0.15f), CircleShape),
@@ -402,4 +419,5 @@ fun ImportSshKeyDialog(
         },
         shape = RoundedCornerShape(24.dp)
     )
+    }
 }
