@@ -58,6 +58,7 @@ org-eclipse-jgit = { module = "org.eclipse.jgit:org.eclipse.jgit", version.ref =
 org-eclipse-jgit-ssh-jsch = { module = "org.eclipse.jgit:org.eclipse.jgit.ssh.jsch", version.ref = "orgEclipseJgit" }
 jsch = { module = "com.github.mwiede:jsch", version.ref = "jsch" }
 bouncycastle = { module = "org.bouncycastle:bcprov-jdk18on", version.ref = "bouncycastle" }
+bouncycastle-pkix = { module = "org.bouncycastle:bcpkix-jdk18on", version.ref = "bouncycastle" }
 kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "kotlinxSerialization" }
 
 # Hilt

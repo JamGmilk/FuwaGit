@@ -1,5 +1,6 @@
 package jamgmilk.fuwagit.ui.screen.credentials
 
+import android.util.Log
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -55,6 +56,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import jamgmilk.fuwagit.BuildConfig
 import jamgmilk.fuwagit.R
 import jamgmilk.fuwagit.core.util.validatePrivateKey
 
@@ -375,7 +377,7 @@ fun ImportSshKeyDialog(
                     try {
                         val (isValid, keyType) = validatePrivateKey(privateKey)
                         if (isValid) {
-                            android.util.Log.d("ImportSshKeyDialog", "Key validation successful, type: $keyType")
+                            if (BuildConfig.DEBUG) android.util.Log.d("ImportSshKeyDialog", "Key validation successful, type: $keyType")
                             onImport(name, privateKey, publicKey.ifBlank { null }, passphrase.ifBlank { null })
                         }
                     } catch (e: IllegalArgumentException) {

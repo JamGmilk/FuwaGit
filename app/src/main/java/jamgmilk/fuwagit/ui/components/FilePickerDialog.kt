@@ -2,6 +2,7 @@ package jamgmilk.fuwagit.ui.components
 
 import android.os.Environment
 import android.util.Log
+import jamgmilk.fuwagit.BuildConfig
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
@@ -368,7 +369,7 @@ fun FilePickerDialog(
                                 error = "无法选择该目录，请选择其他路径"
                                 return@Button
                             }
-                            Log.d("FilePickerDialog", "Selected path: $currentPath")
+                            if (BuildConfig.DEBUG) Log.d("FilePickerDialog", "Selected path: $currentPath")
                             onSelect(currentPath)
                         },
                         enabled = !isPathRestrictedForSelection(currentPath),

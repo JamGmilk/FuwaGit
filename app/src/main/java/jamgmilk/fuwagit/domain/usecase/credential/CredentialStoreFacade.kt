@@ -83,6 +83,8 @@ class CredentialStoreFacade @Inject constructor(
 
     suspend fun getSshPrivateKey(uuid: String): AppResult<String> = sessionFacade.getSshPrivateKey(uuid)
 
+    suspend fun getSshPassphrase(uuid: String): AppResult<String?> = sessionFacade.getSshPassphrase(uuid)
+
     // ========== 导入/导出 ==========
 
     suspend fun exportCredentials(): AppResult<String> = sessionFacade.exportCredentials()
@@ -119,6 +121,7 @@ class CredentialSessionFacade @Inject constructor(
     private val addSshKeyUseCase: AddSshKeyUseCase,
     private val deleteSshKeyUseCase: DeleteSshKeyUseCase,
     private val getSshPrivateKeyUseCase: GetSshPrivateKeyUseCase,
+    private val getSshPassphraseUseCase: GetSshPassphraseUseCase,
     private val exportCredentialsUseCase: ExportCredentialsUseCase,
     private val importCredentialsUseCase: ImportCredentialsUseCase
 ) {
@@ -152,6 +155,8 @@ class CredentialSessionFacade @Inject constructor(
     suspend fun deleteSshKey(uuid: String): AppResult<Unit> = deleteSshKeyUseCase(uuid)
 
     suspend fun getSshPrivateKey(uuid: String): AppResult<String> = getSshPrivateKeyUseCase(uuid)
+
+    suspend fun getSshPassphrase(uuid: String): AppResult<String?> = getSshPassphraseUseCase(uuid)
 
     suspend fun exportCredentials(): AppResult<String> = exportCredentialsUseCase()
 

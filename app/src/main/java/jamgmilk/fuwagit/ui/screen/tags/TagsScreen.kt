@@ -52,6 +52,7 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -84,13 +85,7 @@ fun TagsScreen(
     tagsViewModel: TagsViewModel,
     modifier: Modifier = Modifier
 ) {
-    val uiState by tagsViewModel.uiState.collectAsStateWithLifecycle()
     val colors = MaterialTheme.colorScheme
-    val context = LocalContext.current
-
-    var showCreateDialog by remember { mutableStateOf(false) }
-    var createTagType by remember { mutableStateOf(CreateTagType.Annotated) }
-    var tagForDetail by remember { mutableStateOf<GitTag?>(null) }
 
     ScreenTemplate(
         title = stringResource(R.string.screen_tags),
@@ -112,10 +107,7 @@ fun TagsScreen(
                     )
                 }
                 IconButton(
-                    onClick = {
-                        showCreateDialog = true
-                        createTagType = CreateTagType.Annotated
-                    },
+                    onClick = { tagsViewModel.showCreateDialog() },
                     modifier = Modifier
                         .size(36.dp)
                         .clip(CircleShape)
@@ -141,17 +133,60 @@ fun TagsScreen(
             colors = CardDefaults.elevatedCardColors(containerColor = colors.surfaceContainerLow),
             elevation = CardDefaults.elevatedCardElevation(0.dp)
         ) {
-            if (uiState.tags.isEmpty()) {
-                EmptyTagsState()
-            } else {
-                TagsListContent(
-                    tagsViewModel = tagsViewModel,
-                    uiState = uiState,
-                    modifier = Modifier.fillMaxSize(),
-                    onTagDetail = { tagForDetail = it }
-                )
-            }
+            TagsContent(tagsViewModel = tagsViewModel)
         }
+    }
+
+    TagsDialogs(tagsViewModel = tagsViewModel)
+}
+
+/**
+ * 可复用的标签内容组件（不含外层 ScreenTemplate）
+ * 可嵌入到其他页面中（如 BranchesScreen）
+ */
+@Composable
+fun TagsContent(
+    tagsViewModel: TagsViewModel,
+    modifier: Modifier = Modifier
+) {
+    val uiState by tagsViewModel.uiState.collectAsStateWithLifecycle()
+    val colors = MaterialTheme.colorScheme
+    var tagForDetail by remember { mutableStateOf<GitTag?>(null) }
+
+    if (uiState.tags.isEmpty()) {
+        EmptyTagsState()
+    } else {
+        TagsListContent(
+            tagsViewModel = tagsViewModel,
+            uiState = uiState,
+            modifier = modifier.fillMaxSize(),
+            onTagDetail = { tagForDetail = it }
+        )
+    }
+
+    // Tag 详情对话框
+    if (tagForDetail != null) {
+        TagDetailDialog(
+            tag = tagForDetail!!,
+            onDismiss = { tagForDetail = null }
+        )
+    }
+}
+
+/**
+ * 标签相关对话框集合（创建、删除、推送、操作结果）
+ */
+@Composable
+fun TagsDialogs(
+    tagsViewModel: TagsViewModel
+) {
+    val uiState by tagsViewModel.uiState.collectAsStateWithLifecycle()
+    var showCreateDialog by remember { mutableStateOf(false) }
+    var createTagType by remember { mutableStateOf(CreateTagType.Annotated) }
+
+    // 监听 ViewModel 的创建对话框状态
+    LaunchedEffect(uiState.showCreateDialog) {
+        showCreateDialog = uiState.showCreateDialog
     }
 
     // 创建标签对话框
@@ -197,14 +232,6 @@ fun TagsScreen(
             onPushAll = {
                 tagsViewModel.pushAllTags()
             }
-        )
-    }
-
-    // Tag 详情对话框
-    if (tagForDetail != null) {
-        TagDetailDialog(
-            tag = tagForDetail!!,
-            onDismiss = { tagForDetail = null }
         )
     }
 

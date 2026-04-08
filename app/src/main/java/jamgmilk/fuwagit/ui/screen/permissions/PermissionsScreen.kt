@@ -21,10 +21,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Clear
@@ -80,7 +78,7 @@ import jamgmilk.fuwagit.ui.screen.credentials.CredentialType
 @Composable
 fun PermissionsScreen(
     sshKeys: List<SshKey> = emptyList(),
-    onTestSshConnection: (host: String, privateKey: String, passphrase: String?) -> Unit,
+    onTestSshConnection: (host: String, sshKeyUuid: String) -> Unit,
     sshTestResult: SshTestResult = SshTestResult.Idle,
     onBack: () -> Unit,
     modifier: Modifier = Modifier
@@ -226,13 +224,14 @@ private fun SystemPermissionsCard(
 @Composable
 private fun SshTestCard(
     sshKeys: List<SshKey>,
-    onTestSshConnection: (host: String, privateKey: String, passphrase: String?) -> Unit,
+    onTestSshConnection: (host: String, sshKeyUuid: String) -> Unit,
     sshTestResult: SshTestResult,
     modifier: Modifier = Modifier
 ) {
     val colors = MaterialTheme.colorScheme
     var host by remember { mutableStateOf("git@github.com") }
-    var selectedKey by remember { mutableStateOf<SshKey?>(null) }
+    var selectedKeyUuid by remember { mutableStateOf<String?>(null) }
+    var selectedKeyName by remember { mutableStateOf<String?>(null) }
     var showKeySelector by remember { mutableStateOf(false) }
 
     ElevatedCard(
@@ -281,7 +280,6 @@ private fun SshTestCard(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .verticalScroll(rememberScrollState())
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
@@ -318,7 +316,7 @@ private fun SshTestCard(
                         Icon(
                             Icons.Default.Key,
                             contentDescription = null,
-                            tint = if (selectedKey != null) colors.primary else colors.onSurfaceVariant,
+                            tint = if (selectedKeyUuid != null) colors.primary else colors.onSurfaceVariant,
                             modifier = Modifier.size(20.dp)
                         )
                         Spacer(Modifier.width(10.dp))
@@ -329,9 +327,9 @@ private fun SshTestCard(
                                 color = colors.onSurfaceVariant
                             )
                             Text(
-                                text = selectedKey?.name ?: stringResource(R.string.ssh_test_key_not_selected),
+                                text = selectedKeyName ?: stringResource(R.string.ssh_test_key_not_selected),
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = if (selectedKey != null) colors.onSurface else colors.onSurfaceVariant
+                                color = if (selectedKeyUuid != null) colors.onSurface else colors.onSurfaceVariant
                             )
                         }
                         Icon(
@@ -349,11 +347,11 @@ private fun SshTestCard(
 
                 Button(
                     onClick = {
-                        if (selectedKey != null && host.isNotBlank()) {
-                            onTestSshConnection(host, selectedKey!!.privateKey, selectedKey!!.passphrase)
+                        if (selectedKeyUuid != null && host.isNotBlank()) {
+                            onTestSshConnection(host, selectedKeyUuid!!)
                         }
                     },
-                    enabled = selectedKey != null && host.isNotBlank() && !isTesting,
+                    enabled = selectedKeyUuid != null && host.isNotBlank() && !isTesting,
                     colors = ButtonDefaults.buttonColors(
                         containerColor = colors.primary,
                         disabledContainerColor = colors.primary.copy(alpha = 0.3f)
@@ -448,7 +446,8 @@ private fun SshTestCard(
                 if (type == CredentialType.SSH || type == CredentialType.BOTH) {
                     val key = sshKeys.find { it.uuid == uuid }
                     if (key != null) {
-                        selectedKey = key
+                        selectedKeyUuid = key.uuid
+                        selectedKeyName = key.name
                     }
                 }
                 showKeySelector = false

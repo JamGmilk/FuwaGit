@@ -3,11 +3,13 @@ package jamgmilk.fuwagit.data.local.security
 import android.content.Context
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
+import android.util.Log
 import androidx.biometric.BiometricPrompt
 import androidx.core.content.edit
 import androidx.fragment.app.FragmentActivity
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
+import jamgmilk.fuwagit.BuildConfig
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.security.KeyStore
@@ -146,17 +148,17 @@ class MasterKeyManager @Inject constructor(
         onSuccess: () -> Unit,
         onError: (String) -> Unit
     ) {
-        android.util.Log.d("MasterKeyManager", "enableBiometric: starting")
+        if (BuildConfig.DEBUG) android.util.Log.d("MasterKeyManager", "enableBiometric: starting")
         try {
             if (keyStore.containsAlias(KEYSTORE_BIOMETRIC_ALIAS)) {
-                android.util.Log.d("MasterKeyManager", "enableBiometric: deleting existing key")
+                if (BuildConfig.DEBUG) android.util.Log.d("MasterKeyManager", "enableBiometric: deleting existing key")
                 keyStore.deleteEntry(KEYSTORE_BIOMETRIC_ALIAS)
             }
 
-            android.util.Log.d("MasterKeyManager", "enableBiometric: creating biometric key")
+            if (BuildConfig.DEBUG) android.util.Log.d("MasterKeyManager", "enableBiometric: creating biometric key")
             createBiometricKey()
 
-            android.util.Log.d("MasterKeyManager", "enableBiometric: creating cipher")
+            if (BuildConfig.DEBUG) android.util.Log.d("MasterKeyManager", "enableBiometric: creating cipher")
             val cipher = createBiometricCipher(Cipher.ENCRYPT_MODE)
 
             biometricAuthManager.authenticateWithCrypto(
@@ -166,7 +168,7 @@ class MasterKeyManager @Inject constructor(
                 onResult = { result ->
                     when (result) {
                         is BiometricAuthManager.AuthResult.SuccessWithCrypto -> {
-                            android.util.Log.d("MasterKeyManager", "enableBiometric: onAuthenticationSucceeded")
+                            if (BuildConfig.DEBUG) android.util.Log.d("MasterKeyManager", "enableBiometric: onAuthenticationSucceeded")
                             result.result.cryptoObject?.cipher?.let { c ->
                                 try {
                                     val encrypted = c.doFinal(masterKey.encoded)
@@ -179,7 +181,7 @@ class MasterKeyManager @Inject constructor(
                                         putBoolean(KEY_BIOMETRIC_ENABLED, true)
                                         apply()
                                     }
-                                    android.util.Log.d("MasterKeyManager", "enableBiometric: success saved to prefs with IV size ${actualIv?.size}")
+                                    if (BuildConfig.DEBUG) android.util.Log.d("MasterKeyManager", "enableBiometric: success saved to prefs with IV size ${actualIv?.size}")
                                     onSuccess()
                                 } catch (e: Exception) {
                                     android.util.Log.e("MasterKeyManager", "enableBiometric: doFinal failed: ${e.message}")
@@ -195,7 +197,7 @@ class MasterKeyManager @Inject constructor(
                             onError(result.message)
                         }
                         is BiometricAuthManager.AuthResult.Cancelled -> {
-                            android.util.Log.d("MasterKeyManager", "enableBiometric: cancelled")
+                            if (BuildConfig.DEBUG) android.util.Log.d("MasterKeyManager", "enableBiometric: cancelled")
                         }
                         else -> {}
                     }
@@ -212,7 +214,7 @@ class MasterKeyManager @Inject constructor(
         onSuccess: (SecretKey) -> Unit,
         onError: (String) -> Unit
     ) {
-        android.util.Log.d("MasterKeyManager", "unlockWithBiometric: starting")
+        if (BuildConfig.DEBUG) android.util.Log.d("MasterKeyManager", "unlockWithBiometric: starting")
         try {
             val ivBase64 = prefs.getString(KEY_BIOMETRIC_IV, null)
             if (ivBase64 == null) {
@@ -231,14 +233,14 @@ class MasterKeyManager @Inject constructor(
                 onResult = { result ->
                     when (result) {
                         is BiometricAuthManager.AuthResult.SuccessWithCrypto -> {
-                            android.util.Log.d("MasterKeyManager", "unlockWithBiometric: onAuthenticationSucceeded")
+                            if (BuildConfig.DEBUG) android.util.Log.d("MasterKeyManager", "unlockWithBiometric: onAuthenticationSucceeded")
                             result.result.cryptoObject?.cipher?.let { c ->
                                 val encryptedBase64 = prefs.getString(KEY_BIOMETRIC_ENCRYPTED_MASTER, null)
                                 if (encryptedBase64 != null) {
                                     try {
                                         val encrypted = Base64.decode(encryptedBase64, Base64.NO_WRAP)
                                         val masterKeyBytes = c.doFinal(encrypted)
-                                        android.util.Log.d("MasterKeyManager", "unlockWithBiometric: success")
+                                        if (BuildConfig.DEBUG) android.util.Log.d("MasterKeyManager", "unlockWithBiometric: success")
                                         onSuccess(SecretKeySpec(masterKeyBytes, "AES"))
                                     } catch (e: Exception) {
                                         android.util.Log.e("MasterKeyManager", "unlockWithBiometric: doFinal failed: ${e.message}")
@@ -264,7 +266,7 @@ class MasterKeyManager @Inject constructor(
                             onError(result.message)
                         }
                         is BiometricAuthManager.AuthResult.Cancelled -> {
-                            android.util.Log.d("MasterKeyManager", "unlockWithBiometric: cancelled")
+                            if (BuildConfig.DEBUG) android.util.Log.d("MasterKeyManager", "unlockWithBiometric: cancelled")
                         }
                         else -> {}
                     }

@@ -1,6 +1,7 @@
 package jamgmilk.fuwagit.data.jgit
 
 import android.util.Log
+import jamgmilk.fuwagit.BuildConfig
 import org.eclipse.jgit.lib.Config
 import org.eclipse.jgit.storage.file.FileBasedConfig
 import org.eclipse.jgit.util.FS
@@ -57,7 +58,7 @@ class GitConfigManager @Inject constructor() {
             globalConfig.load()
             globalConfig.setString("user", null, "name", name)
             globalConfig.save()
-            Log.d(TAG, "Set global user.name: $name")
+            if (BuildConfig.DEBUG) Log.d(TAG, "Set global user.name: $name")
             Result.success(Unit)
         } catch (e: Exception) {
             Log.e(TAG, "Failed to set global user.name", e)
@@ -74,7 +75,7 @@ class GitConfigManager @Inject constructor() {
             globalConfig.load()
             globalConfig.setString("user", null, "email", email)
             globalConfig.save()
-            Log.d(TAG, "Set global user.email: $email")
+            if (BuildConfig.DEBUG) Log.d(TAG, "Set global user.email: $email")
             Result.success(Unit)
         } catch (e: Exception) {
             Log.e(TAG, "Failed to set global user.email", e)
@@ -92,7 +93,7 @@ class GitConfigManager @Inject constructor() {
             globalConfig.setString("user", null, "name", name)
             globalConfig.setString("user", null, "email", email)
             globalConfig.save()
-            Log.d(TAG, "Set global user config: name=$name, email=$email")
+            if (BuildConfig.DEBUG) Log.d(TAG, "Set global user config: name=$name, email=$email")
             Result.success(Unit)
         } catch (e: Exception) {
             Log.e(TAG, "Failed to set global user config", e)
@@ -138,7 +139,7 @@ class GitConfigManager @Inject constructor() {
             repoConfig.load()
             repoConfig.setString("user", null, "name", name)
             repoConfig.save()
-            Log.d(TAG, "Set repo user.name: $name for $repoPath")
+            if (BuildConfig.DEBUG) Log.d(TAG, "Set repo user.name: $name for $repoPath")
             Result.success(Unit)
         } catch (e: Exception) {
             Log.e(TAG, "Failed to set repo user.name", e)
@@ -160,7 +161,7 @@ class GitConfigManager @Inject constructor() {
             repoConfig.load()
             repoConfig.setString("user", null, "email", email)
             repoConfig.save()
-            Log.d(TAG, "Set repo user.email: $email for $repoPath")
+            if (BuildConfig.DEBUG) Log.d(TAG, "Set repo user.email: $email for $repoPath")
             Result.success(Unit)
         } catch (e: Exception) {
             Log.e(TAG, "Failed to set repo user.email", e)
@@ -183,7 +184,7 @@ class GitConfigManager @Inject constructor() {
             repoConfig.setString("user", null, "name", name)
             repoConfig.setString("user", null, "email", email)
             repoConfig.save()
-            Log.d(TAG, "Set repo user config: name=$name, email=$email for $repoPath")
+            if (BuildConfig.DEBUG) Log.d(TAG, "Set repo user config: name=$name, email=$email for $repoPath")
             Result.success(Unit)
         } catch (e: Exception) {
             Log.e(TAG, "Failed to set repo user config", e)
@@ -255,7 +256,7 @@ class GitConfigManager @Inject constructor() {
             repoConfig.unset("user", null, "name")
             repoConfig.unset("user", null, "email")
             repoConfig.save()
-            Log.d(TAG, "Removed repo local user config for $repoPath")
+            if (BuildConfig.DEBUG) Log.d(TAG, "Removed repo local user config for $repoPath")
             Result.success(Unit)
         } catch (e: Exception) {
             Log.e(TAG, "Failed to remove repo local user config", e)
