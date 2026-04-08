@@ -29,6 +29,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import jamgmilk.fuwagit.R
 import jamgmilk.fuwagit.domain.model.git.DiffHunk
 import jamgmilk.fuwagit.domain.model.git.DiffLine
 import jamgmilk.fuwagit.domain.model.git.DiffLineType
@@ -115,7 +116,7 @@ private fun DiffFileHeader(fileDiff: FileDiff) {
         ) {
             if (fileDiff.additions > 0) {
                 Text(
-                    text = "+${fileDiff.additions}",
+                    text = stringResource(R.string.diff_additions_prefix, fileDiff.additions),
                     color = Color(0xFF22863A),
                     fontSize = 12.sp,
                     fontFamily = FontFamily.Monospace
@@ -123,14 +124,14 @@ private fun DiffFileHeader(fileDiff: FileDiff) {
             }
             if (fileDiff.deletions > 0) {
                 Text(
-                    text = " -${fileDiff.deletions}",
+                    text = stringResource(R.string.diff_deletions_prefix, fileDiff.deletions),
                     color = Color(0xFFB31D28),
                     fontSize = 12.sp,
                     fontFamily = FontFamily.Monospace
                 )
             }
             Text(
-                text = " (${fileDiff.changeType.name})",
+                text = stringResource(R.string.diff_change_type_format, fileDiff.changeType.name),
                 color = colors.onSurfaceVariant,
                 fontSize = 12.sp
             )
@@ -368,7 +369,7 @@ private fun BinaryFileIndicator() {
         contentAlignment = Alignment.Center
     ) {
         Text(
-            text = stringResource(id = jamgmilk.fuwagit.R.string.diff_binary_file),
+            text = stringResource(R.string.diff_binary_file),
             color = colors.onSurfaceVariant,
             style = MaterialTheme.typography.bodyMedium
         )
@@ -390,7 +391,7 @@ private fun NoChangesIndicator() {
         contentAlignment = Alignment.Center
     ) {
         Text(
-            text = stringResource(id = jamgmilk.fuwagit.R.string.diff_no_changes),
+            text = stringResource(R.string.diff_no_changes),
             color = colors.onSurfaceVariant,
             style = MaterialTheme.typography.bodyMedium
         )

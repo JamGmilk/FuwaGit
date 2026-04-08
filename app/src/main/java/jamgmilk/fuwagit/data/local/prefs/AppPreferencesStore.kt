@@ -25,6 +25,7 @@ object PreferencesKeys {
     val BACKUP_BEFORE_SYNC = booleanPreferencesKey("sync.backupBeforeSync")
     val VERBOSE_LOGGING = booleanPreferencesKey("developer.verboseLogging")
     val DARK_MODE = stringPreferencesKey("appearance.darkMode")
+    val LANGUAGE = stringPreferencesKey("appearance.language")
     val AUTO_LOCK_TIMEOUT = stringPreferencesKey("security.autoLockTimeout")
 }
 
@@ -35,6 +36,7 @@ data class AppPreferences(
     val backupBeforeSync: Boolean = true,
     val verboseLogging: Boolean = false,
     val darkMode: String = "system", // "system", "always_on", "always_off"
+    val language: String = "system", // "system", "zh_CN", "en"
     val autoLockTimeout: String = "300" // Auto-lock timeout in seconds (default: 5 minutes)
 )
 
@@ -50,6 +52,7 @@ class AppPreferencesStore @Inject constructor(
             backupBeforeSync = prefs[PreferencesKeys.BACKUP_BEFORE_SYNC] ?: true,
             verboseLogging = prefs[PreferencesKeys.VERBOSE_LOGGING] ?: false,
             darkMode = prefs[PreferencesKeys.DARK_MODE] ?: "system",
+            language = prefs[PreferencesKeys.LANGUAGE] ?: "system",
             autoLockTimeout = prefs[PreferencesKeys.AUTO_LOCK_TIMEOUT] ?: "300"
         )
     }
@@ -87,6 +90,12 @@ class AppPreferencesStore @Inject constructor(
     suspend fun setDarkMode(mode: String) {
         context.dataStore.edit { prefs ->
             prefs[PreferencesKeys.DARK_MODE] = mode
+        }
+    }
+
+    suspend fun setLanguage(language: String) {
+        context.dataStore.edit { prefs ->
+            prefs[PreferencesKeys.LANGUAGE] = language
         }
     }
 }

@@ -185,3 +185,99 @@ fun detectSshKeyType(privateKey: String): String {
         else -> "Ed25519"
     }
 }
+
+/**
+ * Validates the private key and detects its algorithm (RSA/Ed25519).
+ * 
+ * @param privateKey The private key content to validate
+ * @return Pair of (isValid, keyType) where keyType is "RSA" or "Ed25519"
+ * @throws IllegalArgumentException if the key format is invalid or algorithm is not supported
+ */
+fun validatePrivateKey(privateKey: String): Pair<Boolean, String> {
+    Log.d(SSH_KEY_LOG_TAG, "Validating private key...")
+    
+    try {
+        // Check if key has proper PEM format
+        val hasBeginMarker = privateKey.contains("-----BEGIN")
+        val hasEndMarker = privateKey.contains("-----END")
+        
+        if (!hasBeginMarker || !hasEndMarker) {
+            Log.e(SSH_KEY_LOG_TAG, "Invalid PEM format: missing BEGIN/END markers")
+            throw IllegalArgumentException("Invalid PEM format. Key must contain BEGIN and END markers")
+        }
+        
+        // Detect key type
+        val keyType = detectSshKeyType(privateKey)
+        Log.d(SSH_KEY_LOG_TAG, "Detected key type: $keyType")
+        
+        // Validate based on key type
+        when {
+            privateKey.contains("BEGIN RSA PRIVATE KEY") || privateKey.contains("BEGIN PRIVATE KEY") -> {
+                // RSA key validation
+                validateRsaKeyFormat(privateKey)
+                Log.d(SSH_KEY_LOG_TAG, "RSA key format validation passed")
+            }
+            privateKey.contains("BEGIN OPENSSH PRIVATE KEY") -> {
+                // Ed25519 key validation
+                validateEd25519KeyFormat(privateKey)
+                Log.d(SSH_KEY_LOG_TAG, "Ed25519 key format validation passed")
+            }
+            else -> {
+                Log.e(SSH_KEY_LOG_TAG, "Unsupported key algorithm")
+                throw IllegalArgumentException("Unsupported key algorithm. Only RSA and Ed25519 are supported")
+            }
+        }
+        
+        // Try to decode the key to ensure it's valid Base64
+        try {
+            val keyContent = privateKey
+                .replace("-----BEGIN.*-----".toRegex(), "")
+                .replace("-----END.*-----".toRegex(), "")
+                .replace("\\s".toRegex(), "")
+            
+            if (keyContent.isBlank()) {
+                Log.e(SSH_KEY_LOG_TAG, "Empty key content")
+                throw IllegalArgumentException("Empty key content")
+            }
+            
+            Base64.getDecoder().decode(keyContent)
+            Log.d(SSH_KEY_LOG_TAG, "Base64 decoding successful")
+        } catch (e: IllegalArgumentException) {
+            Log.e(SSH_KEY_LOG_TAG, "Invalid Base64 encoding: ${e.message}")
+            throw IllegalArgumentException("Invalid Base64 encoding in private key")
+        }
+        
+        Log.d(SSH_KEY_LOG_TAG, "Private key validation successful, type: $keyType")
+        return Pair(true, keyType)
+        
+    } catch (e: IllegalArgumentException) {
+        Log.e(SSH_KEY_LOG_TAG, "Private key validation failed: ${e.message}")
+        throw e
+    } catch (e: Exception) {
+        Log.e(SSH_KEY_LOG_TAG, "Unexpected error during validation: ${e.message}", e)
+        throw IllegalArgumentException("Invalid private key: ${e.message}")
+    }
+}
+
+private fun validateRsaKeyFormat(privateKey: String) {
+    // Check for RSA-specific markers
+    val isPkcs1 = privateKey.contains("BEGIN RSA PRIVATE KEY")
+    val isPkcs8 = privateKey.contains("BEGIN PRIVATE KEY") || privateKey.contains("BEGIN ENCRYPTED PRIVATE KEY")
+    
+    if (!isPkcs1 && !isPkcs8) {
+        Log.e(SSH_KEY_LOG_TAG, "Not a valid RSA private key format")
+        throw IllegalArgumentException("Not a valid RSA private key format. Expected PKCS#1 or PKCS#8 format")
+    }
+    
+    Log.d(SSH_KEY_LOG_TAG, "RSA key format check passed (PKCS#1: $isPkcs1, PKCS#8: $isPkcs8)")
+}
+
+private fun validateEd25519KeyFormat(privateKey: String) {
+    // Ed25519 keys should be in OpenSSH format
+    if (!privateKey.contains("BEGIN OPENSSH PRIVATE KEY")) {
+        Log.e(SSH_KEY_LOG_TAG, "Not a valid Ed25519 private key format")
+        throw IllegalArgumentException("Not a valid Ed25519 private key format. Expected OpenSSH format")
+    }
+    
+    Log.d(SSH_KEY_LOG_TAG, "Ed25519 key format check passed (OpenSSH format)")
+}

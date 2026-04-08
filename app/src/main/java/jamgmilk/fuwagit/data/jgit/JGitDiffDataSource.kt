@@ -174,7 +174,7 @@ class JGitDiffDataSource @Inject constructor(
                 if (!found) {
                     throw IllegalArgumentException("File not found in commit: $filePath")
                 }
-                
+
                 content!!
             }
         }

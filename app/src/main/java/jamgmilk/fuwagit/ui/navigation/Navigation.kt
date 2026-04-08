@@ -10,6 +10,8 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.ui.res.stringResource
+import jamgmilk.fuwagit.R
 
 object NavRoutes {
     const val MAIN = "main"
@@ -21,18 +23,18 @@ object NavRoutes {
 
 data class NavItem(
     val route: String,
-    val title: String,
+    val titleRes: Int,
     val icon: @Composable () -> Unit
 )
 
 @Composable
 fun rememberNavItems(): List<NavItem> = remember {
     listOf(
-        NavItem("status", "Status") { Icon(Icons.AutoMirrored.Filled.List, contentDescription = "Status") },
-        NavItem("history", "History") { Icon(Icons.Default.History, contentDescription = "History") },
-        NavItem("branches", "Branches") { Icon(Icons.Default.AccountTree, contentDescription = "Branches") },
-        NavItem("tags", "Tags") { Icon(Icons.Default.Label, contentDescription = "Tags") },
-        NavItem("my_repos", "My Repos") { Icon(Icons.Default.Folder, contentDescription = "My Repos") },
-        NavItem("settings", "Settings") { Icon(Icons.Default.Settings, contentDescription = "Settings") }
+        NavItem("status", R.string.nav_status) { Icon(Icons.AutoMirrored.Filled.List, contentDescription = stringResource(R.string.nav_status)) },
+        NavItem("history", R.string.nav_history) { Icon(Icons.Default.History, contentDescription = stringResource(R.string.nav_history)) },
+        NavItem("branches", R.string.nav_branches) { Icon(Icons.Default.AccountTree, contentDescription = stringResource(R.string.nav_branches)) },
+        NavItem("tags", R.string.nav_tags) { Icon(Icons.Default.Label, contentDescription = stringResource(R.string.nav_tags)) },
+        NavItem("my_repos", R.string.nav_my_repos) { Icon(Icons.Default.Folder, contentDescription = stringResource(R.string.nav_my_repos)) },
+        NavItem("settings", R.string.nav_settings) { Icon(Icons.Default.Settings, contentDescription = stringResource(R.string.nav_settings)) }
     )
 }

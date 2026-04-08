@@ -16,9 +16,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.fragment.app.FragmentActivity
+import jamgmilk.fuwagit.R
 import jamgmilk.fuwagit.core.util.calculateFingerprint
-import jamgmilk.fuwagit.core.util.detectSshKeyType
 import jamgmilk.fuwagit.core.util.generateSshKeyPair
+import jamgmilk.fuwagit.core.util.validatePrivateKey
 import jamgmilk.fuwagit.domain.model.credential.HttpsCredential
 import jamgmilk.fuwagit.domain.model.credential.SshKey
 import jamgmilk.fuwagit.ui.components.SubSettingsTemplate
@@ -191,18 +192,30 @@ fun CredentialScreen(
                 onImport = { name, privateKey, publicKey, passphrase ->
                     if (privateKey.isNotBlank()) {
                         try {
-                            val fingerprint = calculateFingerprint(publicKey ?: "")
-                            viewModel.addSshKey(
-                                name = name,
-                                type = detectSshKeyType(privateKey),
-                                publicKey = publicKey ?: "",
-                                privateKey = privateKey,
-                                passphrase = passphrase,
-                                fingerprint = fingerprint.ifBlank { "unknown" }
-                            )
+                            // Validate private key and detect algorithm
+                            val (isValid, keyType) = validatePrivateKey(privateKey)
+                            
+                            if (isValid) {
+                                val fingerprint = if (!publicKey.isNullOrBlank()) {
+                                    calculateFingerprint(publicKey)
+                                } else {
+                                    "unknown"
+                                }
+                                
+                                viewModel.addSshKey(
+                                    name = name,
+                                    type = keyType,
+                                    publicKey = publicKey.orEmpty(),
+                                    privateKey = privateKey,
+                                    passphrase = passphrase,
+                                    fingerprint = fingerprint.ifBlank { "unknown" }
+                                )
+                            }
                         } catch (e: Exception) {
                             scope.launch {
-                                snackbarHostState.showSnackbar("Error importing SSH key: ${e.message}")
+                                snackbarHostState.showSnackbar(
+                                    context.getString(R.string.credentials_error_importing_key, e.message)
+                                )
                             }
                         }
                     }

@@ -560,9 +560,11 @@ private fun TagItem(
                     text = { Text(stringResource(R.string.action_copy)) },
                     onClick = {
                         val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                        val clip = ClipData.newPlainText("Tag Name", tag.name)
+                        val nameLabel = context.getString(R.string.tags_tag_name_label)
+                        val copiedMsg = context.getString(R.string.tags_tag_name_copied)
+                        val clip = ClipData.newPlainText(nameLabel, tag.name)
                         clipboard.setPrimaryClip(clip)
-                        Toast.makeText(context, "Tag name copied", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, copiedMsg, Toast.LENGTH_SHORT).show()
                         expanded = false
                     },
                     leadingIcon = {

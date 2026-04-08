@@ -27,6 +27,7 @@ data class SettingsUiState(
     val backupBeforeSync: Boolean = true,
     val verboseLogging: Boolean = false,
     val darkMode: String = "system",
+    val language: String = "system",
     val globalUserName: String? = null,
     val globalUserEmail: String? = null,
     val applyResult: ApplyConfigResult? = null,
@@ -85,6 +86,7 @@ class SettingsViewModel @Inject constructor(
                             backupBeforeSync = prefs.backupBeforeSync,
                             verboseLogging = prefs.verboseLogging,
                             darkMode = prefs.darkMode,
+                            language = prefs.language,
                             autoLockTimeout = prefs.autoLockTimeout
                         )
                     }
@@ -144,6 +146,12 @@ class SettingsViewModel @Inject constructor(
     fun saveDarkMode(mode: String) {
         viewModelScope.launch {
             settingsRepository.saveDarkMode(mode)
+        }
+    }
+
+    fun saveLanguage(language: String) {
+        viewModelScope.launch {
+            settingsRepository.saveLanguage(language)
         }
     }
 

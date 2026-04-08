@@ -67,6 +67,10 @@ class SettingsRepositoryImpl @Inject constructor(
         appPreferencesStore.setDarkMode(mode)
     }
 
+    override suspend fun saveLanguage(language: String) {
+        appPreferencesStore.setLanguage(language)
+    }
+
     override suspend fun saveAutoLockTimeout(timeout: String) {
         appPreferencesStore.setAutoLockTimeout(timeout)
     }

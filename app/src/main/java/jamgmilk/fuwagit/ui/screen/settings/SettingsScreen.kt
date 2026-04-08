@@ -42,6 +42,7 @@ import androidx.compose.material.icons.filled.Fingerprint
 import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Key
+import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Schedule
@@ -238,7 +239,9 @@ fun SettingsScreen(
 
         AppearanceSettingsCard(
             darkMode = settingsUiState.darkMode,
+            language = settingsUiState.language,
             onDarkModeChange = { mode -> settingsViewModel.saveDarkMode(mode) },
+            onLanguageChange = { lang -> settingsViewModel.saveLanguage(lang) },
             modifier = Modifier.fillMaxWidth()
         )
 
@@ -1112,7 +1115,7 @@ private fun ApplyToAllReposDialog(
                                 modifier = Modifier.size(16.dp)
                             )
                             Text(
-                                text = "user.name: $name",
+                                text = stringResource(R.string.settings_config_name_format, name),
                                 style = MaterialTheme.typography.bodySmall,
                                 fontFamily = FontFamily.Monospace
                             )
@@ -1128,7 +1131,7 @@ private fun ApplyToAllReposDialog(
                                 modifier = Modifier.size(16.dp)
                             )
                             Text(
-                                text = "user.email: $email",
+                                text = stringResource(R.string.settings_config_email_format, email),
                                 style = MaterialTheme.typography.bodySmall,
                                 fontFamily = FontFamily.Monospace
                             )
@@ -1248,7 +1251,7 @@ private fun ApplyConfigResultDialog(
                                 color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.2f)
                             ) {
                                 Text(
-                                    text = "$path: $error",
+                                    text = stringResource(R.string.settings_error_format, path, error),
                                     style = MaterialTheme.typography.bodySmall,
                                     modifier = Modifier.padding(8.dp),
                                     fontFamily = FontFamily.Monospace
@@ -1555,16 +1558,25 @@ private fun SettingsLinkItem(
 @Composable
 private fun AppearanceSettingsCard(
     darkMode: String,
+    language: String,
     onDarkModeChange: (String) -> Unit,
+    onLanguageChange: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val colors = MaterialTheme.colorScheme
     var showDarkModeMenu by remember { mutableStateOf(false) }
+    var showLanguageMenu by remember { mutableStateOf(false) }
 
     val darkModeLabel = when (darkMode) {
         "always_on" -> stringResource(R.string.settings_dark_mode_always_on)
         "always_off" -> stringResource(R.string.settings_dark_mode_always_off)
         else -> stringResource(R.string.settings_dark_mode_system)
+    }
+
+    val languageLabel = when (language) {
+        "zh_CN" -> stringResource(R.string.settings_language_zh_cn)
+        "en" -> stringResource(R.string.settings_language_en)
+        else -> stringResource(R.string.settings_language_system)
     }
 
     ElevatedCard(
@@ -1618,6 +1630,52 @@ private fun AppearanceSettingsCard(
                             onClick = {
                                 onDarkModeChange(value)
                                 showDarkModeMenu = false
+                            }
+                        )
+                    }
+                }
+            }
+
+            HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+
+            Box {
+                SettingsClickableItem(
+                    title = stringResource(R.string.settings_language),
+                    subtitle = languageLabel,
+                    icon = Icons.Default.Language,
+                    onClick = { showLanguageMenu = true }
+                )
+
+                DropdownMenu(
+                    expanded = showLanguageMenu,
+                    onDismissRequest = { showLanguageMenu = false }
+                ) {
+                    val options = listOf(
+                        "system" to stringResource(R.string.settings_language_system),
+                        "zh_CN" to stringResource(R.string.settings_language_zh_cn),
+                        "en" to stringResource(R.string.settings_language_en)
+                    )
+
+                    options.forEach { (value, label) ->
+                        DropdownMenuItem(
+                            text = {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    RadioButton(
+                                        selected = language == value,
+                                        onClick = {
+                                            onLanguageChange(value)
+                                            showLanguageMenu = false
+                                        }
+                                    )
+                                    Text(text = label)
+                                }
+                            },
+                            onClick = {
+                                onLanguageChange(value)
+                                showLanguageMenu = false
                             }
                         )
                     }

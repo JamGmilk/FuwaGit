@@ -52,18 +52,23 @@ import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilledIconButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRow
+import androidx.compose.material3.TabRowDefaults
+import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.material3.Text
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.IconButtonDefaults
-import androidx.compose.material3.OutlinedCard
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -77,14 +82,17 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import jamgmilk.fuwagit.R
 import jamgmilk.fuwagit.domain.model.credential.HttpsCredential
 import jamgmilk.fuwagit.domain.model.credential.SshKey
 import jamgmilk.fuwagit.domain.model.git.CloneOptions
@@ -126,7 +134,7 @@ fun AddRepositoryScreen(
     var selectedTab by remember { mutableStateOf<AddRepoTab>(AddRepoTab.Clone) }
 
     SubSettingsTemplate(
-        title = "Add Repository",
+        title = stringResource(R.string.add_repo_screen_title),
         onBack = onBack,
         modifier = modifier
     ) {
@@ -159,7 +167,7 @@ fun AddRepositoryScreen(
                             onAddRepository = { path, alias ->
                                 onAddRepository(path, alias)
                                 // TODO: Toast 不好看啊
-                                Toast.makeText(context, "Repository added", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, context.getString(R.string.myrepos_repository_added), Toast.LENGTH_SHORT).show()
                             }
                         )
                     }
@@ -179,7 +187,7 @@ private fun AddRepoTabSelector(
         horizontalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         AddRepoTabChip(
-            label = "Clone Remote",
+            label = stringResource(R.string.add_repo_tab_clone),
             icon = Icons.Default.CloudDownload,
             selected = selectedTab is AddRepoTab.Clone,
             onClick = { onTabSelected(AddRepoTab.Clone) },
@@ -187,7 +195,7 @@ private fun AddRepoTabSelector(
         )
 
         AddRepoTabChip(
-            label = "Add Local",
+            label = stringResource(R.string.add_repo_tab_local),
             icon = Icons.Default.Folder,
             selected = selectedTab is AddRepoTab.Local,
             onClick = { onTabSelected(AddRepoTab.Local) },
