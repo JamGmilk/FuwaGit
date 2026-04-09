@@ -81,7 +81,7 @@ class JGitCommitDataSource @Inject constructor(
                                 }
                                 val path = diffEntry.newPath.ifBlank { diffEntry.oldPath }
 
-                                // 计算行数变化 - 简化方法：直接比较文件大小和内容
+                                // Calculate line changes - simplified: compare file size and content directly
                                 var additions = 0
                                 var deletions = 0
                                 try {
@@ -92,7 +92,7 @@ class JGitCommitDataSource @Inject constructor(
                                         val oldLoader = repository.open(diffEntry.oldId.toObjectId())
                                         deletions = String(oldLoader.bytes).lines().size
                                     } else if (changeType == GitChangeType.Modified) {
-                                        // 对于修改，尝试计算差异
+                                        // For modifications, try to calculate the diff
                                         if (diffEntry.newId != null && diffEntry.oldId != null) {
                                             val newLoader = repository.open(diffEntry.newId.toObjectId())
                                             val oldLoader = repository.open(diffEntry.oldId.toObjectId())
@@ -103,7 +103,7 @@ class JGitCommitDataSource @Inject constructor(
                                         }
                                     }
                                 } catch (e: Exception) {
-                                    // 如果失败，使用默认值
+                                    // If failed, use default values
                                 }
 
                                 fileChanges.add(
@@ -122,7 +122,7 @@ class JGitCommitDataSource @Inject constructor(
                             diffFormatter.close()
                         }
                     } else {
-                        // 初始提交 - 所有文件都是新增
+                        // Initial commit - all files are added
                         val walk = org.eclipse.jgit.treewalk.TreeWalk(repository)
                         try {
                             walk.addTree(tree)

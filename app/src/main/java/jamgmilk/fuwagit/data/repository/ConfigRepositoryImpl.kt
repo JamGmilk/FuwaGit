@@ -26,8 +26,8 @@ class ConfigRepositoryImpl @Inject constructor(
         return gitConfigManager.setRepoUserConfig(repoPath, name, email)
     }
 
-    override fun removeRepoLocalUserConfig(repoPath: String): Result<Unit> {
-        return gitConfigManager.removeRepoLocalUserConfig(repoPath)
+    override fun removeRepoUserConfig(repoPath: String): Result<Unit> {
+        return gitConfigManager.removeRepoUserConfig(repoPath)
     }
 
     override fun getEffectiveUserConfig(repoPath: String): Pair<String?, String?> {

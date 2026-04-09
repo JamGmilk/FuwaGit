@@ -50,7 +50,7 @@ class JGitTagDataSource @Inject constructor(
                 )
             }
 
-            // 按时间戳降序排序（如果有时间戳的话）
+            // Sort by timestamp descending (if timestamp available)
             tags.sortWith(compareByDescending<GitTag> { it.timestamp ?: 0L })
             tags
         }
@@ -72,11 +72,11 @@ class JGitTagDataSource @Inject constructor(
 
         require(targetObject != null) { "Cannot resolve target commit hash" }
 
-        // 检查标签是否已存在
+        // Check if tag already exists
         val existingRef = repository.findRef("refs/tags/$tagName")
         require(existingRef == null) { "Tag '$tagName' already exists" }
 
-        // 创建标签 - 使用 tag 命令而不是直接操作 RefUpdate
+        // Create tag - use tag command instead of directly manipulating RefUpdate
         RevWalk(repository).use { revWalk ->
             val revObject = revWalk.parseAny(targetObject)
             git.tag()
@@ -106,11 +106,11 @@ class JGitTagDataSource @Inject constructor(
 
         require(targetCommit != null) { "Cannot resolve target commit hash" }
 
-        // 检查标签是否已存在
+        // Check if tag already exists
         val existingRef = repository.findRef("refs/tags/$tagName")
         require(existingRef == null) { "Tag '$tagName' already exists" }
 
-        // 使用 JGit 的 tag 命令创建附注标签
+        // Use JGit tag command to create annotated tag
         RevWalk(repository).use { revWalk ->
             val revObject = revWalk.parseAny(targetCommit)
             git.tag()
@@ -132,7 +132,7 @@ class JGitTagDataSource @Inject constructor(
             val ref = repository.findRef("refs/tags/$tagName")
             require(ref != null) { "Tag '$tagName' not found" }
 
-            // 删除标签引用
+            // Delete tag reference
             git.tagDelete().setTags(tagName).call()
 
             Unit
@@ -177,7 +177,7 @@ class JGitTagDataSource @Inject constructor(
             val ref = repository.findRef("refs/tags/$tagName")
             require(ref != null) { "Tag '$tagName' not found" }
 
-            // Checkout tag（会进入 detached HEAD 状态）
+            // Checkout tag (will enter detached HEAD state)
             git.checkout()
                 .setName(tagName)
                 .call()
@@ -185,17 +185,17 @@ class JGitTagDataSource @Inject constructor(
             "Checked out tag '$tagName' (detached HEAD state)"
         }
 
-    // ==================== 私有辅助方法 ====================
+    // ==================== Private helper methods ====================
 
     /**
-     * 确定标签类型（轻量或附注）
+     * Determine tag type (lightweight or annotated)
      */
     private fun determineTagType(
         repository: Repository,
         ref: Ref,
         peeledRef: Ref
     ): GitTagType {
-        // 如果 peeledObjectId 与 ref.objectId 不同，说明是附注标签
+        // If peeledObjectId is different from ref.objectId, it's an annotated tag
         return if (peeledRef.peeledObjectId != null && peeledRef.peeledObjectId != ref.objectId) {
             GitTagType.Annotated
         } else {
@@ -204,7 +204,7 @@ class JGitTagDataSource @Inject constructor(
     }
 
     /**
-     * 提取标签信息（仅附注标签有完整信息）
+     * Extract tag information (only annotated tags have full info)
      */
     private fun extractTagInfo(
         repository: Repository,
@@ -235,7 +235,7 @@ class JGitTagDataSource @Inject constructor(
     }
 
     /**
-     * 标签信息数据类
+     * Tag information data class
      */
     private data class TagInfo(
         val taggerName: String? = null,

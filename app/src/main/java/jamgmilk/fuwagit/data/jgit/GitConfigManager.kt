@@ -11,8 +11,8 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * Git 配置管理器
- * 管理 global 和 repo 级别的 Git 配置
+ * Git configuration manager
+ * Manages Git config at both global and repository levels
  */
 @Singleton
 class GitConfigManager @Inject constructor() {
@@ -22,7 +22,7 @@ class GitConfigManager @Inject constructor() {
     }
 
     /**
-     * 获取 global git config 文件路径 (~/.gitconfig)
+     * Get global git config file path (~/.gitconfig)
      */
     fun getGlobalConfigFile(): File {
         return try {
@@ -30,13 +30,12 @@ class GitConfigManager @Inject constructor() {
             File(homeDir, ".gitconfig")
         } catch (e: Exception) {
             Log.e(TAG, "Failed to get home directory", e)
-            // Fallback to app's files directory
             File(".", ".gitconfig")
         }
     }
 
     /**
-     * 读取 global git config
+     * Read global git config
      */
     fun getGlobalConfig(): Config {
         return try {
@@ -50,7 +49,7 @@ class GitConfigManager @Inject constructor() {
     }
 
     /**
-     * 设置 global git user.name
+     * Set global git user.name
      */
     fun setGlobalUserName(name: String): Result<Unit> {
         return try {
@@ -67,7 +66,7 @@ class GitConfigManager @Inject constructor() {
     }
 
     /**
-     * 设置 global git user.email
+     * Set global git user.email
      */
     fun setGlobalUserEmail(email: String): Result<Unit> {
         return try {
@@ -84,7 +83,7 @@ class GitConfigManager @Inject constructor() {
     }
 
     /**
-     * 设置 global git 配置（name 和 email）
+     * Set global git config (name and email)
      */
     fun setGlobalUserConfig(name: String, email: String): Result<Unit> {
         return try {
@@ -102,7 +101,7 @@ class GitConfigManager @Inject constructor() {
     }
 
     /**
-     * 获取 global git user.name
+     * Get global git user.name
      */
     fun getGlobalUserName(): String? {
         return try {
@@ -114,7 +113,7 @@ class GitConfigManager @Inject constructor() {
     }
 
     /**
-     * 获取 global git user.email
+     * Get global git user.email
      */
     fun getGlobalUserEmail(): String? {
         return try {
@@ -126,19 +125,15 @@ class GitConfigManager @Inject constructor() {
     }
 
     /**
-     * 设置仓库级别的 git user.name
+     * Set repository-level git user.name
      */
     fun setRepoUserName(repoPath: String, name: String): Result<Unit> {
         return try {
-            val gitDir = File(repoPath, ".git")
-            if (!gitDir.exists()) {
-                return Result.failure(Exception("Not a git repository: $repoPath"))
-            }
-            
-            val repoConfig = FileBasedConfig(File(gitDir, "config"), FS.DETECTED)
-            repoConfig.load()
-            repoConfig.setString("user", null, "name", name)
-            repoConfig.save()
+            val repo = org.eclipse.jgit.api.Git.open(File(repoPath))
+            val config = repo.repository.config
+            config.setString("user", null, "name", name)
+            config.save()
+            repo.close()
             if (BuildConfig.DEBUG) Log.d(TAG, "Set repo user.name: $name for $repoPath")
             Result.success(Unit)
         } catch (e: Exception) {
@@ -148,19 +143,15 @@ class GitConfigManager @Inject constructor() {
     }
 
     /**
-     * 设置仓库级别的 git user.email
+     * Set repository-level git user.email
      */
     fun setRepoUserEmail(repoPath: String, email: String): Result<Unit> {
         return try {
-            val gitDir = File(repoPath, ".git")
-            if (!gitDir.exists()) {
-                return Result.failure(Exception("Not a git repository: $repoPath"))
-            }
-            
-            val repoConfig = FileBasedConfig(File(gitDir, "config"), FS.DETECTED)
-            repoConfig.load()
-            repoConfig.setString("user", null, "email", email)
-            repoConfig.save()
+            val repo = org.eclipse.jgit.api.Git.open(File(repoPath))
+            val config = repo.repository.config
+            config.setString("user", null, "email", email)
+            config.save()
+            repo.close()
             if (BuildConfig.DEBUG) Log.d(TAG, "Set repo user.email: $email for $repoPath")
             Result.success(Unit)
         } catch (e: Exception) {
@@ -170,20 +161,16 @@ class GitConfigManager @Inject constructor() {
     }
 
     /**
-     * 设置仓库级别的 git 配置（name 和 email）
+     * Set repository-level git config (name and email)
      */
     fun setRepoUserConfig(repoPath: String, name: String, email: String): Result<Unit> {
         return try {
-            val gitDir = File(repoPath, ".git")
-            if (!gitDir.exists()) {
-                return Result.failure(Exception("Not a git repository: $repoPath"))
-            }
-            
-            val repoConfig = FileBasedConfig(File(gitDir, "config"), FS.DETECTED)
-            repoConfig.load()
-            repoConfig.setString("user", null, "name", name)
-            repoConfig.setString("user", null, "email", email)
-            repoConfig.save()
+            val repo = org.eclipse.jgit.api.Git.open(File(repoPath))
+            val config = repo.repository.config
+            config.setString("user", null, "name", name)
+            config.setString("user", null, "email", email)
+            config.save()
+            repo.close()
             if (BuildConfig.DEBUG) Log.d(TAG, "Set repo user config: name=$name, email=$email for $repoPath")
             Result.success(Unit)
         } catch (e: Exception) {
@@ -193,90 +180,81 @@ class GitConfigManager @Inject constructor() {
     }
 
     /**
-     * 获取仓库级别的 git user.name
+     * Get repository-level git user.name
      */
     fun getRepoUserName(repoPath: String): String? {
         return try {
-            val gitDir = File(repoPath, ".git")
-            if (!gitDir.exists()) return null
-            
-            val repoConfig = FileBasedConfig(File(gitDir, "config"), FS.DETECTED)
-            repoConfig.load()
-            repoConfig.getString("user", null, "name")
+            val repo = org.eclipse.jgit.api.Git.open(File(repoPath))
+            val name = repo.repository.config.getString("user", null, "name")
+            repo.close()
+            name
         } catch (e: Exception) {
             null
         }
     }
 
     /**
-     * 获取仓库级别的 git user.email
+     * Get repository-level git user.email
      */
     fun getRepoUserEmail(repoPath: String): String? {
         return try {
-            val gitDir = File(repoPath, ".git")
-            if (!gitDir.exists()) return null
-            
-            val repoConfig = FileBasedConfig(File(gitDir, "config"), FS.DETECTED)
-            repoConfig.load()
-            repoConfig.getString("user", null, "email")
+            val repo = org.eclipse.jgit.api.Git.open(File(repoPath))
+            val email = repo.repository.config.getString("user", null, "email")
+            repo.close()
+            email
         } catch (e: Exception) {
             null
         }
     }
 
     /**
-     * 检查仓库是否有本地用户配置
+     * Check if repository has local user config
      */
-    fun hasRepoLocalUserConfig(repoPath: String): Boolean {
+    fun hasRepoUserConfig(repoPath: String): Boolean {
         return try {
-            val gitDir = File(repoPath, ".git")
-            if (!gitDir.exists()) return false
-            
-            val repoConfig = FileBasedConfig(File(gitDir, "config"), FS.DETECTED)
-            repoConfig.load()
-            repoConfig.getString("user", null, "name") != null || 
-            repoConfig.getString("user", null, "email") != null
+            val repo = org.eclipse.jgit.api.Git.open(File(repoPath))
+            val config = repo.repository.config
+            val hasName = config.getString("user", null, "name") != null
+            val hasEmail = config.getString("user", null, "email") != null
+            repo.close()
+            hasName || hasEmail
         } catch (e: Exception) {
             false
         }
     }
 
     /**
-     * 移除仓库级别的本地用户配置（使用 global 配置）
+     * Remove repository-level local user config (use global config instead)
      */
-    fun removeRepoLocalUserConfig(repoPath: String): Result<Unit> {
+    fun removeRepoUserConfig(repoPath: String): Result<Unit> {
         return try {
-            val gitDir = File(repoPath, ".git")
-            if (!gitDir.exists()) {
-                return Result.failure(Exception("Not a git repository: $repoPath"))
-            }
-            
-            val repoConfig = FileBasedConfig(File(gitDir, "config"), FS.DETECTED)
-            repoConfig.load()
-            repoConfig.unset("user", null, "name")
-            repoConfig.unset("user", null, "email")
-            repoConfig.save()
-            if (BuildConfig.DEBUG) Log.d(TAG, "Removed repo local user config for $repoPath")
+            val repo = org.eclipse.jgit.api.Git.open(File(repoPath))
+            val config = repo.repository.config
+            config.unset("user", null, "name")
+            config.unset("user", null, "email")
+            config.save()
+            repo.close()
+            if (BuildConfig.DEBUG) Log.d(TAG, "Removed repo user config for $repoPath")
             Result.success(Unit)
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to remove repo local user config", e)
+            Log.e(TAG, "Failed to remove repo user config", e)
             Result.failure(e)
         }
     }
 
     /**
-     * 获取当前生效的用户配置（repo > global）
+     * Get currently effective user config (repo > global)
      */
     fun getEffectiveUserConfig(repoPath: String): Pair<String?, String?> {
-        // 先检查 repo config
+        // First check repo config
         val repoName = getRepoUserName(repoPath)
         val repoEmail = getRepoUserEmail(repoPath)
-        
+
         if (repoName != null || repoEmail != null) {
             return Pair(repoName, repoEmail)
         }
-        
-        // 否则使用 global config
+
+        // Otherwise use global config
         return Pair(getGlobalUserName(), getGlobalUserEmail())
     }
 }

@@ -80,11 +80,11 @@ class JGitCoreDataSource @Inject constructor(
                 .build().use { repository ->
                     repository.create()
 
-                    // 设置默认分支名称
-                    // 注意：在创建初始提交之前，HEAD 会指向一个不存在的分支 ref:refs/heads/<branch>
-                    // 这是 Git 的正常行为。在进行任何 Git 操作之前，
-                    // 用户必须先通过 git commit 创建第一个提交来真正创建这个分支。
-                    // 否则，尝试引用该分支的操作可能会失败或产生意外结果。
+                    // Set default branch name
+                    // Note: Before creating the initial commit, HEAD will point to a non-existent branch ref:refs/heads/<branch>
+                    // This is normal Git behavior. Before performing any Git operations,
+                    // the user must first create an initial commit via git commit to actually create this branch.
+                    // Otherwise, operations that reference this branch may fail or produce unexpected results.
                     val headFile = File(repository.directory, "HEAD")
                     headFile.writeText("ref: refs/heads/$branchName\n")
 

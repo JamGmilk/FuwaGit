@@ -119,14 +119,13 @@ class JGitStatusDataSource @Inject constructor(
                          status.removed.contains(filePath)
 
         if (!isModified) {
-            return@withGit Result.success(Unit)
+            return@withGit
         }
 
         try {
             git.checkout().addPath(filePath).call()
-            Unit
         } catch (e: Exception) {
-            Result.failure(Exception("Failed to discard changes: ${e.message}. Make sure the file is not locked by another process."))
+            throw Exception("Failed to discard changes: ${e.message}. Make sure the file is not locked by another process.")
         }
     }
 

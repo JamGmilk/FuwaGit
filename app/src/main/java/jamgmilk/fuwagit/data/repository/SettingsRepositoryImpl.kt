@@ -2,7 +2,7 @@ package jamgmilk.fuwagit.data.repository
 
 import jamgmilk.fuwagit.data.local.prefs.AppPreferencesStore
 import jamgmilk.fuwagit.data.local.prefs.GitConfigDataStore
-import jamgmilk.fuwagit.domain.repository.AppPreferences
+import jamgmilk.fuwagit.domain.model.AppPreferences
 import jamgmilk.fuwagit.domain.repository.GitConfigSettings
 import jamgmilk.fuwagit.domain.repository.SettingsRepository
 import kotlinx.coroutines.flow.Flow

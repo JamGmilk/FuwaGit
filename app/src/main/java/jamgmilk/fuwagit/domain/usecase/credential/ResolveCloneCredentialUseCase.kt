@@ -1,5 +1,6 @@
 package jamgmilk.fuwagit.domain.usecase.credential
 
+import jamgmilk.fuwagit.core.util.UrlUtils
 import jamgmilk.fuwagit.domain.model.credential.CloneCredential
 import jamgmilk.fuwagit.domain.model.credential.HttpsCredential
 import jamgmilk.fuwagit.domain.model.credential.SshKey
@@ -8,7 +9,7 @@ import javax.inject.Singleton
 
 /**
  * Resolves credentials for Git operations.
- * 
+ *
  * This UseCase encapsulates the logic for selecting and preparing credentials
  * based on user selection or auto-selection fallback.
  */
@@ -61,10 +62,9 @@ class ResolveCloneCredentialUseCase @Inject constructor(
         sshKeys: List<SshKey>,
         remoteUrl: String? = null
     ): CloneCredential? {
-        // 1. 如果有 HTTPS 凭证，尝试匹配 host
         if (httpsCredentials.isNotEmpty()) {
             if (remoteUrl != null) {
-                val host = extractHostFromUrl(remoteUrl)
+                val host = UrlUtils.extractHost(remoteUrl)
                 if (host != null) {
                     val matched = httpsCredentials.find { it.host.contains(host, ignoreCase = true) }
                     if (matched != null) {
@@ -75,27 +75,10 @@ class ResolveCloneCredentialUseCase @Inject constructor(
             return resolveHttpsCredential(httpsCredentials.first().uuid, httpsCredentials)
         }
 
-        // 2. 如果有 SSH 密钥，直接尝试第一个
         if (sshKeys.isNotEmpty()) {
             return resolveSshCredential(sshKeys.first().uuid, sshKeys)
         }
 
         return null
-    }
-
-    private fun extractHostFromUrl(url: String): String? {
-        return try {
-            if (url.startsWith("https://")) {
-                url.substringAfter("https://").substringBefore("/")
-            } else if (url.startsWith("git@")) {
-                url.substringAfter("git@").substringBefore(":")
-            } else if (url.startsWith("ssh://")) {
-                url.substringAfter("ssh://").substringAfter("@").substringBefore("/")
-            } else {
-                null
-            }
-        } catch (e: Exception) {
-            null
-        }
     }
 }
