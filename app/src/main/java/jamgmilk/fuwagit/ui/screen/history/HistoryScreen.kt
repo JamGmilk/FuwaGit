@@ -79,10 +79,20 @@ import jamgmilk.fuwagit.domain.model.git.GitCommit
 import jamgmilk.fuwagit.domain.model.git.GitResetMode
 import jamgmilk.fuwagit.ui.components.ResetConfirmDialog
 import jamgmilk.fuwagit.ui.components.ScreenTemplate
+import jamgmilk.fuwagit.ui.screen.history.HistoryUiState
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import kotlin.math.abs
+
+// ✅ 提取为常量避免重复创建
+private val BRANCH_COLORS = listOf(
+    androidx.compose.ui.graphics.Color(0xFF6750A4), // primary
+    androidx.compose.ui.graphics.Color(0xFF6750A4), // primary
+    androidx.compose.ui.graphics.Color(0xFFBA1A1A), // error
+    androidx.compose.ui.graphics.Color(0xFF7D5260), // secondary
+    androidx.compose.ui.graphics.Color(0xFF7D5260)  // tertiary
+)
 
 @Composable
 fun HistoryScreen(
@@ -119,6 +129,7 @@ fun HistoryScreen(
             } else {
                 CommitTimelineList(
                     commits = history,
+                    uiState = uiState,
                     viewModel = historyViewModel,
                     modifier = Modifier.fillMaxSize(),
                     onViewCommitDiff = onViewCommitDiff
@@ -174,6 +185,7 @@ private fun EmptyHistoryState() {
 @Composable
 private fun CommitTimelineList(
     commits: List<GitCommit>,
+    uiState: HistoryUiState,
     viewModel: HistoryViewModel,
     modifier: Modifier = Modifier,
     onViewCommitDiff: ((String, String, String) -> Unit)? = null
@@ -185,10 +197,11 @@ private fun CommitTimelineList(
         items(
             items = commits,
             key = { it.hash },
-            contentType = { "commit_timeline" }
+            contentType = { commit -> if (commit.isMerge) "merge_commit" else "regular_commit" }
         ) { commit ->
             CommitTimelineItem(
                 commit = commit,
+                uiState = uiState,
                 isLast = commit == commits.last(),
                 viewModel = viewModel,
                 onViewDiff = onViewCommitDiff
@@ -200,6 +213,7 @@ private fun CommitTimelineList(
 @Composable
 private fun CommitTimelineItem(
     commit: GitCommit,
+    uiState: HistoryUiState,
     isLast: Boolean,
     viewModel: HistoryViewModel,
     onViewDiff: ((String, String, String) -> Unit)? = null
@@ -207,16 +221,13 @@ private fun CommitTimelineItem(
     var expanded by remember { mutableStateOf(false) }
     val colors = MaterialTheme.colorScheme
     val timeFmt = remember { SimpleDateFormat("MMM dd, HH:mm", Locale.getDefault()) }
+    
+    // ✅ 直接调用，Compose 会根据参数缓存结果
     val relativeTime = formatRelativeTime(commit.timestamp)
 
-    val branchColors = listOf(
-            colors.primary,
-            colors.primary,
-            colors.error,
-            colors.secondary,
-            colors.tertiary
-        )
-    val lane = abs(commit.hash.hashCode()) % branchColors.size
+    // ✅ 纯计算操作，直接计算（成本极低）
+    val lane = abs(commit.hash.hashCode()) % BRANCH_COLORS.size
+    val laneColor = BRANCH_COLORS[lane]
 
     Row(
         modifier = Modifier
@@ -224,7 +235,7 @@ private fun CommitTimelineItem(
             .animateContentSize()
     ) {
         TimelineIndicator(
-            color = branchColors[lane],
+            color = laneColor,
             isMerge = commit.isMerge,
             isLast = isLast,
             modifier = Modifier.width(40.dp)
@@ -312,6 +323,7 @@ private fun CommitTimelineItem(
             ) {
                 CommitDetails(
                     commit = commit,
+                    uiState = uiState,
                     timeFmt = timeFmt,
                     viewModel = viewModel,
                     modifier = Modifier
@@ -435,13 +447,13 @@ private fun CommitMetaItem(
 @Composable
 private fun CommitDetails(
     commit: GitCommit,
+    uiState: HistoryUiState,
     timeFmt: SimpleDateFormat,
     viewModel: HistoryViewModel,
     modifier: Modifier = Modifier,
     onViewDiff: ((String, String, String) -> Unit)? = null
 ) {
     val colors = MaterialTheme.colorScheme
-    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val commitDetail = uiState.selectedCommitDetail
     val isLoadingDetail = uiState.isLoadingCommitDetail
 

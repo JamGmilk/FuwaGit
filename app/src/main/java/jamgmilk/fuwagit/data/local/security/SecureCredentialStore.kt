@@ -258,10 +258,72 @@ class SecureCredentialStore @Inject constructor(
         return withContext(Dispatchers.IO) {
             runCatching {
                 val exportData = json.decodeFromString<ExportData>(jsonString)
-                val dataWithEncryptedSecrets = encryptAllSecrets(exportData.credential_data, masterKey)
-                saveCredentialData(dataWithEncryptedSecrets)
+                val importedData = encryptAllSecrets(exportData.credential_data, masterKey)
+                val existingData = loadCredentialData()
+                val mergedData = mergeCredentialData(existingData, importedData)
+                saveCredentialData(mergedData)
             }
         }
+    }
+
+    private fun mergeCredentialData(existing: CredentialData, imported: CredentialData): CredentialData {
+        val mergedHttpsCredentials = mergeCredentialLists(
+            existing.https_credentials,
+            imported.https_credentials
+        )
+        val mergedSshKeys = mergeSshKeyLists(
+            existing.ssh_keys,
+            imported.ssh_keys
+        )
+        return existing.copy(
+            https_credentials = mergedHttpsCredentials,
+            ssh_keys = mergedSshKeys,
+            updated_at = System.currentTimeMillis()
+        )
+    }
+
+    private fun mergeCredentialLists(
+        existing: List<HttpsCredential>,
+        imported: List<HttpsCredential>
+    ): List<HttpsCredential> {
+        val mergedMap = mutableMapOf<String, HttpsCredential>()
+        for (cred in existing) {
+            mergedMap[cred.uuid] = cred
+        }
+        for (cred in imported) {
+            val existingCred = mergedMap[cred.uuid]
+            when {
+                existingCred == null -> {
+                    mergedMap[cred.uuid] = cred
+                }
+                cred.updated_at > existingCred.updated_at -> {
+                    mergedMap[cred.uuid] = cred
+                }
+            }
+        }
+        return mergedMap.values.toList()
+    }
+
+    private fun mergeSshKeyLists(
+        existing: List<SshKey>,
+        imported: List<SshKey>
+    ): List<SshKey> {
+        val mergedMap = mutableMapOf<String, SshKey>()
+        for (key in existing) {
+            mergedMap[key.uuid] = key
+        }
+        for (key in imported) {
+            val existingKey = mergedMap[key.uuid]
+            when {
+                existingKey == null -> {
+                    mergedMap[key.uuid] = key
+                }
+                key.created_at > existingKey.created_at -> {
+                    mergedMap[key.uuid] = key
+                }
+            }
+        }
+        return mergedMap.values.toList()
     }
 
     suspend fun addHttpsCredential(

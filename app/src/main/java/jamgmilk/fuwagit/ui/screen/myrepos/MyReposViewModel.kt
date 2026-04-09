@@ -227,13 +227,24 @@ class MyReposViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isCleanPreviewing = true, cleanMessage = null) }
             val dryRunResult = gitRepo.clean(path, dryRun = true)
-            dryRunResult.onSuccess { dryRunResult ->
+            dryRunResult.onSuccess { latestDryRunResult ->
+                val verifiedFiles = verifyUntrackedFilesStillExist(path, filesToClean, latestDryRunResult.files)
+                if (verifiedFiles.isEmpty()) {
+                    _uiState.update {
+                        it.copy(
+                            isCleanPreviewing = false,
+                            cleanMessage = "No files to clean: all previously untracked files have been modified or staged",
+                            untrackedFilesForClean = emptyList()
+                        )
+                    }
+                    return@launch
+                }
                 val executeResult = gitRepo.clean(path, dryRun = false)
                 executeResult.onSuccess {
                     _uiState.update {
                         it.copy(
                             isCleanPreviewing = false,
-                            cleanedFilesForResult = dryRunResult.files,
+                            cleanedFilesForResult = verifiedFiles,
                             untrackedFilesForClean = emptyList(),
                             cleanMessage = null
                         )
@@ -254,6 +265,26 @@ class MyReposViewModel @Inject constructor(
                         cleanMessage = "Failed to get file list: ${e.message}",
                         untrackedFilesForClean = emptyList()
                     )
+                }
+            }
+        }
+    }
+
+    private suspend fun verifyUntrackedFilesStillExist(
+        repoPath: String,
+        originalFiles: List<String>,
+        latestFiles: List<String>
+    ): List<String> {
+        val latestFileSet = latestFiles.toSet()
+        return originalFiles.filter { file ->
+            if (file !in latestFileSet) {
+                false
+            } else {
+                val fileExists = File(repoPath, file).exists()
+                if (!fileExists) {
+                    false
+                } else {
+                    true
                 }
             }
         }

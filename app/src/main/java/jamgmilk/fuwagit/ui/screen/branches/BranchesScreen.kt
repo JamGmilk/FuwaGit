@@ -58,11 +58,13 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -222,10 +224,8 @@ fun BranchesScreen(
     }
 
     if (showRenameDialog && branchToRename != null) {
-        var newName by remember { mutableStateOf(branchToRename!!) }
-
-        LaunchedEffect(branchToRename) {
-            newName = branchToRename ?: ""
+        var newName by remember(branchToRename) {
+            mutableStateOf(branchToRename ?: "")
         }
 
         AlertDialog(
@@ -463,7 +463,11 @@ private fun BranchListContent(
                 EmptySectionMessage(stringResource(R.string.branches_no_local_branches))
             }
         } else {
-            items(localBranches, key = { "local:${it.name}" }, contentType = { "branch_item" }) { branch ->
+            items(
+                items = localBranches,
+                key = { "local:${it.name}" },
+                contentType = { "branch_item" }
+            ) { branch ->
                 BranchItem(
                     branch = branch,
                     isCurrent = branch.name == currentBranch,
@@ -501,7 +505,11 @@ private fun BranchListContent(
                 EmptySectionMessage(stringResource(R.string.branches_no_remote_branches))
             }
         } else {
-            items(remoteBranches, key = { "remote:${it.name}" }) { branch ->
+            items(
+                items = remoteBranches,
+                key = { "remote:${it.name}" },
+                contentType = { "remote_branch" }
+            ) { branch ->
                 BranchItem(
                     branch = branch,
                     isCurrent = branch.name == currentBranch,
@@ -591,13 +599,20 @@ private fun BranchItem(
     val colors = MaterialTheme.colorScheme
     val context = LocalContext.current
 
-    // Pre-fetch strings for use in non-composable contexts (onClick lambdas)
-    val strMergeOnlyLocal = stringResource(R.string.branches_merge_only_local)
-    val strRebaseOnlyLocal = stringResource(R.string.branches_rebase_only_local)
-    val strDeleteOnlyLocal = stringResource(R.string.branches_delete_only_local)
-    val strRenameOnlyLocal = stringResource(R.string.branches_rename_only_local)
-    val strNameCopied = stringResource(R.string.branches_name_copied)
-    val strBranchNameClipboard = stringResource(R.string.branches_branch_name_clipboard)
+    // ✅ 直接调用 stringResource，Compose 会自动缓存
+    val strings = BranchItemStrings(
+        mergeOnlyLocal = stringResource(R.string.branches_merge_only_local),
+        rebaseOnlyLocal = stringResource(R.string.branches_rebase_only_local),
+        deleteOnlyLocal = stringResource(R.string.branches_delete_only_local),
+        renameOnlyLocal = stringResource(R.string.branches_rename_only_local),
+        nameCopied = stringResource(R.string.branches_name_copied),
+        branchNameClipboard = stringResource(R.string.branches_branch_name_clipboard),
+        remoteLabel = stringResource(R.string.branches_remote_label),
+        currentBranchSubtitle = stringResource(R.string.branches_current_branch_subtitle),
+        localSubtitle = stringResource(R.string.branches_local_subtitle),
+        activeBadge = stringResource(R.string.branches_active_badge),
+        actionsDesc = stringResource(R.string.status_file_actions)
+    )
 
     val accentColor = if (isRemote) colors.secondary else colors.primary
 
@@ -635,7 +650,7 @@ private fun BranchItem(
                     overflow = TextOverflow.Ellipsis
                 )
                 Text(
-                    text = if (isRemote) stringResource(R.string.branches_remote_label) else if (isCurrent) stringResource(R.string.branches_current_branch_subtitle) else stringResource(R.string.branches_local_subtitle),
+                    text = if (isRemote) strings.remoteLabel else if (isCurrent) strings.currentBranchSubtitle else strings.localSubtitle,
                     style = MaterialTheme.typography.labelSmall,
                     color = colors.onSurfaceVariant
                 )
@@ -648,7 +663,7 @@ private fun BranchItem(
                         .padding(horizontal = 8.dp, vertical = 3.dp)
                 ) {
                     Text(
-                        text = stringResource(R.string.branches_active_badge),
+                        text = strings.activeBadge,
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
                         color = Color.White,
@@ -663,7 +678,7 @@ private fun BranchItem(
             ) {
                 Icon(
                     Icons.Default.MoreVert,
-                    contentDescription = stringResource(R.string.status_file_actions),
+                    contentDescription = strings.actionsDesc,
                     tint = colors.onSurfaceVariant,
                     modifier = Modifier.size(18.dp)
                 )
@@ -742,8 +757,8 @@ private fun BranchItem(
                         text = { Text(stringResource(R.string.branches_copy_name)) },
                         onClick = {
                             val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                            clipboard.setPrimaryClip(ClipData.newPlainText(strBranchNameClipboard, branch.name))
-                            Toast.makeText(context, strNameCopied, Toast.LENGTH_SHORT).show()
+                            clipboard.setPrimaryClip(ClipData.newPlainText(strings.branchNameClipboard, branch.name))
+                            Toast.makeText(context, strings.nameCopied, Toast.LENGTH_SHORT).show()
                             showMenu = false
                         },
                         leadingIcon = {
@@ -775,7 +790,7 @@ private fun BranchItem(
                             text = { Text(stringResource(R.string.branches_merge_into_current)) },
                             onClick = {
                                 onMerge?.invoke() ?: run {
-                                    Toast.makeText(context, strMergeOnlyLocal, Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(context, strings.mergeOnlyLocal, Toast.LENGTH_SHORT).show()
                                 }
                                 showMenu = false
                             },
@@ -789,7 +804,7 @@ private fun BranchItem(
                             text = { Text(stringResource(R.string.branches_rebase_onto_current)) },
                             onClick = {
                                 onRebase?.invoke() ?: run {
-                                    Toast.makeText(context, strRebaseOnlyLocal, Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(context, strings.rebaseOnlyLocal, Toast.LENGTH_SHORT).show()
                                 }
                                 showMenu = false
                             },
@@ -805,7 +820,7 @@ private fun BranchItem(
                             text = { Text(stringResource(R.string.branches_rename)) },
                             onClick = {
                                 onRename?.invoke() ?: run {
-                                    Toast.makeText(context, strRenameOnlyLocal, Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(context, strings.renameOnlyLocal, Toast.LENGTH_SHORT).show()
                                 }
                                 showMenu = false
                             },
@@ -821,7 +836,7 @@ private fun BranchItem(
                             text = { Text(stringResource(R.string.branches_delete_branch)) },
                             onClick = {
                                 onDelete?.invoke() ?: run {
-                                    Toast.makeText(context, strDeleteOnlyLocal, Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(context, strings.deleteOnlyLocal, Toast.LENGTH_SHORT).show()
                                 }
                                 showMenu = false
                             },
@@ -837,7 +852,7 @@ private fun BranchItem(
                         DropdownMenuItem(
                             text = { Text(stringResource(R.string.branches_merge_into_current)) },
                             onClick = {
-                                Toast.makeText(context, strMergeOnlyLocal, Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, strings.mergeOnlyLocal, Toast.LENGTH_SHORT).show()
                                 showMenu = false
                             },
                             leadingIcon = {
@@ -848,7 +863,7 @@ private fun BranchItem(
                         DropdownMenuItem(
                             text = { Text(stringResource(R.string.branches_rebase_onto_current)) },
                             onClick = {
-                                Toast.makeText(context, strRebaseOnlyLocal, Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, strings.rebaseOnlyLocal, Toast.LENGTH_SHORT).show()
                                 showMenu = false
                             },
                             leadingIcon = {
@@ -931,3 +946,18 @@ private fun CreateBranchDialog(
         )
     }
 }
+
+// ✅ 数据类持有字符串，避免每次重组都调用 stringResource
+private data class BranchItemStrings(
+    val mergeOnlyLocal: String,
+    val rebaseOnlyLocal: String,
+    val deleteOnlyLocal: String,
+    val renameOnlyLocal: String,
+    val nameCopied: String,
+    val branchNameClipboard: String,
+    val remoteLabel: String,
+    val currentBranchSubtitle: String,
+    val localSubtitle: String,
+    val activeBadge: String,
+    val actionsDesc: String
+)

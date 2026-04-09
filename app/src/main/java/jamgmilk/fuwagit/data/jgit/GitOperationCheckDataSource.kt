@@ -27,6 +27,8 @@ data class PrePushCheckResult(
     val hasUncommittedChanges: Boolean = false,
     val hasConflicts: Boolean = false,
     val hasStashableChanges: Boolean = false,
+    val hasDiverged: Boolean = false,
+    val isEmpty: Boolean = false,
     val currentBranch: String = "",
     val remoteBranchAhead: Int = 0,
     val remoteBranchBehind: Int = 0,

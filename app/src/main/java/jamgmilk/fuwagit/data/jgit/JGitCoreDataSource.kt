@@ -384,6 +384,7 @@ class JGitCoreDataSource @Inject constructor(
                                         "ecdsa-sha2-nistp256" -> 19
                                         "ecdsa-sha2-nistp384" -> 20
                                         "ecdsa-sha2-nistp521" -> 21
+                                        "ssh-ed25519" -> 3
                                         else -> 0
                                     }
                                     val keyData = base64Decode(parts[2])

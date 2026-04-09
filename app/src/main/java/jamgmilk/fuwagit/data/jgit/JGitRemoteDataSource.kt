@@ -107,6 +107,11 @@ class JGitRemoteDataSource @Inject constructor(
                     throw Exception("Cannot pull: you have staged changes that would be overwritten by merge. Commit or unstage them first.")
                 }
 
+                val remoteConfigured = git.repository.config.getSubsections("remote").isNotEmpty()
+                if (!remoteConfigured) {
+                    throw Exception("No remote configured. Add a remote with 'git remote add origin <url>' before pulling.")
+                }
+
                 val pullCommand = git.pull()
                 core.configureCredentials(pullCommand, credentials)
                 val pullResult = pullCommand.call()
@@ -216,6 +221,35 @@ class JGitRemoteDataSource @Inject constructor(
                     throw Exception("Cannot push: ${lockStatus.message}")
                 }
 
+                val remotes = git.repository.config.getSubsections("remote")
+                val targetRemote = options.remote
+                if (!remotes.contains(targetRemote)) {
+                    throw Exception("Remote '$targetRemote' not found. Add it with 'git remote add $targetRemote <url>'.")
+                }
+
+                if (!options.forceWithLease && !options.forcePush) {
+                    val localRef = git.repository.exactRef("refs/heads/${git.repository.branch}")
+                    val remoteRef = git.repository.exactRef("refs/remotes/$targetRemote/${git.repository.branch}")
+                    if (localRef != null && remoteRef != null) {
+                        val revWalk = org.eclipse.jgit.revwalk.RevWalk(git.repository)
+                        val localCommit = revWalk.parseCommit(localRef.objectId)
+                        val remoteCommit = revWalk.parseCommit(remoteRef.objectId)
+                        val localAncestor = revWalk.isMergedInto(localCommit, remoteCommit)
+                        val remoteAncestor = revWalk.isMergedInto(remoteCommit, localCommit)
+                        revWalk.dispose()
+                        if (!localAncestor && !remoteAncestor) {
+                            throw Exception("Branch has diverged from remote '$targetRemote'. Fetch and merge the remote changes, or use force push to overwrite.")
+                        }
+                    } else if (localRef != null && remoteRef == null) {
+                        // remote ref doesn't exist yet — this is a first push, allowed
+                    } else if (localRef == null) {
+                        val headRevision = try { git.repository.resolve("HEAD") } catch (_: Exception) { null }
+                        if (headRevision == null) {
+                            throw Exception("Repository has no commits. Make at least one commit before pushing.")
+                        }
+                    }
+                }
+
                 val pushCommand = git.push().setRemote(options.remote)
 
                 // Set branch to push
@@ -266,6 +300,9 @@ class JGitRemoteDataSource @Inject constructor(
     override fun fetch(repoPath: String, credentials: CloneCredential?): Result<String> =
         core.withGit(repoPath) { git ->
             try {
+                if (git.repository.config.getSubsections("remote").isEmpty()) {
+                    throw Exception("No remote configured. Add a remote before fetching.")
+                }
                 val fetchCommand = git.fetch().setRemoveDeletedRefs(true)
                 core.configureCredentials(fetchCommand, credentials)
                 fetchCommand.call()
