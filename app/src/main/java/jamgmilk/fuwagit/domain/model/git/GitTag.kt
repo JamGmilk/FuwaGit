@@ -1,27 +1,27 @@
 package jamgmilk.fuwagit.domain.model.git
 
 /**
- * Git Tag 类型
+ * Git Tag type
  */
 enum class GitTagType {
-    /** 轻量标签（仅指向特定提交的引用） */
+    /** Lightweight tag - a reference to a specific commit */
     Lightweight,
-    /** 附注标签（包含完整的标签对象，有标签信息和签名） */
+    /** Annotated tag - contains full tag object with tag info and signature */
     Annotated
 }
 
 /**
- * Git Tag 领域模型
+ * Git Tag domain model
  *
- * @param name 标签名称
- * @param fullRef 完整引用路径（如 refs/tags/v1.0）
- * @param type 标签类型（轻量/附注）
- * @param targetHash 标签指向的提交哈希
- * @param taggerName 标签创建者（仅附注标签）
- * @param taggerEmail 标签创建者邮箱（仅附注标签）
- * @param message 标签消息（仅附注标签）
- * @param timestamp 标签创建时间戳
- * @param isPushed 是否已推送到远程
+ * @param name Tag name
+ * @param fullRef Full reference path (e.g., refs/tags/v1.0)
+ * @param type Tag type (Lightweight/Annotated)
+ * @param targetHash Commit hash that the tag points to
+ * @param taggerName Tag creator (Annotated tags only)
+ * @param taggerEmail Tag creator email (Annotated tags only)
+ * @param message Tag message (Annotated tags only)
+ * @param timestamp Tag creation timestamp
+ * @param isPushed Whether the tag has been pushed to remote
  */
 data class GitTag(
     val name: String,

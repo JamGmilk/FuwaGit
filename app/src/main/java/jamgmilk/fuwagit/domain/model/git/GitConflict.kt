@@ -1,14 +1,14 @@
 package jamgmilk.fuwagit.domain.model.git
 
 /**
- * 冲突文件状态
+ * Conflict file status
  */
 enum class ConflictStatus {
-    /** 未解决*/
+    /** Unresolved */
     UNRESOLVED,
-    /** 已标记为解决 */
+    /** Marked as resolved */
     RESOLVED,
-    /** 已添加到暂存区*/
+    /** Added to staging area */
     STAGED
 }
 

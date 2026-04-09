@@ -212,17 +212,17 @@ class JGitRemoteDataSource @Inject constructor(
 
                 val pushCommand = git.push().setRemote(options.remote)
 
-                // 设置推送的分支
+                // Set branch to push
                 when {
                     options.pushAllBranches -> pushCommand.setPushAll()
                     options.branch != null -> pushCommand.add(options.branch)
                     options.pushCurrentBranch -> pushCommand.add(git.repository.branch)
                 }
 
-                // 设置标签推送
+                // Set tag push
                 if (options.pushTags) pushCommand.setPushTags()
 
-                // 设置强制推送
+                // Set force push
                 when {
                     options.forceWithLease || options.forcePush -> {
                         pushCommand.setForce(true)
@@ -241,7 +241,7 @@ class JGitRemoteDataSource @Inject constructor(
             }
             result
         } catch (e: org.eclipse.jgit.api.errors.TransportException) {
-            // 处理 force-with-lease 失败（远程有新提交）
+            // Handle force-with-lease failure (remote has new commits)
             if (options.forceWithLease && e.message?.contains("rejected") == true) {
                 Result.failure(Exception("Push rejected: remote branch has new commits. Fetch and merge first, or use force push to override."))
             } else {

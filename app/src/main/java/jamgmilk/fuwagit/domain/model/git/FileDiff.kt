@@ -1,12 +1,12 @@
 package jamgmilk.fuwagit.domain.model.git
 
 /**
- * 行内差异（character-level diff）
- * 用于高亮显示一行中哪些具体字符发生了变化
+ * Inline diff segment (character-level diff)
+ * Used to highlight which specific characters changed in a line
  *
- * @param content 字符内容
- * @param isAdded true 表示这些字符是新增的，false 表示这些字符是删除的
- * @param startIndex 在原行内容中的起始位置
+ * @param content Segment content
+ * @param isAdded true if these characters are added, false if deleted
+ * @param startIndex Starting position in the original line content
  */
 data class InlineDiffSegment(
     val content: String,
@@ -15,10 +15,10 @@ data class InlineDiffSegment(
 )
 
 /**
- * 行内差异信息
+ * Inline diff information
  *
- * @param segments 行内的差异段列表
- * @param hasInlineDiff 是否有行内差异
+ * @param segments List of diff segments within a line
+ * @param hasInlineDiff Whether there is inline diff
  */
 data class InlineDiff(
     val segments: List<InlineDiffSegment>
@@ -27,27 +27,27 @@ data class InlineDiff(
 }
 
 /**
- * Diff 行类型
+ * Diff line type
  */
 enum class DiffLineType {
-    /** 新增的行 */
+    /** Added line */
     Added,
-    /** 删除的行 */
+    /** Deleted line */
     Deleted,
-    /** 未更改的上下文行 */
+    /** Unchanged context line */
     Context,
-    /** 文件头信息 */
+    /** File header information */
     Header
 }
 
 /**
- * Diff 中的单行
+ * Single line in a diff
  *
- * @param content 行内容（不包含 diff 符号）
- * @param lineType 行类型
- * @param oldLineNumber 旧文件中的行号（从 1 开始，null 表示新增）
- * @param newLineNumber 新文件中的行号（从 1 开始，null 表示删除）
- * @param inlineDiff 行内差异信息（用于高亮行内变化的字符）
+ * @param content Line content (without diff symbols)
+ * @param lineType Line type
+ * @param oldLineNumber Line number in old file (starting from 1, null for added lines)
+ * @param newLineNumber Line number in new file (starting from 1, null for deleted lines)
+ * @param inlineDiff Inline diff info (for highlighting character-level changes)
  */
 data class DiffLine(
     val content: String,
@@ -57,7 +57,7 @@ data class DiffLine(
     val inlineDiff: InlineDiff? = null
 ) {
     /**
-     * 获取带符号的行显示（用于原始 diff 显示）
+     * Get line display with symbols (for raw diff display)
      */
     val displayContent: String get() = when (lineType) {
         DiffLineType.Added -> "+ $content"
@@ -68,14 +68,14 @@ data class DiffLine(
 }
 
 /**
- * Diff Hunk - 文件差异中的一个变更块
+ * Diff Hunk - A changed block in file diff
  *
- * @param header Hunk 头信息（如 @@ -1,5 +1,6 @@）
- * @param lines 该 hunk 中的所有行
- * @param oldStart 旧文件中的起始行号
- * @param oldCount 旧文件中的行数
- * @param newStart 新文件中的起始行号
- * @param newCount 新文件中的行数
+ * @param header Hunk header (e.g., @@ -1,5 +1,6 @@)
+ * @param lines All lines in this hunk
+ * @param oldStart Starting line number in old file
+ * @param oldCount Number of lines in old file
+ * @param newStart Starting line number in new file
+ * @param newCount Number of lines in new file
  */
 data class DiffHunk(
     val header: String,
@@ -86,28 +86,28 @@ data class DiffHunk(
     val newCount: Int = 0
 ) {
     /**
-     * 获取新增行数
+     * Get number of added lines
      */
     val addedLines: Int get() = lines.count { it.lineType == DiffLineType.Added }
 
     /**
-     * 获取删除行数
+     * Get number of deleted lines
      */
     val deletedLines: Int get() = lines.count { it.lineType == DiffLineType.Deleted }
 }
 
 /**
- * 文件差异结果
+ * File diff result
  *
- * @param oldPath 旧文件路径（重命名时为原路径）
- * @param newPath 新文件路径（重命名时为新路径）
- * @param changeType 变更类型
- * @param hunks 差异块列表
- * @param additions 总新增行数
- * @param deletions 总删除行数
- * @param isBinary 是否为二进制文件
- * @param oldContent 旧文件内容（用于并排显示）
- * @param newContent 新文件内容（用于并排显示）
+ * @param oldPath Old file path (original path when renamed)
+ * @param newPath New file path (new path when renamed)
+ * @param changeType Change type
+ * @param hunks List of diff hunks
+ * @param additions Total number of added lines
+ * @param deletions Total number of deleted lines
+ * @param isBinary Whether this is a binary file
+ * @param oldContent Old file content (for side-by-side display)
+ * @param newContent New file content (for side-by-side display)
  */
 data class FileDiff(
     val oldPath: String,
@@ -121,22 +121,22 @@ data class FileDiff(
     val newContent: String? = null
 ) {
     /**
-     * 文件路径（优先使用新路径）
+     * File path (prefers new path)
      */
     val path: String get() = if (changeType == GitChangeType.Renamed) "$oldPath → $newPath" else newPath
 
     /**
-     * 文件名
+     * File name
      */
     val fileName: String get() = newPath.substringAfterLast("/")
 
     /**
-     * 总变更行数
+     * Total number of changed lines
      */
     val totalChanges: Int get() = additions + deletions
 
     /**
-     * 是否只有空白字符变更
+     * Whether only whitespace changed
      */
     val isWhitespaceOnly: Boolean
         get() {
@@ -150,10 +150,10 @@ data class FileDiff(
 }
 
 /**
- * 工作区文件差异查询参数
+ * Working tree file diff query parameters
  *
- * @param filePath 文件路径
- * @param isStaged 是否查看已暂存的更改（true: staged vs HEAD, false: working tree vs staged）
+ * @param filePath File path
+ * @param isStaged Whether to view staged changes (true: staged vs HEAD, false: working tree vs staged)
  */
 data class WorkingDiffParams(
     val filePath: String,
@@ -161,11 +161,11 @@ data class WorkingDiffParams(
 )
 
 /**
- * Commit 之间的文件差异查询参数
+ * File diff query parameters between commits
  *
- * @param filePath 文件路径
- * @param oldCommit 旧提交哈希（支持 HEAD~1, HEAD^ 等引用）
- * @param newCommit 新提交哈希（默认为 HEAD）
+ * @param filePath File path
+ * @param oldCommit Old commit hash (supports HEAD~1, HEAD^, etc.)
+ * @param newCommit New commit hash (defaults to HEAD)
  */
 data class CommitDiffParams(
     val filePath: String,

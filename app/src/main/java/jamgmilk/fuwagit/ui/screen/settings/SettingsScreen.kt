@@ -1679,8 +1679,8 @@ private fun AppearanceSettingsCard(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp)
-                        .padding(bottom = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                        .padding(bottom = 12.dp),
+                    verticalArrangement = Arrangement.spacedBy(2.dp)
                 ) {
                     val darkModeOptions = listOf(
                         "system" to stringResource(R.string.settings_dark_mode_system),
@@ -1696,7 +1696,7 @@ private fun AppearanceSettingsCard(
                                     onDarkModeChange(value)
                                     darkModeExpanded = false
                                 }
-                                .padding(vertical = 12.dp, horizontal = 8.dp),
+                                .padding(vertical = 2.dp, horizontal = 8.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             RadioButton(
@@ -1706,7 +1706,7 @@ private fun AppearanceSettingsCard(
                                     darkModeExpanded = false
                                 }
                             )
-                            Spacer(Modifier.width(12.dp))
+                            Spacer(Modifier.width(8.dp))
                             Text(
                                 text = label,
                                 style = MaterialTheme.typography.bodyMedium
@@ -1729,8 +1729,8 @@ private fun AppearanceSettingsCard(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp)
-                        .padding(bottom = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                        .padding(bottom = 12.dp),
+                    verticalArrangement = Arrangement.spacedBy(2.dp)
                 ) {
                     val languageOptions = listOf(
                         "system" to stringResource(R.string.settings_language_system),
@@ -1746,7 +1746,7 @@ private fun AppearanceSettingsCard(
                                     onLanguageChange(value)
                                     languageExpanded = false
                                 }
-                                .padding(vertical = 12.dp, horizontal = 8.dp),
+                                .padding(vertical = 2.dp, horizontal = 8.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             RadioButton(
@@ -1756,7 +1756,7 @@ private fun AppearanceSettingsCard(
                                     languageExpanded = false
                                 }
                             )
-                            Spacer(Modifier.width(12.dp))
+                            Spacer(Modifier.width(8.dp))
                             Text(
                                 text = label,
                                 style = MaterialTheme.typography.bodyMedium

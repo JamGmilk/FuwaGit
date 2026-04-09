@@ -1,6 +1,7 @@
 package jamgmilk.fuwagit.data.jgit
 
 import org.eclipse.jgit.api.Git
+import org.eclipse.jgit.revwalk.RevWalk
 import java.io.File
 import javax.inject.Inject
 import javax.inject.Singleton

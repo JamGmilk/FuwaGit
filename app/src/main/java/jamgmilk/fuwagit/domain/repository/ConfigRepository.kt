@@ -30,7 +30,7 @@ interface ConfigRepository {
     /**
      * Remove repo-level local user config (fall back to global).
      */
-    fun removeRepoLocalUserConfig(repoPath: String): Result<Unit>
+    fun removeRepoUserConfig(repoPath: String): Result<Unit>
 
     /**
      * Get effective user config for a repo (local if set, otherwise global).

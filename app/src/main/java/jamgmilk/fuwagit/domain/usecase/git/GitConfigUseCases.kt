@@ -4,7 +4,7 @@ import jamgmilk.fuwagit.domain.repository.ConfigRepository
 import javax.inject.Inject
 
 /**
- * 将用户配置应用到指定仓库
+ * Apply user config to specified repository
  */
 class ApplyGitConfigToRepo @Inject constructor(
     private val configRepository: ConfigRepository
@@ -22,7 +22,7 @@ class ApplyGitConfigToRepo @Inject constructor(
 }
 
 /**
- * 将用户配置应用到 global git config
+ * Apply user config to global git config
  */
 class ApplyGitConfigToGlobal @Inject constructor(
     private val configRepository: ConfigRepository
@@ -37,7 +37,7 @@ class ApplyGitConfigToGlobal @Inject constructor(
 }
 
 /**
- * 将用户配置应用到所有已知仓库
+ * Apply user config to all known repositories
  */
 class ApplyGitConfigToAllRepos @Inject constructor(
     private val configRepository: ConfigRepository,
@@ -54,12 +54,12 @@ class ApplyGitConfigToAllRepos @Inject constructor(
         var successCount = 0
         var failureCount = 0
 
-        // 先应用到 global
+        // Apply to global first
         if (alsoApplyToGlobal) {
             applyGitConfigToGlobal(name, email)
         }
 
-        // 然后应用到所有仓库
+        // Then apply to all repositories
         repoPaths.forEach { repoPath ->
             val result = applyGitConfigToRepo(repoPath, name, email)
             results[repoPath] = result
@@ -80,7 +80,7 @@ class ApplyGitConfigToAllRepos @Inject constructor(
 }
 
 /**
- * 应用到所有仓库的结果
+ * Result of applying config to all repositories
  */
 data class ApplyToAllReposResult(
     val results: Map<String, Result<Unit>>,
@@ -93,7 +93,7 @@ data class ApplyToAllReposResult(
 }
 
 /**
- * 移除仓库本地配置（使用 global 配置）
+ * Remove repository local config (use global config instead)
  */
 class RemoveRepoLocalConfig @Inject constructor(
     private val configRepository: ConfigRepository
@@ -103,12 +103,12 @@ class RemoveRepoLocalConfig @Inject constructor(
             return Result.failure(IllegalArgumentException("Repository path cannot be empty"))
         }
 
-        return configRepository.removeRepoLocalUserConfig(repoPath)
+        return configRepository.removeRepoUserConfig(repoPath)
     }
 }
 
 /**
- * 获取仓库当前生效的用户配置
+ * Get currently effective user config for repository
  */
 class GetEffectiveUserConfig @Inject constructor(
     private val configRepository: ConfigRepository
@@ -119,7 +119,7 @@ class GetEffectiveUserConfig @Inject constructor(
 }
 
 /**
- * 获取 global 用户配置
+ * Get global user config
  */
 class GetGlobalUserConfig @Inject constructor(
     private val configRepository: ConfigRepository

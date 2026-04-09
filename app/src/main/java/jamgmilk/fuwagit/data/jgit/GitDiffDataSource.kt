@@ -7,31 +7,31 @@ import jamgmilk.fuwagit.domain.model.git.FileDiff
  */
 interface GitDiffDataSource {
     /**
-     * 获取工作区中单个文件的差异（未暂存的更改）
+     * Get diff for a single file in working tree (unstaged changes)
      *
-     * @param repoPath 仓库路径
-     * @param filePath 文件路径
-     * @return 文件差异
+     * @param repoPath Repository path
+     * @param filePath File path
+     * @return File diff
      */
     fun getWorkingTreeDiff(repoPath: String, filePath: String): Result<FileDiff>
 
     /**
-     * 获取已暂存文件的差异（staged vs HEAD）
+     * Get diff for staged file (staged vs HEAD)
      *
-     * @param repoPath 仓库路径
-     * @param filePath 文件路径
-     * @return 文件差异
+     * @param repoPath Repository path
+     * @param filePath File path
+     * @return File diff
      */
     fun getStagedDiff(repoPath: String, filePath: String): Result<FileDiff>
 
     /**
-     * 获取两个提交之间单个文件的差异
+     * Get diff for a single file between two commits
      *
-     * @param repoPath 仓库路径
-     * @param filePath 文件路径
-     * @param oldCommit 旧提交哈希
-     * @param newCommit 新提交哈希
-     * @return 文件差异
+     * @param repoPath Repository path
+     * @param filePath File path
+     * @param oldCommit Old commit hash
+     * @param newCommit New commit hash
+     * @return File diff
      */
     fun getCommitFileDiff(
         repoPath: String,
@@ -41,22 +41,22 @@ interface GitDiffDataSource {
     ): Result<FileDiff>
 
     /**
-     * 获取两个提交之间所有文件的差异摘要
+     * Get diff summary for all files between two commits
      *
-     * @param repoPath 仓库路径
-     * @param oldCommit 旧提交哈希
-     * @param newCommit 新提交哈希
-     * @return 所有文件的差异列表
+     * @param repoPath Repository path
+     * @param oldCommit Old commit hash
+     * @param newCommit New commit hash
+     * @return List of all file diffs
      */
     fun getCommitDiff(repoPath: String, oldCommit: String, newCommit: String): Result<List<FileDiff>>
 
     /**
-     * 获取单个文件的原始内容
+     * Get raw content of a single file
      *
-     * @param repoPath 仓库路径
-     * @param filePath 文件路径
-     * @param commitHash 提交哈希（null 表示工作区）
-     * @return 文件内容
+     * @param repoPath Repository path
+     * @param filePath File path
+     * @param commitHash Commit hash (null means working tree)
+     * @return File content
      */
     fun getFileContent(repoPath: String, filePath: String, commitHash: String? = null): Result<String>
 }
