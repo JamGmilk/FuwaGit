@@ -2,8 +2,6 @@ package jamgmilk.fuwagit.data.repository
 
 import jamgmilk.fuwagit.core.result.AppException
 import jamgmilk.fuwagit.core.result.AppResult
-import jamgmilk.fuwagit.data.local.credential.HttpsCredential as DataHttpsCredential
-import jamgmilk.fuwagit.data.local.credential.SshKey as DataSshKey
 import jamgmilk.fuwagit.data.local.security.MasterKeyManager
 import jamgmilk.fuwagit.data.local.security.SecureCredentialStore
 import jamgmilk.fuwagit.domain.model.credential.HttpsCredential
@@ -46,46 +44,39 @@ class CredentialRepositoryImpl @Inject constructor(
         }
     }
 
-    override fun isMasterPasswordSet(): Boolean {
-        return masterKeyManager.isMasterPasswordSet()
-    }
+    override fun isMasterPasswordSet(): Boolean = masterKeyManager.isMasterPasswordSet()
 
-    override fun isBiometricEnabled(): Boolean {
-        return masterKeyManager.isBiometricEnabled()
-    }
+    override fun isBiometricEnabled(): Boolean = masterKeyManager.isBiometricEnabled()
 
-    override fun getMasterPasswordHint(): String? {
-        return masterKeyManager.getPasswordHint()
-    }
+    override fun getMasterPasswordHint(): String? = masterKeyManager.getPasswordHint()
 
-    override suspend fun isUnlocked(): Boolean {
-        return secureStore.getCachedMasterKey() != null
-    }
+    override suspend fun isUnlocked(): Boolean = secureStore.getCachedMasterKey() != null
 
-    override fun lock() {
-        secureStore.clearCachedMasterKey()
-    }
+    override fun lock() = secureStore.clearCachedMasterKey()
 
-    override suspend fun getCachedMasterKey(): SecretKey? {
-        return secureStore.getCachedMasterKey()
-    }
+    override suspend fun getCachedMasterKey(): SecretKey? = secureStore.getCachedMasterKey()
 
-    override fun setMasterKey(key: SecretKey) {
-        secureStore.cacheMasterKey(key)
-    }
+    override fun setMasterKey(key: SecretKey) = secureStore.cacheMasterKey(key)
 
-    override fun setMasterKeyFromBiometric(key: SecretKey) {
-        secureStore.cacheMasterKeyFromBiometric(key)
-    }
+    override fun setMasterKeyFromBiometric(key: SecretKey) = secureStore.cacheMasterKeyFromBiometric(key)
 
-    private suspend fun getMasterKey(): SecretKey {
-        return secureStore.getCachedMasterKey()
-            ?: throw AppException.MasterKeyNotUnlocked()
+    private suspend fun getMasterKey(): SecretKey =
+        secureStore.getCachedMasterKey() ?: throw AppException.MasterKeyNotUnlocked()
+
+    private suspend fun <T> getCredentialOrThrow(
+        credentialId: String,
+        fetchOperation: suspend () -> T?,
+        existsCheck: suspend () -> Boolean
+    ): T {
+        val result = fetchOperation()
+        if (result != null) return result
+        throw if (existsCheck()) AppException.DecryptionFailed()
+               else AppException.CredentialNotFound(credentialId)
     }
 
     override suspend fun getAllHttpsCredentials(): AppResult<List<HttpsCredential>> {
         return AppResult.catching {
-            secureStore.getPublicCredentials().map { (it as DataHttpsCredential).toDomain() }
+            secureStore.getPublicCredentials().map { it.toDomain() }
         }
     }
 
@@ -96,7 +87,9 @@ class CredentialRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun updateHttpsCredential(uuid: String, host: String?, username: String?, password: String?): AppResult<Unit> {
+    override suspend fun updateHttpsCredential(
+        uuid: String, host: String?, username: String?, password: String?
+    ): AppResult<Unit> {
         return AppResult.catching {
             val key = getMasterKey()
             secureStore.updateHttpsCredential(uuid, host, username, password, key)
@@ -111,42 +104,27 @@ class CredentialRepositoryImpl @Inject constructor(
 
     override suspend fun getHttpsPassword(uuid: String): AppResult<String> {
         return AppResult.catching {
-            val key = getMasterKey()
-            val result = secureStore.getHttpsPassword(uuid, key)
-            if (result == null) {
-                val exists = secureStore.getPublicCredentials().any { it.uuid == uuid }
-                if (exists) throw AppException.DecryptionFailed()
-                else throw AppException.CredentialNotFound(uuid)
-            }
-            result
+            getCredentialOrThrow(
+                credentialId = uuid,
+                fetchOperation = { getMasterKey().let { key -> secureStore.getHttpsPassword(uuid, key) } },
+                existsCheck = { secureStore.getPublicCredentials().any { it.uuid == uuid } }
+            )
         }
     }
 
     override suspend fun getAllSshKeys(): AppResult<List<SshKey>> {
         return AppResult.catching {
-            secureStore.getPublicSshKeys().map { (it as DataSshKey).toDomain() }
+            secureStore.getPublicSshKeys().map { it.toDomain() }
         }
     }
 
     override suspend fun addSshKey(
-        name: String,
-        type: String,
-        publicKey: String,
-        privateKey: String,
-        passphrase: String?,
-        fingerprint: String
+        name: String, type: String, publicKey: String, privateKey: String,
+        passphrase: String?, fingerprint: String
     ): AppResult<String> {
         return AppResult.catching {
             val key = getMasterKey()
-            secureStore.addSshKey(
-                name = name,
-                type = type,
-                publicKey = publicKey,
-                privateKey = privateKey,
-                passphrase = passphrase,
-                fingerprint = fingerprint,
-                masterKey = key
-            )
+            secureStore.addSshKey(name, type, publicKey, privateKey, passphrase, fingerprint, key)
         }
     }
 
@@ -158,29 +136,26 @@ class CredentialRepositoryImpl @Inject constructor(
 
     override suspend fun getSshPrivateKey(uuid: String): AppResult<String> {
         return AppResult.catching {
-            val key = getMasterKey()
-            val result = secureStore.getSshPrivateKey(uuid, key)
-            if (result == null) {
-                val exists = secureStore.getPublicSshKeys().any { it.uuid == uuid }
-                if (exists) throw AppException.DecryptionFailed()
-                else throw AppException.CredentialNotFound(uuid)
-            }
-            result
+            getCredentialOrThrow(
+                credentialId = uuid,
+                fetchOperation = { getMasterKey().let { key -> secureStore.getSshPrivateKey(uuid, key) } },
+                existsCheck = { secureStore.getPublicSshKeys().any { it.uuid == uuid } }
+            )
         }
     }
 
     override suspend fun getSshPassphrase(uuid: String): AppResult<String?> {
         return AppResult.catching {
-            val key = getMasterKey()
-            val result = secureStore.getSshPassphrase(uuid, key)
-            if (result == null) {
-                // If it's null, check if it was supposed to be there
-                val keyData = secureStore.getPublicSshKeys().find { it.uuid == uuid }
-                if (keyData?.passphrase != null) {
-                    throw AppException.DecryptionFailed()
+            getMasterKey().let { key ->
+                val result = secureStore.getSshPassphrase(uuid, key)
+                if (result == null) {
+                    val keyData = secureStore.getPublicSshKeys().find { it.uuid == uuid }
+                    if (keyData?.passphrase != null) {
+                        throw AppException.DecryptionFailed()
+                    }
                 }
+                result
             }
-            result
         }
     }
 

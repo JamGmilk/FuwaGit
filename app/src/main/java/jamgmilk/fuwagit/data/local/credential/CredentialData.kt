@@ -44,7 +44,12 @@ data class SshKey(
     val created_at: Long = System.currentTimeMillis()
 ) {
     val comment: String
-        get() = extractCommentFromPublicKey(public_key)
+        get() = try {
+            val parts = public_key.trim().split(" ")
+            if (parts.size >= 3) parts[2] else ""
+        } catch (e: Exception) {
+            ""
+        }
 
     fun toDomain(): DomainSshKey = DomainSshKey(
         uuid = uuid,
@@ -63,12 +68,3 @@ data class ExportData(
     val credential_data: CredentialData,
     val exported_at: Long = System.currentTimeMillis()
 )
-
-fun extractCommentFromPublicKey(publicKey: String): String {
-    return try {
-        val parts = publicKey.trim().split(" ")
-        if (parts.size >= 3) parts[2] else ""
-    } catch (e: Exception) {
-        ""
-    }
-}
