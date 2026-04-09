@@ -16,15 +16,18 @@ class JGitOperationCheckDataSource @Inject constructor(
             Git.open(File(repoPath)).use { git ->
                 val gitDir = git.repository.directory
                 val status = git.status().call()
-
                 val lockStatus = core.isRepositoryLocked(repoPath)
                 val inRebase = File(gitDir, "rebase-apply").exists() ||
                                File(gitDir, "rebase-merge").exists()
                 val inMerge = File(gitDir, "MERGE_HEAD").exists()
 
+                val fullBranch = git.repository.fullBranch
+                val isDetached = fullBranch == null || !fullBranch.startsWith("refs/heads/")
+
                 val message = buildString {
                     when {
                         lockStatus.isLocked -> append(lockStatus.message)
+                        isDetached -> append("Cannot pull in detached HEAD state. Checkout a branch first.")
                         inRebase -> append("Repository is in the middle of a rebase")
                         inMerge -> append("Repository is in the middle of a merge")
                         status.conflicting.isNotEmpty() -> append("Unresolved merge conflicts exist")
@@ -34,7 +37,7 @@ class JGitOperationCheckDataSource @Inject constructor(
                 }
 
                 PrePullCheckResult(
-                    canPull = !lockStatus.isLocked && !inRebase && !inMerge && status.conflicting.isEmpty(),
+                    canPull = !lockStatus.isLocked && !inRebase && !inMerge && status.conflicting.isEmpty() && !isDetached,
                     hasLocalChanges = status.hasUncommittedChanges(),
                     hasStagedChanges = status.added.isNotEmpty() || status.changed.isNotEmpty() || status.removed.isNotEmpty(),
                     hasUntrackedFiles = status.untracked.isNotEmpty(),
@@ -42,6 +45,7 @@ class JGitOperationCheckDataSource @Inject constructor(
                     inMidRebase = inRebase,
                     inMidMerge = inMerge,
                     isLocked = lockStatus.isLocked,
+                    isDetachedHead = isDetached,
                     message = message
                 ).asSuccess()
             }
