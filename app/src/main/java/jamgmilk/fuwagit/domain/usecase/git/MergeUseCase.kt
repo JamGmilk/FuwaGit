@@ -3,15 +3,11 @@ package jamgmilk.fuwagit.domain.usecase.git
 import jamgmilk.fuwagit.core.result.AppResult
 import jamgmilk.fuwagit.core.result.AppException
 import jamgmilk.fuwagit.domain.model.git.ConflictResult
-import jamgmilk.fuwagit.domain.repository.GitRepository
+import jamgmilk.fuwagit.domain.repository.MergeRepository
 import javax.inject.Inject
 
-/**
- * Facade for Git merge/rebase operations.
- * Aggregates merge/rebase/conflict operations to reduce UseCase count.
- */
 class MergeUseCase @Inject constructor(
-    private val repository: GitRepository
+    private val repository: MergeRepository
 ) {
     suspend fun merge(repoPath: String, branchName: String): AppResult<ConflictResult> {
         if (repoPath.isBlank()) return AppResult.Error(AppException.Validation("Repository path cannot be empty"))

@@ -207,17 +207,15 @@ private fun CommitTimelineItem(
     var expanded by remember { mutableStateOf(false) }
     val colors = MaterialTheme.colorScheme
     val timeFmt = remember { SimpleDateFormat("MMM dd, HH:mm", Locale.getDefault()) }
-    val relativeTime = formatRelativeTime(commit.timestamp)
+    val relativeTime by remember(commit.timestamp) { formatRelativeTime(commit.timestamp) }
 
-    val branchColors = remember {
-        listOf(
+    val branchColors = listOf(
             colors.primary,
             colors.primary,
             colors.error,
             colors.secondary,
             colors.tertiary
         )
-    }
     val lane = abs(commit.hash.hashCode()) % branchColors.size
 
     Row(

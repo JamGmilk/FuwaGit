@@ -4,11 +4,11 @@ import jamgmilk.fuwagit.core.result.AppResult
 import jamgmilk.fuwagit.core.result.AppException
 import jamgmilk.fuwagit.domain.model.credential.CloneCredential
 import jamgmilk.fuwagit.domain.model.git.GitPushOptions
-import jamgmilk.fuwagit.domain.repository.GitRepository
+import jamgmilk.fuwagit.domain.repository.RemoteRepository
 import javax.inject.Inject
 
 class PushUseCase @Inject constructor(
-    private val repository: GitRepository
+    private val repository: RemoteRepository
 ) {
     suspend operator fun invoke(
         repoPath: String,

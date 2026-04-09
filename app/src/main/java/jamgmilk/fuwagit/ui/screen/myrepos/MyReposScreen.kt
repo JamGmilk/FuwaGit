@@ -106,17 +106,9 @@ fun MyReposScreen(
     val folders = uiState.repoItems
     val selectedTarget = currentRepoInfo.repoPath
 
-    var showCleanDialog by remember { mutableStateOf(false) }
-    var selectedItemForSheet by remember { mutableStateOf<RepoFolderItem?>(null) }
-    var showRemoteDialog by remember { mutableStateOf<RepoFolderItem?>(null) }
-    var showInfoDialog by remember { mutableStateOf<RepoFolderItem?>(null) }
-
     val sheetState = rememberModalBottomSheetState(
         skipPartiallyExpanded = true
     )
-
-    var remoteUrlState by remember { mutableStateOf("") }
-    var repoInfoState by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
 
     LaunchedEffect(Unit) {
         myReposViewModel.initializeStorage(context)
@@ -124,6 +116,8 @@ fun MyReposScreen(
     }
 
     Box(modifier = modifier.fillMaxSize()) {
+        val itemForSheet = remember { mutableStateOf<RepoFolderItem?>(null) }
+
         ScreenTemplate(
             title = stringResource(R.string.myrepos_screen_title),
             modifier = Modifier.fillMaxSize()
@@ -152,7 +146,9 @@ fun MyReposScreen(
                                 myReposViewModel.setCurrentRepo(path)
                             }
                         },
-                        onItemLongClick = { selectedItemForSheet = it }
+                        onItemLongClick = { item ->
+                            itemForSheet.value = item
+                        }
                     )
                 }
             }
@@ -162,7 +158,6 @@ fun MyReposScreen(
             onClick = onNavigateToAddRepository,
             containerColor = MaterialTheme.colorScheme.primaryContainer,
             contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-            // elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 0.dp),
             shape = AppShapes.medium,
             modifier = Modifier
                 .align(Alignment.BottomEnd)
@@ -173,176 +168,50 @@ fun MyReposScreen(
                 contentDescription = stringResource(R.string.myrepos_add_repository_description)
             )
         }
-
     }
 
-    selectedItemForSheet?.let { item ->
+    itemForSheet.value?.let { item ->
         RepoOptionsSheet(
             item = item,
             sheetState = sheetState,
-            context = context,
-            onDismiss = { selectedItemForSheet = null },
+            onDismiss = { itemForSheet.value = null },
             onRemove = {
                 scope.launch { sheetState.hide() }.invokeOnCompletion {
-                    scope.launch {
-                        myReposViewModel.removeRepo(item)
-                    }
-                    selectedItemForSheet = null
+                    scope.launch { myReposViewModel.removeRepo(item) }
+                    itemForSheet.value = null
                 }
             },
             onConfigureRemote = {
                 scope.launch { sheetState.hide() }.invokeOnCompletion {
-                    showRemoteDialog = item
-                    selectedItemForSheet = null
+                    itemForSheet.value = null
+                    ShowConfigureRemoteDialog(item)
                 }
             },
             onClean = {
                 scope.launch { sheetState.hide() }.invokeOnCompletion {
-                    scope.launch {
-                        myReposViewModel.setCurrentRepo(item.path)
-                    }
-                    selectedItemForSheet = null
-                    showCleanDialog = true
+                    scope.launch { myReposViewModel.setCurrentRepo(item.path) }
+                    itemForSheet.value = null
+                    ShowCleanConfirmationDialog(
+                        repoPath = item.path,
+                        onDismiss = { },
+                        onRequestPreview = { myReposViewModel.requestCleanPreview() }
+                    )
                 }
             },
             onShowInfo = {
                 scope.launch { sheetState.hide() }.invokeOnCompletion {
-                    showInfoDialog = item
-                    selectedItemForSheet = null
+                    itemForSheet.value = null
+                    ShowRepoInfoDialog(item)
                 }
             }
         )
     }
 
-    showRemoteDialog?.let { item ->
-        LaunchedEffect(item) {
-            remoteUrlState = myReposViewModel.getRemoteUrl(item.path) ?: ""
-        }
-
-        ConfigureRemoteDialog(
-            repoName = item.alias.ifBlank { item.path.substringAfterLast("/") },
-            currentUrl = remoteUrlState,
-            httpsCredentials = uiState.httpsCredentials,
-            sshKeys = uiState.sshKeys,
-            onDismiss = {
-                showRemoteDialog = null
-                remoteUrlState = ""
-            },
-            onSave = { newUrl, httpsUuid, sshUuid ->
-                myReposViewModel.configureRemote(item.path, "origin", newUrl, httpsUuid, sshUuid)
-                showRemoteDialog = null
-                remoteUrlState = ""
-            }
-        )
-    }
-
-    showInfoDialog?.let { item ->
-        LaunchedEffect(item) {
-            repoInfoState = myReposViewModel.getRepoInfo(item.path)
-        }
-
-        RepoInfoDialog(
-            repoName = item.alias.ifBlank { item.path.substringAfterLast("/") },
-            repoPath = item.path,
-            isGitRepo = item.isGitRepo,
-            repoInfo = repoInfoState,
-            onDismiss = {
-                showInfoDialog = null
-                repoInfoState = emptyMap()
-            }
-        )
-    }
-
-    // TODO: review, 这里样式不一样喵
-    // Clean Preview Dialog: Displays the list of files that will be deleted
-    val untrackedFiles = uiState.untrackedFilesForClean
-    val isCleanPreviewing = uiState.isCleanPreviewing
-    val cleanMessage = uiState.cleanMessage
-
-    if (untrackedFiles.isNotEmpty() || cleanMessage != null || isCleanPreviewing) {
-        val localizedMessage = if (cleanMessage != null) {
-            stringResource(ViewModelMessagesMapper.mapMessageToResource(cleanMessage))
-        } else null
-        CleanPreviewDialog(
-            untrackedFiles = untrackedFiles,
-            message = if (isCleanPreviewing) stringResource(R.string.myrepos_scanning_files) else localizedMessage,
-            onConfirm = { myReposViewModel.confirmCleanUntracked() },
-            onDismiss = { myReposViewModel.clearCleanPreview() }
-        )
-    }
-
-    // Clean Result Dialog: Displays the list of files that have been deleted
-    val cleanedFiles = uiState.cleanedFilesForResult
-    if (cleanedFiles.isNotEmpty()) {
-        CleanResultDialog(
-            cleanedFiles = cleanedFiles,
-            onSuccess = { myReposViewModel.loadSavedRepos() },
-            onDismiss = { myReposViewModel.clearCleanResult() }
-        )
-    }
-
-    // Clean Confirmation Dialog: Requesting a preview
-    if (showCleanDialog && untrackedFiles.isEmpty()) {
-        val colors = MaterialTheme.colorScheme
-        AlertDialog(
-            onDismissRequest = { showCleanDialog = false },
-            icon = {
-                Box(
-                    modifier = Modifier
-                        .size(56.dp)
-                        .background(colors.tertiary.copy(alpha = 0.15f), CircleShape),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        Icons.Default.CleaningServices,
-                        contentDescription = null,
-                        tint = colors.tertiary,
-                        modifier = Modifier.size(28.dp)
-                    )
-                }
-            },
-            title = {
-                Text(
-                    text = stringResource(R.string.myrepos_clean_untracked_title),
-                    fontWeight = FontWeight.Bold,
-                    style = MaterialTheme.typography.titleLarge
-                )
-            },
-            text = {
-                Text(
-                    text = stringResource(R.string.myrepos_clean_untracked_description),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = colors.onSurfaceVariant
-                )
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        currentRepoInfo.repoPath?.let { path ->
-                            myReposViewModel.requestCleanPreview()
-                        }
-                        showCleanDialog = false
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = colors.secondary),
-                    shape = RoundedCornerShape(12.dp)
-                ) {
-                    Icon(
-                        Icons.Default.CleaningServices,
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Spacer(Modifier.width(6.dp))
-                    Text(stringResource(R.string.action_preview))
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showCleanDialog = false }) {
-                    Text(stringResource(R.string.action_cancel))
-                }
-            },
-            shape = RoundedCornerShape(24.dp)
-        )
-    }
+    CleanDialogs(
+        uiState = uiState,
+        currentRepoInfo = currentRepoInfo,
+        myReposViewModel = myReposViewModel
+    )
 }
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -561,7 +430,6 @@ fun RepoItemCard(
 fun RepoOptionsSheet(
     item: RepoFolderItem,
     sheetState: SheetState,
-    context: Context,
     onDismiss: () -> Unit,
     onRemove: () -> Unit,
     onConfigureRemote: () -> Unit,
@@ -975,6 +843,159 @@ private fun getInfoIcon(key: String): ImageVector {
         key.contains("Status", ignoreCase = true) -> Icons.Default.CheckCircle
         key.contains("Hash", ignoreCase = true) -> Icons.Default.AccountTree
         else -> Icons.Default.Info
+    }
+}
+
+@Composable
+private fun ShowConfigureRemoteDialog(item: RepoFolderItem) {
+    val context = LocalContext.current
+    val httpsCredentials = remember { mutableStateOf<List<jamgmilk.fuwagit.domain.model.credential.HttpsCredential>>(emptyList()) }
+    val sshKeys = remember { mutableStateOf<List<jamgmilk.fuwagit.domain.model.credential.SshKey>>(emptyList()) }
+    var remoteUrl by remember { mutableStateOf("") }
+
+    LaunchedEffect(item) {
+        val vm = context as? jamgmilk.fuwagit.ui.screen.myrepos.MyReposViewModel
+        remoteUrl = vm?.getRemoteUrl(item.path) ?: ""
+        httpsCredentials.value = vm?.uiState?.value?.httpsCredentials ?: emptyList()
+        sshKeys.value = vm?.uiState?.value?.sshKeys ?: emptyList()
+    }
+
+    ConfigureRemoteDialog(
+        repoName = item.alias.ifBlank { item.path.substringAfterLast("/") },
+        currentUrl = remoteUrl,
+        httpsCredentials = httpsCredentials.value,
+        sshKeys = sshKeys.value,
+        onDismiss = { },
+        onSave = { newUrl, httpsUuid, sshUuid ->
+            (context as? jamgmilk.fuwagit.ui.screen.myrepos.MyReposViewModel)
+                ?.configureRemote(item.path, "origin", newUrl, httpsUuid, sshUuid)
+        }
+    )
+}
+
+@Composable
+private fun ShowRepoInfoDialog(item: RepoFolderItem) {
+    val context = LocalContext.current
+    var repoInfo by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
+
+    LaunchedEffect(item) {
+        repoInfo = (context as? jamgmilk.fuwagit.ui.screen.myrepos.MyReposViewModel)
+            ?.getRepoInfo(item.path) ?: emptyMap()
+    }
+
+    RepoInfoDialog(
+        repoName = item.alias.ifBlank { item.path.substringAfterLast("/") },
+        repoPath = item.path,
+        isGitRepo = item.isGitRepo,
+        repoInfo = repoInfo,
+        onDismiss = { }
+    )
+}
+
+@Composable
+private fun ShowCleanConfirmationDialog(
+    repoPath: String,
+    onDismiss: () -> Unit,
+    onRequestPreview: () -> Unit
+) {
+    val colors = MaterialTheme.colorScheme
+    var showDialog by remember { mutableStateOf(true) }
+
+    if (showDialog) {
+        AlertDialog(
+            onDismissRequest = {
+                showDialog = false
+                onDismiss()
+            },
+            icon = {
+                Box(
+                    modifier = Modifier
+                        .size(56.dp)
+                        .background(colors.tertiary.copy(alpha = 0.15f), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        Icons.Default.CleaningServices,
+                        contentDescription = null,
+                        tint = colors.tertiary,
+                        modifier = Modifier.size(28.dp)
+                    )
+                }
+            },
+            title = {
+                Text(
+                    text = stringResource(R.string.myrepos_clean_untracked_title),
+                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.titleLarge
+                )
+            },
+            text = {
+                Text(
+                    text = stringResource(R.string.myrepos_clean_untracked_description),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = colors.onSurfaceVariant
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        onRequestPreview()
+                        showDialog = false
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = colors.secondary),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Icon(
+                        Icons.Default.CleaningServices,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    Text(stringResource(R.string.action_preview))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    showDialog = false
+                    onDismiss()
+                }) {
+                    Text(stringResource(R.string.action_cancel))
+                }
+            },
+            shape = RoundedCornerShape(24.dp)
+        )
+    }
+}
+
+@Composable
+private fun CleanDialogs(
+    uiState: MyReposUiState,
+    currentRepoInfo: CurrentRepoInfo,
+    myReposViewModel: MyReposViewModel
+) {
+    val untrackedFiles = uiState.untrackedFilesForClean
+    val isCleanPreviewing = uiState.isCleanPreviewing
+    val cleanMessage = uiState.cleanMessage
+
+    if (untrackedFiles.isNotEmpty() || cleanMessage != null || isCleanPreviewing) {
+        val localizedMessage = if (cleanMessage != null) {
+            stringResource(ViewModelMessagesMapper.mapMessageToResource(cleanMessage))
+        } else null
+        CleanPreviewDialog(
+            untrackedFiles = untrackedFiles,
+            message = if (isCleanPreviewing) stringResource(R.string.myrepos_scanning_files) else localizedMessage,
+            onConfirm = { myReposViewModel.confirmCleanUntracked() },
+            onDismiss = { myReposViewModel.clearCleanPreview() }
+        )
+    }
+
+    val cleanedFiles = uiState.cleanedFilesForResult
+    if (cleanedFiles.isNotEmpty()) {
+        CleanResultDialog(
+            cleanedFiles = cleanedFiles,
+            onSuccess = { myReposViewModel.loadSavedRepos() },
+            onDismiss = { myReposViewModel.clearCleanResult() }
+        )
     }
 }
 

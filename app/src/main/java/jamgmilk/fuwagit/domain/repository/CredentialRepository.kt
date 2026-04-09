@@ -11,8 +11,6 @@ interface CredentialRepository {
 
     suspend fun unlockWithPassword(password: String): AppResult<Unit>
 
-    suspend fun unlockWithBiometric(): AppResult<Unit>
-
     fun isMasterPasswordSet(): Boolean
 
     fun isBiometricEnabled(): Boolean
@@ -59,8 +57,6 @@ interface CredentialRepository {
     suspend fun exportCredentials(): AppResult<String>
 
     suspend fun importCredentials(jsonData: String): AppResult<Unit>
-
-    suspend fun enableBiometric(): AppResult<Unit>
 
     suspend fun disableBiometric(): AppResult<Unit>
 }

@@ -3,15 +3,11 @@ package jamgmilk.fuwagit.domain.usecase.git
 import jamgmilk.fuwagit.core.result.AppResult
 import jamgmilk.fuwagit.core.result.AppException
 import jamgmilk.fuwagit.domain.model.git.GitBranch
-import jamgmilk.fuwagit.domain.repository.GitRepository
+import jamgmilk.fuwagit.domain.repository.BranchRepository
 import javax.inject.Inject
 
-/**
- * Facade for Git branch operations.
- * Aggregates branch operations to reduce UseCase count.
- */
 class BranchUseCase @Inject constructor(
-    private val repository: GitRepository
+    private val repository: BranchRepository
 ) {
     suspend fun list(repoPath: String): AppResult<List<GitBranch>> {
         if (repoPath.isBlank()) return AppResult.Error(AppException.Validation("Repository path cannot be empty"))

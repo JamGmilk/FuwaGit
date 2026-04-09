@@ -2,15 +2,11 @@ package jamgmilk.fuwagit.domain.usecase.git
 
 import jamgmilk.fuwagit.core.result.AppResult
 import jamgmilk.fuwagit.core.result.AppException
-import jamgmilk.fuwagit.domain.repository.GitRepository
+import jamgmilk.fuwagit.domain.repository.StatusRepository
 import javax.inject.Inject
 
-/**
- * Facade for Git staging operations.
- * Aggregates stage/unstage operations to reduce UseCase count.
- */
 class StageUseCase @Inject constructor(
-    private val repository: GitRepository
+    private val repository: StatusRepository
 ) {
     suspend fun all(repoPath: String): AppResult<String> {
         if (repoPath.isBlank()) return AppResult.Error(AppException.Validation("Repository path cannot be empty"))

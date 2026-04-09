@@ -408,7 +408,7 @@ internal fun FileSectionCard(
                 ) {
                     items(
                         items = files,
-                        key = { "${it.path}:${it.isStaged}" },
+                        key = { it.path.hashCode() + it.isStaged.hashCode() },
                         contentType = { "file_status" }
                     ) { file ->
                         FileStatusItem(
@@ -436,13 +436,15 @@ private fun FileStatusItem(
     val showMenuState = remember { mutableStateOf(false) }
     val colors = MaterialTheme.colorScheme
 
-    val (changeColor, changeLabel) = when (file.changeType) {
-        GitChangeType.Added -> colors.primary to "A"
-        GitChangeType.Modified -> colors.secondary to "M"
-        GitChangeType.Removed -> colors.error to "D"
-        GitChangeType.Untracked -> colors.outline to "?"
-        GitChangeType.Renamed -> colors.tertiary to "R"
-        GitChangeType.Conflicting -> colors.error to "!"
+    val (changeColor, changeLabel) = remember(file.changeType) {
+        when (file.changeType) {
+            GitChangeType.Added -> colors.primary to "A"
+            GitChangeType.Modified -> colors.secondary to "M"
+            GitChangeType.Removed -> colors.error to "D"
+            GitChangeType.Untracked -> colors.outline to "?"
+            GitChangeType.Renamed -> colors.tertiary to "R"
+            GitChangeType.Conflicting -> colors.error to "!"
+        }
     }
 
     Surface(
