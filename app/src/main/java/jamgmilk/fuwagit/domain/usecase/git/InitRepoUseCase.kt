@@ -2,11 +2,11 @@ package jamgmilk.fuwagit.domain.usecase.git
 
 import jamgmilk.fuwagit.core.result.AppResult
 import jamgmilk.fuwagit.core.result.AppException
-import jamgmilk.fuwagit.domain.repository.GitRepository
+import jamgmilk.fuwagit.domain.repository.CoreRepository
 import javax.inject.Inject
 
 class InitRepoUseCase @Inject constructor(
-    private val repository: GitRepository
+    private val repository: CoreRepository
 ) {
     suspend operator fun invoke(repoPath: String): AppResult<String> {
         if (repoPath.isBlank()) {

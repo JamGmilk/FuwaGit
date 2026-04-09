@@ -18,20 +18,40 @@ import jamgmilk.fuwagit.data.jgit.JGitDiffDataSource
 import jamgmilk.fuwagit.data.jgit.JGitMergeDataSource
 import jamgmilk.fuwagit.data.jgit.JGitOperationCheckDataSource
 import jamgmilk.fuwagit.data.jgit.JGitRemoteDataSource
+import jamgmilk.fuwagit.data.jgit.JGitSshDataSource
 import jamgmilk.fuwagit.data.jgit.JGitStatusDataSource
 import jamgmilk.fuwagit.data.jgit.JGitTagDataSource
+import jamgmilk.fuwagit.data.jgit.SshDataSource
 import jamgmilk.fuwagit.data.repository.BiometricRepositoryImpl
+import jamgmilk.fuwagit.data.repository.BranchRepositoryImpl
+import jamgmilk.fuwagit.data.repository.CommitRepositoryImpl
 import jamgmilk.fuwagit.data.repository.ConfigRepositoryImpl
+import jamgmilk.fuwagit.data.repository.CoreRepositoryImpl
 import jamgmilk.fuwagit.data.repository.CredentialRepositoryImpl
+import jamgmilk.fuwagit.data.repository.DiffRepositoryImpl
 import jamgmilk.fuwagit.data.repository.GitRepositoryImpl
+import jamgmilk.fuwagit.data.repository.MergeRepositoryImpl
+import jamgmilk.fuwagit.data.repository.RemoteRepositoryImpl
 import jamgmilk.fuwagit.data.repository.RepoRepositoryImpl
 import jamgmilk.fuwagit.data.repository.SettingsRepositoryImpl
+import jamgmilk.fuwagit.data.repository.SshRepositoryImpl
+import jamgmilk.fuwagit.data.repository.StatusRepositoryImpl
+import jamgmilk.fuwagit.data.repository.TagRepositoryImpl
 import jamgmilk.fuwagit.domain.repository.BiometricRepository
+import jamgmilk.fuwagit.domain.repository.BranchRepository
+import jamgmilk.fuwagit.domain.repository.CommitRepository
 import jamgmilk.fuwagit.domain.repository.ConfigRepository
+import jamgmilk.fuwagit.domain.repository.CoreRepository
 import jamgmilk.fuwagit.domain.repository.CredentialRepository
+import jamgmilk.fuwagit.domain.repository.DiffRepository
 import jamgmilk.fuwagit.domain.repository.GitRepository
+import jamgmilk.fuwagit.domain.repository.MergeRepository
+import jamgmilk.fuwagit.domain.repository.RemoteRepository
 import jamgmilk.fuwagit.domain.repository.RepoRepository
 import jamgmilk.fuwagit.domain.repository.SettingsRepository
+import jamgmilk.fuwagit.domain.repository.SshRepository
+import jamgmilk.fuwagit.domain.repository.StatusRepository
+import jamgmilk.fuwagit.domain.repository.TagRepository
 import javax.inject.Singleton
 
 @Module
@@ -41,6 +61,38 @@ abstract class DataModule {
     @Binds
     @Singleton
     abstract fun bindGitRepository(impl: GitRepositoryImpl): GitRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindStatusRepository(impl: StatusRepositoryImpl): StatusRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindCommitRepository(impl: CommitRepositoryImpl): CommitRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindBranchRepository(impl: BranchRepositoryImpl): BranchRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindRemoteRepository(impl: RemoteRepositoryImpl): RemoteRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindTagRepository(impl: TagRepositoryImpl): TagRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindDiffRepository(impl: DiffRepositoryImpl): DiffRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindCoreRepository(impl: CoreRepositoryImpl): CoreRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindMergeRepository(impl: MergeRepositoryImpl): MergeRepository
 
     @Binds
     @Singleton
@@ -93,4 +145,12 @@ abstract class DataModule {
     @Binds
     @Singleton
     abstract fun bindSettingsRepository(impl: SettingsRepositoryImpl): SettingsRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindSshDataSource(impl: JGitSshDataSource): SshDataSource
+
+    @Binds
+    @Singleton
+    abstract fun bindSshRepository(impl: SshRepositoryImpl): SshRepository
 }

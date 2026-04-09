@@ -19,6 +19,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -69,16 +70,31 @@ fun StatusScreen(
         }
     }
 
-    val statusStats = remember(files, staged, workspace) {
-        StatusStats(
-            totalChanges = files.size,
-            staged = staged.size,
-            unstaged = workspace.size,
-            untracked = workspace.count { it.changeType == GitChangeType.Untracked },
-            modified = files.count { it.changeType == GitChangeType.Modified },
-            added = files.count { it.changeType == GitChangeType.Added },
-            removed = files.count { it.changeType == GitChangeType.Removed }
-        )
+    val statusStats by remember(files, staged, workspace) {
+        derivedStateOf {
+            var untrackedCount = 0
+            var modifiedCount = 0
+            var addedCount = 0
+            var removedCount = 0
+            for (file in files) {
+                when (file.changeType) {
+                    GitChangeType.Untracked -> untrackedCount++
+                    GitChangeType.Modified -> modifiedCount++
+                    GitChangeType.Added -> addedCount++
+                    GitChangeType.Removed -> removedCount++
+                    else -> {}
+                }
+            }
+            StatusStats(
+                totalChanges = files.size,
+                staged = staged.size,
+                unstaged = workspace.size,
+                untracked = untrackedCount,
+                modified = modifiedCount,
+                added = addedCount,
+                removed = removedCount
+            )
+        }
     }
 
     ScreenTemplate(

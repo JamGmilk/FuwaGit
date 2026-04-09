@@ -4,11 +4,13 @@ import jamgmilk.fuwagit.core.result.AppResult
 import jamgmilk.fuwagit.core.result.AppException
 import jamgmilk.fuwagit.domain.model.credential.CloneCredential
 import jamgmilk.fuwagit.domain.model.git.GitPushOptions
-import jamgmilk.fuwagit.domain.repository.GitRepository
+import jamgmilk.fuwagit.domain.repository.MergeRepository
+import jamgmilk.fuwagit.domain.repository.RemoteRepository
 import javax.inject.Inject
 
 class SafePushUseCase @Inject constructor(
-    private val repository: GitRepository
+    private val mergeRepository: MergeRepository,
+    private val remoteRepository: RemoteRepository
 ) {
     suspend operator fun invoke(
         repoPath: String,
@@ -19,7 +21,7 @@ class SafePushUseCase @Inject constructor(
             return AppResult.Error(AppException.Validation("Repository path cannot be empty"))
         }
 
-        val preCheckResult = repository.checkPrePushStatus(repoPath)
+        val preCheckResult = mergeRepository.checkPrePushStatus(repoPath)
 
         return preCheckResult.fold(
             onSuccess = { check ->
@@ -59,7 +61,7 @@ class SafePushUseCase @Inject constructor(
                     )
                 }
 
-                repository.push(repoPath, credentials, options)
+                remoteRepository.push(repoPath, credentials, options)
             },
             onFailure = { error ->
                 AppResult.Error(

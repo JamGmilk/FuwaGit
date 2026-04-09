@@ -19,14 +19,11 @@ class CredentialRepositoryImpl @Inject constructor(
     private val masterKeyManager: MasterKeyManager
 ) : CredentialRepository {
 
-    private var cachedMasterKey: SecretKey? = null
-
     override suspend fun setupMasterPassword(password: String, hint: String?): AppResult<Unit> {
         return AppResult.catching {
             val result = masterKeyManager.setupMasterPassword(password)
             if (result.isSuccess) {
                 val key = result.getOrThrow()
-                cachedMasterKey = key
                 secureStore.cacheMasterKey(key)
                 if (hint != null) {
                     masterKeyManager.setPasswordHint(hint)
@@ -42,16 +39,11 @@ class CredentialRepositoryImpl @Inject constructor(
             val result = masterKeyManager.unlockWithPassword(password)
             if (result.isSuccess) {
                 val key = result.getOrThrow()
-                cachedMasterKey = key
                 secureStore.cacheMasterKey(key)
             } else {
                 throw AppException.InvalidPassword()
             }
         }
-    }
-
-    override suspend fun unlockWithBiometric(): AppResult<Unit> {
-        return AppResult.Error(AppException.BiometricNotEnabled())
     }
 
     override fun isMasterPasswordSet(): Boolean {
@@ -67,30 +59,27 @@ class CredentialRepositoryImpl @Inject constructor(
     }
 
     override suspend fun isUnlocked(): Boolean {
-        return cachedMasterKey != null || secureStore.getCachedMasterKey() != null
+        return secureStore.getCachedMasterKey() != null
     }
 
     override fun lock() {
-        cachedMasterKey = null
         secureStore.clearCachedMasterKey()
     }
 
     override suspend fun getCachedMasterKey(): SecretKey? {
-        return cachedMasterKey ?: secureStore.getCachedMasterKey()
+        return secureStore.getCachedMasterKey()
     }
 
     override fun setMasterKey(key: SecretKey) {
-        cachedMasterKey = key
         secureStore.cacheMasterKey(key)
     }
 
     override fun setMasterKeyFromBiometric(key: SecretKey) {
-        cachedMasterKey = key
         secureStore.cacheMasterKeyFromBiometric(key)
     }
 
     private suspend fun getMasterKey(): SecretKey {
-        return cachedMasterKey ?: secureStore.getCachedMasterKey()
+        return secureStore.getCachedMasterKey()
             ?: throw AppException.MasterKeyNotUnlocked()
     }
 
@@ -207,10 +196,6 @@ class CredentialRepositoryImpl @Inject constructor(
             val key = getMasterKey()
             secureStore.importAllCredentials(jsonData, key)
         }
-    }
-
-    override suspend fun enableBiometric(): AppResult<Unit> {
-        return AppResult.Error(AppException.BiometricNotEnabled())
     }
 
     override suspend fun disableBiometric(): AppResult<Unit> {
