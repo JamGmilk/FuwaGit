@@ -4,6 +4,7 @@ import android.util.Log
 import jamgmilk.fuwagit.domain.model.credential.CloneCredential
 import jamgmilk.fuwagit.domain.model.git.*
 import org.eclipse.jgit.api.Git
+import java.io.File
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -59,9 +60,44 @@ class JGitRemoteDataSource @Inject constructor(
     override fun pull(repoPath: String, credentials: CloneCredential?): Result<PullResult> =
         core.withGit(repoPath) { git ->
             try {
+                val status = git.status().call()
+                val gitDir = git.repository.directory
+
+                val lockStatus = core.isRepositoryLocked(repoPath)
+                if (lockStatus.isLocked) {
+                    throw Exception("Cannot pull: ${lockStatus.message}")
+                }
+
+                val inRebase = File(gitDir, "rebase-apply").exists() ||
+                               File(gitDir, "rebase-merge").exists()
+                if (inRebase) {
+                    throw Exception("Cannot pull: a rebase is in progress. Complete or abort the rebase first.")
+                }
+
+                val inMerge = File(gitDir, "MERGE_HEAD").exists()
+                if (inMerge) {
+                    throw Exception("Cannot pull: a merge is in progress. Complete or abort the merge first.")
+                }
+
+                if (status.conflicting.isNotEmpty()) {
+                    throw Exception("Cannot pull: you have unresolved merge conflicts. Resolve them first.")
+                }
+
+                if (status.hasUncommittedChanges() && status.staged.isNotEmpty()) {
+                    throw Exception("Cannot pull: you have staged changes that would be overwritten by merge. Commit or unstage them first.")
+                }
+
                 val pullCommand = git.pull()
                 core.configureCredentials(pullCommand, credentials)
                 val pullResult = pullCommand.call()
+
+                val postPullStatus = git.status().call()
+                val conflictFiles = postPullStatus.conflicting.map { path ->
+                    ConflictFileInfo(
+                        path = path,
+                        name = java.io.File(path).name
+                    )
+                }
 
                 val mergeResultInfo = pullResult.mergeResult?.let { merge ->
                     val mergeStatusName = merge.mergeStatus.name
@@ -77,7 +113,11 @@ class JGitRemoteDataSource @Inject constructor(
                         },
                         commitCount = merge.mergedCommits?.size ?: 0,
                         fastForward = mergeStatusName == "FAST_FORWARD",
-                        conflicts = emptyMap()
+                        conflicts = if (conflictFiles.isNotEmpty()) {
+                            conflictFiles.associate { it.path to 0 }
+                        } else {
+                            emptyMap()
+                        }
                     )
                 }
 
@@ -93,7 +133,11 @@ class JGitRemoteDataSource @Inject constructor(
                             else -> RebaseStatus.UNKNOWN
                         },
                         commitCount = 0,
-                        conflicts = emptyList()
+                        conflicts = if (rebase.conflictingPaths.isNotEmpty()) {
+                            rebase.conflictingPaths.toList()
+                        } else {
+                            emptyList()
+                        }
                     )
                 }
 
@@ -105,9 +149,12 @@ class JGitRemoteDataSource @Inject constructor(
                                 MergeStatus.ALREADY_UP_TO_DATE -> append("Already up-to-date.")
                                 MergeStatus.FAST_FORWARD -> append("Fast-forward merge with ${mr.commitCount} commit(s).")
                                 MergeStatus.MERGED -> append("Merged ${mr.commitCount} commit(s).")
-                                MergeStatus.CONFLICTING -> append("Merge conflicts detected.")
+                                MergeStatus.CONFLICTING -> append("Merge conflicts detected in ${conflictFiles.size} file(s): ${conflictFiles.joinToString { it.name }}")
                                 else -> append("Merge status: ${mr.mergeStatus}.")
                             }
+                        }
+                        if (conflictFiles.isNotEmpty()) {
+                            append(" Conflict files: ${conflictFiles.map { it.path }.joinToString(", ")}")
                         }
                     } else {
                         append("Pull failed.")
@@ -119,9 +166,11 @@ class JGitRemoteDataSource @Inject constructor(
                     message = if (pullResult.isSuccessful) "Pull successful" else "Pull failed",
                     mergeResult = mergeResultInfo,
                     rebaseResult = rebaseResultInfo,
-                    hasConflicts = mergeResultInfo?.mergeStatus == MergeStatus.CONFLICTING,
+                    hasConflicts = mergeResultInfo?.mergeStatus == MergeStatus.CONFLICTING || conflictFiles.isNotEmpty(),
                     detailMessage = detailMessage
                 )
+            } catch (e: Exception) {
+                return@withGit Result.failure(Exception("Pull failed: ${e.message}"))
             } finally {
                 core.clearSshCredentials()
             }
@@ -137,6 +186,21 @@ class JGitRemoteDataSource @Inject constructor(
     ): Result<String> {
         return try {
             val result = core.withGit(repoPath) { git ->
+                val status = git.status().call()
+
+                if (status.hasUncommittedChanges()) {
+                    throw Exception("Cannot push: you have uncommitted changes. Commit them first before pushing.")
+                }
+
+                if (status.conflicting.isNotEmpty()) {
+                    throw Exception("Cannot push: you have unresolved merge conflicts. Resolve them first.")
+                }
+
+                val lockStatus = core.isRepositoryLocked(repoPath)
+                if (lockStatus.isLocked) {
+                    throw Exception("Cannot push: ${lockStatus.message}")
+                }
+
                 val pushCommand = git.push().setRemote(options.remote)
 
                 // 设置推送的分支
@@ -174,6 +238,8 @@ class JGitRemoteDataSource @Inject constructor(
             } else {
                 Result.failure(Exception("Push failed: ${e.message}"))
             }
+        } catch (e: Exception) {
+            Result.failure(Exception("Push failed: ${e.message}"))
         } finally {
             core.clearSshCredentials()
         }

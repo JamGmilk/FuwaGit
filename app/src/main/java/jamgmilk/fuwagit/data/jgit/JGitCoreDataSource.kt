@@ -118,6 +118,84 @@ class JGitCoreDataSource @Inject constructor(
         }
     }
 
+    override fun isRepositoryLocked(repoPath: String): RepositoryLockStatus {
+        val gitDir = File(repoPath, ".git")
+
+        if (!gitDir.exists()) {
+            return RepositoryLockStatus(
+                isLocked = false,
+                lockType = LockType.NONE,
+                message = ""
+            )
+        }
+
+        if (File(gitDir, "index.lock").exists()) {
+            return RepositoryLockStatus(
+                isLocked = true,
+                lockType = LockType.INDEX_LOCK,
+                message = "Repository is locked by another Git operation (index.lock exists). Close any other Git processes and try again."
+            )
+        }
+
+        if (File(gitDir, "MERGE_HEAD").exists()) {
+            return RepositoryLockStatus(
+                isLocked = true,
+                lockType = LockType.MERGE_IN_PROGRESS,
+                message = "A merge is in progress. Complete or abort the merge first."
+            )
+        }
+
+        if (File(gitDir, "rebase-apply").exists() || File(gitDir, "rebase-merge").exists()) {
+            val isInteractive = File(gitDir, "rebase-interactive").exists()
+            return RepositoryLockStatus(
+                isLocked = true,
+                lockType = LockType.REBASE_IN_PROGRESS,
+                message = if (isInteractive) "An interactive rebase is in progress." else "A rebase is in progress. Complete or abort the rebase first."
+            )
+        }
+
+        if (File(gitDir, "CHERRY_PICK_HEAD").exists()) {
+            return RepositoryLockStatus(
+                isLocked = true,
+                lockType = LockType.CHERRY_PICK_IN_PROGRESS,
+                message = "A cherry-pick is in progress. Complete or abort it first."
+            )
+        }
+
+        if (File(gitDir, "REVERT_HEAD").exists()) {
+            return RepositoryLockStatus(
+                isLocked = true,
+                lockType = LockType.REVERT_IN_PROGRESS,
+                message = "A revert is in progress. Complete or abort it first."
+            )
+        }
+
+        if (File(gitDir, "BISECT_LOG").exists()) {
+            return RepositoryLockStatus(
+                isLocked = true,
+                lockType = LockType.BISECT_IN_PROGRESS,
+                message = "A bisect session is in progress. Complete or abort it first."
+            )
+        }
+
+        if (File(gitDir, "refs/stash").exists() && File(gitDir, "refs/stash").readText().isNotBlank()) {
+            val hasApplying = File(gitDir, "applying").exists()
+            if (hasApplying) {
+                return RepositoryLockStatus(
+                    isLocked = true,
+                    lockType = LockType.STASH_APPLY_IN_PROGRESS,
+                    message = "A stash apply is in progress. Complete or abort it first."
+                )
+            }
+        }
+
+        return RepositoryLockStatus(
+            isLocked = false,
+            lockType = LockType.NONE,
+            message = ""
+        )
+    }
+
     override fun getRepoInfo(repoPath: String): Map<String, String> {
         val info = mutableMapOf<String, String>()
         try {
