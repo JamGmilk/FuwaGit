@@ -80,18 +80,18 @@ import jamgmilk.fuwagit.domain.model.git.GitResetMode
 import jamgmilk.fuwagit.ui.components.ResetConfirmDialog
 import jamgmilk.fuwagit.ui.components.ScreenTemplate
 import jamgmilk.fuwagit.ui.screen.history.HistoryUiState
+import jamgmilk.fuwagit.ui.theme.AppShapes
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import kotlin.math.abs
 
-// ✅ 提取为常量避免重复创建
 private val BRANCH_COLORS = listOf(
-    androidx.compose.ui.graphics.Color(0xFF6750A4), // primary
-    androidx.compose.ui.graphics.Color(0xFF6750A4), // primary
-    androidx.compose.ui.graphics.Color(0xFFBA1A1A), // error
-    androidx.compose.ui.graphics.Color(0xFF7D5260), // secondary
-    androidx.compose.ui.graphics.Color(0xFF7D5260)  // tertiary
+    Color(0xFF6750A4), // primary
+    Color(0xFF6750A4), // primary
+    Color(0xFFBA1A1A), // error
+    Color(0xFF7D5260), // secondary
+    Color(0xFF7D5260)  // tertiary
 )
 
 @Composable
@@ -102,27 +102,25 @@ fun HistoryScreen(
 ) {
     val uiState by historyViewModel.uiState.collectAsStateWithLifecycle()
     val history = uiState.commits
-    val colors = MaterialTheme.colorScheme
 
     ScreenTemplate(
         title = stringResource(R.string.screen_history),
-        modifier = modifier,
+        modifier = modifier.fillMaxSize(),
         actions = {
             Text(
                 text = stringResource(R.string.history_commits_count_format, history.size),
                 style = MaterialTheme.typography.bodySmall,
-                color = colors.onSurfaceVariant
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     ) {
-        ElevatedCard(
+        Surface(
             modifier = Modifier
                 .fillMaxWidth()
                 .weight(1f)
-                .border(1.dp, colors.outlineVariant, RoundedCornerShape(24.dp)),
-            shape = RoundedCornerShape(24.dp),
-            colors = CardDefaults.elevatedCardColors(containerColor = colors.surfaceContainerLow),
-            elevation = CardDefaults.elevatedCardElevation(0.dp)
+                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, AppShapes.medium),
+            shape = AppShapes.medium,
+            color = MaterialTheme.colorScheme.surfaceContainerLow
         ) {
             if (history.isEmpty()) {
                 EmptyHistoryState()
@@ -222,10 +220,8 @@ private fun CommitTimelineItem(
     val colors = MaterialTheme.colorScheme
     val timeFmt = remember { SimpleDateFormat("MMM dd, HH:mm", Locale.getDefault()) }
     
-    // ✅ 直接调用，Compose 会根据参数缓存结果
     val relativeTime = formatRelativeTime(commit.timestamp)
 
-    // ✅ 纯计算操作，直接计算（成本极低）
     val lane = abs(commit.hash.hashCode()) % BRANCH_COLORS.size
     val laneColor = BRANCH_COLORS[lane]
 

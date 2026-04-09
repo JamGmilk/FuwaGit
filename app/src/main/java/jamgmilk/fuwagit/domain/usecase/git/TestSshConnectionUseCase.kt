@@ -8,7 +8,7 @@ import javax.inject.Singleton
 
 @Singleton
 class TestSshConnectionUseCase @Inject constructor(
-    private val sshRepository: SshRepository?
+    private val sshRepository: SshRepository
 ) {
     suspend operator fun invoke(
         host: String,
@@ -18,15 +18,8 @@ class TestSshConnectionUseCase @Inject constructor(
         val validationError = validateInputs(host, privateKeyPem)
         if (validationError != null) return AppResult.Error(validationError)
 
-        val repo = sshRepository
-            ?: return AppResult.Error(
-                AppException.GitOperationFailed(
-                    operation = "SSH Connection Test",
-                    message = "SSH repository is not available - dependency injection may have failed"
-                )
-            )
         return try {
-            repo.testSshConnection(host, privateKeyPem, passphrase)
+            sshRepository.testSshConnection(host, privateKeyPem, passphrase)
         } catch (e: Exception) {
             AppResult.Error(
                 AppException.GitOperationFailed(
