@@ -20,7 +20,7 @@ object ViewModelMessagesMapper {
         return when {
             // Credential messages
             message == "Passwords do not match" -> R.string.vm_passwords_do_not_match
-            message == "New password must be at least 8 characters" -> R.string.vm_password_min_8_chars
+            message == "New password must be at least 6 characters" -> R.string.vm_password_min_8_chars
             message == "Incorrect old password" -> R.string.vm_incorrect_old_password
 
             // Branch delete messages

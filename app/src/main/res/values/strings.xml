@@ -195,12 +195,12 @@
     <string name="credentials_setup_master_password">Set Master Password</string>
     <string name="credentials_setup_description">Create a master password to protect your sensitive credentials.</string>
     <string name="credentials_password_label">Password</string>
-    <string name="credentials_password_placeholder">At least 8 characters</string>
+    <string name="credentials_password_placeholder">At least 6 characters</string>
     <string name="credentials_confirm_password_label">Confirm Password</string>
     <string name="credentials_password_hint_optional">Password Hint (optional)</string>
     <string name="credentials_password_hint_placeholder">Help you remember</string>
     <string name="credentials_passwords_do_not_match">Passwords do not match</string>
-    <string name="credentials_at_least_8_characters">At least 8 characters</string>
+    <string name="credentials_at_least_8_characters">At least 6 characters</string>
     <string name="credentials_set_password">Set Password</string>
     <string name="credentials_setting">Setting...</string>
     <string name="credentials_unlock_credentials">Unlock Credentials</string>
@@ -571,7 +571,7 @@
 
     <!-- ViewModel Messages -->
     <string name="vm_passwords_do_not_match">Passwords do not match</string>
-    <string name="vm_password_min_8_chars">New password must be at least 8 characters</string>
+    <string name="vm_password_min_8_chars">New password must be at least 6 characters</string>
     <string name="vm_incorrect_old_password">Incorrect old password</string>
     <string name="vm_branch_deleted_success">Branch \'%1$s\' deleted successfully</string>
     <string name="vm_branch_not_fully_merged">The branch contains commits that haven\'t been merged. Use force delete to remove it anyway.</string>

@@ -73,7 +73,7 @@ fun SetupPasswordDialog(
         stringResource(R.string.credentials_passwords_do_not_match)
     } else null
 
-    val passwordLengthError = if (password.isNotEmpty() && password.length < 8) {
+    val passwordLengthError = if (password.isNotEmpty() && password.length < 6) {
         stringResource(R.string.credentials_at_least_8_characters)
     } else null
 
@@ -153,7 +153,7 @@ fun SetupPasswordDialog(
         confirmButton = {
             Button(
                 onClick = { onConfirm(password, hint.ifBlank { null }) },
-                enabled = !isLoading && password.length >= 8 && password == confirmPassword
+                enabled = !isLoading && password.length >= 6 && password == confirmPassword
             ) {
                 Text(if (isLoading) stringResource(R.string.credentials_setting) else stringResource(R.string.credentials_set_password))
             }
@@ -298,11 +298,11 @@ fun ChangeMasterPasswordDialog(
         stringResource(R.string.credentials_passwords_do_not_match)
     } else null
 
-    val passwordLengthError = if (newPassword.isNotEmpty() && newPassword.length < 8) {
+    val passwordLengthError = if (newPassword.isNotEmpty() && newPassword.length < 6) {
         stringResource(R.string.credentials_at_least_8_characters)
     } else null
 
-    val isFormValid = oldPassword.isNotBlank() && newPassword.length >= 8 && newPassword == confirmPassword
+    val isFormValid = oldPassword.isNotBlank() && newPassword.length >= 6 && newPassword == confirmPassword
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -491,11 +491,11 @@ fun SetupMasterPasswordDialog(
         stringResource(R.string.credentials_passwords_do_not_match)
     } else null
 
-    val passwordLengthError = if (password.isNotEmpty() && password.length < 8) {
+    val passwordLengthError = if (password.isNotEmpty() && password.length < 6) {
         stringResource(R.string.credentials_at_least_8_characters)
     } else null
 
-    val isFormValid = password.length >= 8 && password == confirmPassword
+    val isFormValid = password.length >= 6 && password == confirmPassword
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -623,11 +623,11 @@ fun SetupMasterPasswordContent(
         stringResource(R.string.credentials_passwords_do_not_match)
     } else null
 
-    val passwordLengthError = if (password.isNotEmpty() && password.length < 8) {
+    val passwordLengthError = if (password.isNotEmpty() && password.length < 6) {
         stringResource(R.string.credentials_at_least_8_characters)
     } else null
 
-    val isFormValid = password.length >= 8 && password == confirmPassword
+    val isFormValid = password.length >= 6 && password == confirmPassword
 
     Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
         Box(
