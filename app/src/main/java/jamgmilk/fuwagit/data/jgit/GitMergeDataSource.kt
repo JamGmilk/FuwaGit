@@ -20,6 +20,8 @@ interface GitMergeDataSource {
 
     fun abortRebase(repoPath: String): Result<String>
 
+    fun abortMerge(repoPath: String): Result<String>
+
     fun getConflictFiles(repoPath: String): Result<List<String>>
 
     fun clean(repoPath: String, dryRun: Boolean): Result<CleanResult>

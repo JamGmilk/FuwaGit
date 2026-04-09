@@ -110,10 +110,24 @@ class JGitStatusDataSource @Inject constructor(
 
     /**
      * Discards changes to a specific file.
+     * Checks if the file has changes before attempting discard to avoid unnecessary operations.
      */
     override fun discardChanges(repoPath: String, filePath: String): Result<Unit> = core.withGit(repoPath) { git ->
-        git.checkout().addPath(filePath).call()
-        Unit
+        val status = git.status().call()
+        val isModified = status.changed.contains(filePath) ||
+                         status.modified.contains(filePath) ||
+                         status.removed.contains(filePath)
+
+        if (!isModified) {
+            return@withGit Result.success(Unit)
+        }
+
+        try {
+            git.checkout().addPath(filePath).call()
+            Unit
+        } catch (e: Exception) {
+            Result.failure(Exception("Failed to discard changes: ${e.message}. Make sure the file is not locked by another process."))
+        }
     }
 
     /**

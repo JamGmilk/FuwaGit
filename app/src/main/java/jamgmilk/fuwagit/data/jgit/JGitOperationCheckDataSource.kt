@@ -35,7 +35,7 @@ class JGitOperationCheckDataSource @Inject constructor(
                 PrePullCheckResult(
                     canPull = !lockStatus.isLocked && !inRebase && !inMerge && status.conflicting.isEmpty(),
                     hasLocalChanges = status.hasUncommittedChanges(),
-                    hasStagedChanges = status.staged.isNotEmpty(),
+                    hasStagedChanges = status.added.isNotEmpty() || status.changed.isNotEmpty() || status.removed.isNotEmpty(),
                     hasUntrackedFiles = status.untracked.isNotEmpty(),
                     hasConflicts = status.conflicting.isNotEmpty(),
                     inMidRebase = inRebase,
@@ -119,17 +119,17 @@ class JGitOperationCheckDataSource @Inject constructor(
     }
 
     private fun calculateAheadBehind(git: Git, branchName: String): Pair<Int, Int> {
+        val revWalk = org.eclipse.jgit.revwalk.RevWalk(git.repository)
         return try {
-            val revWalk = org.eclipse.jgit.revwalk.RevWalk(git.repository)
-            val ref = git.repository.getRef("refs/heads/$branchName")
-            val remoteRef = git.repository.getRef("refs/remotes/origin/$branchName")
+            val ref = git.repository.exactRef("refs/heads/$branchName")
+            val remoteRef = git.repository.exactRef("refs/remotes/origin/$branchName")
 
             if (ref == null || remoteRef == null) {
                 return Pair(0, 0)
             }
 
-            val localCommit = revWalk.parseCommit(ref.objectId)
-            val remoteCommit = revWalk.parseCommit(remoteRef.objectId)
+            val localCommit = revWalk.parseCommit(ref.target?.objectId ?: ref.objectId)
+            val remoteCommit = revWalk.parseCommit(remoteRef.target?.objectId ?: remoteRef.objectId)
 
             val localAncestor = revWalk.isMergedInto(localCommit, remoteCommit)
             val remoteAncestor = revWalk.isMergedInto(remoteCommit, localCommit)
@@ -138,26 +138,27 @@ class JGitOperationCheckDataSource @Inject constructor(
 
             when {
                 localAncestor && !remoteAncestor -> {
-                    val revWalk2 = org.eclipse.jgit.revwalk.RevWalk(git.repository)
-                    val counter = revWalk2.newCommitCounter()
-                    counter.markStart(localCommit)
-                    counter.markUninteresting(remoteCommit)
-                    val ahead = counter.count()
-                    revWalk2.dispose()
-                    Pair(ahead, 0)
+                    RevWalk(git.repository).use { revWalk2 ->
+                        var count = 0
+                        revWalk2.markStart(revWalk2.parseCommit(ref.target?.objectId ?: ref.objectId))
+                        revWalk2.markUninteresting(revWalk2.parseCommit(remoteRef.target?.objectId ?: remoteRef.objectId))
+                        for (commit in revWalk2) count++
+                        Pair(count, 0)
+                    }
                 }
                 remoteAncestor && !localAncestor -> {
-                    val revWalk2 = org.eclipse.jgit.revwalk.RevWalk(git.repository)
-                    val counter = revWalk2.newCommitCounter()
-                    counter.markStart(remoteCommit)
-                    counter.markUninteresting(localCommit)
-                    val behind = counter.count()
-                    revWalk2.dispose()
-                    Pair(0, behind)
+                    RevWalk(git.repository).use { revWalk2 ->
+                        var count = 0
+                        revWalk2.markStart(revWalk2.parseCommit(remoteRef.target?.objectId ?: remoteRef.objectId))
+                        revWalk2.markUninteresting(revWalk2.parseCommit(ref.target?.objectId ?: ref.objectId))
+                        for (commit in revWalk2) count++
+                        Pair(0, count)
+                    }
                 }
                 else -> Pair(0, 0)
             }
         } catch (e: Exception) {
+            revWalk.dispose()
             Pair(0, 0)
         }
     }

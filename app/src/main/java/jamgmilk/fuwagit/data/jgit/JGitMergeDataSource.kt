@@ -169,6 +169,19 @@ class JGitMergeDataSource @Inject constructor(
         }
 
     /**
+     * Aborts an ongoing merge operation.
+     */
+    override fun abortMerge(repoPath: String): Result<String> =
+        core.withGit(repoPath) { git ->
+            val gitDir = git.repository.directory
+            if (!java.io.File(gitDir, "MERGE_HEAD").exists()) {
+                throw Exception("No merge in progress to abort")
+            }
+            git.merge().setOperation(org.eclipse.jgit.api.MergeCommand.Operation.ABORT).call()
+            "Merge aborted"
+        }
+
+    /**
      * Cleans untracked files from the working directory.
      */
     override fun clean(repoPath: String, dryRun: Boolean): Result<CleanResult> =

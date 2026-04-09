@@ -351,6 +351,9 @@
     <string name="myrepos_auth_failed">Authentication failed. Please select credentials.</string>
     <string name="myrepos_scanning_files">Scanning for untracked files…</string>
     <string name="myrepos_screen_title">My Repos</string>
+    <string name="myrepos_delete_confirm_title">Remove Repository?</string>
+    <string name="myrepos_delete_confirm_description">This will remove the repository from FuwaGit\'s list. The actual repository files on your device will not be deleted.</string>
+    <string name="myrepos_delete_confirm_warning">This action cannot be undone.</string>
 
     <!-- Local Content -->
     <string name="local_repo_detected">Repository Detected</string>

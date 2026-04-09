@@ -7,6 +7,7 @@ import jamgmilk.fuwagit.data.jgit.GitMergeDataSource
 import jamgmilk.fuwagit.data.jgit.GitOperationCheckDataSource
 import jamgmilk.fuwagit.data.jgit.PrePullCheckResult
 import jamgmilk.fuwagit.data.jgit.PrePushCheckResult
+import jamgmilk.fuwagit.domain.model.git.CleanResult
 import jamgmilk.fuwagit.domain.model.git.ConflictResult
 import jamgmilk.fuwagit.domain.repository.MergeRepository
 import kotlinx.coroutines.Dispatchers
@@ -46,6 +47,11 @@ class MergeRepositoryImpl @Inject constructor(
     override suspend fun abortRebase(repoPath: String): AppResult<String> =
         withContext(Dispatchers.IO) {
             mergeDataSource.abortRebase(repoPath).toAppResult()
+        }
+
+    override suspend fun abortMerge(repoPath: String): AppResult<String> =
+        withContext(Dispatchers.IO) {
+            mergeDataSource.abortMerge(repoPath).toAppResult()
         }
 
     override suspend fun clean(repoPath: String, dryRun: Boolean): AppResult<CleanResult> =

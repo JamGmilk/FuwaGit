@@ -43,10 +43,11 @@ fun ScreenTemplate(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         containerColor = MaterialTheme.colorScheme.surface,
         contentWindowInsets = WindowInsets(0.dp)
-    ) { _ ->
+    ) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .padding(padding)
                 .statusBarsPadding()
                 .pointerInput(Unit) {
                     detectTapGestures(onTap = { focusManager.clearFocus() })

@@ -43,6 +43,8 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
@@ -79,12 +81,15 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import jamgmilk.fuwagit.R
+import jamgmilk.fuwagit.core.result.AppException
 import jamgmilk.fuwagit.ui.components.CleanPreviewDialog
 import jamgmilk.fuwagit.ui.components.CleanResultDialog
 import jamgmilk.fuwagit.ui.components.ConfigureRemoteDialog
 import jamgmilk.fuwagit.ui.components.EmptyState
 import jamgmilk.fuwagit.ui.components.ScreenTemplate
+import jamgmilk.fuwagit.ui.state.RepoInfo
 import jamgmilk.fuwagit.ui.theme.AppShapes
+import kotlinx.coroutines.launch
 import jamgmilk.fuwagit.ui.util.ViewModelMessagesMapper
 import kotlinx.coroutines.launch
 import java.text.DateFormat
@@ -115,9 +120,14 @@ fun MyReposScreen(
         myReposViewModel.loadCredentials()
     }
 
-    Box(modifier = modifier.fillMaxSize()) {
-        val itemForSheet = remember { mutableStateOf<RepoFolderItem?>(null) }
+    val itemForSheet = remember { mutableStateOf<RepoFolderItem?>(null) }
+    val showConfigureRemoteDialog = remember { mutableStateOf(false) }
+    val showCleanConfirmationDialog = remember { mutableStateOf(false) }
+    val showRepoInfoDialog = remember { mutableStateOf(false) }
+    val showDeleteConfirmationDialog = remember { mutableStateOf(false) }
+    val pendingDeleteItem = remember { mutableStateOf<RepoFolderItem?>(null) }
 
+    Box(modifier = modifier.fillMaxSize()) {
         ScreenTemplate(
             title = stringResource(R.string.myrepos_screen_title),
             modifier = Modifier.fillMaxSize()
@@ -177,32 +187,58 @@ fun MyReposScreen(
             onDismiss = { itemForSheet.value = null },
             onRemove = {
                 scope.launch { sheetState.hide() }.invokeOnCompletion {
-                    scope.launch { myReposViewModel.removeRepo(item) }
+                    pendingDeleteItem.value = item
+                    showDeleteConfirmationDialog.value = true
                     itemForSheet.value = null
                 }
             },
             onConfigureRemote = {
                 scope.launch { sheetState.hide() }.invokeOnCompletion {
                     itemForSheet.value = null
-                    ShowConfigureRemoteDialog(item)
+                    showConfigureRemoteDialog.value = true
                 }
             },
             onClean = {
                 scope.launch { sheetState.hide() }.invokeOnCompletion {
                     scope.launch { myReposViewModel.setCurrentRepo(item.path) }
                     itemForSheet.value = null
-                    ShowCleanConfirmationDialog(
-                        repoPath = item.path,
-                        onDismiss = { },
-                        onRequestPreview = { myReposViewModel.requestCleanPreview() }
-                    )
+                    showCleanConfirmationDialog.value = true
                 }
             },
             onShowInfo = {
                 scope.launch { sheetState.hide() }.invokeOnCompletion {
                     itemForSheet.value = null
-                    ShowRepoInfoDialog(item)
+                    showRepoInfoDialog.value = true
                 }
+            }
+        )
+    }
+
+    if (showConfigureRemoteDialog.value && itemForSheet.value != null) {
+        // TODO: Implement configure remote dialog
+    }
+
+    if (showCleanConfirmationDialog.value) {
+        // TODO: Implement clean confirmation dialog
+    }
+
+    if (showRepoInfoDialog.value && itemForSheet.value != null) {
+        // TODO: Implement repo info dialog
+    }
+
+    if (showDeleteConfirmationDialog.value && pendingDeleteItem.value != null) {
+        DeleteConfirmationDialog(
+            item = pendingDeleteItem.value!!,
+            onConfirm = {
+                scope.launch {
+                    myReposViewModel.removeRepo(pendingDeleteItem.value!!)
+                    showDeleteConfirmationDialog.value = false
+                    pendingDeleteItem.value = null
+                }
+            },
+            onDismiss = {
+                showDeleteConfirmationDialog.value = false
+                pendingDeleteItem.value = null
             }
         )
     }
@@ -969,8 +1005,8 @@ private fun ShowCleanConfirmationDialog(
 
 @Composable
 private fun CleanDialogs(
-    uiState: MyReposUiState,
-    currentRepoInfo: CurrentRepoInfo,
+    uiState: RepoUiState,
+    currentRepoInfo: RepoInfo,
     myReposViewModel: MyReposViewModel
 ) {
     val untrackedFiles = uiState.untrackedFilesForClean
@@ -995,6 +1031,127 @@ private fun CleanDialogs(
             cleanedFiles = cleanedFiles,
             onSuccess = { myReposViewModel.loadSavedRepos() },
             onDismiss = { myReposViewModel.clearCleanResult() }
+        )
+    }
+}
+
+@Composable
+private fun DeleteConfirmationDialog(
+    item: RepoFolderItem,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    val colors = MaterialTheme.colorScheme
+    var showDialog by remember { mutableStateOf(true) }
+
+    if (showDialog) {
+        AlertDialog(
+            onDismissRequest = {
+                showDialog = false
+                onDismiss()
+            },
+            icon = {
+                Box(
+                    modifier = Modifier
+                        .size(56.dp)
+                        .background(colors.error.copy(alpha = 0.15f), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        Icons.Default.Delete,
+                        contentDescription = null,
+                        tint = colors.error,
+                        modifier = Modifier.size(28.dp)
+                    )
+                }
+            },
+            title = {
+                Text(
+                    text = stringResource(R.string.myrepos_delete_confirm_title),
+                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.titleLarge
+                )
+            },
+            text = {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Text(
+                        text = stringResource(R.string.myrepos_delete_confirm_description),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = colors.onSurfaceVariant
+                    )
+
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = colors.errorContainer.copy(alpha = 0.3f)
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(12.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Icon(
+                                    Icons.Default.Folder,
+                                    contentDescription = null,
+                                    tint = colors.error,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Text(
+                                    text = item.alias.ifBlank { item.path.substringAfterLast("/") },
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = colors.onSurface
+                                )
+                            }
+                            Text(
+                                text = item.path,
+                                style = MaterialTheme.typography.bodySmall,
+                                fontFamily = FontFamily.Monospace,
+                                color = colors.onSurfaceVariant
+                            )
+                        }
+                    }
+
+                    Text(
+                        text = stringResource(R.string.myrepos_delete_confirm_warning),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = colors.error,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showDialog = false
+                        onConfirm()
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = colors.error),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Icon(
+                        Icons.Default.Delete,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    Text(stringResource(R.string.action_delete))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    showDialog = false
+                    onDismiss()
+                }) {
+                    Text(stringResource(R.string.action_cancel))
+                }
+            },
+            shape = RoundedCornerShape(24.dp)
         )
     }
 }

@@ -14,6 +14,7 @@ interface MergeRepository {
     suspend fun getConflictStatus(repoPath: String): AppResult<ConflictResult>
     suspend fun markConflictResolved(repoPath: String, filePath: String): AppResult<Unit>
     suspend fun abortRebase(repoPath: String): AppResult<String>
+    suspend fun abortMerge(repoPath: String): AppResult<String>
     suspend fun clean(repoPath: String, dryRun: Boolean): AppResult<CleanResult>
     suspend fun checkPrePullStatus(repoPath: String): Result<PrePullCheckResult>
     suspend fun checkPrePushStatus(repoPath: String): Result<PrePushCheckResult>

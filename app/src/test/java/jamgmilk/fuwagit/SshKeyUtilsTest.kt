@@ -196,11 +196,7 @@ class SshKeyUtilsTest {
 
     @Test
     fun `validatePrivateKey rejects whitespace-only content`() {
-        val invalidKey = """
-            -----BEGIN OPENSSH PRIVATE KEY-----
-                   \t\n   
-            -----END OPENSSH PRIVATE KEY-----
-        """.trimIndent()
+        val invalidKey = "-----BEGIN OPENSSH PRIVATE KEY-----\n   \t  \n-----END OPENSSH PRIVATE KEY-----"
 
         try {
             validatePrivateKey(invalidKey)

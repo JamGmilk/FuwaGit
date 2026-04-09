@@ -1,6 +1,5 @@
 package jamgmilk.fuwagit.core.util
 
-import android.util.Log
 import jamgmilk.fuwagit.BuildConfig
 import java.io.ByteArrayOutputStream
 import java.io.DataOutputStream
@@ -28,23 +27,45 @@ import org.bouncycastle.util.io.pem.PemWriter
 
 private const val SSH_KEY_LOG_TAG = "SSH_KEY"
 
+private object SshLogger {
+    fun d(tag: String, message: String) {
+        try {
+            val logClass = Class.forName("android.util.Log")
+            val dMethod = logClass.getMethod("d", String::class.java, String::class.java)
+            dMethod.invoke(null, tag, message)
+        } catch (e: Exception) {
+            // Log not available, ignore
+        }
+    }
+    
+    fun e(tag: String, message: String, throwable: Throwable? = null) {
+        try {
+            val logClass = Class.forName("android.util.Log")
+            val eMethod = logClass.getMethod("e", String::class.java, String::class.java, Throwable::class.java)
+            eMethod.invoke(null, tag, message, throwable)
+        } catch (e: Exception) {
+            // Log not available, ignore
+        }
+    }
+}
+
 fun generateSshKeyPair(type: String, comment: String = ""): Pair<String, String> {
-    if (BuildConfig.DEBUG) Log.d(SSH_KEY_LOG_TAG, "Starting SSH key generation, type: $type, comment: $comment")
+    if (BuildConfig.DEBUG) SshLogger.d(SSH_KEY_LOG_TAG, "Starting SSH key generation, type: $type, comment: $comment")
     return try {
         when (type) {
             "RSA" -> {
-                if (BuildConfig.DEBUG) Log.d(SSH_KEY_LOG_TAG, "Generating RSA key pair...")
+                if (BuildConfig.DEBUG) SshLogger.d(SSH_KEY_LOG_TAG, "Generating RSA key pair...")
                 generateRsaKeyPair(comment)
             }
             else -> {
-                if (BuildConfig.DEBUG) Log.d(SSH_KEY_LOG_TAG, "Generating Ed25519 key pair...")
+                if (BuildConfig.DEBUG) SshLogger.d(SSH_KEY_LOG_TAG, "Generating Ed25519 key pair...")
                 generateEd25519KeyPair(comment)
             }
         }.also { result ->
-            if (BuildConfig.DEBUG) Log.d(SSH_KEY_LOG_TAG, "Key generation successful. PublicKey length: ${result.first.length}, PrivateKey length: ${result.second.length}")
+            if (BuildConfig.DEBUG) SshLogger.d(SSH_KEY_LOG_TAG, "Key generation successful. PublicKey length: ${result.first.length}, PrivateKey length: ${result.second.length}")
         }
     } catch (e: Exception) {
-        Log.e(SSH_KEY_LOG_TAG, "Key generation failed: ${e.javaClass.simpleName}: ${e.message}", e)
+        SshLogger.e(SSH_KEY_LOG_TAG, "Key generation failed: ${e.javaClass.simpleName}: ${e.message}", e)
         Pair("", "")
     }
 }
@@ -321,22 +342,18 @@ fun validatePrivateKey(privateKey: String): Pair<Boolean, String> {
         if (!hasBeginMarker || !hasEndMarker) {
             throw IllegalArgumentException("Invalid PEM format. Key must contain BEGIN and END markers")
         }
-        val keyContent = privateKey
-            .replace("-----BEGIN[\\s\\S]*?-----".toRegex(), "")
-            .replace("-----END[\\s\\S]*?-----".toRegex(), "")
-            .replace("\\s".toRegex(), "")
-        if (keyContent.isBlank()) {
-            throw IllegalArgumentException("Empty key content")
-        }
-        try {
-            Base64.getDecoder().decode(keyContent)
-        } catch (e: IllegalArgumentException) {
-            throw IllegalArgumentException("Invalid private key: ${e.message}")
-        }
         val keyType = detectSshKeyType(privateKey)
         if (keyType == "Unknown") {
             throw IllegalArgumentException("Unsupported key algorithm. Only RSA and Ed25519 are supported")
         }
+        val keyContent = privateKey
+            .replace("-----BEGIN.*-----".toRegex(), "")
+            .replace("-----END.*-----".toRegex(), "")
+            .replace("\\s".toRegex(), "")
+        if (keyContent.isBlank()) {
+            throw IllegalArgumentException("Empty key content")
+        }
+        Base64.getDecoder().decode(keyContent)
         return Pair(true, keyType)
     } catch (e: IllegalArgumentException) {
         throw e

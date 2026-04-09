@@ -1640,8 +1640,8 @@ private fun AppearanceSettingsCard(
     modifier: Modifier = Modifier
 ) {
     val colors = MaterialTheme.colorScheme
-    var showDarkModeMenu by remember { mutableStateOf(false) }
-    var showLanguageMenu by remember { mutableStateOf(false) }
+    var darkModeExpanded by rememberSaveable { mutableStateOf(false) }
+    var languageExpanded by rememberSaveable { mutableStateOf(false) }
 
     val darkModeLabel = when (darkMode) {
         "always_on" -> stringResource(R.string.settings_dark_mode_always_on)
@@ -1668,92 +1668,100 @@ private fun AppearanceSettingsCard(
                 color = colors.primary
             )
 
-            Box {
-                SettingsClickableItem(
-                    title = stringResource(R.string.settings_dark_mode),
-                    subtitle = darkModeLabel,
-                    icon = Icons.Default.DarkMode,
-                    onClick = { showDarkModeMenu = true }
-                )
-
-                DropdownMenu(
-                    expanded = showDarkModeMenu,
-                    onDismissRequest = { showDarkModeMenu = false }
+            ExpandableSettingsItem(
+                title = stringResource(R.string.settings_dark_mode),
+                subtitle = darkModeLabel,
+                icon = Icons.Default.DarkMode,
+                expanded = darkModeExpanded,
+                onExpandedChange = { darkModeExpanded = it }
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp)
+                        .padding(bottom = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    val options = listOf(
+                    val darkModeOptions = listOf(
                         "system" to stringResource(R.string.settings_dark_mode_system),
                         "always_on" to stringResource(R.string.settings_dark_mode_always_on),
                         "always_off" to stringResource(R.string.settings_dark_mode_always_off)
                     )
 
-                    options.forEach { (value, label) ->
-                        DropdownMenuItem(
-                            text = {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    RadioButton(
-                                        selected = darkMode == value,
-                                        onClick = {
-                                            onDarkModeChange(value)
-                                            showDarkModeMenu = false
-                                        }
-                                    )
-                                    Text(text = label)
+                    darkModeOptions.forEach { (value, label) ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    onDarkModeChange(value)
+                                    darkModeExpanded = false
                                 }
-                            },
-                            onClick = {
-                                onDarkModeChange(value)
-                                showDarkModeMenu = false
-                            }
-                        )
+                                .padding(vertical = 12.dp, horizontal = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            RadioButton(
+                                selected = darkMode == value,
+                                onClick = {
+                                    onDarkModeChange(value)
+                                    darkModeExpanded = false
+                                }
+                            )
+                            Spacer(Modifier.width(12.dp))
+                            Text(
+                                text = label,
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                        }
                     }
                 }
             }
 
             HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
 
-            Box {
-                SettingsClickableItem(
-                    title = stringResource(R.string.settings_language),
-                    subtitle = languageLabel,
-                    icon = Icons.Default.Language,
-                    onClick = { showLanguageMenu = true }
-                )
-
-                DropdownMenu(
-                    expanded = showLanguageMenu,
-                    onDismissRequest = { showLanguageMenu = false }
+            ExpandableSettingsItem(
+                title = stringResource(R.string.settings_language),
+                subtitle = languageLabel,
+                icon = Icons.Default.Language,
+                expanded = languageExpanded,
+                onExpandedChange = { languageExpanded = it }
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp)
+                        .padding(bottom = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    val options = listOf(
+                    val languageOptions = listOf(
                         "system" to stringResource(R.string.settings_language_system),
                         "zh_CN" to stringResource(R.string.settings_language_zh_cn),
                         "en" to stringResource(R.string.settings_language_en)
                     )
 
-                    options.forEach { (value, label) ->
-                        DropdownMenuItem(
-                            text = {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    RadioButton(
-                                        selected = language == value,
-                                        onClick = {
-                                            onLanguageChange(value)
-                                            showLanguageMenu = false
-                                        }
-                                    )
-                                    Text(text = label)
+                    languageOptions.forEach { (value, label) ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    onLanguageChange(value)
+                                    languageExpanded = false
                                 }
-                            },
-                            onClick = {
-                                onLanguageChange(value)
-                                showLanguageMenu = false
-                            }
-                        )
+                                .padding(vertical = 12.dp, horizontal = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            RadioButton(
+                                selected = language == value,
+                                onClick = {
+                                    onLanguageChange(value)
+                                    languageExpanded = false
+                                }
+                            )
+                            Spacer(Modifier.width(12.dp))
+                            Text(
+                                text = label,
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                        }
                     }
                 }
             }

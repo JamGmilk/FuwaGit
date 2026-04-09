@@ -25,9 +25,23 @@ class JGitRemoteDataSource @Inject constructor(
         options: CloneOptions
     ): Result<String> {
         return try {
+            val targetDir = java.io.File(localPath)
+
+            if (targetDir.exists() && targetDir.isDirectory) {
+                val files = targetDir.listFiles()
+                if (!files.isNullOrEmpty()) {
+                    val hasGitDir = files.any { it.name == ".git" }
+                    if (hasGitDir) {
+                        throw Exception("Target directory already contains a Git repository. Choose a different directory or remove the existing repository first.")
+                    } else {
+                        throw Exception("Target directory is not empty. Choose a different directory or remove existing files first.")
+                    }
+                }
+            }
+
             val cloneCommand = Git.cloneRepository()
                 .setURI(uri)
-                .setDirectory(java.io.File(localPath))
+                .setDirectory(targetDir)
                 .setCloneAllBranches(options.cloneAllBranches)
 
             if (options.depth != null && options.depth > 0) {
@@ -57,9 +71,9 @@ class JGitRemoteDataSource @Inject constructor(
     /**
      * Pulls changes from the remote repository.
      */
-    override fun pull(repoPath: String, credentials: CloneCredential?): Result<PullResult> =
-        core.withGit(repoPath) { git ->
-            try {
+    override fun pull(repoPath: String, credentials: CloneCredential?): Result<PullResult> {
+        return try {
+            core.withGit(repoPath) { git ->
                 val status = git.status().call()
                 val gitDir = git.repository.directory
 
@@ -83,7 +97,7 @@ class JGitRemoteDataSource @Inject constructor(
                     throw Exception("Cannot pull: you have unresolved merge conflicts. Resolve them first.")
                 }
 
-                if (status.hasUncommittedChanges() && status.staged.isNotEmpty()) {
+                if (status.hasUncommittedChanges() && (status.added.isNotEmpty() || status.changed.isNotEmpty() || status.removed.isNotEmpty())) {
                     throw Exception("Cannot pull: you have staged changes that would be overwritten by merge. Commit or unstage them first.")
                 }
 
@@ -133,11 +147,7 @@ class JGitRemoteDataSource @Inject constructor(
                             else -> RebaseStatus.UNKNOWN
                         },
                         commitCount = 0,
-                        conflicts = if (rebase.conflictingPaths.isNotEmpty()) {
-                            rebase.conflictingPaths.toList()
-                        } else {
-                            emptyList()
-                        }
+                        conflicts = emptyList()
                     )
                 }
 
@@ -169,12 +179,11 @@ class JGitRemoteDataSource @Inject constructor(
                     hasConflicts = mergeResultInfo?.mergeStatus == MergeStatus.CONFLICTING || conflictFiles.isNotEmpty(),
                     detailMessage = detailMessage
                 )
-            } catch (e: Exception) {
-                return@withGit Result.failure(Exception("Pull failed: ${e.message}"))
-            } finally {
-                core.clearSshCredentials()
             }
+        } finally {
+            core.clearSshCredentials()
         }
+    }
 
     /**
      * Pushes changes to the remote repository.

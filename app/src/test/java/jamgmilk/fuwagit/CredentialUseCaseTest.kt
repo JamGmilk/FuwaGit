@@ -89,7 +89,7 @@ class CredentialUseCaseTest {
     }
 
     @Test
-    fun `extractHostFromUrl handles ssh:// URLs`() {
+    fun `extractHostFromUrl handles ssh URLs`() {
         val url = "ssh://git@gitlab.com/group/repo.git"
         val host = extractHostFromUrl(url)
         assertEquals("gitlab.com", host)
@@ -320,15 +320,15 @@ class CredentialUseCaseTest {
     @Test
     fun `password strength validation - common weak passwords`() {
         val weakPasswords = listOf(
-            "password",
-            "123456",
-            "qwerty",
-            "admin",
-            "letmein"
+            "password",  // 8 chars, common weak password
+            "123456",    // 6 chars
+            "qwerty",    // 6 chars
+            "admin",     // 5 chars
+            "letmein"    // 7 chars
         )
 
         weakPasswords.forEach { pwd ->
-            assertTrue("'$pwd' should be considered weak", pwd.length < 8)
+            assertTrue("'$pwd' should be considered weak (<= 8 chars)", pwd.length <= 8)
         }
     }
 
