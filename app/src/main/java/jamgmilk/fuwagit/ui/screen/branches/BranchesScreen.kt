@@ -54,17 +54,14 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -89,14 +86,13 @@ import jamgmilk.fuwagit.ui.screen.tags.TagsContent
 import jamgmilk.fuwagit.ui.screen.tags.TagsDialogs
 import jamgmilk.fuwagit.ui.screen.tags.TagsViewModel
 import jamgmilk.fuwagit.ui.theme.AppShapes
-import jamgmilk.fuwagit.ui.util.ViewModelMessagesMapper
 
 
 @Composable
 fun BranchesScreen(
     branchesViewModel: BranchesViewModel,
-    tagsViewModel: TagsViewModel? = null,
     modifier: Modifier = Modifier,
+    tagsViewModel: TagsViewModel? = null,
     onCreateTag: ((String) -> Unit)? = null,
     onShowInHistory: ((String) -> Unit)? = null
 ) {
@@ -115,9 +111,8 @@ fun BranchesScreen(
 
     ScreenTemplate(
         title = stringResource(R.string.screen_branches),
-        modifier = modifier,
+        modifier = modifier.fillMaxSize(),
         actions = {
-            // 分支/标签视图切换
             if (tagsViewModel != null) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     FilterChip(
@@ -134,20 +129,18 @@ fun BranchesScreen(
             }
         }
     ) {
-        ElevatedCard(
+        Surface(
             modifier = Modifier
                 .fillMaxWidth()
                 .weight(1f)
-                .border(1.dp, colors.outlineVariant, AppShapes.medium),
+                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, AppShapes.medium),
             shape = AppShapes.medium,
-            colors = CardDefaults.elevatedCardColors(containerColor = colors.surfaceContainerLow),
-            elevation = CardDefaults.elevatedCardElevation(0.dp)
+            color = MaterialTheme.colorScheme.surfaceContainerLow
         ) {
             if (showTagsView && tagsViewModel != null) {
                 TagsContent(tagsViewModel = tagsViewModel)
             } else {
                 Column {
-                    // Branches 操作栏（刷新 + 创建）
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -599,7 +592,6 @@ private fun BranchItem(
     val colors = MaterialTheme.colorScheme
     val context = LocalContext.current
 
-    // ✅ 直接调用 stringResource，Compose 会自动缓存
     val strings = BranchItemStrings(
         mergeOnlyLocal = stringResource(R.string.branches_merge_only_local),
         rebaseOnlyLocal = stringResource(R.string.branches_rebase_only_local),
