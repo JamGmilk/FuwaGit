@@ -157,6 +157,8 @@ class SecureCredentialStore @Inject constructor(
     }
 
     suspend fun getCachedMasterKey(): SecretKey? {
+        val sessionTimeout = getSessionTimeoutMillis()
+        
         return synchronized(sessionLock) {
             val key = cachedMasterKey
 
@@ -166,7 +168,6 @@ class SecureCredentialStore @Inject constructor(
                 return@synchronized null
             }
 
-            val sessionTimeout = getSessionTimeoutMillis()
             val biometricTimeout = if (isBiometricSession) BIOMETRIC_MAX_SESSION_MILLIS else 0L
 
             val effectiveTimeout = when {
@@ -201,6 +202,8 @@ class SecureCredentialStore @Inject constructor(
     }
 
     suspend fun isSessionValid(): Boolean {
+        val sessionTimeout = getSessionTimeoutMillis()
+        
         return synchronized(sessionLock) {
             val key = cachedMasterKey
 
@@ -209,7 +212,6 @@ class SecureCredentialStore @Inject constructor(
                 return@synchronized false
             }
 
-            val sessionTimeout = getSessionTimeoutMillis()
             val biometricTimeout = if (isBiometricSession) BIOMETRIC_MAX_SESSION_MILLIS else 0L
 
             val effectiveTimeout = when {

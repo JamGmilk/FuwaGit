@@ -79,13 +79,16 @@ class JGitCoreDataSource @Inject constructor(
                 .setMustExist(false)
                 .build().use { repository ->
                     repository.create()
-                    
-                    // 设置默认分支名称（在创建初始提交之前，HEAD 指向不存在的分支是正常的）
-                    // 通过直接设置 HEAD 引用来指定默认分支名称
+
+                    // 设置默认分支名称
+                    // 注意：在创建初始提交之前，HEAD 会指向一个不存在的分支 ref:refs/heads/<branch>
+                    // 这是 Git 的正常行为。在进行任何 Git 操作之前，
+                    // 用户必须先通过 git commit 创建第一个提交来真正创建这个分支。
+                    // 否则，尝试引用该分支的操作可能会失败或产生意外结果。
                     val headFile = File(repository.directory, "HEAD")
                     headFile.writeText("ref: refs/heads/$branchName\n")
-                    
-                    if (BuildConfig.DEBUG) Log.d(TAG, "Repository initialized with default branch: $branchName")
+
+                    if (BuildConfig.DEBUG) Log.d(TAG, "Repository initialized with default branch: $branchName. Remember to create an initial commit!")
                 }
 
             Result.success("Repository initialized at $repoPath")
@@ -175,6 +178,31 @@ class JGitCoreDataSource @Inject constructor(
                 isLocked = true,
                 lockType = LockType.BISECT_IN_PROGRESS,
                 message = "A bisect session is in progress. Complete or abort it first."
+            )
+        }
+
+        if (File(gitDir, "COMMIT_EDITMSG").exists()) {
+            return RepositoryLockStatus(
+                isLocked = true,
+                lockType = LockType.COMMIT_IN_PROGRESS,
+                message = "A commit message is being edited. Complete or cancel the commit first."
+            )
+        }
+
+        if (File(gitDir, "PATCH_HEADER").exists() || File(gitDir, " sequencer").exists()) {
+            return RepositoryLockStatus(
+                isLocked = true,
+                lockType = LockType.PATCH_APPLY_IN_PROGRESS,
+                message = "A patch is being applied. Complete or abort the operation first."
+            )
+        }
+
+        if (File(gitDir, "rebase-apply Sequencing").exists() ||
+            File(gitDir, "rebase-merge Sequencing").exists()) {
+            return RepositoryLockStatus(
+                isLocked = true,
+                lockType = LockType.REBASE_SEQUENCE_IN_PROGRESS,
+                message = "A rebase sequence is in progress (e.g., exec, label, reset). Complete or abort the rebase first."
             )
         }
 

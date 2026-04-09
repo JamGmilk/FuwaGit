@@ -207,7 +207,7 @@ private fun CommitTimelineItem(
     var expanded by remember { mutableStateOf(false) }
     val colors = MaterialTheme.colorScheme
     val timeFmt = remember { SimpleDateFormat("MMM dd, HH:mm", Locale.getDefault()) }
-    val relativeTime by remember(commit.timestamp) { formatRelativeTime(commit.timestamp) }
+    val relativeTime = formatRelativeTime(commit.timestamp)
 
     val branchColors = listOf(
             colors.primary,

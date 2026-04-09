@@ -148,34 +148,33 @@ class JGitDiffDataSource @Inject constructor(
                 file.readText()
             } else {
                 // 读取提交中的文件
-                val revWalk = RevWalk(repository)
-                val commit = revWalk.parseCommit(repository.resolve(commitHash))
-                val tree = commit.tree
+                RevWalk(repository).use { revWalk ->
+                    val commit = revWalk.parseCommit(repository.resolve(commitHash))
+                    val tree = commit.tree
 
-                val treeWalk = TreeWalk(repository)
-                treeWalk.addTree(tree)
-                treeWalk.isRecursive = true
+                    TreeWalk(repository).use { treeWalk ->
+                        treeWalk.addTree(tree)
+                        treeWalk.isRecursive = true
 
-                var found = false
-                var content: String? = null
-                while (treeWalk.next()) {
-                    if (treeWalk.pathString == filePath) {
-                        val objectId = treeWalk.getObjectId(0)
-                        val loader = repository.open(objectId)
-                        content = String(loader.bytes)
-                        found = true
-                        break
+                        var found = false
+                        var content: String? = null
+                        while (treeWalk.next()) {
+                            if (treeWalk.pathString == filePath) {
+                                val objectId = treeWalk.getObjectId(0)
+                                val loader = repository.open(objectId)
+                                content = String(loader.bytes)
+                                found = true
+                                break
+                            }
+                        }
+
+                        if (!found) {
+                            throw IllegalArgumentException("File not found in commit: $filePath")
+                        }
+
+                        content!!
                     }
                 }
-
-                treeWalk.close()
-                revWalk.close()
-
-                if (!found) {
-                    throw IllegalArgumentException("File not found in commit: $filePath")
-                }
-
-                content!!
             }
         }
 
@@ -491,12 +490,12 @@ class JGitDiffDataSource @Inject constructor(
                 val newStart = hunkLines.firstOrNull { it.newLineNumber != null }?.newLineNumber ?: 0
 
                 val hunk = DiffHunk(
-                    header = "@@ -$oldStart,${hunkLines.count { it.oldLineNumber != null || it.lineType != DiffLineType.Added }} +$newStart,${hunkLines.count { it.newLineNumber != null || it.lineType != DiffLineType.Deleted }} @@",
+                    header = "@@ -$oldStart,${hunkLines.count { it.oldLineNumber != null }} +$newStart,${hunkLines.count { it.newLineNumber != null }} @@",
                     lines = hunkLines,
                     oldStart = oldStart,
-                    oldCount = hunkLines.count { it.oldLineNumber != null || it.lineType != DiffLineType.Added },
+                    oldCount = hunkLines.count { it.oldLineNumber != null },
                     newStart = newStart,
-                    newCount = hunkLines.count { it.newLineNumber != null || it.lineType != DiffLineType.Deleted }
+                    newCount = hunkLines.count { it.newLineNumber != null }
                 )
                 hunks.add(hunk)
 

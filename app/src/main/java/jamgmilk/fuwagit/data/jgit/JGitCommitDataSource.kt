@@ -124,36 +124,40 @@ class JGitCommitDataSource @Inject constructor(
                     } else {
                         // 初始提交 - 所有文件都是新增
                         val walk = org.eclipse.jgit.treewalk.TreeWalk(repository)
-                        walk.addTree(tree)
-                        walk.isRecursive = true
-                        while (walk.next()) {
-                            val path = walk.pathString
-                            try {
-                                val objectId = walk.getObjectId(0)
-                                val loader = repository.open(objectId)
-                                val lineCount = String(loader.bytes).lines().size
-                                totalAdditions += lineCount
+                        try {
+                            walk.addTree(tree)
+                            walk.isRecursive = true
+                            while (walk.next()) {
+                                val path = walk.pathString
+                                try {
+                                    val objectId = walk.getObjectId(0)
+                                    val loader = repository.open(objectId)
+                                    val lineCount = String(loader.bytes).lines().size
+                                    totalAdditions += lineCount
 
-                                fileChanges.add(
-                                    GitCommitFileChange(
-                                        path = path,
-                                        name = java.io.File(path).name,
-                                        changeType = GitChangeType.Added,
-                                        additions = lineCount,
-                                        deletions = 0
+                                    fileChanges.add(
+                                        GitCommitFileChange(
+                                            path = path,
+                                            name = java.io.File(path).name,
+                                            changeType = GitChangeType.Added,
+                                            additions = lineCount,
+                                            deletions = 0
+                                        )
                                     )
-                                )
-                            } catch (e: Exception) {
-                                fileChanges.add(
-                                    GitCommitFileChange(
-                                        path = path,
-                                        name = java.io.File(path).name,
-                                        changeType = GitChangeType.Added,
-                                        additions = 0,
-                                        deletions = 0
+                                } catch (e: Exception) {
+                                    fileChanges.add(
+                                        GitCommitFileChange(
+                                            path = path,
+                                            name = java.io.File(path).name,
+                                            changeType = GitChangeType.Added,
+                                            additions = 0,
+                                            deletions = 0
+                                        )
                                     )
-                                )
+                                }
                             }
+                        } finally {
+                            walk.close()
                         }
                     }
                 } finally {

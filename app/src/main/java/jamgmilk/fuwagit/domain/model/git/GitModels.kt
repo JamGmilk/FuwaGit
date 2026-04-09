@@ -21,6 +21,49 @@ data class GitCommit(
     val parentHashes: List<String> = emptyList()
 ) {
     val isMerge: Boolean get() = parentHashes.size > 1
+
+    val shortMessage: String get() = message.lineSequence().firstOrNull()?.take(72) ?: ""
+
+    val relativeTime: String get() {
+        val now = System.currentTimeMillis()
+        val diff = now - timestamp
+        val seconds = diff / 1000
+        val minutes = seconds / 60
+        val hours = minutes / 60
+        val days = hours / 24
+        val weeks = days / 7
+        val months = days / 30
+        val years = days / 365
+
+        return when {
+            seconds < 60 -> "just now"
+            minutes < 60 -> "${minutes}m ago"
+            hours < 24 -> "${hours}h ago"
+            days < 7 -> "${days}d ago"
+            weeks < 4 -> "${weeks}w ago"
+            months < 12 -> "${months}mo ago"
+            else -> "${years}y ago"
+        }
+    }
+
+    val formattedTimestamp: String get() {
+        val sdf = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm", java.util.Locale.getDefault())
+        return sdf.format(java.util.Date(timestamp))
+    }
+
+    val authorDisplayName: String get() {
+        val name = authorName.trim()
+        if (name.contains(" ") && !name.contains("<")) {
+            return name.substringBefore(" ") + " " + name.substringAfter(" ").take(1) + "."
+        }
+        return name.substringBefore("<").trim().ifEmpty { authorEmail.substringBefore("@") }
+    }
+
+    val isInitialCommit: Boolean get() = parentHashes.isEmpty()
+
+    val parentCount: Int get() = parentHashes.size
+
+    val primaryParentHash: String? get() = parentHashes.firstOrNull()
 }
 
 /**

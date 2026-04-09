@@ -592,12 +592,12 @@ private fun BranchItem(
     val context = LocalContext.current
 
     // Pre-fetch strings for use in non-composable contexts (onClick lambdas)
-    val strMergeOnlyLocal by rememberSaveable { stringResource(R.string.branches_merge_only_local) }
-    val strRebaseOnlyLocal by rememberSaveable { stringResource(R.string.branches_rebase_only_local) }
-    val strDeleteOnlyLocal by rememberSaveable { stringResource(R.string.branches_delete_only_local) }
-    val strRenameOnlyLocal by rememberSaveable { stringResource(R.string.branches_rename_only_local) }
-    val strNameCopied by rememberSaveable { stringResource(R.string.branches_name_copied) }
-    val strBranchNameClipboard by rememberSaveable { stringResource(R.string.branches_branch_name_clipboard) }
+    val strMergeOnlyLocal = stringResource(R.string.branches_merge_only_local)
+    val strRebaseOnlyLocal = stringResource(R.string.branches_rebase_only_local)
+    val strDeleteOnlyLocal = stringResource(R.string.branches_delete_only_local)
+    val strRenameOnlyLocal = stringResource(R.string.branches_rename_only_local)
+    val strNameCopied = stringResource(R.string.branches_name_copied)
+    val strBranchNameClipboard = stringResource(R.string.branches_branch_name_clipboard)
 
     val accentColor = if (isRemote) colors.secondary else colors.primary
 

@@ -534,7 +534,7 @@ private fun TagItem(
 
                 // 时间戳
                 if (tag.timestamp != null) {
-                    val dateString by remember(tag.timestamp) {
+                    val dateString = remember(tag.timestamp) {
                         SimpleDateFormat("MMM dd, yyyy HH:mm", Locale.getDefault())
                             .format(Date(tag.timestamp))
                     }
