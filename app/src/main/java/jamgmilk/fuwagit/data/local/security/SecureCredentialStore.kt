@@ -71,6 +71,8 @@ class SecureCredentialStore @Inject constructor(
     /**
      * Gets the session timeout in milliseconds from user preferences.
      * Returns 0 if auto-lock is disabled, or the configured timeout value otherwise.
+     * Negative values are treated as disabled (0).
+     * Minimum timeout is 30 seconds, maximum is 24 hours.
      */
     private suspend fun getSessionTimeoutMillis(): Long {
         val timeoutSeconds = appPreferencesStore.preferencesFlow
@@ -78,7 +80,15 @@ class SecureCredentialStore @Inject constructor(
             .autoLockTimeout
             .toLongOrNull() ?: 300L
 
-        return if (timeoutSeconds == 0L) 0L else timeoutSeconds * 1000L
+        val validTimeout = when {
+            timeoutSeconds < 0 -> 0L
+            timeoutSeconds == 0L -> 0L
+            timeoutSeconds < 30 -> 30L
+            timeoutSeconds > 86400 -> 86400L
+            else -> timeoutSeconds
+        }
+
+        return if (validTimeout == 0L) 0L else validTimeout * 1000L
     }
 
     fun loadCredentialData(): CredentialData {

@@ -260,8 +260,8 @@ class CredentialStoreViewModel @Inject constructor(
             _uiState.update { it.copy(changePasswordError = "Passwords do not match") }
             return
         }
-        if (newPassword.length < 8) {
-            _uiState.update { it.copy(changePasswordError = "New password must be at least 8 characters") }
+        if (newPassword.length < 6) {
+            _uiState.update { it.copy(changePasswordError = "New password must be at least 6 characters") }
             return
         }
 
