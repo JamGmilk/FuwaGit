@@ -132,6 +132,9 @@ fun AddRepositoryScreen(
     val context = LocalContext.current
     // val scope = rememberCoroutineScope()
     var selectedTab by remember { mutableStateOf<AddRepoTab>(AddRepoTab.Clone) }
+    
+    // Pre-fetch strings for use in non-composable contexts
+    val strRepositoryAdded = stringResource(R.string.myrepos_repository_added)
 
     SubSettingsTemplate(
         title = stringResource(R.string.add_repo_screen_title),
@@ -167,7 +170,7 @@ fun AddRepositoryScreen(
                             onAddRepository = { path, alias ->
                                 onAddRepository(path, alias)
                                 // TODO: Toast 不好看啊
-                                Toast.makeText(context, context.getString(R.string.myrepos_repository_added), Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, strRepositoryAdded, Toast.LENGTH_SHORT).show()
                             }
                         )
                     }

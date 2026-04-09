@@ -38,6 +38,10 @@ fun TagDetailDialog(
 ) {
     val colors = MaterialTheme.colorScheme
     val context = LocalContext.current
+    
+    // Pre-fetch strings for use in non-composable contexts
+    val strTagNameLabel = stringResource(R.string.tags_tag_name_label)
+    val strTagNameCopied = stringResource(R.string.tags_tag_name_copied)
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -102,11 +106,9 @@ fun TagDetailDialog(
             Button(
                 onClick = {
                     val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                    val nameLabel = context.getString(R.string.tags_tag_name_label)
-                    val copiedMsg = context.getString(R.string.tags_tag_name_copied)
-                    val clip = ClipData.newPlainText(nameLabel, tag.name)
+                    val clip = ClipData.newPlainText(strTagNameLabel, tag.name)
                     clipboard.setPrimaryClip(clip)
-                    Toast.makeText(context, copiedMsg, Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, strTagNameCopied, Toast.LENGTH_SHORT).show()
                 },
                 colors = ButtonDefaults.buttonColors(containerColor = colors.primary),
                 shape = RoundedCornerShape(12.dp)

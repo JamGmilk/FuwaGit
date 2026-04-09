@@ -28,3 +28,20 @@
 -keep class org.eclipse.jgit.api.** { *; }
 -keep class org.eclipse.jgit.lib.** { *; }
 -keep class org.eclipse.jgit.transport.** { *; }
+
+# Keep missing classes for R8
+-keep class com.google.errorprone.annotations.** { *; }
+-keep class java.lang.ProcessHandle { *; }
+-keep class java.lang.management.ManagementFactory { *; }
+-keep class javax.management.** { *; }
+-keep class org.ietf.jgss.** { *; }
+-keep class org.slf4j.impl.StaticLoggerBinder { *; }
+
+# Don't warn about missing platform classes
+-dontwarn com.google.errorprone.annotations.**
+-dontwarn java.lang.ProcessHandle
+-dontwarn java.lang.management.ManagementFactory
+-dontwarn javax.management.**
+-dontwarn org.ietf.jgss.**
+-dontwarn org.slf4j.impl.StaticLoggerBinder
+

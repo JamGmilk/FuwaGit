@@ -24,6 +24,7 @@ import jamgmilk.fuwagit.domain.model.credential.HttpsCredential
 import jamgmilk.fuwagit.domain.model.credential.SshKey
 import jamgmilk.fuwagit.ui.components.SubSettingsTemplate
 import kotlinx.coroutines.launch
+import androidx.compose.ui.res.stringResource
 
 private sealed class CredentialDialogState {
     data object None : CredentialDialogState()
@@ -46,6 +47,9 @@ fun CredentialScreen(
     val activity = context as? FragmentActivity
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { androidx.compose.material3.SnackbarHostState() }
+    
+    // Pre-fetch strings for use in non-composable contexts
+    val strErrorImportingKey = stringResource(R.string.credentials_error_importing_key, "")
 
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
@@ -214,7 +218,7 @@ fun CredentialScreen(
                         } catch (e: Exception) {
                             scope.launch {
                                 snackbarHostState.showSnackbar(
-                                    context.getString(R.string.credentials_error_importing_key, e.message)
+                                    strErrorImportingKey.replace("{}", e.message ?: "")
                                 )
                             }
                         }

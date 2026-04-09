@@ -299,6 +299,10 @@ fun ImportSshKeyDialog(
     var showPrivateKey by remember { mutableStateOf(false) }
     var showPassphrase by remember { mutableStateOf(false) }
     var validationError by remember { mutableStateOf<String?>(null) }
+    
+    // Pre-fetch strings for use in non-composable contexts (onClick lambdas)
+    val strInvalidPrivateKey = stringResource(R.string.credentials_invalid_private_key, "")
+    val strInvalidPrivateKeyWithMsg = stringResource(R.string.credentials_invalid_private_key, "")
 
     Box(modifier = Modifier.pointerInput(Unit) {
         detectTapGestures(onTap = { focusManager.clearFocus() })
@@ -398,9 +402,9 @@ fun ImportSshKeyDialog(
                             onImport(name, privateKey, publicKey.ifBlank { null }, passphrase.ifBlank { null })
                         }
                     } catch (e: IllegalArgumentException) {
-                        validationError = e.message ?: context.getString(R.string.credentials_invalid_private_key, "")
+                        validationError = e.message ?: strInvalidPrivateKey
                     } catch (e: Exception) {
-                        validationError = context.getString(R.string.credentials_invalid_private_key, e.message ?: "")
+                        validationError = strInvalidPrivateKeyWithMsg.replace("{}", e.message ?: "")
                     }
                 },
                 enabled = name.isNotBlank() && privateKey.isNotBlank(),

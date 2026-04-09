@@ -12,7 +12,6 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import java.io.File
-import java.lang.ref.WeakReference
 import java.nio.charset.StandardCharsets
 import javax.crypto.Cipher
 import javax.crypto.SecretKey
@@ -31,6 +30,7 @@ class SecureCredentialStore @Inject constructor(
         private const val ENCRYPTED_MARKER = "ENC:AES_GCM:"
         private const val GCM_TAG_LENGTH = 128
         private const val GCM_IV_LENGTH = 12
+        private const val BIOMETRIC_MAX_SESSION_MILLIS = 24 * 60 * 60 * 1000L
     }
 
     private val json = Json {
@@ -63,8 +63,10 @@ class SecureCredentialStore @Inject constructor(
         }
     }
 
-    private var cachedMasterKey: WeakReference<SecretKey>? = null
+    private var cachedMasterKey: SecretKey? = null
     private var lastUnlockTime: Long = 0
+    private var isBiometricSession: Boolean = false
+    private val sessionLock = Any()
 
     /**
      * Gets the session timeout in milliseconds from user preferences.
@@ -72,10 +74,10 @@ class SecureCredentialStore @Inject constructor(
      */
     private suspend fun getSessionTimeoutMillis(): Long {
         val timeoutSeconds = appPreferencesStore.preferencesFlow
-            .first { true } // Get the current value
+            .first { true }
             .autoLockTimeout
-            .toLongOrNull() ?: 300L // Default to 5 minutes if invalid
-        
+            .toLongOrNull() ?: 300L
+
         return if (timeoutSeconds == 0L) 0L else timeoutSeconds * 1000L
     }
 
@@ -127,33 +129,111 @@ class SecureCredentialStore @Inject constructor(
     }
 
     fun cacheMasterKey(key: SecretKey) {
-        cachedMasterKey = WeakReference(key)
-        lastUnlockTime = System.currentTimeMillis()
+        synchronized(sessionLock) {
+            secureClearCachedKey()
+            cachedMasterKey = key
+            lastUnlockTime = System.currentTimeMillis()
+            isBiometricSession = false
+        }
+    }
+
+    fun cacheMasterKeyFromBiometric(key: SecretKey) {
+        synchronized(sessionLock) {
+            secureClearCachedKey()
+            cachedMasterKey = key
+            lastUnlockTime = System.currentTimeMillis()
+            isBiometricSession = true
+        }
+    }
+
+    private fun secureClearCachedKey() {
+        cachedMasterKey?.let { key ->
+            val keyBytes = key.encoded
+            if (keyBytes != null) {
+                java.util.Arrays.fill(keyBytes, 0.toByte())
+            }
+        }
+        cachedMasterKey = null
     }
 
     suspend fun getCachedMasterKey(): SecretKey? {
-        val key = cachedMasterKey?.get()
-        val sessionTimeout = getSessionTimeoutMillis()
-        
-        // If timeout is 0, session never expires
-        if (key != null && (sessionTimeout == 0L || System.currentTimeMillis() - lastUnlockTime < sessionTimeout)) {
-            return key
+        return synchronized(sessionLock) {
+            val key = cachedMasterKey
+
+            if (key == null) {
+                lastUnlockTime = 0
+                isBiometricSession = false
+                return@synchronized null
+            }
+
+            val sessionTimeout = getSessionTimeoutMillis()
+            val biometricTimeout = if (isBiometricSession) BIOMETRIC_MAX_SESSION_MILLIS else 0L
+
+            val effectiveTimeout = when {
+                sessionTimeout == 0L && biometricTimeout == 0L -> 0L
+                sessionTimeout == 0L -> biometricTimeout
+                biometricTimeout == 0L -> sessionTimeout
+                else -> minOf(sessionTimeout, biometricTimeout)
+            }
+
+            if (effectiveTimeout == 0L) {
+                return@synchronized key
+            }
+
+            val elapsed = System.currentTimeMillis() - lastUnlockTime
+            if (elapsed < effectiveTimeout) {
+                return@synchronized key
+            }
+
+            secureClearCachedKey()
+            lastUnlockTime = 0
+            isBiometricSession = false
+            null
         }
-        cachedMasterKey = null
-        return null
     }
 
     fun clearCachedMasterKey() {
-        cachedMasterKey = null
-        lastUnlockTime = 0
+        synchronized(sessionLock) {
+            secureClearCachedKey()
+            lastUnlockTime = 0
+            isBiometricSession = false
+        }
     }
 
     suspend fun isSessionValid(): Boolean {
-        val key = cachedMasterKey?.get()
-        val sessionTimeout = getSessionTimeoutMillis()
-        
-        // If timeout is 0, session never expires
-        return key != null && (sessionTimeout == 0L || System.currentTimeMillis() - lastUnlockTime < sessionTimeout)
+        return synchronized(sessionLock) {
+            val key = cachedMasterKey
+
+            if (key == null) {
+                isBiometricSession = false
+                return@synchronized false
+            }
+
+            val sessionTimeout = getSessionTimeoutMillis()
+            val biometricTimeout = if (isBiometricSession) BIOMETRIC_MAX_SESSION_MILLIS else 0L
+
+            val effectiveTimeout = when {
+                sessionTimeout == 0L && biometricTimeout == 0L -> 0L
+                sessionTimeout == 0L -> biometricTimeout
+                biometricTimeout == 0L -> sessionTimeout
+                else -> minOf(sessionTimeout, biometricTimeout)
+            }
+
+            if (effectiveTimeout == 0L) {
+                return@synchronized true
+            }
+
+            val elapsed = System.currentTimeMillis() - lastUnlockTime
+            val isValid = elapsed < effectiveTimeout
+
+            if (!isValid) {
+                secureClearCachedKey()
+                lastUnlockTime = 0
+                isBiometricSession = false
+            }
+
+            isValid
+        }
     }
 
     suspend fun getCredentialDataWithDecryptedSecrets(masterKey: SecretKey): CredentialData {
@@ -325,16 +405,38 @@ class SecureCredentialStore @Inject constructor(
     }
 
     private fun decryptAllSecrets(data: CredentialData, masterKey: SecretKey): CredentialData {
-        return data.copy(
-            https_credentials = data.https_credentials.map { cred ->
-                cred.copy(password = decryptField(cred.password, masterKey) ?: "DECRYPTION_FAILED")
-            },
-            ssh_keys = data.ssh_keys.map { key ->
-                key.copy(
-                    private_key = decryptField(key.private_key, masterKey) ?: "DECRYPTION_FAILED",
-                    passphrase = key.passphrase?.let { decryptField(it, masterKey) }
-                )
+        val failedCredentials = mutableListOf<String>()
+        val failedKeys = mutableListOf<String>()
+
+        val decryptedCredentials = data.https_credentials.map { cred ->
+            val decryptedPassword = decryptField(cred.password, masterKey)
+            if (decryptedPassword == null) {
+                failedCredentials.add(cred.uuid)
             }
+            cred.copy(password = decryptedPassword ?: cred.password)
+        }
+
+        val decryptedKeys = data.ssh_keys.map { key ->
+            val decryptedPrivateKey = decryptField(key.private_key, masterKey)
+            val decryptedPassphrase = key.passphrase?.let { decryptField(it, masterKey) }
+            if (decryptedPrivateKey == null) {
+                failedKeys.add(key.uuid)
+            }
+            key.copy(
+                private_key = decryptedPrivateKey ?: key.private_key,
+                passphrase = decryptedPassphrase ?: key.passphrase
+            )
+        }
+
+        if (failedCredentials.isNotEmpty() || failedKeys.isNotEmpty()) {
+            throw jamgmilk.fuwagit.core.result.AppException.DecryptionFailed(
+                "Decryption failed for credentials: $failedCredentials, ssh_keys: $failedKeys"
+            )
+        }
+
+        return data.copy(
+            https_credentials = decryptedCredentials,
+            ssh_keys = decryptedKeys
         )
     }
 

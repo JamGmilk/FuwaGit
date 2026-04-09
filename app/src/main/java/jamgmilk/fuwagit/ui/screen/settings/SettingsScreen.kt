@@ -70,6 +70,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -87,6 +88,7 @@ import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -121,6 +123,7 @@ fun SettingsScreen(
     credentialsViewModel: CredentialStoreViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
+    val resources = LocalResources.current
     val activity = context as? FragmentActivity
     val settingsUiState by settingsViewModel.uiState.collectAsStateWithLifecycle()
     val credentialsUiState by credentialsViewModel.uiState.collectAsStateWithLifecycle()
@@ -128,6 +131,8 @@ fun SettingsScreen(
 
     var showFilePicker by rememberSaveable { mutableStateOf(false) }
     var pendingBiometricEnable by rememberSaveable { mutableStateOf(false) }
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
 
     // Re-initialize credentials state when screen comes into focus
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -151,7 +156,7 @@ fun SettingsScreen(
     LaunchedEffect(credentialsUiState.error) {
         credentialsUiState.error?.let {
             val messageResId = ViewModelMessagesMapper.mapMessageToResource(it)
-            val message = context.getString(messageResId)
+            val message = resources.getString(messageResId)
             android.widget.Toast.makeText(context, message, android.widget.Toast.LENGTH_SHORT).show()
             credentialsViewModel.clearError()
         }
@@ -177,7 +182,8 @@ fun SettingsScreen(
 
     ScreenTemplate(
         title = stringResource(R.string.screen_settings),
-        modifier = modifier
+        modifier = modifier,
+        snackbarHostState = snackbarHostState
     ) {
         BetaWarningCard(
             darkMode = settingsUiState.darkMode,
@@ -273,7 +279,12 @@ fun SettingsScreen(
         FilePickerDialog(
             title = stringResource(R.string.test_file_picker_title),
             onDismiss = { showFilePicker = false },
-            onSelect = { showFilePicker = false }
+            onSelect = { path ->
+                showFilePicker = false
+                scope.launch {
+                    snackbarHostState.showSnackbar(path)
+                }
+            }
         )
     }
 

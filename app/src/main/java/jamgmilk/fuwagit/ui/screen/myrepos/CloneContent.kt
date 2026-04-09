@@ -83,6 +83,10 @@ internal fun CloneContent(
     val context = LocalContext.current
     // val scope = rememberCoroutineScope()
     // val colors = MaterialTheme.colorScheme
+    
+    // Pre-fetch strings for use in non-composable contexts
+    val strCloneSuccess = stringResource(R.string.clone_clone_success)
+    val strAuthFailed = stringResource(R.string.clone_auth_failed)
 
     var cloneUrl by remember { mutableStateOf("") }
     var debouncedUrl by remember { mutableStateOf("") }
@@ -293,12 +297,12 @@ internal fun CloneContent(
                 ) { result ->
                     isLoading = false
                     result.onSuccess {
-                        Toast.makeText(context, context.getString(R.string.clone_clone_success), Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, strCloneSuccess, Toast.LENGTH_SHORT).show()
                         onCloneComplete(fullPath)
                     }.onError { e ->
                         error = e.message
                         if (e.message?.contains("401") == true) {
-                            error = context.getString(R.string.clone_auth_failed)
+                            error = strAuthFailed
                         }
                     }
                 }

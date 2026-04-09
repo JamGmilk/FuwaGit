@@ -84,6 +84,11 @@ class CredentialRepositoryImpl @Inject constructor(
         secureStore.cacheMasterKey(key)
     }
 
+    override fun setMasterKeyFromBiometric(key: SecretKey) {
+        cachedMasterKey = key
+        secureStore.cacheMasterKeyFromBiometric(key)
+    }
+
     private suspend fun getMasterKey(): SecretKey {
         return cachedMasterKey ?: secureStore.getCachedMasterKey()
             ?: throw AppException.MasterKeyNotUnlocked()
