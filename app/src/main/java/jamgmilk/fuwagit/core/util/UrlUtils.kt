@@ -1,10 +1,6 @@
 package jamgmilk.fuwagit.core.util
 
 object UrlUtils {
-    private val SSH_URL_REGEX = Regex("^git@[^:]+:.+\\.git$")
-    private val HTTPS_URL_REGEX = Regex("^https?://.+\\.git$", RegexOption.IGNORE_CASE)
-    private val HTTPS_URL_NO_GIT_REGEX = Regex("^https?://.+", RegexOption.IGNORE_CASE)
-    private val FILE_URL_REGEX = Regex("^file://.+")
 
     sealed class ValidationResult {
         data class Valid(val type: UrlType) : ValidationResult()
@@ -39,10 +35,6 @@ object UrlUtils {
 
         if (trimmedUrl.startsWith("file://")) {
             return ValidationResult.Valid(UrlType.FILE)
-        }
-
-        if (SSH_URL_REGEX.matches(trimmedUrl)) {
-            return ValidationResult.Valid(UrlType.SSH)
         }
 
         if (trimmedUrl.endsWith(".git")) {
@@ -121,6 +113,7 @@ object UrlUtils {
         return when {
             url.startsWith("git@") -> url.substringAfter("@").substringBefore(":").substringBefore(".git")
             url.contains("://") -> url.substringAfter("://").substringBefore("/").substringBefore(":")
+            url.endsWith(".git") -> url.substringBefore("/").substringBefore(".git")
             else -> null
         }
     }
@@ -129,6 +122,7 @@ object UrlUtils {
         return when {
             url.startsWith("git@") -> url
             url.startsWith("https://") || url.startsWith("http://") -> url.substringBefore(".git").substringAfter("://")
+            url.endsWith(".git") -> url.removeSuffix(".git")
             else -> url
         }
     }

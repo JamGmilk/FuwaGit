@@ -2,8 +2,8 @@ package jamgmilk.fuwagit.data.jgit
 
 import jamgmilk.fuwagit.domain.model.git.CleanResult
 import jamgmilk.fuwagit.domain.model.git.ConflictResult
-import jamgmilk.fuwagit.domain.model.git.ConflictStatus
 import jamgmilk.fuwagit.domain.model.git.GitConflict
+import jamgmilk.fuwagit.domain.model.git.ConflictStatus
 import org.eclipse.jgit.api.Git
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -15,9 +15,7 @@ import javax.inject.Singleton
 class JGitMergeDataSource @Inject constructor(
     private val core: GitCoreDataSource
 ) : GitMergeDataSource {
-    /**
-     * Merges a branch into the current branch.
-     */
+
     override fun mergeBranch(repoPath: String, branchName: String): Result<ConflictResult> =
         core.withGit(repoPath) { git ->
             try {
@@ -30,7 +28,14 @@ class JGitMergeDataSource @Inject constructor(
                 val hasConflicts = conflicts != null && conflicts.isNotEmpty()
 
                 if (hasConflicts) {
-                    val conflictFiles = getConflictFiles(git)
+                    val conflictFiles = git.status().call().conflicting.map { path ->
+                        GitConflict(
+                            path = path,
+                            name = java.io.File(path).name,
+                            status = ConflictStatus.UNRESOLVED,
+                            description = "Conflict"
+                        )
+                    }
                     ConflictResult(
                         isConflicting = true,
                         operationType = "MERGE",
@@ -55,9 +60,6 @@ class JGitMergeDataSource @Inject constructor(
             }
         }
 
-    /**
-     * Rebases the current branch onto another branch.
-     */
     override fun rebaseBranch(repoPath: String, branchName: String): Result<ConflictResult> =
         core.withGit(repoPath) { git ->
             try {
@@ -65,7 +67,14 @@ class JGitMergeDataSource @Inject constructor(
                 val hasConflicts = rebaseResult.status.name == "CONFLICTING"
 
                 if (hasConflicts) {
-                    val conflictFiles = getConflictFiles(git)
+                    val conflictFiles = git.status().call().conflicting.map { path ->
+                        GitConflict(
+                            path = path,
+                            name = java.io.File(path).name,
+                            status = ConflictStatus.UNRESOLVED,
+                            description = "Conflict"
+                        )
+                    }
                     ConflictResult(
                         isConflicting = true,
                         operationType = "REBASE",
@@ -92,9 +101,6 @@ class JGitMergeDataSource @Inject constructor(
             }
         }
 
-    /**
-     * Continues a rebase operation after conflicts are resolved.
-     */
     override fun continueRebase(repoPath: String): Result<String> =
         core.withGit(repoPath) { git ->
             try {
@@ -122,9 +128,6 @@ class JGitMergeDataSource @Inject constructor(
             }
         }
 
-    /**
-     * Gets the current conflict status.
-     */
     override fun getConflictStatus(repoPath: String): Result<ConflictResult> =
         core.withGit(repoPath) { git ->
             val status = git.status().call()
@@ -138,7 +141,14 @@ class JGitMergeDataSource @Inject constructor(
                     isRebase -> "REBASE"
                     else -> "UNKNOWN"
                 }
-                val conflicts = getConflictFiles(git)
+                val conflicts = status.conflicting.map { path ->
+                    GitConflict(
+                        path = path,
+                        name = java.io.File(path).name,
+                        status = ConflictStatus.UNRESOLVED,
+                        description = "Conflict"
+                    )
+                }
                 ConflictResult(
                     isConflicting = true,
                     operationType = operationType,
@@ -150,27 +160,18 @@ class JGitMergeDataSource @Inject constructor(
             }
         }
 
-    /**
-     * Marks a conflict file as resolved (adds to staging area).
-     */
     override fun markConflictResolved(repoPath: String, filePath: String): Result<Unit> =
         core.withGit(repoPath) { git ->
             git.add().addFilepattern(filePath).call()
             Unit
         }
 
-    /**
-     * Aborts an ongoing rebase operation.
-     */
     override fun abortRebase(repoPath: String): Result<String> =
         core.withGit(repoPath) { git ->
             git.rebase().setOperation(org.eclipse.jgit.api.RebaseCommand.Operation.ABORT).call()
             "Rebase aborted"
         }
 
-    /**
-     * Aborts an ongoing merge operation.
-     */
     override fun abortMerge(repoPath: String): Result<String> =
         core.withGit(repoPath) { git ->
             val gitDir = git.repository.directory
@@ -181,9 +182,6 @@ class JGitMergeDataSource @Inject constructor(
             "Merge aborted"
         }
 
-    /**
-     * Cleans untracked files from the working directory.
-     */
     override fun clean(repoPath: String, dryRun: Boolean): Result<CleanResult> =
         core.withGit(repoPath) { git ->
             val cleanedPaths = git.clean()
@@ -194,27 +192,8 @@ class JGitMergeDataSource @Inject constructor(
             CleanResult(files = cleanedPaths.toList(), isDryRun = dryRun)
         }
 
-    /**
-     * Gets the list of conflicting file paths.
-     */
     override fun getConflictFiles(repoPath: String): Result<List<String>> =
         core.withGit(repoPath) { git ->
-            val status = git.status().call()
-            status.conflicting.toList()
+            git.status().call().conflicting.toList()
         }
-
-    /**
-     * Gets detailed conflict information.
-     */
-    private fun getConflictFiles(git: Git): List<GitConflict> {
-        val status = git.status().call()
-        return status.conflicting.map { path ->
-            GitConflict(
-                path = path,
-                name = java.io.File(path).name,
-                status = ConflictStatus.UNRESOLVED,
-                description = "Conflict"
-            )
-        }
-    }
 }

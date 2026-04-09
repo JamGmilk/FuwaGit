@@ -326,25 +326,6 @@ class JGitCoreDataSource @Inject constructor(
 
     // ========== Known Hosts Management ==========
 
-    fun getKnownHostsCount(): Int {
-        val file = knownHostsFile ?: return 0
-        return try {
-            if (!file.exists()) 0 else file.readLines().count { !it.startsWith("#") && it.isNotBlank() }
-        } catch (e: Exception) {
-            0
-        }
-    }
-
-    fun clearKnownHosts(): Boolean {
-        val file = knownHostsFile ?: return false
-        return try {
-            if (file.exists()) file.delete()
-            true
-        } catch (e: Exception) {
-            false
-        }
-    }
-
     /**
      * Custom HostKeyRepository implementing accept-new security policy.
      *

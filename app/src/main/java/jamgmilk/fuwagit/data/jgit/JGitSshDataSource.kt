@@ -3,7 +3,6 @@ package jamgmilk.fuwagit.data.jgit
 import android.util.Log
 import jamgmilk.fuwagit.BuildConfig
 import jamgmilk.fuwagit.core.result.AppException
-import jamgmilk.fuwagit.core.result.AppResult
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -105,32 +104,7 @@ class JGitSshDataSource @Inject constructor() : SshDataSource {
             session.connect(sshTimeout)
             debugLog("SSH session connected to $hostname")
 
-            try {
-                val getBannerMethod = session.javaClass.getMethod("getServerBanner")
-                val banner = getBannerMethod.invoke(session) as? String
-                if (!banner.isNullOrBlank()) {
-                    debugLog("Server banner via getServerBanner: $banner")
-                    if (serverBanner.isBlank()) serverBanner = banner
-                }
-            } catch (_: Exception) { }
-
-            try {
-                val getBannerMethod = session.javaClass.getMethod("getBanner")
-                val banner = getBannerMethod.invoke(session) as? String
-                if (!banner.isNullOrBlank()) {
-                    debugLog("Server banner via getBanner: $banner")
-                    if (serverBanner.isBlank()) serverBanner = banner
-                }
-            } catch (_: Exception) { }
-
-            try {
-                val getMsgMethod = session.javaClass.getMethod("getLastMessage")
-                val msg = getMsgMethod.invoke(session) as? String
-                if (!msg.isNullOrBlank()) {
-                    debugLog("Last message: $msg")
-                    if (serverBanner.isBlank()) serverBanner = msg
-                }
-            } catch (_: Exception) { }
+            serverBanner = getServerBanner(session) ?: serverBanner
 
             channel = session.openChannel("exec") as com.jcraft.jsch.ChannelExec
             channel.setCommand("git-upload-pack /github/gitignore.git")
@@ -182,6 +156,21 @@ class JGitSshDataSource @Inject constructor() : SshDataSource {
             }
             Result.failure(result)
         }
+    }
+
+    private fun getServerBanner(session: com.jcraft.jsch.Session): String? {
+        val methods = listOf("getServerBanner", "getBanner", "getLastMessage")
+        for (methodName in methods) {
+            try {
+                val method = session.javaClass.getMethod(methodName)
+                val result = method.invoke(session) as? String
+                if (!result.isNullOrBlank()) {
+                    debugLog("Server banner via $methodName: $result")
+                    return result
+                }
+            } catch (_: Exception) { }
+        }
+        return null
     }
 
     private fun parsePemObject(pemContent: String): org.bouncycastle.util.io.pem.PemObject {

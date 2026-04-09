@@ -262,11 +262,8 @@ class JGitRemoteDataSource @Inject constructor(
                 // Set tag push
                 if (options.pushTags) pushCommand.setPushTags()
 
-                // Set force push
-                when {
-                    options.forceWithLease || options.forcePush -> {
-                        pushCommand.setForce(true)
-                    }
+                if (options.forceWithLease || options.forcePush) {
+                    pushCommand.setForce(true)
                 }
 
                 core.configureCredentials(pushCommand, credentials)
@@ -354,13 +351,8 @@ class JGitRemoteDataSource @Inject constructor(
      * Gets the URL of a specific remote.
      */
     override fun getRemoteUrl(repoPath: String, name: String): String? {
-        return try {
-            Git.open(java.io.File(repoPath)).use { git ->
-                git.repository.config.getString("remote", name, "url")
-            }
-        } catch (e: Exception) {
-            android.util.Log.e("JGitRemoteDataSource", "Failed to get remote URL", e)
-            null
-        }
+        return core.withGit(repoPath) { git ->
+            git.repository.config.getString("remote", name, "url")
+        }.getOrNull()
     }
 }

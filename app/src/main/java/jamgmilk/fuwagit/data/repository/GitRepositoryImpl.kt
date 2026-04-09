@@ -134,7 +134,7 @@ class GitRepositoryImpl @Inject constructor(
     override suspend fun clean(repoPath: String, dryRun: Boolean): AppResult<CleanResult> =
         withContext(Dispatchers.IO) { merge.clean(repoPath, dryRun).toAppResult() }
 
-    // ==================== Tag 相关操作 ====================
+    // ==================== Tag ====================
 
     override suspend fun getTags(repoPath: String): AppResult<List<GitTag>> =
         withContext(Dispatchers.IO) { tag.getTags(repoPath).toAppResult() }
@@ -162,7 +162,7 @@ class GitRepositoryImpl @Inject constructor(
     override suspend fun checkoutTag(repoPath: String, tagName: String): AppResult<String> =
         withContext(Dispatchers.IO) { tag.checkoutTag(repoPath, tagName).toAppResult() }
 
-    // ==================== Diff 相关操作 ====================
+    // ==================== Diff ====================
 
     override suspend fun getWorkingTreeDiff(repoPath: String, filePath: String): AppResult<FileDiff> =
         withContext(Dispatchers.IO) { diff.getWorkingTreeDiff(repoPath, filePath).toAppResult() }
