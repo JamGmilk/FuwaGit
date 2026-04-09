@@ -1,8 +1,8 @@
 package jamgmilk.fuwagit.ui.theme
 
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.lerp
 
+/* Kawaii Mizuiro palette START */
 val primaryLight = Color(0xFF34618D)
 val onPrimaryLight = Color(0xFFFFFFFF)
 val primaryContainerLight = Color(0xFFD0E4FF)
@@ -74,6 +74,4 @@ val surfaceContainerLowDark = Color(0xFF191C20)
 val surfaceContainerDark = Color(0xFF1D2024)
 val surfaceContainerHighDark = Color(0xFF272A2F)
 val surfaceContainerHighestDark = Color(0xFF32353A)
-
-fun Color.light(amount: Float = 0.6f): Color = lerp(this, Color.White, amount)
-fun Color.dark(amount: Float = 0.4f): Color = lerp(this, Color.Black, amount)
+/* Kawaii Mizuiro palette END */

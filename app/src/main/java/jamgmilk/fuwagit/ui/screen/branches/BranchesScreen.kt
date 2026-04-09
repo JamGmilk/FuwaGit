@@ -596,6 +596,7 @@ private fun BranchItem(
     val strDeleteOnlyLocal = stringResource(R.string.branches_delete_only_local)
     val strRenameOnlyLocal = stringResource(R.string.branches_rename_only_local)
     val strNameCopied = stringResource(R.string.branches_name_copied)
+    val strBranchNameClipboard = stringResource(R.string.branches_branch_name_clipboard)
 
     val accentColor = if (isRemote) colors.secondary else colors.primary
 
@@ -740,8 +741,7 @@ private fun BranchItem(
                         text = { Text(stringResource(R.string.branches_copy_name)) },
                         onClick = {
                             val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                            val clipboardLabel = context.getString(R.string.branches_branch_name_clipboard)
-                            clipboard.setPrimaryClip(ClipData.newPlainText(clipboardLabel, branch.name))
+                            clipboard.setPrimaryClip(ClipData.newPlainText(strBranchNameClipboard, branch.name))
                             Toast.makeText(context, strNameCopied, Toast.LENGTH_SHORT).show()
                             showMenu = false
                         },

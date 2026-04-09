@@ -27,6 +27,8 @@ interface CredentialRepository {
 
     fun setMasterKey(key: SecretKey)
 
+    fun setMasterKeyFromBiometric(key: SecretKey)
+
     suspend fun getAllHttpsCredentials(): AppResult<List<HttpsCredential>>
 
     suspend fun addHttpsCredential(host: String, username: String, password: String): AppResult<String>

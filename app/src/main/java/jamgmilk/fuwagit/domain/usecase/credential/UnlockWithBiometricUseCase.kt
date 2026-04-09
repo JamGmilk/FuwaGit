@@ -15,7 +15,7 @@ class UnlockWithBiometricUseCase @Inject constructor(
         biometricRepository.unlockWithBiometric(
             activity = activity,
             onSuccess = { key ->
-                credentialRepository.setMasterKey(key)
+                credentialRepository.setMasterKeyFromBiometric(key)
                 onResult(AppResult.Success(Unit))
             },
             onError = { message ->

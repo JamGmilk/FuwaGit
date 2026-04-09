@@ -132,7 +132,7 @@ fun MyReposScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f)
-                    .border(1.dp, MaterialTheme.colorScheme.outline, AppShapes.medium),
+                    .border(1.dp, MaterialTheme.colorScheme.outlineVariant, AppShapes.medium),
                 shape = AppShapes.medium,
                 color = MaterialTheme.colorScheme.surfaceContainer
             ) {
@@ -261,7 +261,7 @@ fun MyReposScreen(
 
     if (untrackedFiles.isNotEmpty() || cleanMessage != null || isCleanPreviewing) {
         val localizedMessage = if (cleanMessage != null) {
-            context.getString(ViewModelMessagesMapper.mapMessageToResource(cleanMessage))
+            stringResource(ViewModelMessagesMapper.mapMessageToResource(cleanMessage))
         } else null
         CleanPreviewDialog(
             untrackedFiles = untrackedFiles,
@@ -662,6 +662,9 @@ private fun RepoHeader(
     onCopyPath: () -> Unit
 ) {
     val context = LocalContext.current
+    
+    // Pre-fetch strings for use in non-composable contexts
+    val strPathCopied = stringResource(R.string.myrepos_path_copied)
 
     Row(
         modifier = Modifier
@@ -719,7 +722,7 @@ private fun RepoHeader(
                         onClick = {},
                         onLongClick = {
                             onCopyPath()
-                            Toast.makeText(context, context.getString(R.string.myrepos_path_copied), Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, strPathCopied, Toast.LENGTH_SHORT).show()
                         }
                     )
             )
