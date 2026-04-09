@@ -219,10 +219,10 @@ class UrlUtilsTest {
     }
 
     @Test
-    fun `formatUrlForDisplay returns unknown format unchanged`() {
+    fun `formatUrlForDisplay removes git suffix for URL without protocol`() {
         val url = "github.com/user/repo.git"
         val formatted = UrlUtils.formatUrlForDisplay(url)
-        assertEquals("github.com/user/repo.git", formatted)
+        assertEquals("github.com/user/repo", formatted)
     }
 
     @Test

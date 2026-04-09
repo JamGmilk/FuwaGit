@@ -7,7 +7,6 @@ import jamgmilk.fuwagit.domain.model.git.FileDiff
 import jamgmilk.fuwagit.domain.model.git.GitChangeType
 import jamgmilk.fuwagit.domain.model.git.InlineDiff
 import jamgmilk.fuwagit.domain.model.git.InlineDiffSegment
-import org.eclipse.jgit.api.Git
 import org.eclipse.jgit.diff.DiffEntry
 import org.eclipse.jgit.diff.DiffEntry.ChangeType
 import org.eclipse.jgit.diff.DiffFormatter
@@ -27,29 +26,20 @@ import java.io.File
 import javax.inject.Inject
 import javax.inject.Singleton
 
-/**
- * Data source for Git diff operations using JGit.
- */
 @Singleton
 class JGitDiffDataSource @Inject constructor(
     private val core: GitCoreDataSource
 ) : GitDiffDataSource {
 
-    /**
-     * 获取工作区中单个文件的差异（未暂存的更改）
-     */
     override fun getWorkingTreeDiff(repoPath: String, filePath: String): Result<FileDiff> =
         core.withGit(repoPath) { git ->
             val repository = git.repository
 
-            // 获取 HEAD 的树
             val headTree = getTreeForCommit(repository, "HEAD")
 
-            // 使用 DiffFormatter 比较 HEAD 和工作区
             val diffEntries = getDiffEntriesForFile(repository, headTree, null, filePath)
 
             if (diffEntries.isEmpty()) {
-                // 可能是新文件（未跟踪）
                 getUntrackedFileDiff(repoPath, filePath)
             } else {
                 val entry = diffEntries.first()
@@ -57,20 +47,14 @@ class JGitDiffDataSource @Inject constructor(
             }
         }
 
-    /**
-     * 获取已暂存文件的差异（staged vs HEAD）
-     */
     override fun getStagedDiff(repoPath: String, filePath: String): Result<FileDiff> =
         core.withGit(repoPath) { git ->
             val repository = git.repository
 
-            // 获取 HEAD 的树
             val headTree = getTreeForCommit(repository, "HEAD")
 
-            // 获取 Index（暂存区）的树
             val indexTree = getTreeForIndex(repository)
 
-            // 比较 HEAD 和 Index
             val diffEntries = getDiffEntriesForFile(repository, headTree, indexTree, filePath)
 
             if (diffEntries.isEmpty()) {
@@ -81,9 +65,6 @@ class JGitDiffDataSource @Inject constructor(
             parseDiffEntryWithContent(repository, entry, filePath, isStaged = true)
         }
 
-    /**
-     * 获取两个提交之间单个文件的差异
-     */
     override fun getCommitFileDiff(
         repoPath: String,
         filePath: String,
@@ -106,9 +87,6 @@ class JGitDiffDataSource @Inject constructor(
             parseDiffEntry(repository, entry, oldCommit, newCommit)
         }
 
-    /**
-     * 获取两个提交之间所有文件的差异摘要
-     */
     override fun getCommitDiff(
         repoPath: String,
         oldCommit: String,
@@ -127,9 +105,6 @@ class JGitDiffDataSource @Inject constructor(
             }
         }
 
-    /**
-     * 获取单个文件的原始内容
-     */
     override fun getFileContent(
         repoPath: String,
         filePath: String,
@@ -139,7 +114,6 @@ class JGitDiffDataSource @Inject constructor(
             val repository = git.repository
 
             if (commitHash == null) {
-                // 读取工作区文件
                 val repoDir = repository.workTree
                 val file = File(repoDir, filePath)
                 if (!file.exists()) {
@@ -147,7 +121,6 @@ class JGitDiffDataSource @Inject constructor(
                 }
                 file.readText()
             } else {
-                // 读取提交中的文件
                 RevWalk(repository).use { revWalk ->
                     val commit = revWalk.parseCommit(repository.resolve(commitHash))
                     val tree = commit.tree
@@ -178,11 +151,6 @@ class JGitDiffDataSource @Inject constructor(
             }
         }
 
-    // ==================== 私有辅助方法 ====================
-
-    /**
-     * 获取提交对应的树
-     */
     private fun getTreeForCommit(repository: Repository, commitHash: String): RevTree {
         val revWalk = RevWalk(repository)
         val commit = revWalk.parseCommit(repository.resolve(commitHash))
@@ -191,35 +159,24 @@ class JGitDiffDataSource @Inject constructor(
         return tree
     }
 
-    /**
-     * 获取 Index（暂存区）的树
-     * 使用 DirCache 读取暂存区内容并构建为树
-     */
     private fun getTreeForIndex(repository: Repository): RevTree {
         return try {
-            // 使用 DirCache 读取暂存区
             val dirCache = repository.readDirCache()
             val inserter = repository.newObjectInserter()
-            
-            // 将 DirCache 转换为树
+
             val treeId = dirCache.writeTree(inserter)
             inserter.flush()
             inserter.close()
-            
-            // 解析树
+
             val revWalk = RevWalk(repository)
             val tree = revWalk.parseTree(treeId)
             revWalk.dispose()
             tree
         } catch (e: Exception) {
-            // 如果暂存区为空或不存在，返回 HEAD 的树作为后备
             getTreeForCommit(repository, "HEAD")
         }
     }
 
-    /**
-     * 获取单个文件的 DiffEntry
-     */
     private fun getDiffEntriesForFile(
         repository: Repository,
         oldTree: RevTree,
@@ -233,14 +190,11 @@ class JGitDiffDataSource @Inject constructor(
 
         return try {
             val entries = if (newTree == null) {
-                // 比较树和工作区
                 diffFormatter.scan(oldTree, null)
             } else {
-                // 比较两棵树
                 diffFormatter.scan(oldTree, newTree)
             }
 
-            // 过滤出指定文件
             entries.filter { entry ->
                 entry.newPath == filePath || entry.oldPath == filePath
             }
@@ -249,9 +203,6 @@ class JGitDiffDataSource @Inject constructor(
         }
     }
 
-    /**
-     * 获取所有 DiffEntry
-     */
     private fun getAllDiffEntries(
         repository: Repository,
         oldTree: RevTree,
@@ -269,9 +220,6 @@ class JGitDiffDataSource @Inject constructor(
         }
     }
 
-    /**
-     * 解析 DiffEntry 为 FileDiff（带内容）
-     */
     private fun parseDiffEntryWithContent(
         repository: Repository,
         entry: DiffEntry,
@@ -282,22 +230,18 @@ class JGitDiffDataSource @Inject constructor(
         val oldPath = entry.oldPath
         val newPath = entry.newPath
 
-        // 读取文件内容
         val oldContent = if (changeType != GitChangeType.Added) {
             readFileContent(repository, entry.oldId.toObjectId(), oldPath)
         } else null
 
         val newContent = if (changeType != GitChangeType.Removed) {
             if (isStaged) {
-                // 读取暂存区内容
                 readIndexFileContent(repository, filePath)
             } else {
-                // 读取工作区内容
                 readWorkingFileContent(repository.workTree, filePath)
             }
         } else null
 
-        // 计算 diff hunks
         val hunks = if (oldContent != null && newContent != null) {
             computeHunks(oldContent, newContent)
         } else {
@@ -320,9 +264,6 @@ class JGitDiffDataSource @Inject constructor(
         )
     }
 
-    /**
-     * 解析 DiffEntry 为 FileDiff
-     */
     private fun parseDiffEntry(
         repository: Repository,
         entry: DiffEntry,
@@ -333,7 +274,6 @@ class JGitDiffDataSource @Inject constructor(
         val oldPath = entry.oldPath
         val newPath = entry.newPath
 
-        // 读取文件内容
         val oldContent = if (changeType != GitChangeType.Added) {
             readFileContent(repository, entry.oldId.toObjectId(), oldPath)
         } else null
@@ -342,7 +282,6 @@ class JGitDiffDataSource @Inject constructor(
             readFileContent(repository, entry.newId.toObjectId(), newPath)
         } else null
 
-        // 计算 diff hunks
         val hunks = if (oldContent != null && newContent != null) {
             computeHunks(oldContent, newContent)
         } else {
@@ -365,9 +304,6 @@ class JGitDiffDataSource @Inject constructor(
         )
     }
 
-    /**
-     * 获取未跟踪文件的差异
-     */
     private fun getUntrackedFileDiff(repoPath: String, filePath: String): FileDiff {
         val content = readWorkingFileContent(File(repoPath), filePath)
             ?: throw IllegalArgumentException("File not found: $filePath")
@@ -404,9 +340,6 @@ class JGitDiffDataSource @Inject constructor(
         )
     }
 
-    /**
-     * 读取提交中的文件内容
-     */
     private fun readFileContent(
         repository: Repository,
         objectId: org.eclipse.jgit.lib.ObjectId,
@@ -420,9 +353,6 @@ class JGitDiffDataSource @Inject constructor(
         }
     }
 
-    /**
-     * 读取工作区文件
-     */
     private fun readWorkingFileContent(repoDir: File, filePath: String): String? {
         return try {
             val file = File(repoDir, filePath)
@@ -432,10 +362,6 @@ class JGitDiffDataSource @Inject constructor(
         }
     }
 
-    /**
-     * 读取暂存区文件内容
-     * 使用 DirCache 读取指定文件的内容
-     */
     private fun readIndexFileContent(repository: Repository, filePath: String): String? {
         return try {
             val dirCache = repository.readDirCache()
@@ -452,40 +378,31 @@ class JGitDiffDataSource @Inject constructor(
         }
     }
 
-    /**
-     * 计算两个文本之间的 Hunks
-     */
     private fun computeHunks(oldContent: String, newContent: String): List<DiffHunk> {
         val oldLines = oldContent.lines().toTypedArray()
         val newLines = newContent.lines().toTypedArray()
 
-        // 使用 Myers diff 算法简化实现
         val hunks = mutableListOf<DiffHunk>()
         val diffLines = simpleDiff(oldLines, newLines)
 
         if (diffLines.isEmpty()) return emptyList()
 
-        // 将变更行分组为 hunks（带上下文）
         val contextLines = 3
         var i = 0
         while (i < diffLines.size) {
             if (diffLines[i].lineType != DiffLineType.Context) {
-                // 找到一个变更块
                 val start = maxOf(0, i - contextLines)
                 var end = minOf(diffLines.size, i + 1)
 
-                // 向后查找连续的变更
                 while (end < diffLines.size && diffLines[end].lineType != DiffLineType.Context) {
                     end++
                 }
                 end = minOf(diffLines.size, end + contextLines)
 
-                // 创建 hunk
                 var hunkLines = diffLines.slice(start until end)
-                
-                // 计算行内差异
+
                 hunkLines = computeInlineDiffs(hunkLines)
-                
+
                 val oldStart = hunkLines.firstOrNull { it.oldLineNumber != null }?.oldLineNumber ?: 0
                 val newStart = hunkLines.firstOrNull { it.newLineNumber != null }?.newLineNumber ?: 0
 
@@ -507,54 +424,42 @@ class JGitDiffDataSource @Inject constructor(
 
         return hunks
     }
-    
-    /**
-     * 计算行内差异（character-level diff）
-     * 对于相邻的 Added/Deleted 行，计算哪些字符发生了变化
-     */
+
     private fun computeInlineDiffs(lines: List<DiffLine>): List<DiffLine> {
         val result = lines.toMutableList()
         var i = 0
-        
+
         while (i < result.size - 1) {
             val current = result[i]
             val next = result[i + 1]
-            
-            // 查找相邻的 Deleted 和 Added 行
+
             if ((current.lineType == DiffLineType.Deleted && next.lineType == DiffLineType.Added) ||
                 (current.lineType == DiffLineType.Added && next.lineType == DiffLineType.Deleted)) {
-                
+
                 val deletedLine = if (current.lineType == DiffLineType.Deleted) current else next
                 val addedLine = if (current.lineType == DiffLineType.Added) current else next
-                
-                // 计算行内差异
+
                 val inlineDiff = computeCharDiff(deletedLine.content, addedLine.content)
-                
+
                 val deletedIndex = if (current.lineType == DiffLineType.Deleted) i else i + 1
                 val addedIndex = if (current.lineType == DiffLineType.Added) i else i + 1
-                
+
                 result[deletedIndex] = deletedLine.copy(inlineDiff = inlineDiff.deleted)
                 result[addedIndex] = addedLine.copy(inlineDiff = inlineDiff.added)
-                
+
                 i += 2
             } else {
                 i++
             }
         }
-        
+
         return result
     }
-    
-    /**
-     * 计算两个字符串之间的字符级差异
-     * 返回新增和删除的 InlineDiff
-     */
+
     private fun computeCharDiff(oldStr: String, newStr: String): InlineDiffPair {
-        // 使用简单的字符级 LCS 算法
         val m = oldStr.length
         val n = newStr.length
-        
-        // 构建 LCS DP 表
+
         val dp = Array(m + 1) { IntArray(n + 1) }
         for (i in 1..m) {
             for (j in 1..n) {
@@ -565,18 +470,12 @@ class JGitDiffDataSource @Inject constructor(
                 }
             }
         }
-        
-        // 回溯找出差异
-        val deletedSegments = mutableListOf<InlineDiffSegment>()
-        val addedSegments = mutableListOf<InlineDiffSegment>()
-        
+
+        val operations = mutableListOf<Triple<String, Int, Int>>()
+
         var i = m
         var j = n
-        var lastOldPos = m
-        var lastNewPos = n
-        
-        val operations = mutableListOf<Triple<String, Int, Int>>() // type, oldPos, newPos
-        
+
         while (i > 0 || j > 0) {
             when {
                 i > 0 && j > 0 && oldStr[i - 1] == newStr[j - 1] -> {
@@ -594,33 +493,13 @@ class JGitDiffDataSource @Inject constructor(
                 else -> break
             }
         }
-        
-        // 构建分段
-        var oldPos = 0
-        var newPos = 0
-        var pendingDeleteStart = -1
-        var pendingAddStart = -1
-        
-        for (k in operations.size - 1 downTo 0) {
-            val (type, opOldPos, opNewPos) = operations[k]
-            
-            when (type) {
-                "deleted" -> {
-                    if (pendingDeleteStart == -1) pendingDeleteStart = opOldPos
-                }
-                "added" -> {
-                    if (pendingAddStart == -1) pendingAddStart = opNewPos
-                }
-            }
-        }
-        
-        // 简化实现：标记整个字符串中不同的部分
+
         val commonPrefix = computeCommonPrefix(oldStr, newStr)
         val commonSuffix = computeCommonSuffix(oldStr, newStr, commonPrefix)
-        
+
         val deletedContent = oldStr.substring(commonPrefix, oldStr.length - commonSuffix)
         val addedContent = newStr.substring(commonPrefix, newStr.length - commonSuffix)
-        
+
         val deletedInline = if (deletedContent.isNotEmpty()) {
             InlineDiff(
                 segments = listOf(
@@ -630,7 +509,7 @@ class JGitDiffDataSource @Inject constructor(
                 ).filter { it.content.isNotEmpty() }
             )
         } else null
-        
+
         val addedInline = if (addedContent.isNotEmpty()) {
             InlineDiff(
                 segments = listOf(
@@ -640,15 +519,15 @@ class JGitDiffDataSource @Inject constructor(
                 ).filter { it.content.isNotEmpty() }
             )
         } else null
-        
+
         return InlineDiffPair(deletedInline, addedInline)
     }
-    
+
     private data class InlineDiffPair(
         val deleted: InlineDiff?,
         val added: InlineDiff?
     )
-    
+
     private fun computeCommonPrefix(s1: String, s2: String): Int {
         var i = 0
         while (i < s1.length && i < s2.length && s1[i] == s2[i]) {
@@ -656,7 +535,7 @@ class JGitDiffDataSource @Inject constructor(
         }
         return i
     }
-    
+
     private fun computeCommonSuffix(s1: String, s2: String, prefixLength: Int): Int {
         var i = 0
         while (i < s1.length - prefixLength && i < s2.length - prefixLength &&
@@ -666,15 +545,11 @@ class JGitDiffDataSource @Inject constructor(
         return i
     }
 
-    /**
-     * 简化的 Diff 算法（基于 LCS）
-     */
     private fun simpleDiff(oldLines: Array<String>, newLines: Array<String>): List<DiffLine> {
         val result = mutableListOf<DiffLine>()
         val m = oldLines.size
         val n = newLines.size
 
-        // 构建 LCS 表
         val dp = Array(m + 1) { IntArray(n + 1) }
         for (i in 1..m) {
             for (j in 1..n) {
@@ -686,7 +561,6 @@ class JGitDiffDataSource @Inject constructor(
             }
         }
 
-        // 回溯找出 diff
         var i = m
         var j = n
         val diffResult = mutableListOf<Triple<Int?, Int?, DiffLineType>>()
@@ -712,7 +586,6 @@ class JGitDiffDataSource @Inject constructor(
             }
         }
 
-        // 反转并构建 DiffLine
         diffResult.reverse()
         var oldLineNum = 1
         var newLineNum = 1
@@ -758,16 +631,10 @@ class JGitDiffDataSource @Inject constructor(
         return result
     }
 
-    /**
-     * 检查是否为二进制文件
-     */
     private fun isBinaryFile(oldContent: String?, newContent: String?): Boolean {
         return isBinaryString(oldContent) || isBinaryString(newContent)
     }
 
-    /**
-     * 检查字符串是否包含二进制字符
-     */
     private fun isBinaryString(content: String?): Boolean {
         if (content == null) return false
         return content.take(8000).any { char ->
@@ -775,9 +642,6 @@ class JGitDiffDataSource @Inject constructor(
         }
     }
 
-    /**
-     * 转换 JGit ChangeType 到 GitChangeType
-     */
     private fun ChangeType.toGitChangeType(): GitChangeType = when (this) {
         ChangeType.ADD -> GitChangeType.Added
         ChangeType.DELETE -> GitChangeType.Removed

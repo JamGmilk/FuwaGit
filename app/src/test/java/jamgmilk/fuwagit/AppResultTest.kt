@@ -306,12 +306,6 @@ class AppExceptionTest {
     }
 
     @Test
-    fun `BiometricNotEnabled has default message`() {
-        val exception = AppException.BiometricNotEnabled()
-        assertEquals("Biometric authentication not enabled", exception.message)
-    }
-
-    @Test
     fun `BiometricError has custom message`() {
         val exception = AppException.BiometricError("Hardware unavailable")
         assertEquals("Hardware unavailable", exception.message)
@@ -327,24 +321,6 @@ class AppExceptionTest {
     fun `DecryptionFailed can have custom message`() {
         val exception = AppException.DecryptionFailed("Custom decryption error")
         assertEquals("Custom decryption error", exception.message)
-    }
-
-    @Test
-    fun `ImportFailed has default message`() {
-        val exception = AppException.ImportFailed()
-        assertEquals("Failed to import credentials", exception.message)
-    }
-
-    @Test
-    fun `ExportFailed has default message`() {
-        val exception = AppException.ExportFailed()
-        assertEquals("Failed to export credentials", exception.message)
-    }
-
-    @Test
-    fun `EncryptionFailed has default message`() {
-        val exception = AppException.EncryptionFailed()
-        assertEquals("Encryption failed", exception.message)
     }
 
     @Test

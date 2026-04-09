@@ -79,11 +79,16 @@ class JGitStatusDataSource @Inject constructor(
      * Unstages all changes.
      */
     override fun unstageAll(repoPath: String): Result<String> = core.withGit(repoPath) { git ->
-        try {
-            git.reset().setRef("HEAD").call()
-        } catch (e: Exception) {
-            git.reset().call()
+        val status = git.status().call()
+        val hasStagedChanges = status.added.isNotEmpty() ||
+                              status.changed.isNotEmpty() ||
+                              status.removed.isNotEmpty()
+
+        if (!hasStagedChanges) {
+            return@withGit "No staged changes to unstaged"
         }
+
+        git.reset().setRef("HEAD").call()
         "All changes unstaged"
     }
 

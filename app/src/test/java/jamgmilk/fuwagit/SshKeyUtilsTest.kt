@@ -78,12 +78,10 @@ class SshKeyUtilsTest {
         assertNotEquals(fingerprint1, fingerprint2)
     }
 
-    @Test
-    fun `calculateFingerprint returns unknown for invalid key`() {
+    @Test(expected = IllegalArgumentException::class)
+    fun `calculateFingerprint throws for invalid key`() {
         val invalidKey = "ssh-ed25519 invalid-base64-content"
-        val fingerprint = calculateFingerprint(invalidKey)
-
-        assertEquals("unknown", fingerprint)
+        calculateFingerprint(invalidKey)
     }
 
     @Test

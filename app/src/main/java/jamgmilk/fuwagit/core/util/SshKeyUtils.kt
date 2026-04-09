@@ -30,47 +30,43 @@ private const val SSH_KEY_LOG_TAG = "SSH_KEY"
 
 fun generateSshKeyPair(type: String, comment: String = ""): Pair<String, String> {
     if (BuildConfig.DEBUG) Log.d(SSH_KEY_LOG_TAG, "Starting SSH key generation, type: $type, comment: $comment")
-    return try {
-        when (type) {
-            "RSA" -> {
-                if (BuildConfig.DEBUG) Log.d(SSH_KEY_LOG_TAG, "Generating RSA key pair...")
-                generateRsaKeyPair(comment)
-            }
-            else -> {
-                if (BuildConfig.DEBUG) Log.d(SSH_KEY_LOG_TAG, "Generating Ed25519 key pair...")
-                generateEd25519KeyPair(comment)
-            }
-        }.also { result ->
-            if (BuildConfig.DEBUG) Log.d(SSH_KEY_LOG_TAG, "Key generation successful. PublicKey length: ${result.first.length}, PrivateKey length: ${result.second.length}")
+
+    val result = when (type) {
+        "RSA" -> {
+            if (BuildConfig.DEBUG) Log.d(SSH_KEY_LOG_TAG, "Generating RSA key pair...")
+            generateRsaKeyPair(comment)
         }
-    } catch (e: Exception) {
-        Log.e(SSH_KEY_LOG_TAG, "Key generation failed: ${e.javaClass.simpleName}: ${e.message}", e)
-        Pair("", "")
+        else -> {
+            if (BuildConfig.DEBUG) Log.d(SSH_KEY_LOG_TAG, "Generating Ed25519 key pair...")
+            generateEd25519KeyPair(comment)
+        }
     }
+
+    if (BuildConfig.DEBUG) {
+        Log.d(SSH_KEY_LOG_TAG, "Key generation successful. PublicKey length: ${result.first.length}, PrivateKey length: ${result.second.length}")
+    }
+    return result
 }
 
 private fun generateRsaKeyPair(comment: String = ""): Pair<String, String> {
     if (BuildConfig.DEBUG) Log.d(SSH_KEY_LOG_TAG, "generateRsaKeyPair: Starting RSA key generation, comment: $comment")
-    try {
-        val keyPairGenerator = KeyPairGenerator.getInstance("RSA")
-        if (BuildConfig.DEBUG) Log.d(SSH_KEY_LOG_TAG, "generateRsaKeyPair: Initializing RSA 4096-bit key pair generator")
-        keyPairGenerator.initialize(4096)
-        if (BuildConfig.DEBUG) Log.d(SSH_KEY_LOG_TAG, "generateRsaKeyPair: Generating RSA key pair...")
-        val keyPair = keyPairGenerator.generateKeyPair()
-        if (BuildConfig.DEBUG) Log.d(SSH_KEY_LOG_TAG, "generateRsaKeyPair: RSA key pair generated")
 
-        val publicKey = keyPair.public as java.security.interfaces.RSAPublicKey
-        val publicKeyEncoded = encodeRsaPublicKey(publicKey, comment)
-        if (BuildConfig.DEBUG) Log.d(SSH_KEY_LOG_TAG, "generateRsaKeyPair: Public key encoded: ${publicKeyEncoded.take(50)}...")
+    val keyPairGenerator = KeyPairGenerator.getInstance("RSA")
+    if (BuildConfig.DEBUG) Log.d(SSH_KEY_LOG_TAG, "generateRsaKeyPair: Initializing RSA 4096-bit key pair generator")
+    keyPairGenerator.initialize(4096)
 
-        val privateKey = encodeRsaPrivateKey(keyPair.private as RSAPrivateCrtKey, comment)
-        if (BuildConfig.DEBUG) Log.d(SSH_KEY_LOG_TAG, "generateRsaKeyPair: Private key encoded (PKCS#1), length: ${privateKey.length}")
+    if (BuildConfig.DEBUG) Log.d(SSH_KEY_LOG_TAG, "generateRsaKeyPair: Generating RSA key pair...")
+    val keyPair = keyPairGenerator.generateKeyPair()
+    if (BuildConfig.DEBUG) Log.d(SSH_KEY_LOG_TAG, "generateRsaKeyPair: RSA key pair generated")
 
-        return Pair(publicKeyEncoded, privateKey)
-    } catch (e: Exception) {
-        Log.e(SSH_KEY_LOG_TAG, "generateRsaKeyPair: Failed - ${e.javaClass.simpleName}: ${e.message}", e)
-        throw e
-    }
+    val publicKey = keyPair.public as java.security.interfaces.RSAPublicKey
+    val publicKeyEncoded = encodeRsaPublicKey(publicKey, comment)
+    if (BuildConfig.DEBUG) Log.d(SSH_KEY_LOG_TAG, "generateRsaKeyPair: Public key encoded: ${publicKeyEncoded.take(50)}...")
+
+    val privateKey = encodeRsaPrivateKey(keyPair.private as RSAPrivateCrtKey, comment)
+    if (BuildConfig.DEBUG) Log.d(SSH_KEY_LOG_TAG, "generateRsaKeyPair: Private key encoded (PKCS#1), length: ${privateKey.length}")
+
+    return Pair(publicKeyEncoded, privateKey)
 }
 
 private fun encodeRsaPublicKey(publicKey: java.security.interfaces.RSAPublicKey, comment: String = ""): String {
@@ -103,12 +99,9 @@ private fun encodeRsaPublicKey(publicKey: java.security.interfaces.RSAPublicKey,
     return if (comment.isNotBlank()) "ssh-rsa $base64Key $comment" else "ssh-rsa $base64Key"
 }
 
-/**
- * Encodes RSA private key in standard PKCS#1 PEM format (-----BEGIN RSA PRIVATE KEY-----).
- */
 private fun encodeRsaPrivateKey(privateKey: RSAPrivateCrtKey, comment: String = ""): String {
     val vector = ASN1EncodableVector()
-    vector.add(ASN1Integer(BigInteger.ZERO)) // Version
+    vector.add(ASN1Integer(BigInteger.ZERO))
     vector.add(ASN1Integer(privateKey.modulus))
     vector.add(ASN1Integer(privateKey.publicExponent))
     vector.add(ASN1Integer(privateKey.privateExponent))
@@ -117,7 +110,7 @@ private fun encodeRsaPrivateKey(privateKey: RSAPrivateCrtKey, comment: String = 
     vector.add(ASN1Integer(privateKey.primeExponentP))
     vector.add(ASN1Integer(privateKey.primeExponentQ))
     vector.add(ASN1Integer(privateKey.crtCoefficient))
-    
+
     val sequence = DERSequence(vector)
     val derBytes = sequence.encoded
 
@@ -130,33 +123,23 @@ private fun encodeRsaPrivateKey(privateKey: RSAPrivateCrtKey, comment: String = 
 
 private fun generateEd25519KeyPair(comment: String = ""): Pair<String, String> {
     if (BuildConfig.DEBUG) Log.d(SSH_KEY_LOG_TAG, "generateEd25519KeyPair: Starting Ed25519 key generation with OpenSSH format, comment: $comment")
-    return try {
-        val keyPairGenerator = Ed25519KeyPairGenerator()
-        keyPairGenerator.init(Ed25519KeyGenerationParameters(SecureRandom()))
-        if (BuildConfig.DEBUG) Log.d(SSH_KEY_LOG_TAG, "generateEd25519KeyPair: Ed25519KeyPairGenerator initialized")
 
-        val keyPair = keyPairGenerator.generateKeyPair()
-        val publicKey = keyPair.public as Ed25519PublicKeyParameters
-        val privateKey = keyPair.private as Ed25519PrivateKeyParameters
-        if (BuildConfig.DEBUG) Log.d(SSH_KEY_LOG_TAG, "generateEd25519KeyPair: Key pair generated (lightweight API)")
+    val keyPairGenerator = Ed25519KeyPairGenerator()
+    keyPairGenerator.init(Ed25519KeyGenerationParameters(SecureRandom()))
+    if (BuildConfig.DEBUG) Log.d(SSH_KEY_LOG_TAG, "generateEd25519KeyPair: Ed25519KeyPairGenerator initialized")
 
-        val publicKeyEncoded = encodeEd25519PublicKey(publicKey, comment)
-        if (BuildConfig.DEBUG) Log.d(SSH_KEY_LOG_TAG, "generateEd25519KeyPair: Public key encoded: ${publicKeyEncoded.take(50)}...")
+    val keyPair = keyPairGenerator.generateKeyPair()
+    val publicKey = keyPair.public as Ed25519PublicKeyParameters
+    val privateKey = keyPair.private as Ed25519PrivateKeyParameters
+    if (BuildConfig.DEBUG) Log.d(SSH_KEY_LOG_TAG, "generateEd25519KeyPair: Key pair generated (lightweight API)")
 
-        val privateKeyEncoded = encodeEd25519PrivateKey(privateKey, publicKey, comment)
-        if (BuildConfig.DEBUG) Log.d(SSH_KEY_LOG_TAG, "generateEd25519KeyPair: Private key encoded (OpenSSH format), length: ${privateKeyEncoded.length}")
+    val publicKeyEncoded = encodeEd25519PublicKey(publicKey, comment)
+    if (BuildConfig.DEBUG) Log.d(SSH_KEY_LOG_TAG, "generateEd25519KeyPair: Public key encoded: ${publicKeyEncoded.take(50)}...")
 
-        Pair(publicKeyEncoded, privateKeyEncoded)
-    } catch (e: Exception) {
-        Log.e(SSH_KEY_LOG_TAG, "generateEd25519KeyPair: Failed - ${e.javaClass.simpleName}: ${e.message}", e)
-        throw e
-    }
-}
+    val privateKeyEncoded = encodeEd25519PrivateKey(privateKey, publicKey, comment)
+    if (BuildConfig.DEBUG) Log.d(SSH_KEY_LOG_TAG, "generateEd25519KeyPair: Private key encoded (OpenSSH format), length: ${privateKeyEncoded.length}")
 
-private fun encodeEd25519PrivateKeyPkcs8(privateKey: Ed25519PrivateKeyParameters, publicKey: Ed25519PublicKeyParameters, comment: String = ""): String {
-    // Use OpenSSH format instead of PKCS#8 for better JSch compatibility
-    // JSch has better support with OpenSSH native format for Ed25519
-    return encodeEd25519PrivateKey(privateKey, publicKey, comment)
+    return Pair(publicKeyEncoded, privateKeyEncoded)
 }
 
 private fun encodeEd25519PublicKey(publicKey: Ed25519PublicKeyParameters, comment: String = ""): String {
@@ -174,30 +157,23 @@ private fun encodeEd25519PublicKey(publicKey: Ed25519PublicKeyParameters, commen
     return if (comment.isNotBlank()) "ssh-ed25519 $base64Key $comment" else "ssh-ed25519 $base64Key"
 }
 
-/**
- * Encodes Ed25519 private key in standard OpenSSH PEM format (-----BEGIN OPENSSH PRIVATE KEY-----).
- */
-private fun encodeEd25519PrivateKey(privateKey: Ed25519PrivateKeyParameters, publicKey: Ed25519PublicKeyParameters, comment: String = ""): String {
+private fun encodeEd25519PrivateKey(
+    privateKey: Ed25519PrivateKeyParameters,
+    publicKey: Ed25519PublicKeyParameters,
+    comment: String = ""
+): String {
     val byteStream = ByteArrayOutputStream()
     val dos = DataOutputStream(byteStream)
 
-    // 1. Magic Header
     dos.write("openssh-key-v1".toByteArray())
     dos.writeByte(0)
 
-    // 2. Cipher Name ("none")
     writeOpenSshString(dos, "none")
-
-    // 3. KDF Name ("none")
     writeOpenSshString(dos, "none")
-
-    // 4. KDF Options (empty)
     writeOpenSshString(dos, ByteArray(0))
 
-    // 5. Number of keys (1)
     dos.writeInt(1)
 
-    // 6. Public Key Blob
     val pubKeyBlob = ByteArrayOutputStream()
     val pubDos = DataOutputStream(pubKeyBlob)
     pubDos.writeInt(11)
@@ -207,30 +183,22 @@ private fun encodeEd25519PrivateKey(privateKey: Ed25519PrivateKeyParameters, pub
     pubDos.write(pubKeyBytes)
     writeOpenSshString(dos, pubKeyBlob.toByteArray())
 
-    // 7. Private Key Section
     val privKeyBlob = ByteArrayOutputStream()
     val privDos = DataOutputStream(privKeyBlob)
-    
-    // Checkints
+
     val checkInt = SecureRandom().nextInt()
     privDos.writeInt(checkInt)
     privDos.writeInt(checkInt)
 
-    // Key Type
     writeOpenSshString(privDos, "ssh-ed25519")
-
-    // Public Key: just the raw bytes (32 bytes), prefixed by length
     writeOpenSshString(privDos, pubKeyBytes)
 
-    // Private Key Data: Seed (32) + PubKey (32) = 64 bytes
     val seed = privateKey.encoded
     val combined = seed + pubKeyBytes
     writeOpenSshString(privDos, combined)
 
-    // Comment
     writeOpenSshString(privDos, comment.toByteArray())
 
-    // Padding (1, 2, 3...)
     val paddingLength = (8 - (privKeyBlob.size() % 8)) % 8
     for (i in 1..paddingLength) {
         privDos.writeByte(i.toByte().toInt())
@@ -256,19 +224,17 @@ private fun writeOpenSshString(dos: DataOutputStream, bytes: ByteArray) {
 
 fun calculateFingerprint(publicKey: String): String {
     if (BuildConfig.DEBUG) Log.d(SSH_KEY_LOG_TAG, "Calculating fingerprint for publicKey: ${publicKey.take(50)}...")
-    return try {
-        val keyPart = publicKey.substringAfter(" ").substringBefore(" ")
-        if (BuildConfig.DEBUG) Log.d(SSH_KEY_LOG_TAG, "Key part for fingerprint: ${keyPart.take(20)}...")
-        val keyBytes = Base64.getDecoder().decode(keyPart)
-        val md = MessageDigest.getInstance("SHA-256")
-        val digest = md.digest(keyBytes)
-        val fingerprint = "SHA256:${Base64.getEncoder().withoutPadding().encodeToString(digest)}"
-        if (BuildConfig.DEBUG) Log.d(SSH_KEY_LOG_TAG, "Fingerprint calculated: $fingerprint")
-        fingerprint
-    } catch (e: Exception) {
-        Log.e(SSH_KEY_LOG_TAG, "Fingerprint calculation failed: ${e.javaClass.simpleName}: ${e.message}", e)
-        "unknown"
-    }
+
+    val keyPart = publicKey.substringAfter(" ").substringBefore(" ")
+    if (BuildConfig.DEBUG) Log.d(SSH_KEY_LOG_TAG, "Key part for fingerprint: ${keyPart.take(20)}...")
+
+    val keyBytes = Base64.getDecoder().decode(keyPart)
+    val md = MessageDigest.getInstance("SHA-256")
+    val digest = md.digest(keyBytes)
+    val fingerprint = "SHA256:${Base64.getEncoder().withoutPadding().encodeToString(digest)}"
+
+    if (BuildConfig.DEBUG) Log.d(SSH_KEY_LOG_TAG, "Fingerprint calculated: $fingerprint")
+    return fingerprint
 }
 
 fun detectSshKeyType(privateKey: String): String {
@@ -310,9 +276,6 @@ private fun fallbackDetectSshKeyType(privateKey: String): String {
     }
 }
 
-/**
- * Validates the private key and detects its algorithm (RSA/Ed25519).
- */
 fun validatePrivateKey(privateKey: String): Pair<Boolean, String> {
     if (BuildConfig.DEBUG) Log.d(SSH_KEY_LOG_TAG, "Validating private key...")
     try {

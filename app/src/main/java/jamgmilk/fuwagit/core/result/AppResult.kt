@@ -46,7 +46,6 @@ sealed class AppResult<out T> {
 }
 
 sealed class AppException : Exception() {
-    // ========== Credential Exceptions ==========
     data class CredentialNotFound(val uuid: String) : AppException() {
         override val message: String = "Credential not found: $uuid"
     }
@@ -57,19 +56,12 @@ sealed class AppException : Exception() {
 
     data class PasswordMismatch(override val message: String = "Passwords do not match") : AppException()
 
-    data class BiometricNotEnabled(override val message: String = "Biometric authentication not enabled") : AppException()
-
     data class BiometricError(override val message: String) : AppException()
-
-    data class ImportFailed(override val message: String = "Failed to import credentials") : AppException()
-
-    data class ExportFailed(override val message: String = "Failed to export credentials") : AppException()
-
-    data class EncryptionFailed(override val message: String = "Encryption failed") : AppException()
 
     data class DecryptionFailed(override val message: String = "Decryption failed") : AppException()
 
-    // ========== Git Exceptions ==========
+    data class Validation(override val message: String) : AppException()
+
     data class GitOperationFailed(val operation: String, override val message: String) : AppException()
 
     data class RepositoryNotFound(val path: String) : AppException() {
@@ -116,9 +108,6 @@ sealed class AppException : Exception() {
 
     data class NetworkError(override val message: String) : AppException()
 
-    data class Validation(override val message: String) : AppException()
-
-    // ========== Generic ==========
     data class Unknown(override val message: String) : AppException()
 }
 

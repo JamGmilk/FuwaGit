@@ -5,15 +5,10 @@ import jamgmilk.fuwagit.BuildConfig
 import org.eclipse.jgit.lib.Config
 import org.eclipse.jgit.storage.file.FileBasedConfig
 import org.eclipse.jgit.util.FS
-import org.eclipse.jgit.util.SystemReader
 import java.io.File
 import javax.inject.Inject
 import javax.inject.Singleton
 
-/**
- * Git configuration manager
- * Manages Git config at both global and repository levels
- */
 @Singleton
 class GitConfigManager @Inject constructor() {
 
@@ -21,9 +16,6 @@ class GitConfigManager @Inject constructor() {
         private const val TAG = "GitConfigManager"
     }
 
-    /**
-     * Get global git config file path (~/.gitconfig)
-     */
     fun getGlobalConfigFile(): File {
         return try {
             val homeDir = System.getProperty("user.home")
@@ -34,9 +26,6 @@ class GitConfigManager @Inject constructor() {
         }
     }
 
-    /**
-     * Read global git config
-     */
     fun getGlobalConfig(): Config {
         return try {
             val globalConfig = FileBasedConfig(getGlobalConfigFile(), FS.DETECTED)
@@ -48,205 +37,83 @@ class GitConfigManager @Inject constructor() {
         }
     }
 
-    /**
-     * Set global git user.name
-     */
     fun setGlobalUserName(name: String): Result<Unit> {
-        return try {
-            val globalConfig = FileBasedConfig(getGlobalConfigFile(), FS.DETECTED)
-            globalConfig.load()
-            globalConfig.setString("user", null, "name", name)
-            globalConfig.save()
+        return runCatchingConfig {
+            it.setString("user", null, "name", name)
             if (BuildConfig.DEBUG) Log.d(TAG, "Set global user.name: $name")
-            Result.success(Unit)
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to set global user.name", e)
-            Result.failure(e)
         }
     }
 
-    /**
-     * Set global git user.email
-     */
     fun setGlobalUserEmail(email: String): Result<Unit> {
-        return try {
-            val globalConfig = FileBasedConfig(getGlobalConfigFile(), FS.DETECTED)
-            globalConfig.load()
-            globalConfig.setString("user", null, "email", email)
-            globalConfig.save()
+        return runCatchingConfig {
+            it.setString("user", null, "email", email)
             if (BuildConfig.DEBUG) Log.d(TAG, "Set global user.email: $email")
-            Result.success(Unit)
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to set global user.email", e)
-            Result.failure(e)
         }
     }
 
-    /**
-     * Set global git config (name and email)
-     */
     fun setGlobalUserConfig(name: String, email: String): Result<Unit> {
-        return try {
-            val globalConfig = FileBasedConfig(getGlobalConfigFile(), FS.DETECTED)
-            globalConfig.load()
-            globalConfig.setString("user", null, "name", name)
-            globalConfig.setString("user", null, "email", email)
-            globalConfig.save()
+        return runCatchingConfig {
+            it.setString("user", null, "name", name)
+            it.setString("user", null, "email", email)
             if (BuildConfig.DEBUG) Log.d(TAG, "Set global user config: name=$name, email=$email")
-            Result.success(Unit)
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to set global user config", e)
-            Result.failure(e)
         }
     }
 
-    /**
-     * Get global git user.name
-     */
     fun getGlobalUserName(): String? {
-        return try {
-            val config = getGlobalConfig()
-            config.getString("user", null, "name")
-        } catch (e: Exception) {
-            null
-        }
+        return runCatchingConfig {
+            it.getString("user", null, "name")
+        }.getOrNull()
     }
 
-    /**
-     * Get global git user.email
-     */
     fun getGlobalUserEmail(): String? {
-        return try {
-            val config = getGlobalConfig()
-            config.getString("user", null, "email")
-        } catch (e: Exception) {
-            null
-        }
+        return runCatchingConfig {
+            it.getString("user", null, "email")
+        }.getOrNull()
     }
 
-    /**
-     * Set repository-level git user.name
-     */
-    fun setRepoUserName(repoPath: String, name: String): Result<Unit> {
-        return try {
-            val repo = org.eclipse.jgit.api.Git.open(File(repoPath))
-            val config = repo.repository.config
+    fun setRepoUserName(repoPath: String, name: String): Result<Unit> =
+        withRepoConfig(repoPath) { config ->
             config.setString("user", null, "name", name)
-            config.save()
-            repo.close()
             if (BuildConfig.DEBUG) Log.d(TAG, "Set repo user.name: $name for $repoPath")
-            Result.success(Unit)
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to set repo user.name", e)
-            Result.failure(e)
         }
-    }
 
-    /**
-     * Set repository-level git user.email
-     */
-    fun setRepoUserEmail(repoPath: String, email: String): Result<Unit> {
-        return try {
-            val repo = org.eclipse.jgit.api.Git.open(File(repoPath))
-            val config = repo.repository.config
+    fun setRepoUserEmail(repoPath: String, email: String): Result<Unit> =
+        withRepoConfig(repoPath) { config ->
             config.setString("user", null, "email", email)
-            config.save()
-            repo.close()
             if (BuildConfig.DEBUG) Log.d(TAG, "Set repo user.email: $email for $repoPath")
-            Result.success(Unit)
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to set repo user.email", e)
-            Result.failure(e)
         }
-    }
 
-    /**
-     * Set repository-level git config (name and email)
-     */
-    fun setRepoUserConfig(repoPath: String, name: String, email: String): Result<Unit> {
-        return try {
-            val repo = org.eclipse.jgit.api.Git.open(File(repoPath))
-            val config = repo.repository.config
+    fun setRepoUserConfig(repoPath: String, name: String, email: String): Result<Unit> =
+        withRepoConfig(repoPath) { config ->
             config.setString("user", null, "name", name)
             config.setString("user", null, "email", email)
-            config.save()
-            repo.close()
             if (BuildConfig.DEBUG) Log.d(TAG, "Set repo user config: name=$name, email=$email for $repoPath")
-            Result.success(Unit)
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to set repo user config", e)
-            Result.failure(e)
         }
-    }
 
-    /**
-     * Get repository-level git user.name
-     */
-    fun getRepoUserName(repoPath: String): String? {
-        return try {
-            val repo = org.eclipse.jgit.api.Git.open(File(repoPath))
-            val name = repo.repository.config.getString("user", null, "name")
-            repo.close()
-            name
-        } catch (e: Exception) {
-            null
-        }
-    }
+    fun getRepoUserName(repoPath: String): String? =
+        withRepoConfig<String?>(repoPath) { it.getString("user", null, "name") }
+            .getOrNull()
 
-    /**
-     * Get repository-level git user.email
-     */
-    fun getRepoUserEmail(repoPath: String): String? {
-        return try {
-            val repo = org.eclipse.jgit.api.Git.open(File(repoPath))
-            val email = repo.repository.config.getString("user", null, "email")
-            repo.close()
-            email
-        } catch (e: Exception) {
-            null
-        }
-    }
+    fun getRepoUserEmail(repoPath: String): String? =
+        withRepoConfig<String?>(repoPath) { it.getString("user", null, "email") }
+            .getOrNull()
 
-    /**
-     * Check if repository has local user config
-     */
     fun hasRepoUserConfig(repoPath: String): Boolean {
-        return try {
-            val repo = org.eclipse.jgit.api.Git.open(File(repoPath))
-            val config = repo.repository.config
-            val hasName = config.getString("user", null, "name") != null
-            val hasEmail = config.getString("user", null, "email") != null
-            repo.close()
+        return withRepoConfig<Boolean>(repoPath) {
+            val hasName = it.getString("user", null, "name") != null
+            val hasEmail = it.getString("user", null, "email") != null
             hasName || hasEmail
-        } catch (e: Exception) {
-            false
-        }
+        }.getOrNull() ?: false
     }
 
-    /**
-     * Remove repository-level local user config (use global config instead)
-     */
-    fun removeRepoUserConfig(repoPath: String): Result<Unit> {
-        return try {
-            val repo = org.eclipse.jgit.api.Git.open(File(repoPath))
-            val config = repo.repository.config
+    fun removeRepoUserConfig(repoPath: String): Result<Unit> =
+        withRepoConfig(repoPath) { config ->
             config.unset("user", null, "name")
             config.unset("user", null, "email")
-            config.save()
-            repo.close()
             if (BuildConfig.DEBUG) Log.d(TAG, "Removed repo user config for $repoPath")
-            Result.success(Unit)
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to remove repo user config", e)
-            Result.failure(e)
         }
-    }
 
-    /**
-     * Get currently effective user config (repo > global)
-     */
     fun getEffectiveUserConfig(repoPath: String): Pair<String?, String?> {
-        // First check repo config
         val repoName = getRepoUserName(repoPath)
         val repoEmail = getRepoUserEmail(repoPath)
 
@@ -254,7 +121,33 @@ class GitConfigManager @Inject constructor() {
             return Pair(repoName, repoEmail)
         }
 
-        // Otherwise use global config
         return Pair(getGlobalUserName(), getGlobalUserEmail())
+    }
+
+    private fun <T> withRepoConfig(repoPath: String, block: (Config) -> T): Result<T> {
+        return try {
+            val repo = org.eclipse.jgit.api.Git.open(File(repoPath))
+            repo.use {
+                val result = block(it.repository.config)
+                it.repository.config.save()
+                Result.success(result)
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to access repo config at $repoPath", e)
+            Result.failure(e)
+        }
+    }
+
+    private fun <T> runCatchingConfig(block: (Config) -> T): Result<T> {
+        return try {
+            val globalConfig = FileBasedConfig(getGlobalConfigFile(), FS.DETECTED)
+            globalConfig.load()
+            val result = block(globalConfig)
+            globalConfig.save()
+            Result.success(result)
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to access global config", e)
+            Result.failure(e)
+        }
     }
 }
