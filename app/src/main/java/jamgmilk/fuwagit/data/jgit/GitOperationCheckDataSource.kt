@@ -18,6 +18,7 @@ data class PrePullCheckResult(
     val inMidRebase: Boolean = false,
     val inMidMerge: Boolean = false,
     val isLocked: Boolean = false,
+    val isDetachedHead: Boolean = false,
     val message: String = ""
 )
 

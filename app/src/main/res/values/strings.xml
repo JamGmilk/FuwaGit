@@ -79,8 +79,8 @@
     <string name="settings_test_file_picker">Test File Picker</string>
     <string name="settings_test_file_picker_subtitle">Open file picker and show selected path</string>
     <string name="settings_reset_onboarding">Reset Onboarding</string>
-    <string name="settings_reset_onboarding_subtitle">Show onboarding on next app launch</string>
-    <string name="settings_reset_onboarding_confirm">This will reset the first-run flag. The onboarding screen will appear the next time you open the app.</string>
+    <string name="settings_reset_onboarding_subtitle">Show onboarding screen immediately</string>
+    <string name="settings_reset_onboarding_confirm">This will reset the first-run flag. The onboarding screen will appear immediately.</string>
     <string name="settings_about">About</string>
     <string name="settings_version">Version</string>
     <string name="settings_build">Build</string>

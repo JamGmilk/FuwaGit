@@ -4,6 +4,10 @@ import android.util.Log
 import jamgmilk.fuwagit.BuildConfig
 import jamgmilk.fuwagit.core.result.AppException
 import jamgmilk.fuwagit.core.result.AppResult
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.bouncycastle.util.io.pem.PemReader
 import java.io.BufferedReader
@@ -14,7 +18,7 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 interface SshDataSource {
-    fun testSshConnection(
+    suspend fun testSshConnection(
         host: String,
         privateKeyPem: String,
         passphrase: String?
@@ -26,7 +30,7 @@ class JGitSshDataSource @Inject constructor() : SshDataSource {
 
     private val sshTimeout = 15000
 
-    override fun testSshConnection(
+    override suspend fun testSshConnection(
         host: String,
         privateKeyPem: String,
         passphrase: String?
@@ -60,7 +64,7 @@ class JGitSshDataSource @Inject constructor() : SshDataSource {
         }
     }
 
-    private fun testSshConnectionDirect(
+    private suspend fun testSshConnectionDirect(
         username: String,
         hostname: String,
         privateKeyPem: String,
@@ -96,6 +100,7 @@ class JGitSshDataSource @Inject constructor() : SshDataSource {
             }
         })
 
+        var channel: com.jcraft.jsch.ChannelExec? = null
         return try {
             session.connect(sshTimeout)
             debugLog("SSH session connected to $hostname")
@@ -127,28 +132,31 @@ class JGitSshDataSource @Inject constructor() : SshDataSource {
                 }
             } catch (_: Exception) { }
 
-            val channel = session.openChannel("exec") as com.jcraft.jsch.ChannelExec
+            channel = session.openChannel("exec") as com.jcraft.jsch.ChannelExec
             channel.setCommand("git-upload-pack /github/gitignore.git")
 
             val outputBuilder = StringBuilder()
             val stdoutReader = BufferedReader(InputStreamReader(channel.inputStream))
 
-            Thread {
+            val workerScope = CoroutineScope(Dispatchers.IO + Job())
+            val readerJob: Job = workerScope.launch {
                 try {
                     var line: String?
                     while (stdoutReader.readLine().also { line = it } != null) {
                         outputBuilder.appendLine(line)
                     }
                 } catch (_: Exception) { }
-            }.start()
+            }
 
             channel.connect(sshTimeout)
-            Thread.sleep(2000)
+
+            readerJob.join()
 
             val exitCode = channel.exitStatus
             debugLog("Channel exit code: $exitCode")
 
             channel.disconnect()
+            channel = null
             session.disconnect()
 
             val output = outputBuilder.toString().trim()
@@ -161,6 +169,8 @@ class JGitSshDataSource @Inject constructor() : SshDataSource {
             }
         } catch (e: com.jcraft.jsch.JSchException) {
             debugLog("SSH connection failed: ${e.message}")
+            channel?.disconnect()
+            channel = null
             try { session.disconnect() } catch (_: Exception) { }
             val result = when {
                 e.message?.contains("Auth fail") == true ->

@@ -82,6 +82,12 @@ class JGitRemoteDataSource @Inject constructor(
                     throw Exception("Cannot pull: ${lockStatus.message}")
                 }
 
+                val fullBranch = git.repository.fullBranch
+                val isDetached = fullBranch == null || !fullBranch.startsWith("refs/heads/")
+                if (isDetached) {
+                    throw Exception("Cannot pull in detached HEAD state. Checkout a branch first.")
+                }
+
                 val inRebase = File(gitDir, "rebase-apply").exists() ||
                                File(gitDir, "rebase-merge").exists()
                 if (inRebase) {
