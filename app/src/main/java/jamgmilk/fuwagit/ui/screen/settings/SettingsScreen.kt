@@ -111,7 +111,9 @@ import jamgmilk.fuwagit.ui.screen.credentials.SetupMasterPasswordDialog
 import jamgmilk.fuwagit.ui.screen.credentials.UnlockDialog
 import jamgmilk.fuwagit.ui.util.ViewModelMessagesMapper
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import androidx.compose.runtime.snapshotFlow
 
 private const val TAG = "SettingsScreen"
 @Composable
@@ -167,16 +169,21 @@ fun SettingsScreen(
         credentialsViewModel.initialize()
     }
 
-    LaunchedEffect(credentialsUiState.isDecryptionUnlocked, pendingBiometricEnable) {
-        if (BuildConfig.DEBUG) Log.d(TAG, "LaunchedEffect: isDecryptionUnlocked=${credentialsUiState.isDecryptionUnlocked}, pendingBiometricEnable=$pendingBiometricEnable")
-        if (credentialsUiState.isDecryptionUnlocked && pendingBiometricEnable) {
-            if (BuildConfig.DEBUG) Log.d(TAG, "LaunchedEffect: calling enableBiometric, activity=$activity")
-            if (activity == null) {
-                Log.e(TAG, "LaunchedEffect: activity is NULL, cannot enable biometric")
+    // ✅ 使用 snapshotFlow 监听状态变化，避免不必要的重组
+    LaunchedEffect(Unit) {
+        snapshotFlow { 
+            Pair(credentialsUiState.isDecryptionUnlocked, pendingBiometricEnable) 
+        }.collectLatest { (isUnlocked, pendingEnable) ->
+            if (BuildConfig.DEBUG) Log.d(TAG, "snapshotFlow: isDecryptionUnlocked=$isUnlocked, pendingBiometricEnable=$pendingEnable")
+            if (isUnlocked && pendingEnable) {
+                if (BuildConfig.DEBUG) Log.d(TAG, "snapshotFlow: calling enableBiometric, activity=$activity")
+                if (activity == null) {
+                    Log.e(TAG, "snapshotFlow: activity is NULL, cannot enable biometric")
+                }
+                delay(100)
+                pendingBiometricEnable = false
+                activity?.let { credentialsViewModel.enableBiometric(it) }
             }
-            delay(100)
-            pendingBiometricEnable = false
-            activity?.let { credentialsViewModel.enableBiometric(it) }
         }
     }
 

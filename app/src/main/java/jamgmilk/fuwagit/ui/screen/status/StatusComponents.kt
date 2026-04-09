@@ -408,15 +408,15 @@ internal fun FileSectionCard(
                 ) {
                     items(
                         items = files,
-                        key = { it.path.hashCode() + it.isStaged.hashCode() },
+                        key = { file -> "${file.path}:${file.isStaged}" },
                         contentType = { "file_status" }
                     ) { file ->
                         FileStatusItem(
                             file = file,
                             accentColor = accentColor,
-                            onAction = { onFileAction(file) },
-                            onDiscard = onDiscard?.let { { it(file) } },
-                            onViewDiff = onViewDiff?.let { { it(file) } }
+                            onAction = onFileAction,
+                            onDiscard = onDiscard,
+                            onViewDiff = onViewDiff
                         )
                     }
                 }
@@ -429,9 +429,9 @@ internal fun FileSectionCard(
 private fun FileStatusItem(
     file: GitFileStatus,
     accentColor: Color,
-    onAction: () -> Unit,
-    onDiscard: (() -> Unit)? = null,
-    onViewDiff: (() -> Unit)? = null
+    onAction: (GitFileStatus) -> Unit,
+    onDiscard: ((GitFileStatus) -> Unit)? = null,
+    onViewDiff: ((GitFileStatus) -> Unit)? = null
 ) {
     val showMenuState = remember { mutableStateOf(false) }
     val colors = MaterialTheme.colorScheme
@@ -451,7 +451,7 @@ private fun FileStatusItem(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
-            .clickable(onClick = onAction),
+            .clickable { onAction(file) },
         color = colors.surface.copy(alpha = 0.6f),
         shape = RoundedCornerShape(12.dp)
     ) {
@@ -515,7 +515,7 @@ private fun FileStatusItem(
                         DropdownMenuItem(
                             text = { Text(stringResource(R.string.diff_view_changes)) },
                             onClick = {
-                                onViewDiff()
+                                onViewDiff(file)
                                 showMenuState.value = false
                             },
                             leadingIcon = {
@@ -531,7 +531,7 @@ private fun FileStatusItem(
                         DropdownMenuItem(
                             text = { Text(stringResource(R.string.status_discard_changes)) },
                             onClick = {
-                                onDiscard()
+                                onDiscard(file)
                                 showMenuState.value = false
                             },
                             leadingIcon = {

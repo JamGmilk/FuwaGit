@@ -63,24 +63,36 @@ class JGitOperationCheckDataSource @Inject constructor(
                 val lockStatus = core.isRepositoryLocked(repoPath)
                 val currentBranch = git.repository.branch
 
+                val headRevision = try {
+                    git.repository.resolve("HEAD")
+                } catch (_: Exception) {
+                    null
+                }
+                val empty = headRevision == null
+
                 val remoteBranchAhead = calculateAheadBehind(git, currentBranch)
+                val diverged = remoteBranchAhead.first > 0 && remoteBranchAhead.second > 0
 
                 val message = buildString {
                     when {
                         lockStatus.isLocked -> append(lockStatus.message)
+                        empty -> append("Repository has no commits. Make at least one commit before pushing.")
                         status.conflicting.isNotEmpty() -> append("Unresolved conflicts exist")
                         status.hasUncommittedChanges() -> append("Has uncommitted changes")
-                        remoteBranchAhead.first > 0 -> append("Remote is ${remoteBranchAhead.first} commit(s) ahead")
-                        remoteBranchAhead.second > 0 -> append("You are ${remoteBranchAhead.second} commit(s) behind remote")
+                        diverged -> append("Branch has diverged: you have ${remoteBranchAhead.first} commit(s) and remote has ${remoteBranchAhead.second} commit(s). Fetch and merge first.")
+                        remoteBranchAhead.first > 0 && remoteBranchAhead.second == 0 -> append("You are ${remoteBranchAhead.first} commit(s) ahead of remote")
+                        remoteBranchAhead.second > 0 && remoteBranchAhead.first == 0 -> append("You are ${remoteBranchAhead.second} commit(s) behind remote")
                         else -> append("Ready to push")
                     }
                 }
 
                 PrePushCheckResult(
-                    canPush = !lockStatus.isLocked && status.conflicting.isEmpty(),
+                    canPush = !lockStatus.isLocked && status.conflicting.isEmpty() && !diverged && !empty,
                     hasUncommittedChanges = status.hasUncommittedChanges(),
                     hasConflicts = status.conflicting.isNotEmpty(),
                     hasStashableChanges = status.hasUncommittedChanges(),
+                    hasDiverged = diverged,
+                    isEmpty = empty,
                     currentBranch = currentBranch,
                     remoteBranchAhead = remoteBranchAhead.first,
                     remoteBranchBehind = remoteBranchAhead.second,

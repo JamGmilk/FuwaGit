@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import jamgmilk.fuwagit.R
 import jamgmilk.fuwagit.domain.model.git.GitChangeType
+import jamgmilk.fuwagit.domain.model.git.GitFileStatus
 import jamgmilk.fuwagit.ui.components.DangerousOperationType
 import jamgmilk.fuwagit.ui.components.OperationResultDialog
 import jamgmilk.fuwagit.ui.components.ScreenTemplate
@@ -55,8 +56,8 @@ fun StatusScreen(
 ) {
     val uiState by statusViewModel.uiState.collectAsStateWithLifecycle()
     val files = uiState.workspaceFiles
-    val staged = remember(files) { files.filter { it.isStaged } }
-    val workspace = remember(files) { files.filter { !it.isStaged } }
+    val staged by remember(files) { derivedStateOf { files.filter { it.isStaged } } }
+    val workspace by remember(files) { derivedStateOf { files.filter { !it.isStaged } } }
     var commitMessage by remember { mutableStateOf("") }
 
     val isRepo = uiState.isGitRepo
@@ -97,12 +98,34 @@ fun StatusScreen(
         }
     }
 
+    // ✅ 直接创建 lambda（成本更低，避免 remember 的存储和键比较开销）
+    val onRefresh = { statusViewModel.refreshWorkspace() }
+    val onInit = { statusViewModel.initRepo() }
+    val onStageAll = { statusViewModel.stageAll() }
+    val onUnstageAll = { statusViewModel.unstageAll() }
+    val onPull = { statusViewModel.pullRepo() }
+    val onPush = { statusViewModel.pushRepo() }
+    val onFetch = { statusViewModel.fetchRepo() }
+    val onStageFile: (GitFileStatus) -> Unit = { file -> statusViewModel.stageFile(file.path) }
+    val onUnstageFile: (GitFileStatus) -> Unit = { file -> statusViewModel.unstageFile(file.path) }
+    val onDiscard: (GitFileStatus) -> Unit = { file -> statusViewModel.requestDiscardChanges(file.path) }
+    
+    // ✅ 保留 remember，因为 lambda 捕获了可变状态 commitMessage
+    val onCommit: () -> Unit = remember {
+        {
+            if (commitMessage.isNotBlank()) {
+                statusViewModel.commitChanges(commitMessage)
+                commitMessage = ""
+            }
+        }
+    }
+
     ScreenTemplate(
         title = stringResource(R.string.screen_status),
         modifier = modifier,
         actions = {
             RefreshIconButton(
-                onClick = { statusViewModel.refreshWorkspace() },
+                onClick = onRefresh,
                 modifier = Modifier.size(36.dp)
             )
         }
@@ -123,7 +146,7 @@ fun StatusScreen(
             exit = fadeOut() + shrinkVertically()
         ) {
             InitRepositoryCard(
-                onInit = { statusViewModel.initRepo() },
+                onInit = onInit,
                 isLoading = uiState.isLoading,
                 modifier = Modifier.fillMaxWidth()
             )
@@ -137,11 +160,11 @@ fun StatusScreen(
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 ActionToolbar(
                     stats = statusStats,
-                    onStageAll = { statusViewModel.stageAll() },
-                    onUnstageAll = { statusViewModel.unstageAll() },
-                    onPull = { statusViewModel.pullRepo() },
-                    onPush = { statusViewModel.pushRepo() },
-                    onFetch = { statusViewModel.fetchRepo() },
+                    onStageAll = onStageAll,
+                    onUnstageAll = onUnstageAll,
+                    onPull = onPull,
+                    onPush = onPush,
+                    onFetch = onFetch,
                     modifier = Modifier.fillMaxWidth()
                 )
             }
@@ -164,12 +187,8 @@ fun StatusScreen(
                     files = workspace,
                     modifier = Modifier.weight(1f),
                     accentColor = colors.primary,
-                    onFileAction = { file ->
-                        statusViewModel.stageFile(file.path)
-                    },
-                    onDiscard = { file ->
-                        statusViewModel.requestDiscardChanges(file.path)
-                    },
+                    onFileAction = onStageFile,
+                    onDiscard = onDiscard,
                     onViewDiff = { file ->
                         onViewDiff?.invoke(file.path, false)
                     },
@@ -182,7 +201,7 @@ fun StatusScreen(
                     files = staged,
                     modifier = Modifier.weight(1f),
                     accentColor = colors.tertiary,
-                    onFileAction = { file -> statusViewModel.unstageFile(file.path) },
+                    onFileAction = onUnstageFile,
                     onViewDiff = { file ->
                         onViewDiff?.invoke(file.path, true)
                     },
@@ -199,12 +218,7 @@ fun StatusScreen(
             CommitCard(
                 commitMessage = commitMessage,
                 onCommitMessageChange = { commitMessage = it },
-                onCommit = {
-                    if (commitMessage.isNotBlank()) {
-                        statusViewModel.commitChanges(commitMessage)
-                        commitMessage = ""
-                    }
-                },
+                onCommit = onCommit,
                 stagedCount = staged.size,
                 modifier = Modifier.fillMaxWidth()
             )
