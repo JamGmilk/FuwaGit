@@ -142,4 +142,14 @@ interface GitRepository {
         filePath: String,
         commitHash: String? = null
     ): AppResult<String>
+
+    // ==================== Pre-operation safety checks ====================
+
+    suspend fun checkPrePullStatus(repoPath: String): Result<jamgmilk.fuwagit.data.jgit.PrePullCheckResult>
+
+    suspend fun checkPrePushStatus(repoPath: String): Result<jamgmilk.fuwagit.data.jgit.PrePushCheckResult>
+
+    suspend fun isRepositoryLocked(repoPath: String): Boolean
+
+    suspend fun getConflictDetails(repoPath: String): Result<List<jamgmilk.fuwagit.data.jgit.ConflictFileInfo>>
 }

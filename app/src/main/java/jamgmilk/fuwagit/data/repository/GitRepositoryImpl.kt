@@ -3,13 +3,17 @@ package jamgmilk.fuwagit.data.repository
 import jamgmilk.fuwagit.core.result.AppResult
 import jamgmilk.fuwagit.core.result.AppException
 import jamgmilk.fuwagit.core.result.toAppResult
+import jamgmilk.fuwagit.data.jgit.ConflictFileInfo
 import jamgmilk.fuwagit.data.jgit.GitCommitDataSource
 import jamgmilk.fuwagit.data.jgit.GitCoreDataSource
 import jamgmilk.fuwagit.data.jgit.GitDiffDataSource
 import jamgmilk.fuwagit.data.jgit.GitMergeDataSource
+import jamgmilk.fuwagit.data.jgit.GitOperationCheckDataSource
 import jamgmilk.fuwagit.data.jgit.GitRemoteDataSource
 import jamgmilk.fuwagit.data.jgit.GitStatusDataSource
 import jamgmilk.fuwagit.data.jgit.GitTagDataSource
+import jamgmilk.fuwagit.data.jgit.PrePullCheckResult
+import jamgmilk.fuwagit.data.jgit.PrePushCheckResult
 import jamgmilk.fuwagit.domain.model.credential.CloneCredential
 import jamgmilk.fuwagit.domain.model.git.*
 import jamgmilk.fuwagit.domain.repository.GitRepository
@@ -24,7 +28,8 @@ class GitRepositoryImpl @Inject constructor(
     private val remote: GitRemoteDataSource,
     private val merge: GitMergeDataSource,
     private val tag: GitTagDataSource,
-    private val diff: GitDiffDataSource
+    private val diff: GitDiffDataSource,
+    private val operationCheck: GitOperationCheckDataSource
 ) : GitRepository {
 
     override suspend fun getStatus(repoPath: String): AppResult<GitRepoStatus> =
@@ -186,4 +191,16 @@ class GitRepositoryImpl @Inject constructor(
         commitHash: String?
     ): AppResult<String> =
         withContext(Dispatchers.IO) { diff.getFileContent(repoPath, filePath, commitHash).toAppResult() }
+
+    override suspend fun checkPrePullStatus(repoPath: String): Result<PrePullCheckResult> =
+        withContext(Dispatchers.IO) { operationCheck.checkPrePullStatus(repoPath) }
+
+    override suspend fun checkPrePushStatus(repoPath: String): Result<PrePushCheckResult> =
+        withContext(Dispatchers.IO) { operationCheck.checkPrePushStatus(repoPath) }
+
+    override suspend fun isRepositoryLocked(repoPath: String): Boolean =
+        withContext(Dispatchers.IO) { operationCheck.isRepositoryLocked(repoPath) }
+
+    override suspend fun getConflictDetails(repoPath: String): Result<List<ConflictFileInfo>> =
+        withContext(Dispatchers.IO) { operationCheck.getConflictDetails(repoPath) }
 }

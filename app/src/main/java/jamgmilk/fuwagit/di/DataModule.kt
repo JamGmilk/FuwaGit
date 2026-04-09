@@ -8,6 +8,7 @@ import jamgmilk.fuwagit.data.jgit.GitCommitDataSource
 import jamgmilk.fuwagit.data.jgit.GitCoreDataSource
 import jamgmilk.fuwagit.data.jgit.GitDiffDataSource
 import jamgmilk.fuwagit.data.jgit.GitMergeDataSource
+import jamgmilk.fuwagit.data.jgit.GitOperationCheckDataSource
 import jamgmilk.fuwagit.data.jgit.GitRemoteDataSource
 import jamgmilk.fuwagit.data.jgit.GitStatusDataSource
 import jamgmilk.fuwagit.data.jgit.GitTagDataSource
@@ -15,6 +16,7 @@ import jamgmilk.fuwagit.data.jgit.JGitCommitDataSource
 import jamgmilk.fuwagit.data.jgit.JGitCoreDataSource
 import jamgmilk.fuwagit.data.jgit.JGitDiffDataSource
 import jamgmilk.fuwagit.data.jgit.JGitMergeDataSource
+import jamgmilk.fuwagit.data.jgit.JGitOperationCheckDataSource
 import jamgmilk.fuwagit.data.jgit.JGitRemoteDataSource
 import jamgmilk.fuwagit.data.jgit.JGitStatusDataSource
 import jamgmilk.fuwagit.data.jgit.JGitTagDataSource
@@ -71,6 +73,10 @@ abstract class DataModule {
     @Binds
     @Singleton
     abstract fun bindGitDiffDataSource(impl: JGitDiffDataSource): GitDiffDataSource
+
+    @Binds
+    @Singleton
+    abstract fun bindGitOperationCheckDataSource(impl: JGitOperationCheckDataSource): GitOperationCheckDataSource
 
     @Binds
     @Singleton
