@@ -414,6 +414,7 @@
     <string name="remote_url_label">Remote URL</string>
     <string name="remote_credential_label">Credential</string>
     <string name="remote_ssh_key_label">SSH Key</string>
+    <string name="remote_credential_url_mismatch">Credential type does not match URL</string>
 
     <!-- Permissions Screen -->
     <string name="permissions_system_title">System Permissions</string>

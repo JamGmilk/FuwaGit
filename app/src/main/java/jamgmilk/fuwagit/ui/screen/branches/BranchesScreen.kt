@@ -680,35 +680,7 @@ private fun BranchItem(
                 expanded = showMenu,
                 onDismissRequest = { showMenu = false }
             ) {
-                // 当前分支的选项
                 if (isCurrent) {
-                    // Push
-                    DropdownMenuItem(
-                        text = { Text(stringResource(R.string.branches_push)) },
-                        onClick = {
-                            branchesViewModel.pushCurrentBranch()
-                            showMenu = false
-                        },
-                        leadingIcon = {
-                            Icon(Icons.Default.CloudUpload, contentDescription = null, modifier = Modifier.size(18.dp))
-                        }
-                    )
-
-                    // Pull
-                    DropdownMenuItem(
-                        text = { Text(stringResource(R.string.branches_pull)) },
-                        onClick = {
-                            branchesViewModel.pullCurrentBranch()
-                            showMenu = false
-                        },
-                        leadingIcon = {
-                            Icon(Icons.Default.CloudDownload, contentDescription = null, modifier = Modifier.size(18.dp))
-                        }
-                    )
-
-                    HorizontalDivider()
-
-                    // Rename
                     DropdownMenuItem(
                         text = { Text(stringResource(R.string.branches_rename)) },
                         onClick = {
@@ -720,7 +692,6 @@ private fun BranchItem(
                         }
                     )
 
-                    // Create Tag
                     DropdownMenuItem(
                         text = { Text(stringResource(R.string.branches_create_tag)) },
                         onClick = {
@@ -732,19 +703,6 @@ private fun BranchItem(
                         }
                     )
 
-                    // Show in History
-                    DropdownMenuItem(
-                        text = { Text(stringResource(R.string.branches_show_in_history)) },
-                        onClick = {
-                            onShowInHistory?.invoke(branch.name)
-                            showMenu = false
-                        },
-                        leadingIcon = {
-                            Icon(Icons.Default.History, contentDescription = null, modifier = Modifier.size(18.dp))
-                        }
-                    )
-
-                    // Copy Name
                     DropdownMenuItem(
                         text = { Text(stringResource(R.string.branches_copy_name)) },
                         onClick = {
@@ -758,8 +716,6 @@ private fun BranchItem(
                         }
                     )
                 } else {
-                    // 非当前分支的选项：Checkout, Merge into Current, Rebase onto Current, Rename, Delete
-                    // Checkout
                     DropdownMenuItem(
                         text = {
                             Text(
@@ -775,8 +731,7 @@ private fun BranchItem(
                             Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(18.dp))
                         }
                     )
-                    
-                    // Merge into Current (仅本地分支)
+
                     if (!isRemote) {
                         DropdownMenuItem(
                             text = { Text(stringResource(R.string.branches_merge_into_current)) },
@@ -790,8 +745,7 @@ private fun BranchItem(
                                 Icon(Icons.AutoMirrored.Filled.MergeType, contentDescription = null, modifier = Modifier.size(18.dp))
                             }
                         )
-                        
-                        // Rebase onto Current (仅本地分支)
+
                         DropdownMenuItem(
                             text = { Text(stringResource(R.string.branches_rebase_onto_current)) },
                             onClick = {
@@ -804,10 +758,7 @@ private fun BranchItem(
                                 Icon(Icons.Default.ImportExport, contentDescription = null, modifier = Modifier.size(18.dp))
                             }
                         )
-                    }
-                    
-                    // Rename (仅本地分支)
-                    if (!isRemote) {
+
                         DropdownMenuItem(
                             text = { Text(stringResource(R.string.branches_rename)) },
                             onClick = {
@@ -820,10 +771,7 @@ private fun BranchItem(
                                 Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(18.dp))
                             }
                         )
-                    }
-                    
-                    // Delete (仅本地分支)
-                    if (!isRemote) {
+
                         DropdownMenuItem(
                             text = { Text(stringResource(R.string.branches_delete_branch)) },
                             onClick = {
@@ -835,33 +783,6 @@ private fun BranchItem(
                             leadingIcon = {
                                 Icon(Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(18.dp))
                             }
-                        )
-                    }
-                    
-                    // 远程分支的禁用提示
-                    if (isRemote) {
-                        HorizontalDivider()
-                        DropdownMenuItem(
-                            text = { Text(stringResource(R.string.branches_merge_into_current)) },
-                            onClick = {
-                                Toast.makeText(context, strings.mergeOnlyLocal, Toast.LENGTH_SHORT).show()
-                                showMenu = false
-                            },
-                            leadingIcon = {
-                                Icon(Icons.AutoMirrored.Filled.MergeType, contentDescription = null, modifier = Modifier.size(18.dp))
-                            },
-                            enabled = false
-                        )
-                        DropdownMenuItem(
-                            text = { Text(stringResource(R.string.branches_rebase_onto_current)) },
-                            onClick = {
-                                Toast.makeText(context, strings.rebaseOnlyLocal, Toast.LENGTH_SHORT).show()
-                                showMenu = false
-                            },
-                            leadingIcon = {
-                                Icon(Icons.Default.ImportExport, contentDescription = null, modifier = Modifier.size(18.dp))
-                            },
-                            enabled = false
                         )
                     }
                 }

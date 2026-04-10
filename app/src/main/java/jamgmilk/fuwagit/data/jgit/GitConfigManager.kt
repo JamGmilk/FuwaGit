@@ -49,6 +49,34 @@ class GitConfigManager @Inject constructor() {
         }.getOrNull() ?: false
     }
 
+    fun getRepoConfigSection(repoPath: String, section: String): Map<String, String> {
+        return withRepoConfig<Map<String, String>>(repoPath) { config ->
+            val result = mutableMapOf<String, String>()
+            val names = config.getNames(section, null)
+            names.forEach { name ->
+                val value = config.getString(section, null, name)
+                if (value != null) {
+                    result["$section.$name"] = value
+                }
+            }
+            result
+        }.getOrNull() ?: emptyMap()
+    }
+
+    fun getAllRepoConfig(repoPath: String): String {
+        return try {
+            val configFile = File(repoPath, ".git/config")
+            if (configFile.exists()) {
+                configFile.readText()
+            } else {
+                ""
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to read repo config file at $repoPath", e)
+            ""
+        }
+    }
+
     fun removeRepoUserConfig(repoPath: String): Result<Unit> =
         withRepoConfig(repoPath) { config ->
             config.unset("user", null, "name")
@@ -69,6 +97,22 @@ class GitConfigManager @Inject constructor() {
             }
         } catch (e: Exception) {
             Log.e(TAG, "Failed to access repo config at $repoPath", e)
+            Result.failure(e)
+        }
+    }
+
+    private fun <T> withRepoConfigReadOnly(repoPath: String, block: (Config) -> T): Result<T> {
+        if (repoPath.isBlank()) {
+            return Result.failure(IllegalArgumentException("Repo path cannot be empty"))
+        }
+        return try {
+            val repo = org.eclipse.jgit.api.Git.open(File(repoPath))
+            repo.use {
+                val result = block(it.repository.config)
+                Result.success(result)
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to read repo config at $repoPath", e)
             Result.failure(e)
         }
     }

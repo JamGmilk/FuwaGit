@@ -20,8 +20,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountTree
 import androidx.compose.material.icons.filled.Add
@@ -82,6 +84,7 @@ import jamgmilk.fuwagit.ui.components.CleanPreviewDialog
 import jamgmilk.fuwagit.ui.components.CleanResultDialog
 import jamgmilk.fuwagit.ui.components.ConfigureRemoteDialog
 import jamgmilk.fuwagit.ui.components.EmptyState
+import jamgmilk.fuwagit.ui.screen.credentials.CredentialType
 import jamgmilk.fuwagit.ui.components.ScreenTemplate
 import jamgmilk.fuwagit.ui.state.RepoInfo
 import jamgmilk.fuwagit.ui.theme.AppShapes
@@ -216,28 +219,43 @@ fun MyReposScreen(
     if (showConfigureRemoteDialog.value && pendingItemForDialog.value != null) {
         val item = pendingItemForDialog.value!!
         var remoteUrl by remember { mutableStateOf("") }
+        var isUrlLoaded by remember { mutableStateOf(false) }
+        val savedRepo = uiState.savedRepos.find { it.path == item.path }
+        val savedCredentialId = savedRepo?.credentialId
+        val savedCredentialType = when {
+            savedCredentialId != null && uiState.httpsCredentials.any { it.uuid == savedCredentialId } -> CredentialType.HTTPS
+            savedCredentialId != null && uiState.sshKeys.any { it.uuid == savedCredentialId } -> CredentialType.SSH
+            else -> null
+        }
 
         LaunchedEffect(item) {
             remoteUrl = myReposViewModel.getRemoteUrl(item.path) ?: ""
+            isUrlLoaded = true
         }
 
-        ConfigureRemoteDialog(
-            repoName = item.alias.ifBlank { item.path.substringAfterLast("/") },
-            currentUrl = remoteUrl,
-            httpsCredentials = uiState.httpsCredentials,
-            sshKeys = uiState.sshKeys,
-            onDismiss = {
-                showConfigureRemoteDialog.value = false
-                pendingItemForDialog.value = null
-            },
-            onSave = { newUrl, httpsUuid, sshUuid ->
-                scope.launch {
-                    myReposViewModel.configureRemote(item.path, "origin", newUrl, httpsUuid, sshUuid)
+        if (isUrlLoaded) {
+            ConfigureRemoteDialog(
+                repoName = item.alias.ifBlank { item.path.substringAfterLast("/") },
+                currentUrl = remoteUrl,
+                selectedCredentialUuid = savedCredentialId,
+                selectedCredentialType = savedCredentialType,
+                httpsCredentials = uiState.httpsCredentials,
+                sshKeys = uiState.sshKeys,
+                onDismiss = {
+                    showConfigureRemoteDialog.value = false
+                    pendingItemForDialog.value = null
+                    isUrlLoaded = false
+                },
+                onSave = { newUrl, httpsUuid, sshUuid ->
+                    scope.launch {
+                        myReposViewModel.configureRemote(item.path, "origin", newUrl, httpsUuid, sshUuid)
+                    }
+                    showConfigureRemoteDialog.value = false
+                    pendingItemForDialog.value = null
+                    isUrlLoaded = false
                 }
-                showConfigureRemoteDialog.value = false
-                pendingItemForDialog.value = null
-            }
-        )
+            )
+        }
     }
 
     if (showCleanConfirmationDialog.value && pendingItemForDialog.value != null) {
@@ -257,9 +275,11 @@ fun MyReposScreen(
     if (showRepoInfoDialog.value && pendingItemForDialog.value != null) {
         val item = pendingItemForDialog.value!!
         var repoInfo by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
+        var repoGitConfig by remember { mutableStateOf("") }
 
         LaunchedEffect(item) {
             repoInfo = myReposViewModel.getRepoInfo(item.path)
+            repoGitConfig = myReposViewModel.getRepoGitConfig(item.path)
         }
 
         RepoInfoDialog(
@@ -267,6 +287,7 @@ fun MyReposScreen(
             repoPath = item.path,
             isGitRepo = item.isGitRepo,
             repoInfo = repoInfo,
+            repoGitConfig = repoGitConfig,
             onDismiss = {
                 showRepoInfoDialog.value = false
                 pendingItemForDialog.value = null
@@ -751,6 +772,7 @@ fun RepoInfoDialog(
     repoPath: String,
     isGitRepo: Boolean,
     repoInfo: Map<String, String>,
+    repoGitConfig: String = "",
     onDismiss: () -> Unit
 ) {
     val colors = MaterialTheme.colorScheme
@@ -830,6 +852,37 @@ fun RepoInfoDialog(
                                 clipboardManager.setText(AnnotatedString(value))
                             }
                         )
+                    }
+                }
+
+                if (repoGitConfig.isNotEmpty()) {
+                    Spacer(Modifier.height(16.dp))
+                    Text(
+                        text = ".git/config",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = colors.primary
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(180.dp),
+                        shape = RoundedCornerShape(8.dp),
+                        color = colors.surfaceVariant.copy(alpha = 0.5f)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(8.dp)
+                                .verticalScroll(rememberScrollState())
+                        ) {
+                            Text(
+                                text = repoGitConfig,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = colors.onSurface
+                            )
+                        }
                     }
                 }
             }

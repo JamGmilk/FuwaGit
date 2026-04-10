@@ -91,19 +91,19 @@ internal fun ActionToolbar(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 ActionButton(
-                    icon = Icons.Default.CloudDownload,
-                    label = stringResource(R.string.status_action_pull),
-                    color = colors.primary,
-                    enabled = true,
-                    onClick = onPull,
-                    modifier = Modifier.weight(1f)
-                )
-                ActionButton(
                     icon = Icons.Default.CloudUpload,
                     label = stringResource(R.string.status_action_push),
                     color = colors.tertiary,
                     enabled = true,
                     onClick = onPush,
+                    modifier = Modifier.weight(1f)
+                )
+                ActionButton(
+                    icon = Icons.Default.CloudDownload,
+                    label = stringResource(R.string.status_action_pull),
+                    color = colors.primary,
+                    enabled = true,
+                    onClick = onPull,
                     modifier = Modifier.weight(1f)
                 )
                 ActionButton(
@@ -482,13 +482,6 @@ private fun FileStatusItem(
                     text = file.name,
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Medium,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                Text(
-                    text = file.path,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = colors.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )

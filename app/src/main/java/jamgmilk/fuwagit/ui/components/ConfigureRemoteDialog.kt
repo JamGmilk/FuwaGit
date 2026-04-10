@@ -1,5 +1,6 @@
 package jamgmilk.fuwagit.ui.components
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -34,6 +35,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import jamgmilk.fuwagit.R
 import jamgmilk.fuwagit.domain.model.credential.HttpsCredential
@@ -46,6 +48,8 @@ import jamgmilk.fuwagit.ui.theme.AppShapes
 fun ConfigureRemoteDialog(
     repoName: String,
     currentUrl: String,
+    selectedCredentialUuid: String? = null,
+    selectedCredentialType: CredentialType? = null,
     httpsCredentials: List<HttpsCredential> = emptyList(),
     sshKeys: List<SshKey> = emptyList(),
     onDismiss: () -> Unit,
@@ -53,8 +57,23 @@ fun ConfigureRemoteDialog(
 ) {
     var url by remember { mutableStateOf(currentUrl) }
     var showCredentialDialog by remember { mutableStateOf(false) }
-    var selectedHttpsUuid by remember { mutableStateOf<String?>(null) }
-    var selectedSshUuid by remember { mutableStateOf<String?>(null) }
+    var selectedHttpsUuid by remember { mutableStateOf<String?>(selectedCredentialUuid.takeIf { selectedCredentialType == CredentialType.HTTPS }) }
+    var selectedSshUuid by remember { mutableStateOf<String?>(selectedCredentialUuid.takeIf { selectedCredentialType == CredentialType.SSH }) }
+    var credentialError by remember { mutableStateOf<String?>(null) }
+
+    val isUrlHttps = url.trim().lowercase().startsWith("https://")
+    val isUrlSsh = url.trim().lowercase().startsWith("ssh://") ||
+                   url.trim().lowercase().startsWith("git@") ||
+                   url.trim().lowercase().contains("@") && url.trim().contains(":")
+    val hasCredentialSelection = selectedHttpsUuid != null || selectedSshUuid != null
+    val isCredentialMatch = when {
+        !hasCredentialSelection -> true
+        isUrlHttps && selectedHttpsUuid != null -> true
+        isUrlSsh && selectedSshUuid != null -> true
+        else -> false
+    }
+    val saveEnabled = url.isNotBlank() && isCredentialMatch
+    val mismatchErrorText = stringResource(R.string.remote_credential_url_mismatch)
 
     if (showCredentialDialog) {
         CredentialSelectDialog(
@@ -67,10 +86,12 @@ fun ConfigureRemoteDialog(
                     CredentialType.HTTPS -> {
                         selectedHttpsUuid = uuid
                         selectedSshUuid = null
+                        credentialError = if (isUrlSsh) mismatchErrorText else null
                     }
                     CredentialType.SSH -> {
                         selectedSshUuid = uuid
                         selectedHttpsUuid = null
+                        credentialError = if (isUrlHttps) mismatchErrorText else null
                     }
                     else -> {}
                 }
@@ -93,32 +114,32 @@ fun ConfigureRemoteDialog(
                 value = url,
                 onValueChange = { url = it },
                 label = { Text(stringResource(R.string.remote_url_label)) },
-                leadingIcon = {
-                    Icon(
-                        Icons.Default.Source,
-                        contentDescription = null,
-                        modifier = Modifier.size(20.dp)
-                    )
-                },
                 singleLine = true,
                 shape = AppShapes.extraSmall,
                 modifier = Modifier.fillMaxWidth()
             )
+
+            if (credentialError != null) {
+                Text(
+                    text = credentialError!!,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.padding(start = 4.dp, top = 4.dp)
+                )
+            }
 
             CredentialSelectionButton(
                 selectedHttpsUuid = selectedHttpsUuid,
                 selectedSshUuid = selectedSshUuid,
                 httpsCredentials = httpsCredentials,
                 sshKeys = sshKeys,
-                // TODO: 判断选择的凭据是否与 URL 类型相匹配
                 onClick = { showCredentialDialog = true }
             )
         },
         confirmButton = {
             Button(
                 onClick = { onSave(url, selectedHttpsUuid, selectedSshUuid) },
-                // TODO: 这里还要检查 URL 是否合法喵~ 弄一个工具类（用 validateUrl？）
-                enabled = url.isNotBlank(),
+                enabled = saveEnabled,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.primary,
                     contentColor = MaterialTheme.colorScheme.onPrimary
@@ -178,7 +199,7 @@ private fun CredentialSelectionButton(
         shape = AppShapes.extraSmall,
         color = if (hasSelection) MaterialTheme.colorScheme.primary.copy(alpha = 0.1f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
         border = if (hasSelection) {
-            androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
+            BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
         } else null,
         modifier = Modifier
             .fillMaxWidth()
@@ -188,7 +209,7 @@ private fun CredentialSelectionButton(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 12.dp),
+                .padding(vertical = 12.dp, horizontal = 4.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Spacer(Modifier.width(6.dp))
@@ -216,7 +237,7 @@ private fun CredentialSelectionButton(
                     text = label,
                     style = MaterialTheme.typography.bodyMedium,
                     maxLines = 1,
-                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                    overflow = TextOverflow.Ellipsis,
                     color = if (hasSelection) {
                         MaterialTheme.colorScheme.onSurface
                     } else {
