@@ -23,7 +23,7 @@ interface ConfigRepository {
     suspend fun setGlobalUserConfig(name: String, email: String): Result<Unit>
 
     /**
-     * Set repo-level user name and email.
+     * Set repo-level username and email.
      */
     fun setRepoUserConfig(repoPath: String, name: String, email: String): Result<Unit>
 
