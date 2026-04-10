@@ -10,17 +10,17 @@ interface ConfigRepository {
     /**
      * Get global Git user name.
      */
-    fun getGlobalUserName(): String?
+    suspend fun getGlobalUserName(): String?
 
     /**
      * Get global Git user email.
      */
-    fun getGlobalUserEmail(): String?
+    suspend fun getGlobalUserEmail(): String?
 
     /**
      * Set global Git user name and email.
      */
-    fun setGlobalUserConfig(name: String, email: String): Result<Unit>
+    suspend fun setGlobalUserConfig(name: String, email: String): Result<Unit>
 
     /**
      * Set repo-level user name and email.
@@ -35,5 +35,5 @@ interface ConfigRepository {
     /**
      * Get effective user config for a repo (local if set, otherwise global).
      */
-    fun getEffectiveUserConfig(repoPath: String): Pair<String?, String?>
+    suspend fun getEffectiveUserConfig(repoPath: String): Pair<String?, String?>
 }

@@ -88,7 +88,14 @@ class JGitStatusDataSource @Inject constructor(
             return@withGit "No staged changes to unstaged"
         }
 
-        git.reset().setRef("HEAD").call()
+        val headRef = git.repository.resolve("HEAD")
+        if (headRef == null) {
+            status.added.forEach { git.rm().setCached(true).addFilepattern(it).call() }
+            status.changed.forEach { git.rm().setCached(true).addFilepattern(it).call() }
+            status.removed.forEach { git.rm().setCached(true).addFilepattern(it).call() }
+        } else {
+            git.reset().setRef("HEAD").call()
+        }
         "All changes unstaged"
     }
 
@@ -109,8 +116,13 @@ class JGitStatusDataSource @Inject constructor(
      * Unstages a specific file.
      */
     override fun unstageFile(repoPath: String, filePath: String): Result<Unit> = core.withGit(repoPath) { git ->
-        git.reset().setRef("HEAD").addPath(filePath).call()
-        Unit
+        val headRef = git.repository.resolve("HEAD")
+        if (headRef == null) {
+            git.rm().setCached(true).addFilepattern(filePath).call()
+        } else {
+            git.reset().setRef("HEAD").addPath(filePath).call()
+        }
+        Result.success(Unit)
     }
 
     /**

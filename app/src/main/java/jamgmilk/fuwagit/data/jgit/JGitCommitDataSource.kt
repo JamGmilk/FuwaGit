@@ -18,6 +18,10 @@ class JGitCommitDataSource @Inject constructor(
 
     override fun getLog(repoPath: String, maxCount: Int): Result<List<GitCommit>> =
         core.withGit(repoPath) { git ->
+            val headRef = git.repository.resolve("HEAD")
+            if (headRef == null) {
+                return@withGit emptyList()
+            }
             git.log().setMaxCount(maxCount).call().map { revCommit ->
                 val author = revCommit.authorIdent
                 GitCommit(

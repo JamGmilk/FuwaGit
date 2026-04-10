@@ -91,7 +91,7 @@
     <string name="settings_configuration">Configuration</string>
     <string name="settings_user_email">User &amp; Email</string>
     <string name="settings_user_email_subtitle">Set global author information for commits</string>
-    <string name="settings_user_email_description">Set the default author information. This saves to the global Git config (~/.gitconfig).\nWhen cloning or initializing a repo, you can choose to copy this to the repository\'s local config.</string>
+    <string name="settings_user_email_description">Set the default author information for commits.\nWhen cloning or initializing a repo, you can choose to copy this to the repository\'s local config.</string>
     <string name="settings_user_name_label">user.name</string>
     <string name="settings_user_name_placeholder">Your Name</string>
     <string name="settings_user_email_input_label">user.email</string>
@@ -491,6 +491,9 @@
     <string name="filepicker_title">Select Folder</string>
     <string name="filepicker_cannot_access">Cannot access this directory</string>
     <string name="filepicker_empty_folder">Empty folder</string>
+    <string name="filepicker_create_folder">Create Folder</string>
+    <string name="filepicker_folder_name">Folder name</string>
+    <string name="filepicker_invalid_folder_name">Invalid folder name or already exists</string>
 
     <!-- Empty State -->
     <!-- (Title and description are passed as parameters) -->
@@ -509,7 +512,7 @@
     <string name="apply_to_all_repos_title">Apply to All Repositories</string>
     <string name="apply_to_all_repos_description">This will apply the following settings to all saved repositories:</string>
     <string name="apply_to_all_repos_also_global">Also apply to Global Config</string>
-    <string name="apply_to_all_repos_also_global_subtitle">This will update ~/.gitconfig</string>
+    <string name="apply_to_all_repos_also_global_subtitle">This will update the global settings</string>
     <string name="action_apply">Apply</string>
 
     <!-- Credential Screen -->
