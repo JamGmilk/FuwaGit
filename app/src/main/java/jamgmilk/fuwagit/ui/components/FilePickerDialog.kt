@@ -22,20 +22,24 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -63,15 +67,10 @@ import java.io.File
 
 private val externalStorageDirPrefix: String = Environment.getExternalStorageDirectory().absolutePath
 
-/**
- * 禁止选择的目录列表，包括根目录和重要系统目录
- * 这些目录不应该被用户选择为仓库路径
- * 注意：这些目录仍然可以在文件浏览器中显示和导航，但不能被选中
- */
 private val restrictedPaths: Set<String> by lazy {
     val externalStorage = Environment.getExternalStorageDirectory().absolutePath
     setOf(
-        externalStorage, // 根目录
+        externalStorage,
         "$externalStorage/Android",
         "$externalStorage/Pictures",
         "$externalStorage/DCIM",
@@ -87,9 +86,6 @@ private val restrictedPaths: Set<String> by lazy {
     )
 }
 
-/**
- * 检查路径是否被限制选择（用于验证用户是否可以选中该路径）
- */
 private fun isPathRestrictedForSelection(path: String): Boolean {
     val normalizedPath = path.trimEnd(File.separatorChar)
     return restrictedPaths.any { restricted ->
@@ -97,14 +93,9 @@ private fun isPathRestrictedForSelection(path: String): Boolean {
     }
 }
 
-/**
- * 检查目录是否应该对用户隐藏（用于过滤目录列表）
- */
 private fun shouldHideDirectory(file: File): Boolean {
     val externalStorage = Environment.getExternalStorageDirectory().absolutePath
-    // 隐藏外部存储根目录下的一些系统目录
     if (file.absolutePath == externalStorage) {
-        // 在根目录下，隐藏系统目录
         val hiddenNames = setOf(
             "Android", "Pictures", "DCIM", "Download", "Downloads",
             "Movies", "Music", "Notifications", "Alarms", 
@@ -131,11 +122,9 @@ fun FilePickerDialog(
     onDismiss: () -> Unit,
     onSelect: (String) -> Unit
 ) {
-    // 如果初始路径是受限目录，则使用一个安全的默认路径
     val safeInitialPath = if (initialPath != null && !isPathRestrictedForSelection(initialPath)) {
         initialPath
     } else {
-        // 使用外部存储目录作为默认路径（它会显示内容但禁止选择）
         Environment.getExternalStorageDirectory().absolutePath
     }
     
@@ -144,10 +133,15 @@ fun FilePickerDialog(
     var isLoading by remember { mutableStateOf(true) }
     var error by remember { mutableStateOf<String?>(null) }
     var targetPath by remember { mutableStateOf<String?>(null) }
+    var showCreateFolderDialog by remember { mutableStateOf(false) }
+    var newFolderName by remember { mutableStateOf("") }
+    var createFolderError by remember { mutableStateOf<String?>(null) }
     val colors = MaterialTheme.colorScheme
     val scope = rememberCoroutineScope()
-    val context = LocalContext.current
     val strCannotAccess = stringResource(R.string.filepicker_cannot_access)
+    val strCreateFolder = stringResource(R.string.filepicker_create_folder)
+    val strFolderName = stringResource(R.string.filepicker_folder_name)
+    val strInvalidFolderName = stringResource(R.string.filepicker_invalid_folder_name)
 
     fun loadFiles(path: String) {
         targetPath = path
@@ -159,7 +153,6 @@ fun FilePickerDialog(
                 if (dir.exists() && dir.isDirectory && dir.canRead()) {
                     val allItems = dir.listFiles()?.toList() ?: emptyList()
                     val items = allItems.mapNotNull { file ->
-                        // 跳过应该隐藏的目录
                         if (file.isDirectory && shouldHideDirectory(file)) {
                             return@mapNotNull null
                         }
@@ -195,6 +188,37 @@ fun FilePickerDialog(
                     isLoading = false
                     error = e.message ?: "Unknown error"
                 }
+            }
+        }
+    }
+
+    fun createFolder(name: String) {
+        if (name.isBlank()) {
+            createFolderError = strInvalidFolderName
+            return
+        }
+        val invalidChars = listOf('/', '\\', ':', '*', '?', '"', '<', '>', '|')
+        if (name.any { it in invalidChars }) {
+            createFolderError = strInvalidFolderName
+            return
+        }
+        scope.launch(Dispatchers.IO) {
+            try {
+                val newDir = File(currentPath, name)
+                if (newDir.exists()) {
+                    createFolderError = strInvalidFolderName
+                    return@launch
+                }
+                if (newDir.mkdir()) {
+                    showCreateFolderDialog = false
+                    newFolderName = ""
+                    createFolderError = null
+                    loadFiles(currentPath)
+                } else {
+                    createFolderError = strCannotAccess
+                }
+            } catch (e: Exception) {
+                createFolderError = strCannotAccess
             }
         }
     }
@@ -244,13 +268,27 @@ fun FilePickerDialog(
                             fontWeight = FontWeight.Bold
                         )
                     }
-                    IconButton(onClick = { loadFiles(currentPath) }) {
-                        Icon(
-                            Icons.Default.Refresh,
-                            contentDescription = stringResource(R.string.action_refresh),
-                            tint = colors.onSurfaceVariant,
-                            modifier = Modifier.size(28.dp)
-                        )
+                    Row {
+                        IconButton(onClick = {
+                            showCreateFolderDialog = true
+                            newFolderName = ""
+                            createFolderError = null
+                        }) {
+                            Icon(
+                                imageVector = Icons.Default.Add,
+                                contentDescription = stringResource(R.string.filepicker_create_folder),
+                                tint = colors.onSurfaceVariant,
+                                modifier = Modifier.size(28.dp)
+                            )
+                        }
+                        IconButton(onClick = { loadFiles(currentPath) }) {
+                            Icon(
+                                imageVector = Icons.Default.Refresh,
+                                contentDescription = stringResource(R.string.action_refresh),
+                                tint = colors.onSurfaceVariant,
+                                modifier = Modifier.size(28.dp)
+                            )
+                        }
                     }
                 }
 
@@ -366,7 +404,7 @@ fun FilePickerDialog(
                     Button(
                         onClick = {
                             if (isPathRestrictedForSelection(currentPath)) {
-                                error = "无法选择该目录，请选择其他路径"
+                                error = "choose a different path"
                                 return@Button
                             }
                             if (BuildConfig.DEBUG) Log.d("FilePickerDialog", "Selected path: $currentPath")
@@ -391,6 +429,54 @@ fun FilePickerDialog(
                 }
             }
         }
+    }
+
+    if (showCreateFolderDialog) {
+        AlertDialog(
+            onDismissRequest = {
+                showCreateFolderDialog = false
+                newFolderName = ""
+                createFolderError = null
+            },
+            title = { Text(strCreateFolder) },
+            text = {
+                Column {
+                    OutlinedTextField(
+                        value = newFolderName,
+                        onValueChange = {
+                            newFolderName = it
+                            createFolderError = null
+                        },
+                        label = { Text(strFolderName) },
+                        singleLine = true,
+                        isError = createFolderError != null,
+                        supportingText = if (createFolderError != null) {
+                            { Text(createFolderError!!, color = MaterialTheme.colorScheme.error) }
+                        } else null,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = { createFolder(newFolderName) },
+                    enabled = newFolderName.isNotBlank()
+                ) {
+                    Text(stringResource(R.string.action_create))
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        showCreateFolderDialog = false
+                        newFolderName = ""
+                        createFolderError = null
+                    }
+                ) {
+                    Text(stringResource(R.string.action_cancel))
+                }
+            }
+        )
     }
 }
 

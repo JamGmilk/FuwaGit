@@ -10,6 +10,7 @@ import androidx.datastore.preferences.preferencesDataStore
 import dagger.hilt.android.qualifiers.ApplicationContext
 import jamgmilk.fuwagit.domain.model.AppPreferences
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -33,7 +34,9 @@ object PreferencesKeys {
 class AppPreferencesStore @Inject constructor(
     @ApplicationContext private val context: Context
 ) {
-    val preferencesFlow: Flow<AppPreferences> = context.dataStore.data.map { prefs ->
+    private val dataStore = context.dataStore
+
+    val preferencesFlow: Flow<AppPreferences> = dataStore.data.map { prefs ->
         AppPreferences(
             autoSync = prefs[PreferencesKeys.AUTO_SYNC] ?: false,
             conflictSafeMode = prefs[PreferencesKeys.CONFLICT_SAFE_MODE] ?: true,
@@ -45,6 +48,16 @@ class AppPreferencesStore @Inject constructor(
             isFirstRun = prefs[PreferencesKeys.IS_FIRST_RUN] ?: true
         )
     }
+
+    val isFirstRun: Boolean
+        get() {
+            val prefs = runCatching {
+                kotlinx.coroutines.runBlocking {
+                    dataStore.data.first()
+                }
+            }.getOrNull()
+            return prefs?.get(PreferencesKeys.IS_FIRST_RUN) ?: true
+        }
 
     suspend fun setAutoLockTimeout(timeout: String) {
         context.dataStore.edit { prefs ->

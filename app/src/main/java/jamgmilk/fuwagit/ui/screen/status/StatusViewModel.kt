@@ -36,7 +36,7 @@ import java.util.Locale
 @Stable
 data class StatusUiState(
     val isLoading: Boolean = false,
-    val isCheckingRepo: Boolean = false,
+    val isCheckingRepo: Boolean = true,
     val error: String? = null,
     val repoPath: String? = null,
     val repoName: String? = null,

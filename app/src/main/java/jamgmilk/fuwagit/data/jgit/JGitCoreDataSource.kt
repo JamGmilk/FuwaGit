@@ -21,7 +21,7 @@ import javax.inject.Singleton
 
 @Singleton
 class JGitCoreDataSource @Inject constructor(
-    configDataStore: jamgmilk.fuwagit.data.local.prefs.GitConfigDataStore,
+    private val configDataStore: jamgmilk.fuwagit.data.local.prefs.GitConfigDataStore,
     @ApplicationContext private val context: Context
 ) : GitCoreDataSource {
     override val gitConfigDataStore: jamgmilk.fuwagit.data.local.prefs.GitConfigDataStore = configDataStore
@@ -71,8 +71,7 @@ class JGitCoreDataSource @Inject constructor(
                 return Result.failure(Exception("Failed to create directory: $repoPath"))
             }
 
-            val defaultBranch = gitConfigDataStore.configFlow.first().defaultBranch
-            val branchName = if (defaultBranch.isNotBlank()) defaultBranch else "main"
+            val branchName = configDataStore.configFlow.first().defaultBranch.ifBlank { "main" }
 
             FileRepositoryBuilder()
                 .setGitDir(File(repoPath, ".git"))
