@@ -32,27 +32,7 @@ class RepoDataStore @Inject constructor(
     }
 
     private val dataFile: File by lazy {
-        File(context.filesDir, DATA_FILE).also { file ->
-            // Explicitly set file permissions to owner read/write only
-            // While filesDir defaults to 0700, this ensures security even if defaults change
-            setFilePermissions(file)
-        }
-    }
-
-    /**
-     * Sets explicit file permissions to owner read/write only (0600).
-     * This provides defense-in-depth security for repository data.
-     */
-    private fun setFilePermissions(file: File) {
-        if (file.exists()) {
-            // Remove all permissions first
-            file.setReadable(false, false)
-            file.setWritable(false, false)
-            file.setExecutable(false, false)
-            // Set owner read/write only
-            file.setReadable(true, true)
-            file.setWritable(true, true)
-        }
+        File(context.filesDir, DATA_FILE)
     }
 
     private val _reposFlow = MutableStateFlow<List<RepoData>>(emptyList())
@@ -91,11 +71,8 @@ class RepoDataStore @Inject constructor(
         try {
             val jsonStr = json.encodeToString(wrapper)
             tempFile.writeText(jsonStr)
-            // Set restrictive permissions before renaming
-            setFilePermissions(tempFile)
             if (!tempFile.renameTo(dataFile)) {
                 tempFile.copyTo(dataFile, overwrite = true)
-                setFilePermissions(dataFile)
                 tempFile.delete()
             }
         } catch (e: Exception) {

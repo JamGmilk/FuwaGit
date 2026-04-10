@@ -31,8 +31,7 @@ class RepoStateManager @Inject constructor(
 ) {
     private val _repoInfo = MutableStateFlow(RepoInfo())
     val repoInfo: StateFlow<RepoInfo> = _repoInfo.asStateFlow()
-
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+    private val scope = CoroutineScope(Dispatchers.Main + SupervisorJob())
 
     init {
         scope.launch {
@@ -55,11 +54,9 @@ class RepoStateManager @Inject constructor(
 
     fun isRepoReady(): Boolean = _repoInfo.value.isValidGit
 
-    fun clearRepo() {
+    suspend fun clearRepo() {
         _repoInfo.value = RepoInfo()
-        scope.launch {
-            validateRepoUseCase(null)
-        }
+        validateRepoUseCase(null)
     }
 
     suspend fun setRepoPath(path: String?) {
