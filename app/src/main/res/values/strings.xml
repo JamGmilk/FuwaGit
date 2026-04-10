@@ -1,5 +1,5 @@
-<resources>
-    <string name="app_name">FuwaGit</string>
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <string name="app_name" translatable="false">FuwaGit</string>
 
     <!-- Screen Titles -->
     <string name="screen_settings">Settings</string>
@@ -101,6 +101,55 @@
     <string name="settings_default_branch_description">Set the default branch name for new repositories.</string>
     <string name="settings_default_branch_label">init.defaultBranch</string>
     <string name="settings_default_branch_placeholder">main</string>
+
+    <!-- Git Status Messages -->
+    <string name="git_status_clean">Clean</string>
+    <string name="git_status_changes_detected">Changes detected</string>
+    <string name="git_all_changes_staged">All changes staged</string>
+    <string name="git_no_staged_changes_to_unstage">No staged changes to unstaged</string>
+    <string name="git_all_changes_unstaged">All changes unstaged</string>
+    <string name="git_discard_changes_failed">Failed to discard changes: %1$s. Make sure the file is not locked by another process.</string>
+    <string name="git_branch_renamed">Branch renamed to %1$s</string>
+
+    <!-- Git Remote Messages -->
+    <string name="git_pull_successful">Pull successful</string>
+    <string name="git_pull_failed">Pull failed</string>
+    <string name="git_push_rejected">Push rejected: remote branch has new commits. Fetch and merge first, or use force push to override.</string>
+    <string name="git_push_failed">Push failed: %1$s</string>
+
+    <!-- Git Commit Messages -->
+    <string name="git_commit_lock_failed">Cannot commit: repository lock failed.</string>
+    <string name="git_commit_error">Git error: %1$s</string>
+    <string name="git_reset_lock_failed">Cannot reset: repository lock failed.</string>
+    <string name="git_reset_failed">Reset failed: %1$s</string>
+    <string name="git_reset_soft">Reset to %1$s (soft): HEAD moved, changes kept staged</string>
+    <string name="git_reset_mixed">Reset to %1$s (mixed): HEAD moved, changes unstaged</string>
+    <string name="git_reset_hard">Reset to %1$s (hard): All changes discarded</string>
+    <string name="git_commit_not_found">Commit not found: %1$s</string>
+
+    <!-- Git SSH Messages -->
+    <string name="git_ssh_invalid_host">Invalid host format</string>
+    <string name="git_ssh_connection_failed">SSH connection failed: %1$s</string>
+    <string name="git_ssh_invalid_private_key">Invalid private key: %1$s</string>
+    <string name="git_ssh_connection_success">SSH connection successful to %1$s@%2$s</string>
+
+    <!-- Git Config Messages -->
+    <string name="git_config_repo_path_empty">Repo path cannot be empty</string>
+    <string name="git_config_failed_read">Failed to read repo config: %1$s</string>
+    <string name="git_config_failed_access">Failed to access repo config at %1$s</string>
+
+    <!-- My Repos Messages -->
+    <string name="my_repos_no_untracked_to_clean">No untracked files to clean</string>
+    <string name="my_repos_failed_get_untracked">Failed to get untracked files: %1$s</string>
+    <string name="my_repos_no_files_to_clean">No files to clean: all previously untracked files have been modified, staged, or already deleted</string>
+    <string name="my_repos_failed_clean">Failed to clean: %1$s</string>
+    <string name="my_repos_failed_get_file_list">Failed to get file list: %1$s</string>
+    <string name="my_repos_init_failed">Failed to initialize repository</string>
+    <string name="my_repos_configure_remote_failed">Failed to configure remote</string>
+
+    <!-- Status ViewModel Messages -->
+    <string name="status_discard_success">Changes to \'%1$s\' have been discarded</string>
+    <string name="status_conflicts_resolved">Conflicts resolved</string>
 
     <!-- Test File Picker Dialog Title -->
     <string name="test_file_picker_title">Test File Picker</string>
@@ -586,9 +635,9 @@
     <string name="vm_merge_not_fully_merged">The branch contains unmerged commits. This is expected for a merge operation.</string>
     <string name="vm_merge_up_to_date">Check if the current branch is up to date and try again.</string>
     <string name="vm_rebase_success">Successfully rebased onto \'%1$s\'</string>
-    <string name="vm_rebase_conflict_hint">Resolve conflicts and run \'git rebase --continue\', or \'git rebase --abort\' to cancel.</string>
+    <string name="vm_rebase_conflict_hint" tools:ignore="TypographyDashes">Resolve conflicts and run \'git rebase --continue\', or \'git rebase --abort\' to cancel.</string>
     <string name="vm_rebase_up_to_date">The current branch is already up to date with the target branch.</string>
-    <string name="vm_rebase_abort_hint">Run \'git rebase --abort\' to cancel the rebase operation.</string>
+    <string name="vm_rebase_abort_hint" tools:ignore="TypographyDashes">Run \'git rebase --abort\' to cancel the rebase operation.</string>
     <string name="vm_conflicts_resolved">Conflicts resolved</string>
     <string name="vm_select_target_repo">Select a target repo</string>
     <string name="vm_select_target_repo_path">Select a target repo path</string>

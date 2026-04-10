@@ -56,7 +56,9 @@ class JGitStatusDataSource @Inject constructor(
                 allFiles.add(GitFileStatus(path, java.io.File(path).name, false, GitChangeType.Modified))
             }
             status.missing.forEach { path ->
-                allFiles.add(GitFileStatus(path, java.io.File(path).name, false, GitChangeType.Removed))
+                if (path != "/dev/null" && path.isNotBlank()) {
+                    allFiles.add(GitFileStatus(path, java.io.File(path).name, false, GitChangeType.Removed))
+                }
             }
             status.untracked.forEach { path ->
                 allFiles.add(GitFileStatus(path, java.io.File(path).name, false, GitChangeType.Untracked))

@@ -25,7 +25,8 @@
             android:exported="true"
             android:label="@string/app_name"
             android:theme="@style/Theme.FuwaGit"
-            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden">
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden"
+            android:localeConfig="@xml/locales_config">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
