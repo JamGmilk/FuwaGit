@@ -1,6 +1,5 @@
 package jamgmilk.fuwagit.ui.screen.myrepos
 
-import android.content.Context
 import android.widget.Toast
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -43,8 +42,6 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
@@ -81,7 +78,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import jamgmilk.fuwagit.R
-import jamgmilk.fuwagit.core.result.AppException
 import jamgmilk.fuwagit.ui.components.CleanPreviewDialog
 import jamgmilk.fuwagit.ui.components.CleanResultDialog
 import jamgmilk.fuwagit.ui.components.ConfigureRemoteDialog
@@ -89,7 +85,6 @@ import jamgmilk.fuwagit.ui.components.EmptyState
 import jamgmilk.fuwagit.ui.components.ScreenTemplate
 import jamgmilk.fuwagit.ui.state.RepoInfo
 import jamgmilk.fuwagit.ui.theme.AppShapes
-import kotlinx.coroutines.launch
 import jamgmilk.fuwagit.ui.util.ViewModelMessagesMapper
 import kotlinx.coroutines.launch
 import java.text.DateFormat
@@ -435,7 +430,7 @@ fun RepoItemCard(
                                 fontWeight = FontWeight.Bold,
                                 color = colors.onPrimary,
                                 fontSize = 9.sp,
-                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
                             )
                         }
                     }
@@ -933,52 +928,6 @@ private fun getInfoIcon(key: String): ImageVector {
         key.contains("Hash", ignoreCase = true) -> Icons.Default.AccountTree
         else -> Icons.Default.Info
     }
-}
-
-@Composable
-private fun ShowConfigureRemoteDialog(item: RepoFolderItem) {
-    val context = LocalContext.current
-    val httpsCredentials = remember { mutableStateOf<List<jamgmilk.fuwagit.domain.model.credential.HttpsCredential>>(emptyList()) }
-    val sshKeys = remember { mutableStateOf<List<jamgmilk.fuwagit.domain.model.credential.SshKey>>(emptyList()) }
-    var remoteUrl by remember { mutableStateOf("") }
-
-    LaunchedEffect(item) {
-        val vm = context as? jamgmilk.fuwagit.ui.screen.myrepos.MyReposViewModel
-        remoteUrl = vm?.getRemoteUrl(item.path) ?: ""
-        httpsCredentials.value = vm?.uiState?.value?.httpsCredentials ?: emptyList()
-        sshKeys.value = vm?.uiState?.value?.sshKeys ?: emptyList()
-    }
-
-    ConfigureRemoteDialog(
-        repoName = item.alias.ifBlank { item.path.substringAfterLast("/") },
-        currentUrl = remoteUrl,
-        httpsCredentials = httpsCredentials.value,
-        sshKeys = sshKeys.value,
-        onDismiss = { },
-        onSave = { newUrl, httpsUuid, sshUuid ->
-            (context as? jamgmilk.fuwagit.ui.screen.myrepos.MyReposViewModel)
-                ?.configureRemote(item.path, "origin", newUrl, httpsUuid, sshUuid)
-        }
-    )
-}
-
-@Composable
-private fun ShowRepoInfoDialog(item: RepoFolderItem) {
-    val context = LocalContext.current
-    var repoInfo by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
-
-    LaunchedEffect(item) {
-        repoInfo = (context as? jamgmilk.fuwagit.ui.screen.myrepos.MyReposViewModel)
-            ?.getRepoInfo(item.path) ?: emptyMap()
-    }
-
-    RepoInfoDialog(
-        repoName = item.alias.ifBlank { item.path.substringAfterLast("/") },
-        repoPath = item.path,
-        isGitRepo = item.isGitRepo,
-        repoInfo = repoInfo,
-        onDismiss = { }
-    )
 }
 
 @Composable

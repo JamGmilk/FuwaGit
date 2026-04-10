@@ -1,6 +1,7 @@
 package jamgmilk.fuwagit.data.biometric
 
 import android.content.Context
+import android.util.Log
 import androidx.biometric.BiometricPrompt
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.FragmentActivity
@@ -15,6 +16,9 @@ import kotlin.coroutines.resume
 class BiometricAuthManager @Inject constructor(
     @param:ApplicationContext private val context: Context
 ) {
+    companion object {
+        private const val TAG = "BiometricAuthManager"
+    }
     sealed class AuthResult {
         data object Cancelled : AuthResult()
         data class Error(val code: Int, val message: String) : AuthResult()
@@ -60,6 +64,7 @@ class BiometricAuthManager @Inject constructor(
             }
 
             override fun onAuthenticationFailed() {
+                Log.w(TAG, "Biometric authentication failed")
             }
         }
 

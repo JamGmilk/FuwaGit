@@ -29,7 +29,8 @@ class JGitRemoteDataSource @Inject constructor(
 
             if (targetDir.exists() && targetDir.isDirectory) {
                 val files = targetDir.listFiles()
-                if (!files.isNullOrEmpty()) {
+                    ?: throw Exception("Cannot access target directory: permission denied or directory deleted")
+                if (files.isNotEmpty()) {
                     val hasGitDir = files.any { it.name == ".git" }
                     if (hasGitDir) {
                         throw Exception("Target directory already contains a Git repository. Choose a different directory or remove the existing repository first.")

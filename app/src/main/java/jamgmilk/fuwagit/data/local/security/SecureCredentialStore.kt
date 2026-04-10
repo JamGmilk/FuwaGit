@@ -30,7 +30,6 @@ class SecureCredentialStore @Inject constructor(
         private const val ENCRYPTED_MARKER = "ENC:AES_GCM:"
         private const val GCM_TAG_LENGTH = 128
         private const val GCM_IV_LENGTH = 12
-        private const val BIOMETRIC_MAX_SESSION_MILLIS = 24 * 60 * 60 * 1000L
     }
 
     private val json = Json {
@@ -40,27 +39,7 @@ class SecureCredentialStore @Inject constructor(
     }
 
     private val dataFile: File by lazy {
-        File(context.filesDir, DATA_FILE).also { file ->
-            // Explicitly set file permissions to owner read/write only
-            // While filesDir defaults to 0700, this ensures security even if defaults change
-            setFilePermissions(file)
-        }
-    }
-
-    /**
-     * Sets explicit file permissions to owner read/write only (0600).
-     * This provides defense-in-depth security for sensitive credential data.
-     */
-    private fun setFilePermissions(file: File) {
-        if (file.exists()) {
-            // Remove all permissions first
-            file.setReadable(false, false)
-            file.setWritable(false, false)
-            file.setExecutable(false, false)
-            // Set owner read/write only
-            file.setReadable(true, true)
-            file.setWritable(true, true)
-        }
+        File(context.filesDir, DATA_FILE)
     }
 
     private var cachedMasterKey: SecretKey? = null
@@ -116,12 +95,8 @@ class SecureCredentialStore @Inject constructor(
         val tempFile = File(context.filesDir, "$DATA_FILE.tmp")
         try {
             tempFile.writeText(jsonString)
-            // Set restrictive permissions before renaming
-            setFilePermissions(tempFile)
             if (!tempFile.renameTo(dataFile)) {
-                // If rename fails, try to copy and delete
                 tempFile.copyTo(dataFile, overwrite = true)
-                setFilePermissions(dataFile)
                 tempFile.delete()
             }
         } catch (e: Exception) {
@@ -168,7 +143,7 @@ class SecureCredentialStore @Inject constructor(
 
     suspend fun getCachedMasterKey(): SecretKey? {
         val sessionTimeout = getSessionTimeoutMillis()
-        
+
         return synchronized(sessionLock) {
             val key = cachedMasterKey
 
@@ -178,14 +153,7 @@ class SecureCredentialStore @Inject constructor(
                 return@synchronized null
             }
 
-            val biometricTimeout = if (isBiometricSession) BIOMETRIC_MAX_SESSION_MILLIS else 0L
-
-            val effectiveTimeout = when {
-                sessionTimeout == 0L && biometricTimeout == 0L -> 0L
-                sessionTimeout == 0L -> biometricTimeout
-                biometricTimeout == 0L -> sessionTimeout
-                else -> minOf(sessionTimeout, biometricTimeout)
-            }
+            val effectiveTimeout = if (isBiometricSession) sessionTimeout else 0L
 
             if (effectiveTimeout == 0L) {
                 return@synchronized key
@@ -213,7 +181,7 @@ class SecureCredentialStore @Inject constructor(
 
     suspend fun isSessionValid(): Boolean {
         val sessionTimeout = getSessionTimeoutMillis()
-        
+
         return synchronized(sessionLock) {
             val key = cachedMasterKey
 
@@ -222,14 +190,7 @@ class SecureCredentialStore @Inject constructor(
                 return@synchronized false
             }
 
-            val biometricTimeout = if (isBiometricSession) BIOMETRIC_MAX_SESSION_MILLIS else 0L
-
-            val effectiveTimeout = when {
-                sessionTimeout == 0L && biometricTimeout == 0L -> 0L
-                sessionTimeout == 0L -> biometricTimeout
-                biometricTimeout == 0L -> sessionTimeout
-                else -> minOf(sessionTimeout, biometricTimeout)
-            }
+            val effectiveTimeout = if (isBiometricSession) sessionTimeout else 0L
 
             if (effectiveTimeout == 0L) {
                 return@synchronized true
@@ -268,11 +229,71 @@ class SecureCredentialStore @Inject constructor(
         return withContext(Dispatchers.IO) {
             runCatching {
                 val exportData = json.decodeFromString<ExportData>(jsonString)
+                validateImportData(exportData)
                 val importedData = encryptAllSecrets(exportData.credential_data, masterKey)
                 val existingData = loadCredentialData()
                 val mergedData = mergeCredentialData(existingData, importedData)
                 saveCredentialData(mergedData)
             }
+        }
+    }
+
+    private fun validateImportData(exportData: ExportData) {
+        val data = exportData.credential_data
+
+        if (data.https_credentials.size > 1000) {
+            throw SecurityException("Too many HTTPS credentials: ${data.https_credentials.size}")
+        }
+
+        if (data.ssh_keys.size > 1000) {
+            throw SecurityException("Too many SSH keys: ${data.ssh_keys.size}")
+        }
+
+        for (cred in data.https_credentials) {
+            validateUuid(cred.uuid, "HTTPS credential")
+            if (cred.host.length > 500) {
+                throw SecurityException("HTTPS credential host too long: ${cred.host}")
+            }
+            if (cred.username.length > 500) {
+                throw SecurityException("HTTPS credential username too long: ${cred.username}")
+            }
+            if (cred.password.isEmpty()) {
+                throw SecurityException("HTTPS credential password is empty for: ${cred.uuid}")
+            }
+            if (cred.password.length > 10000) {
+                throw SecurityException("HTTPS credential password too long for: ${cred.uuid}")
+            }
+        }
+
+        for (key in data.ssh_keys) {
+            validateUuid(key.uuid, "SSH key")
+            if (key.name.isEmpty() || key.name.length > 200) {
+                throw SecurityException("SSH key name invalid: ${key.name}")
+            }
+            if (key.type.isEmpty() || key.type.length > 50) {
+                throw SecurityException("SSH key type invalid: ${key.type}")
+            }
+            if (key.public_key.isEmpty() || key.public_key.length > 10000) {
+                throw SecurityException("SSH public key invalid for key: ${key.uuid}")
+            }
+            if (key.private_key.isEmpty()) {
+                throw SecurityException("SSH private key is empty for: ${key.uuid}")
+            }
+            if (key.private_key.length > 50000) {
+                throw SecurityException("SSH private key too long for: ${key.uuid}")
+            }
+            if (key.fingerprint.isEmpty() || key.fingerprint.length > 200) {
+                throw SecurityException("SSH fingerprint invalid for key: ${key.uuid}")
+            }
+        }
+    }
+
+    private fun validateUuid(uuid: String, context: String) {
+        if (uuid.isEmpty() || uuid.length > 100) {
+            throw SecurityException("$context has invalid UUID: $uuid")
+        }
+        if (!uuid.matches(Regex("^[a-zA-Z0-9-_]+$"))) {
+            throw SecurityException("$context has malformed UUID: $uuid")
         }
     }
 
@@ -466,13 +487,15 @@ class SecureCredentialStore @Inject constructor(
     private fun decryptField(value: String, key: SecretKey): String? {
         return try {
             if (!value.startsWith(ENCRYPTED_MARKER)) {
-                value
+                throw SecurityException("Unexpected plaintext credential detected")
             } else {
                 val encoded = value.substring(ENCRYPTED_MARKER.length)
                 val encrypted = Base64.decode(encoded, Base64.NO_WRAP)
                 val decrypted = decrypt(encrypted, key)
                 String(decrypted, StandardCharsets.UTF_8)
             }
+        } catch (e: SecurityException) {
+            throw e
         } catch (e: Exception) {
             null
         }

@@ -222,24 +222,33 @@ class MyReposViewModel @Inject constructor(
 
     fun confirmCleanUntracked() {
         val path = currentRepoInfo.value.repoPath ?: return
-        val filesToClean = _uiState.value.untrackedFilesForClean
+        val originallyPreviewedFiles = _uiState.value.untrackedFilesForClean
 
         viewModelScope.launch {
             _uiState.update { it.copy(isCleanPreviewing = true, cleanMessage = null) }
-            val dryRunResult = gitRepo.clean(path, dryRun = true)
-            dryRunResult.onSuccess { latestDryRunResult ->
-                val verifiedFiles = verifyUntrackedFilesStillExist(path, filesToClean, latestDryRunResult.files)
+
+            val latestDryRunResult = gitRepo.clean(path, dryRun = true)
+
+            latestDryRunResult.onSuccess { latestDryRunResult ->
+                val verifiedFiles = verifyUntrackedFilesStillExist(
+                    path,
+                    originallyPreviewedFiles,
+                    latestDryRunResult.files
+                )
+
                 if (verifiedFiles.isEmpty()) {
                     _uiState.update {
                         it.copy(
                             isCleanPreviewing = false,
-                            cleanMessage = "No files to clean: all previously untracked files have been modified or staged",
+                            cleanMessage = "No files to clean: all previously untracked files have been modified, staged, or already deleted",
                             untrackedFilesForClean = emptyList()
                         )
                     }
                     return@launch
                 }
+
                 val executeResult = gitRepo.clean(path, dryRun = false)
+
                 executeResult.onSuccess {
                     _uiState.update {
                         it.copy(

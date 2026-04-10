@@ -32,6 +32,7 @@ import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.Link
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.ReportProblem
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material3.Button
@@ -165,21 +166,14 @@ internal fun CloneContent(
                         modifier = Modifier.size(20.dp)
                     )
                 },
-                // TODO: Fix overlap
                 trailingIcon = {
                     if (showCredentialSection) {
-                        Surface(
-                            shape = RoundedCornerShape(6.dp),
-                            color = colors.secondaryContainer
-                        ) {
-                            Text(
-                                text = if (isHttps) stringResource(R.string.clone_protocol_https) else stringResource(R.string.clone_protocol_ssh),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = colors.onSecondaryContainer,
-                                fontWeight = FontWeight.Bold,
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                            )
-                        }
+                        Icon(
+                            imageVector = if (isHttps) Icons.Default.Lock else Icons.Default.Key,
+                            contentDescription = null,
+                            tint = colors.secondary,
+                            modifier = Modifier.size(20.dp)
+                        )
                     }
                 },
                 isError = validationResult.errorMessage != null,
@@ -196,6 +190,36 @@ internal fun CloneContent(
                 shape = AppShapes.extraSmall,
                 modifier = Modifier.fillMaxWidth()
             )
+
+            if (showCredentialSection) {
+                Row(
+                    modifier = Modifier.padding(start = 4.dp, top = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Surface(
+                        shape = RoundedCornerShape(6.dp),
+                        color = colors.secondaryContainer
+                    ) {
+                        Text(
+                            text = if (isHttps) stringResource(R.string.clone_protocol_https) else stringResource(R.string.clone_protocol_ssh),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = colors.onSecondaryContainer,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                        )
+                    }
+                    Text(
+                        text = if (isHttps) {
+                            stringResource(R.string.clone_credential_selector_https)
+                        } else {
+                            stringResource(R.string.clone_credential_selector_ssh)
+                        },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = colors.onSurfaceVariant
+                    )
+                }
+            }
         }
 
         if (isHttps && httpsCredentials.isNotEmpty()) {

@@ -16,14 +16,6 @@ import java.security.Security
 import javax.inject.Inject
 import javax.inject.Singleton
 
-interface SshDataSource {
-    suspend fun testSshConnection(
-        host: String,
-        privateKeyPem: String,
-        passphrase: String?
-    ): Result<String>
-}
-
 @Singleton
 class JGitSshDataSource @Inject constructor() : SshDataSource {
 
