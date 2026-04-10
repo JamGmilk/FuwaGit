@@ -5,16 +5,11 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
-import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.displayCutoutPadding
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.pager.HorizontalPager
@@ -40,19 +35,25 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.navArgument
+import jamgmilk.fuwagit.ui.navigation.AddRepoTab
 import jamgmilk.fuwagit.ui.navigation.NavRoutes
 import jamgmilk.fuwagit.ui.navigation.rememberNavItems
 import jamgmilk.fuwagit.ui.screen.branches.BranchesScreen
 import jamgmilk.fuwagit.ui.screen.branches.BranchesViewModel
 import jamgmilk.fuwagit.ui.screen.credentials.CredentialScreen
 import jamgmilk.fuwagit.ui.screen.credentials.CredentialStoreViewModel
+import jamgmilk.fuwagit.ui.screen.filediff.FileDiffScreen
+import jamgmilk.fuwagit.ui.screen.filediff.FileDiffViewModel
 import jamgmilk.fuwagit.ui.screen.history.HistoryScreen
 import jamgmilk.fuwagit.ui.screen.history.HistoryViewModel
 import jamgmilk.fuwagit.ui.screen.myrepos.AddRepositoryScreen
 import jamgmilk.fuwagit.ui.screen.myrepos.MyReposScreen
 import jamgmilk.fuwagit.ui.screen.myrepos.MyReposViewModel
+import jamgmilk.fuwagit.ui.screen.onboarding.OnboardingScreen
 import jamgmilk.fuwagit.ui.screen.permissions.PermissionsScreen
 import jamgmilk.fuwagit.ui.screen.permissions.SshTestResult
 import jamgmilk.fuwagit.ui.screen.settings.SettingsScreen
@@ -60,9 +61,6 @@ import jamgmilk.fuwagit.ui.screen.settings.SettingsViewModel
 import jamgmilk.fuwagit.ui.screen.status.StatusScreen
 import jamgmilk.fuwagit.ui.screen.status.StatusViewModel
 import jamgmilk.fuwagit.ui.screen.tags.TagsViewModel
-import jamgmilk.fuwagit.ui.screen.filediff.FileDiffScreen
-import jamgmilk.fuwagit.ui.screen.filediff.FileDiffViewModel
-import jamgmilk.fuwagit.ui.screen.onboarding.OnboardingScreen
 import kotlinx.coroutines.launch
 
 @Composable
@@ -106,8 +104,8 @@ fun AppNavHost(navController: NavHostController, startDestination: String = NavR
                             popUpTo(NavRoutes.ONBOARDING) { inclusive = true }
                         }
                     },
-                    onAddRepository = {
-                        navController.navigate(NavRoutes.ADD_REPOSITORY)
+                    onAddRepository = { tab ->
+                        navController.navigate("add_repository/${tab.name}")
                     }
                 )
             }
@@ -130,7 +128,10 @@ fun AppNavHost(navController: NavHostController, startDestination: String = NavR
                 )
             }
 
-            composable(NavRoutes.ADD_REPOSITORY) {
+            composable(
+                route = NavRoutes.ADD_REPOSITORY,
+                arguments = listOf()
+            ) {
                 val myReposViewModel: MyReposViewModel = hiltViewModel()
                 val scope = rememberCoroutineScope()
                 AddRepositoryScreen(
@@ -147,6 +148,34 @@ fun AppNavHost(navController: NavHostController, startDestination: String = NavR
                         }
                         navController.popBackStack()
                     }
+                )
+            }
+
+            composable(
+                route = NavRoutes.ADD_REPOSITORY_WITH_TAB,
+                arguments = listOf(
+                    navArgument("tab") { type = NavType.StringType }
+                )
+            ) { backStackEntry ->
+                val tabName = backStackEntry.arguments?.getString("tab") ?: "Clone"
+                val selectedTab = try { AddRepoTab.valueOf(tabName) } catch (e: Exception) { AddRepoTab.Clone }
+                val myReposViewModel: MyReposViewModel = hiltViewModel()
+                val scope = rememberCoroutineScope()
+                AddRepositoryScreen(
+                    onBack = { navController.popBackStack() },
+                    onCloneComplete = { path ->
+                        scope.launch {
+                            myReposViewModel.setCurrentRepo(path)
+                        }
+                        navController.popBackStack()
+                    },
+                    onAddRepository = { path, alias ->
+                        scope.launch {
+                            myReposViewModel.addRepo(path, alias)
+                        }
+                        navController.popBackStack()
+                    },
+                    selectedTab = selectedTab
                 )
             }
 
@@ -180,18 +209,18 @@ fun AppNavHost(navController: NavHostController, startDestination: String = NavR
             composable(
                 route = "${NavRoutes.FILE_DIFF}?filePath={filePath}&diffType={diffType}&oldCommit={oldCommit}&newCommit={newCommit}",
                 arguments = listOf(
-                    androidx.navigation.navArgument("filePath") { type = androidx.navigation.NavType.StringType },
-                    androidx.navigation.navArgument("diffType") { 
-                        type = androidx.navigation.NavType.StringType
+                    navArgument("filePath") { type = androidx.navigation.NavType.StringType },
+                    navArgument("diffType") {
+                        type = NavType.StringType
                         defaultValue = "WORKING_TREE"
                     },
-                    androidx.navigation.navArgument("oldCommit") { 
-                        type = androidx.navigation.NavType.StringType
+                    navArgument("oldCommit") {
+                        type = NavType.StringType
                         nullable = true
                         defaultValue = null
                     },
-                    androidx.navigation.navArgument("newCommit") { 
-                        type = androidx.navigation.NavType.StringType
+                    navArgument("newCommit") {
+                        type = NavType.StringType
                         nullable = true
                         defaultValue = null
                     }
