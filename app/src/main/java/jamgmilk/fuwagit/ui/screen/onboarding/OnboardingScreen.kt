@@ -8,7 +8,6 @@ import android.os.Environment
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -23,6 +22,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
@@ -66,7 +66,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalInspectionMode
@@ -86,13 +85,14 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import jamgmilk.fuwagit.R
+import jamgmilk.fuwagit.ui.navigation.AddRepoTab
 import jamgmilk.fuwagit.ui.theme.AppShapes
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun OnboardingScreen(
     onComplete: () -> Unit,
-    onAddRepository: () -> Unit,
+    onAddRepository: (tab: AddRepoTab) -> Unit,
     viewModel: OnboardingViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -100,9 +100,11 @@ fun OnboardingScreen(
     val pagerState = rememberPagerState(pageCount = { steps.size })
     val context = LocalContext.current
     val fragmentActivity = context as? FragmentActivity
+    MaterialTheme.colorScheme
+    var isPermissionGranted by remember { mutableStateOf(false) }
 
     LaunchedEffect(uiState.currentStep) {
-        pagerState.animateScrollToPage(uiState.currentStep.index)
+        pagerState.animateScrollToPage(uiState.currentStep.ordinal)
     }
 
     Column(
@@ -110,15 +112,13 @@ fun OnboardingScreen(
             .fillMaxSize()
             .padding(horizontal = 24.dp)
     ) {
-        Spacer(Modifier.height(48.dp))
+        Spacer(Modifier.height(32.dp))
 
         StepIndicator(
             currentStep = uiState.currentStep,
             totalSteps = steps.size,
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp)
         )
-
-        Spacer(Modifier.height(16.dp))
 
         HorizontalPager(
             state = pagerState,
@@ -128,67 +128,48 @@ fun OnboardingScreen(
             val step = steps[page]
             Column(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(rememberScrollState()),
+                    .fillMaxSize(),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 when (step) {
                     OnboardingStep.WELCOME -> WelcomeStep()
-                    OnboardingStep.PERMISSIONS -> PermissionsStep()
+                    OnboardingStep.PERMISSIONS -> PermissionsStep(
+                        onPermissionGranted = { isPermissionGranted = it }
+                    )
                     OnboardingStep.MASTER_PASSWORD -> MasterPasswordStep(
                         uiState = uiState,
                         onUpdatePassword = viewModel::updatePassword,
                         onUpdateConfirmPassword = viewModel::updateConfirmPassword,
                         onUpdatePasswordHint = viewModel::updatePasswordHint,
-                        onUpdateEnableBiometric = viewModel::updateEnableBiometric,
-                        onSetupPassword = {
-                            viewModel.setupMasterPassword {
-                                if (uiState.enableBiometric && fragmentActivity != null) {
-                                    viewModel.enableBiometricAuth(fragmentActivity) {
-                                        viewModel.nextStep()
-                                    }
-                                } else {
-                                    viewModel.nextStep()
-                                }
-                            }
-                        },
-                        onSkip = viewModel::skipMasterPassword
+                        onUpdateEnableBiometric = viewModel::updateEnableBiometric
                     )
                     OnboardingStep.GIT_CONFIG -> GitConfigStep(
                         uiState = uiState,
                         onUpdateUserName = viewModel::updateUserName,
                         onUpdateUserEmail = viewModel::updateUserEmail,
-                        onUpdateDefaultBranch = viewModel::updateDefaultBranch,
-                        onSave = {
-                            viewModel.saveGitConfig {
-                                viewModel.nextStep()
-                            }
-                        },
-                        onSkip = { viewModel.nextStep() }
+                        onUpdateDefaultBranch = viewModel::updateDefaultBranch
                     )
                     OnboardingStep.ADD_REPO -> AddRepoStep(
-                        onAddRepository = onAddRepository,
-                        onSkip = {
-                            viewModel.goToStep(OnboardingStep.COMPLETE)
-                        }
+                        onAddRepository = onAddRepository
                     )
-                    OnboardingStep.COMPLETE -> CompleteStep(
-                        onFinish = {
-                            viewModel.completeOnboarding()
-                            onComplete()
-                        }
-                    )
+                    OnboardingStep.COMPLETE -> CompleteStep(modifier = Modifier.weight(1f))
                 }
             }
         }
 
-        Spacer(Modifier.height(16.dp))
-
-        NavigationButtons(
+        BottomNavigationSlot(
             currentStep = uiState.currentStep,
-            onPrevious = viewModel::previousStep,
+            isPermissionGranted = isPermissionGranted,
+            isPasswordValid = uiState.password.isNotBlank() && uiState.confirmPassword.isNotBlank() && !uiState.isSettingPassword,
+            isSavingConfig = uiState.isSavingConfig,
+            isSettingPassword = uiState.isSettingPassword,
+            isGitConfigValid = uiState.userName.isNotBlank() && uiState.userEmail.isNotBlank() && uiState.defaultBranch.isNotBlank(),
             onNext = viewModel::nextStep,
-            onFinish = {
+            onSkipPassword = viewModel::skipPassword,
+            onSetupPassword = { viewModel.setupPasswordAndContinue(fragmentActivity) },
+            onSaveConfig = viewModel::saveConfigAndContinue,
+            onAddRepository = onAddRepository,
+            onComplete = {
                 viewModel.completeOnboarding()
                 onComplete()
             }
@@ -212,8 +193,8 @@ private fun StepIndicator(
         verticalAlignment = Alignment.CenterVertically
     ) {
         OnboardingStep.entries.forEachIndexed { index, step ->
-            val isActive = index <= currentStep.index
-            val isCurrent = index == currentStep.index
+            val isActive = index <= currentStep.ordinal
+            val isCurrent = index == currentStep.ordinal
 
             Box(
                 modifier = Modifier
@@ -240,7 +221,7 @@ private fun StepIndicator(
                         .height(2.dp)
                         .clip(RoundedCornerShape(1.dp))
                         .background(
-                            if (index < currentStep.index) colors.primary else colors.outlineVariant
+                            if (index < currentStep.ordinal) colors.primary else colors.outlineVariant
                         )
                 )
             }
@@ -249,58 +230,125 @@ private fun StepIndicator(
 }
 
 @Composable
-private fun NavigationButtons(
+private fun BottomNavigationSlot(
     currentStep: OnboardingStep,
-    onPrevious: () -> Unit,
+    isPermissionGranted: Boolean,
+    isPasswordValid: Boolean,
+    isSavingConfig: Boolean,
+    isSettingPassword: Boolean,
+    isGitConfigValid: Boolean,
     onNext: () -> Unit,
-    onFinish: () -> Unit
+    onSkipPassword: () -> Unit,
+    onSetupPassword: () -> Unit,
+    onSaveConfig: () -> Unit,
+    onAddRepository: (tab: AddRepoTab) -> Unit,
+    onComplete: () -> Unit
 ) {
     val colors = MaterialTheme.colorScheme
 
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        if (currentStep != OnboardingStep.WELCOME && currentStep != OnboardingStep.COMPLETE) {
-            OutlinedButton(
-                onClick = onPrevious,
-                modifier = Modifier.weight(1f),
-                shape = AppShapes.small
+    when (currentStep) {
+        OnboardingStep.WELCOME -> {
+            Button(
+                onClick = onNext,
+                modifier = Modifier.fillMaxWidth().height(52.dp),
+                shape = AppShapes.small,
+                colors = ButtonDefaults.buttonColors(containerColor = colors.primary)
             ) {
-                Text(stringResource(R.string.onboarding_back))
+                Text(stringResource(R.string.onboarding_get_started))
             }
         }
+        OnboardingStep.PERMISSIONS -> {
+            Button(
+                onClick = onNext,
+                enabled = isPermissionGranted,
+                modifier = Modifier.fillMaxWidth().height(52.dp),
+                shape = AppShapes.small,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = colors.primary,
+                    disabledContainerColor = colors.primary.copy(alpha = 0.3f)
+                )
+            ) {
+                Text(stringResource(R.string.onboarding_next))
+            }
+        }
+        OnboardingStep.MASTER_PASSWORD -> {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                TextButton(onClick = onSkipPassword, modifier = Modifier.height(52.dp)) {
+                    Text(stringResource(R.string.onboarding_skip))
+                }
 
-        when (currentStep) {
-            OnboardingStep.WELCOME -> {
                 Button(
-                    onClick = onNext,
-                    modifier = Modifier.weight(1f),
+                    onClick = onSetupPassword,
+                    enabled = isPasswordValid,
+                    modifier = Modifier.weight(2f).height(52.dp),
                     shape = AppShapes.small,
-                    colors = ButtonDefaults.buttonColors(containerColor = colors.primary)
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = colors.primary,
+                        disabledContainerColor = colors.primary.copy(alpha = 0.3f)
+                    )
                 ) {
-                    Text(stringResource(R.string.onboarding_get_started))
+                    if (isSettingPassword) {
+                        CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp, color = colors.onPrimary)
+                        Spacer(Modifier.width(8.dp))
+                        Text(stringResource(R.string.credentials_setting))
+                    } else {
+                        Icon(Icons.Default.Lock, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(6.dp))
+                        Text(stringResource(R.string.credentials_set_password))
+                    }
                 }
             }
-            OnboardingStep.COMPLETE -> {
-                Button(
-                    onClick = onFinish,
-                    modifier = Modifier.weight(1f),
-                    shape = AppShapes.small,
-                    colors = ButtonDefaults.buttonColors(containerColor = colors.primary)
-                ) {
-                    Text(stringResource(R.string.onboarding_finish))
-                }
-            }
-            else -> {
-                Button(
-                    onClick = onNext,
-                    modifier = Modifier.weight(1f),
-                    shape = AppShapes.small,
-                    colors = ButtonDefaults.buttonColors(containerColor = colors.primary)
-                ) {
+        }
+        OnboardingStep.GIT_CONFIG -> {
+            Button(
+                onClick = onSaveConfig,
+                enabled = isGitConfigValid && !isSavingConfig,
+                modifier = Modifier.fillMaxWidth().height(52.dp),
+                shape = AppShapes.small,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = colors.primary,
+                    disabledContainerColor = colors.primary.copy(alpha = 0.3f)
+                )
+            ) {
+                if (isSavingConfig) {
+                    CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp, color = colors.onPrimary)
+                    Spacer(Modifier.width(8.dp))
+                    Text(stringResource(R.string.onboarding_saving))
+                } else {
                     Text(stringResource(R.string.onboarding_next))
                 }
+            }
+        }
+        OnboardingStep.ADD_REPO -> {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                TextButton(onClick = onNext, modifier = Modifier.height(52.dp)) {
+                    Text(stringResource(R.string.onboarding_skip))
+                }
+
+                Button(
+                    onClick = { onAddRepository(AddRepoTab.Clone) },
+                    modifier = Modifier.weight(2f).height(52.dp),
+                    shape = AppShapes.small,
+                    colors = ButtonDefaults.buttonColors(containerColor = colors.primary)
+                ) {
+                    Text(stringResource(R.string.onboarding_add_repo))
+                }
+            }
+        }
+        OnboardingStep.COMPLETE -> {
+            Button(
+                onClick = onComplete,
+                modifier = Modifier.fillMaxWidth().height(52.dp),
+                shape = AppShapes.small,
+                colors = ButtonDefaults.buttonColors(containerColor = colors.primary)
+            ) {
+                Text(stringResource(R.string.onboarding_finish))
             }
         }
     }
@@ -311,25 +359,25 @@ private fun WelcomeStep() {
     val colors = MaterialTheme.colorScheme
 
     Column(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(24.dp)
     ) {
-        Spacer(Modifier.height(24.dp))
-
         Surface(
             shape = CircleShape,
             color = colors.primaryContainer.copy(alpha = 0.3f),
             modifier = Modifier.size(96.dp)
         ) {
-            Box(contentAlignment = Alignment.Center) {
-                Icon(
-                    Icons.Default.AccountTree,
-                    contentDescription = null,
-                    tint = colors.primary,
-                    modifier = Modifier.size(48.dp)
-                )
-            }
+            Icon(
+                imageVector = Icons.Default.AccountTree,
+                contentDescription = null,
+                tint = colors.primary,
+                modifier = Modifier
+                    .size(48.dp)
+                    .wrapContentSize(Alignment.Center)
+            )
         }
 
         Text(
@@ -347,23 +395,27 @@ private fun WelcomeStep() {
             textAlign = TextAlign.Center
         )
 
-        Spacer(Modifier.height(8.dp))
-
-        FeatureItem(
-            icon = Icons.Default.Storage,
-            title = stringResource(R.string.onboarding_feature_git_title),
-            description = stringResource(R.string.onboarding_feature_git_desc)
-        )
-        FeatureItem(
-            icon = Icons.Default.Lock,
-            title = stringResource(R.string.onboarding_feature_security_title),
-            description = stringResource(R.string.onboarding_feature_security_desc)
-        )
-        FeatureItem(
-            icon = Icons.Default.Folder,
-            title = stringResource(R.string.onboarding_feature_repos_title),
-            description = stringResource(R.string.onboarding_feature_repos_desc)
-        )
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            FeatureItem(
+                icon = Icons.Default.Storage,
+                title = stringResource(R.string.onboarding_feature_git_title),
+                description = stringResource(R.string.onboarding_feature_git_desc)
+            )
+            FeatureItem(
+                icon = Icons.Default.Lock,
+                title = stringResource(R.string.onboarding_feature_security_title),
+                description = stringResource(R.string.onboarding_feature_security_desc)
+            )
+            FeatureItem(
+                icon = Icons.Default.Folder,
+                title = stringResource(R.string.onboarding_feature_repos_title),
+                description = stringResource(R.string.onboarding_feature_repos_desc)
+            )
+        }
     }
 }
 
@@ -419,7 +471,9 @@ private fun FeatureItem(
 }
 
 @Composable
-private fun PermissionsStep() {
+private fun PermissionsStep(
+    onPermissionGranted: (Boolean) -> Unit
+) {
     val colors = MaterialTheme.colorScheme
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -456,6 +510,10 @@ private fun PermissionsStep() {
                 }
             }
         })
+    }
+
+    LaunchedEffect(allFilesStatus) {
+        onPermissionGranted(allFilesStatus == PermissionStatus.Granted)
     }
 
     Column(
@@ -583,12 +641,9 @@ private fun MasterPasswordStep(
     onUpdatePassword: (String) -> Unit,
     onUpdateConfirmPassword: (String) -> Unit,
     onUpdatePasswordHint: (String) -> Unit,
-    onUpdateEnableBiometric: (Boolean) -> Unit,
-    onSetupPassword: () -> Unit,
-    onSkip: () -> Unit
+    onUpdateEnableBiometric: (Boolean) -> Unit
 ) {
     val colors = MaterialTheme.colorScheme
-    val context = LocalContext.current
 
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -675,6 +730,7 @@ private fun MasterPasswordStep(
         ElevatedCard(
             modifier = Modifier
                 .fillMaxWidth()
+                .padding(top = 16.dp)
                 .border(1.dp, colors.outlineVariant, RoundedCornerShape(20.dp)),
             shape = RoundedCornerShape(20.dp),
             colors = CardDefaults.elevatedCardColors(containerColor = colors.surfaceContainerLow),
@@ -720,40 +776,6 @@ private fun MasterPasswordStep(
                 )
             }
         }
-
-        Button(
-            onClick = onSetupPassword,
-            enabled = uiState.password.isNotBlank() && uiState.confirmPassword.isNotBlank() && !uiState.isSettingPassword,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(48.dp),
-            shape = RoundedCornerShape(12.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = colors.primary,
-                disabledContainerColor = colors.primary.copy(alpha = 0.3f)
-            )
-        ) {
-            if (uiState.isSettingPassword) {
-                CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp, color = colors.onPrimary)
-                Spacer(Modifier.width(8.dp))
-                Text(stringResource(R.string.credentials_setting))
-            } else {
-                Icon(Icons.Default.Lock, contentDescription = null, modifier = Modifier.size(18.dp))
-                Spacer(Modifier.width(6.dp))
-                Text(stringResource(R.string.credentials_set_password))
-            }
-        }
-
-        TextButton(
-            onClick = onSkip,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text(
-                text = stringResource(R.string.onboarding_skip_password),
-                style = MaterialTheme.typography.labelLarge,
-                color = colors.onSurfaceVariant
-            )
-        }
     }
 }
 
@@ -762,9 +784,7 @@ private fun GitConfigStep(
     uiState: OnboardingUiState,
     onUpdateUserName: (String) -> Unit,
     onUpdateUserEmail: (String) -> Unit,
-    onUpdateDefaultBranch: (String) -> Unit,
-    onSave: () -> Unit,
-    onSkip: () -> Unit
+    onUpdateDefaultBranch: (String) -> Unit
 ) {
     val colors = MaterialTheme.colorScheme
 
@@ -825,47 +845,12 @@ private fun GitConfigStep(
                 cursorColor = colors.primary
             )
         )
-
-        Button(
-            onClick = onSave,
-            enabled = !uiState.isSavingConfig,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(48.dp),
-            shape = RoundedCornerShape(12.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = colors.primary,
-                disabledContainerColor = colors.primary.copy(alpha = 0.3f)
-            )
-        ) {
-            if (uiState.isSavingConfig) {
-                CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp, color = colors.onPrimary)
-                Spacer(Modifier.width(8.dp))
-                Text(stringResource(R.string.onboarding_saving))
-            } else {
-                Icon(Icons.Default.CheckCircle, contentDescription = null, modifier = Modifier.size(18.dp))
-                Spacer(Modifier.width(6.dp))
-                Text(stringResource(R.string.action_save))
-            }
-        }
-
-        TextButton(
-            onClick = onSkip,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text(
-                text = stringResource(R.string.onboarding_skip_config),
-                style = MaterialTheme.typography.labelLarge,
-                color = colors.onSurfaceVariant
-            )
-        }
     }
 }
 
 @Composable
 private fun AddRepoStep(
-    onAddRepository: () -> Unit,
-    onSkip: () -> Unit
+    onAddRepository: (tab: AddRepoTab) -> Unit
 ) {
     val colors = MaterialTheme.colorScheme
 
@@ -880,7 +865,7 @@ private fun AddRepoStep(
         )
 
         ElevatedCard(
-            onClick = onAddRepository,
+            onClick = { onAddRepository(AddRepoTab.Clone) },
             modifier = Modifier
                 .fillMaxWidth()
                 .border(1.dp, colors.outlineVariant, RoundedCornerShape(20.dp)),
@@ -921,17 +906,11 @@ private fun AddRepoStep(
                         color = colors.onSurfaceVariant
                     )
                 }
-                Icon(
-                    Icons.Default.CloudDownload,
-                    contentDescription = null,
-                    tint = colors.primary,
-                    modifier = Modifier.size(24.dp)
-                )
             }
         }
 
         ElevatedCard(
-            onClick = onAddRepository,
+            onClick = { onAddRepository(AddRepoTab.Local) },
             modifier = Modifier
                 .fillMaxWidth()
                 .border(1.dp, colors.outlineVariant, RoundedCornerShape(20.dp)),
@@ -972,122 +951,49 @@ private fun AddRepoStep(
                         color = colors.onSurfaceVariant
                     )
                 }
-                Icon(
-                    Icons.Default.CreateNewFolder,
-                    contentDescription = null,
-                    tint = colors.secondary,
-                    modifier = Modifier.size(24.dp)
-                )
             }
-        }
-
-        TextButton(
-            onClick = onSkip,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text(
-                text = stringResource(R.string.onboarding_skip_repo),
-                style = MaterialTheme.typography.labelLarge,
-                color = colors.onSurfaceVariant
-            )
         }
     }
 }
 
 @Composable
 private fun CompleteStep(
-    onFinish: () -> Unit
+    modifier: Modifier = Modifier
 ) {
     val colors = MaterialTheme.colorScheme
 
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(24.dp)
+    Box(
+        modifier = modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
     ) {
-        Spacer(Modifier.height(24.dp))
-
-        Surface(
-            shape = CircleShape,
-            color = colors.primary.copy(alpha = 0.15f),
-            modifier = Modifier.size(96.dp)
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Box(contentAlignment = Alignment.Center) {
-                Icon(
-                    Icons.Default.CheckCircle,
-                    contentDescription = null,
-                    tint = colors.primary,
-                    modifier = Modifier.size(48.dp)
-                )
+            Surface(
+                shape = CircleShape,
+                color = colors.primary.copy(alpha = 0.15f),
+                modifier = Modifier.size(96.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        Icons.Default.CheckCircle,
+                        contentDescription = null,
+                        tint = colors.primary,
+                        modifier = Modifier.size(48.dp)
+                    )
+                }
             }
+
+            Spacer(Modifier.height(24.dp))
+
+            Text(
+                text = stringResource(R.string.onboarding_complete_title),
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold,
+                color = colors.primary,
+                textAlign = TextAlign.Center
+            )
         }
-
-        Text(
-            text = stringResource(R.string.onboarding_complete_title),
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold,
-            color = colors.primary,
-            textAlign = TextAlign.Center
-        )
-
-        Text(
-            text = stringResource(R.string.onboarding_complete_subtitle),
-            style = MaterialTheme.typography.bodyLarge,
-            color = colors.onSurfaceVariant,
-            textAlign = TextAlign.Center
-        )
-
-        ElevatedCard(
-            modifier = Modifier
-                .fillMaxWidth()
-                .border(1.dp, colors.outlineVariant, RoundedCornerShape(20.dp)),
-            shape = RoundedCornerShape(20.dp),
-            colors = CardDefaults.elevatedCardColors(containerColor = colors.surfaceContainerLow),
-            elevation = CardDefaults.elevatedCardElevation(0.dp)
-        ) {
-            Column(modifier = Modifier.padding(20.dp)) {
-                Text(
-                    text = stringResource(R.string.onboarding_complete_tips_title),
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = colors.primary
-                )
-                Spacer(Modifier.height(12.dp))
-                TipItem(stringResource(R.string.onboarding_tip_settings))
-                TipItem(stringResource(R.string.onboarding_tip_credentials))
-                TipItem(stringResource(R.string.onboarding_tip_help))
-            }
-        }
-    }
-}
-
-@Composable
-private fun TipItem(text: String) {
-    val colors = MaterialTheme.colorScheme
-    Row(
-        modifier = Modifier.padding(vertical = 4.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Surface(
-            shape = CircleShape,
-            color = colors.primary.copy(alpha = 0.15f),
-            modifier = Modifier.size(20.dp)
-        ) {
-            Box(contentAlignment = Alignment.Center) {
-                Text(
-                    text = "•",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = colors.primary,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-        }
-        Spacer(Modifier.width(10.dp))
-        Text(
-            text = text,
-            style = MaterialTheme.typography.bodySmall,
-            color = colors.onSurfaceVariant
-        )
     }
 }
 
@@ -1125,29 +1031,5 @@ private fun StepHeader(
             style = MaterialTheme.typography.bodyMedium,
             color = colors.onSurfaceVariant
         )
-    }
-}
-
-@Composable
-private fun OutlinedButton(
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    shape: androidx.compose.foundation.shape.CornerBasedShape = AppShapes.small,
-    content: @Composable () -> Unit
-) {
-    val colors = MaterialTheme.colorScheme
-    Surface(
-        onClick = onClick,
-        modifier = modifier,
-        shape = shape,
-        color = Color.Transparent,
-        border = BorderStroke(1.dp, colors.outline)
-    ) {
-        Box(
-            modifier = Modifier.padding(vertical = 10.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            content()
-        }
     }
 }

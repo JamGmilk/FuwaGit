@@ -16,9 +16,15 @@ object NavRoutes {
     const val ONBOARDING = "onboarding"
     const val MAIN = "main"
     const val ADD_REPOSITORY = "add_repository"
+    const val ADD_REPOSITORY_WITH_TAB = "add_repository/{tab}"
     const val PERMISSIONS = "permissions"
     const val CREDENTIALS = "credentials"
     const val FILE_DIFF = "file_diff"
+}
+
+enum class AddRepoTab {
+    Clone,
+    Local
 }
 
 data class NavItem(

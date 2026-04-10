@@ -16,20 +16,18 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 import androidx.compose.runtime.Stable
 
-enum class OnboardingStep(val index: Int) {
-    WELCOME(0),
-    PERMISSIONS(1),
-    MASTER_PASSWORD(2),
-    GIT_CONFIG(3),
-    ADD_REPO(4),
-    COMPLETE(5)
+enum class OnboardingStep {
+    WELCOME,
+    PERMISSIONS,
+    MASTER_PASSWORD,
+    GIT_CONFIG,
+    ADD_REPO,
+    COMPLETE
 }
 
 @Stable
 data class OnboardingUiState(
     val currentStep: OnboardingStep = OnboardingStep.WELCOME,
-    val isMasterPasswordSet: Boolean = false,
-    val isBiometricEnabled: Boolean = false,
     val userName: String = "",
     val userEmail: String = "",
     val defaultBranch: String = "main",
@@ -39,9 +37,7 @@ data class OnboardingUiState(
     val enableBiometric: Boolean = false,
     val isSettingPassword: Boolean = false,
     val passwordError: String? = null,
-    val isSavingConfig: Boolean = false,
-    val isEnablingBiometric: Boolean = false,
-    val isFirstRun: Boolean = true
+    val isSavingConfig: Boolean = false
 )
 
 @HiltViewModel
@@ -55,11 +51,6 @@ class OnboardingViewModel @Inject constructor(
     val uiState: StateFlow<OnboardingUiState> = _uiState.asStateFlow()
 
     init {
-        viewModelScope.launch {
-            settingsRepository.preferencesFlow().collect { prefs ->
-                _uiState.update { it.copy(isFirstRun = prefs.isFirstRun) }
-            }
-        }
         viewModelScope.launch {
             settingsRepository.gitConfigFlow().collect { config ->
                 _uiState.update {
@@ -78,18 +69,13 @@ class OnboardingViewModel @Inject constructor(
     }
 
     fun nextStep() {
-        val next = OnboardingStep.entries.getOrNull(_uiState.value.currentStep.index + 1)
+        val next = entriesOf<OnboardingStep>().getOrNull(_uiState.value.currentStep.ordinal + 1)
         if (next != null) {
             _uiState.update { it.copy(currentStep = next) }
         }
     }
 
-    fun previousStep() {
-        val prev = OnboardingStep.entries.getOrNull(_uiState.value.currentStep.index - 1)
-        if (prev != null) {
-            _uiState.update { it.copy(currentStep = prev) }
-        }
-    }
+    private inline fun <reified T : Enum<T>> entriesOf(): Array<T> = enumValues()
 
     fun updatePassword(password: String) {
         _uiState.update { it.copy(password = password, passwordError = null) }
@@ -119,7 +105,7 @@ class OnboardingViewModel @Inject constructor(
         _uiState.update { it.copy(defaultBranch = branch) }
     }
 
-    fun setupMasterPassword(onSuccess: () -> Unit) {
+    fun setupPasswordAndContinue(activity: FragmentActivity?) {
         val state = _uiState.value
         if (state.password.length < 6) {
             _uiState.update { it.copy(passwordError = "Password must be at least 6 characters") }
@@ -134,8 +120,17 @@ class OnboardingViewModel @Inject constructor(
         viewModelScope.launch {
             setupMasterPasswordUseCase(state.password, state.confirmPassword, state.passwordHint.ifBlank { null })
                 .onSuccess {
-                    _uiState.update { it.copy(isSettingPassword = false, isMasterPasswordSet = true) }
-                    onSuccess()
+                    _uiState.update { it.copy(isSettingPassword = false) }
+                    if (state.enableBiometric && activity != null) {
+                        enableBiometricUseCase(activity) { result ->
+                            when (result) {
+                                is AppResult.Success -> nextStep()
+                                is AppResult.Error -> nextStep()
+                            }
+                        }
+                    } else {
+                        nextStep()
+                    }
                 }
                 .onError { e ->
                     _uiState.update { it.copy(isSettingPassword = false, passwordError = e.message) }
@@ -143,31 +138,18 @@ class OnboardingViewModel @Inject constructor(
         }
     }
 
-    fun enableBiometricAuth(activity: FragmentActivity, onSuccess: () -> Unit) {
-        _uiState.update { it.copy(isEnablingBiometric = true) }
-        viewModelScope.launch {
-            enableBiometricUseCase(activity) { result ->
-                when (result) {
-                    is AppResult.Success -> {
-                        _uiState.update { it.copy(isEnablingBiometric = false, isBiometricEnabled = true) }
-                        onSuccess()
-                    }
-                    is AppResult.Error -> {
-                        _uiState.update { it.copy(isEnablingBiometric = false) }
-                    }
-                }
-            }
-        }
+    fun skipPassword() {
+        nextStep()
     }
 
-    fun saveGitConfig(onSuccess: () -> Unit) {
+    fun saveConfigAndContinue() {
         val state = _uiState.value
         _uiState.update { it.copy(isSavingConfig = true) }
         viewModelScope.launch {
             settingsRepository.saveUserConfig(state.userName, state.userEmail)
             settingsRepository.saveDefaultBranch(state.defaultBranch)
             _uiState.update { it.copy(isSavingConfig = false) }
-            onSuccess()
+            nextStep()
         }
     }
 
@@ -175,10 +157,5 @@ class OnboardingViewModel @Inject constructor(
         viewModelScope.launch {
             settingsRepository.setFirstRunCompleted()
         }
-    }
-
-    fun skipMasterPassword() {
-        _uiState.update { it.copy(isMasterPasswordSet = false) }
-        nextStep()
     }
 }
