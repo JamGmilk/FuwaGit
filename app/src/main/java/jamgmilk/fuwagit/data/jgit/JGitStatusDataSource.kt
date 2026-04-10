@@ -47,7 +47,9 @@ class JGitStatusDataSource @Inject constructor(
                 allFiles.add(GitFileStatus(path, java.io.File(path).name, true, GitChangeType.Modified))
             }
             status.removed.forEach { path ->
-                allFiles.add(GitFileStatus(path, java.io.File(path).name, true, GitChangeType.Removed))
+                if (path != "/dev/null" && path.isNotBlank()) {
+                    allFiles.add(GitFileStatus(path, java.io.File(path).name, true, GitChangeType.Removed))
+                }
             }
 
             status.modified.forEach { path ->

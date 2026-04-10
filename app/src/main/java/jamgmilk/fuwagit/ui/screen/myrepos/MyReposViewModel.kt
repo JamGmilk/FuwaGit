@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import jamgmilk.fuwagit.data.jgit.GitConfigManager
 import jamgmilk.fuwagit.data.local.prefs.RepoDataStore
 import jamgmilk.fuwagit.domain.model.credential.CloneCredential
 import jamgmilk.fuwagit.domain.model.credential.HttpsCredential
@@ -31,7 +32,8 @@ class MyReposViewModel @Inject constructor(
     private val repoDataStore: RepoDataStore,
     private val currentRepoManager: RepoStateManager,
     private val gitRepo: GitRepoFacade,
-    private val credential: CredentialFacade
+    private val credential: CredentialFacade,
+    private val gitConfigManager: GitConfigManager
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(RepoUiState())
@@ -318,6 +320,10 @@ class MyReposViewModel @Inject constructor(
             ?: emptyList()
     }
 
+    suspend fun getRepoGitConfig(localPath: String): String {
+        return gitConfigManager.getAllRepoConfig(localPath)
+    }
+
     suspend fun getRemoteUrl(localPath: String, name: String = "origin"): String? {
         return gitRepo.getRemoteUrl(localPath, name)
     }
@@ -338,6 +344,10 @@ class MyReposViewModel @Inject constructor(
     fun configureRemote(localPath: String, name: String, url: String, httpsCredentialUuid: String? = null, sshKeyUuid: String? = null) {
         viewModelScope.launch {
             gitRepo.configureRemote(localPath, name, url)
+            val credentialId = httpsCredentialUuid ?: sshKeyUuid
+            if (credentialId != null) {
+                repoDataStore.updateRepo(localPath) { it.copy(credentialId = credentialId) }
+            }
         }
     }
 
