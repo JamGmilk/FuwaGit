@@ -1,12 +1,6 @@
 /build
 /captures
 .gradle
-/.idea/caches
-/.idea/libraries
-/.idea/modules.xml
-/.idea/workspace.xml
-/.idea/navEditor.xml
-/.idea/assetWizardSettings.xml
 .kotlin
 /.qwen
 *.iml

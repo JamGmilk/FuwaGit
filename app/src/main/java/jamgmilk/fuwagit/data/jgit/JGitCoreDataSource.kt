@@ -15,7 +15,6 @@ import java.io.BufferedReader
 import java.io.File
 import java.io.FileWriter
 import java.util.Arrays
-import java.util.concurrent.atomic.AtomicReference
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -30,37 +29,6 @@ class JGitCoreDataSource @Inject constructor(
         private const val TAG = "JGitCoreDataSource"
         private const val KNOWN_HOSTS_FILE = "ssh_known_hosts"
         private const val REPOSITORY_ID = "fuwa-git-known-hosts-v1"
-        private val currentSshKey = AtomicReference<SshKeyInfo?>()
-
-        data class SshKeyInfo(
-            val privateKey: ByteArray,
-            val passphrase: ByteArray?
-        ) {
-            override fun equals(other: Any?): Boolean {
-                if (this === other) return true
-                if (javaClass != other?.javaClass) return false
-                other as SshKeyInfo
-                if (!privateKey.contentEquals(other.privateKey)) return false
-                if (passphrase == null) {
-                    if (other.passphrase != null) return false
-                } else {
-                    if (!passphrase.contentEquals(other.passphrase)) return false
-                }
-                return true
-            }
-
-            override fun hashCode(): Int {
-                var result = privateKey.contentHashCode()
-                result = 31 * result + (passphrase?.contentHashCode() ?: 0)
-                return result
-            }
-
-            fun secureClear() {
-                Arrays.fill(privateKey, 0.toByte())
-                passphrase?.let { Arrays.fill(it, 0.toByte()) }
-            }
-        }
-
         private const val HOST_KEY_CHANGED = -1
         private const val HOST_KEY_NOT_FOUND = 2
         private const val HOST_KEY_OK = 0
@@ -285,20 +253,19 @@ class JGitCoreDataSource @Inject constructor(
                 )
             }
             is jamgmilk.fuwagit.domain.model.credential.CloneCredential.Ssh -> {
-                clearSshCredentials()
-
                 val privateKeyBytes = credentials.privateKey.toByteArray(Charsets.UTF_8)
                 val passphraseBytes = credentials.passphrase?.toByteArray(Charsets.UTF_8)
-                currentSshKey.set(SshKeyInfo(privateKeyBytes, passphraseBytes))
-
-                configureSshForCommand(command)
+                configureSshForCommand(command, privateKeyBytes, passphraseBytes)
             }
             null -> {}
         }
     }
 
-    private fun configureSshForCommand(command: org.eclipse.jgit.api.TransportCommand<*, *>) {
-        val sshInfo = currentSshKey.get() ?: return
+    private fun configureSshForCommand(
+        command: org.eclipse.jgit.api.TransportCommand<*, *>,
+        privateKeyBytes: ByteArray,
+        passphraseBytes: ByteArray?
+    ) {
         try {
             java.security.Security.addProvider(BouncyCastleProvider())
 
@@ -314,17 +281,18 @@ class JGitCoreDataSource @Inject constructor(
                             val jsch = super.createDefaultJSch(fs)
                             try {
                                 jsch.removeAllIdentity()
-
                                 jsch.hostKeyRepository = FuwaHostKeyRepository(khFile)
-
                                 jsch.addIdentity(
                                     "fuwa-git-ssh-key",
-                                    sshInfo.privateKey,
+                                    privateKeyBytes,
                                     null,
-                                    sshInfo.passphrase
+                                    passphraseBytes
                                 )
                             } catch (e: Exception) {
                                 Log.e(TAG, "Failed to configure SSH identity or known hosts", e)
+                            } finally {
+                                Arrays.fill(privateKeyBytes, 0.toByte())
+                                passphraseBytes?.let { Arrays.fill(it, 0.toByte()) }
                             }
                             return jsch
                         }
@@ -333,13 +301,14 @@ class JGitCoreDataSource @Inject constructor(
             }
             if (BuildConfig.DEBUG) Log.d(TAG, "SSH configured with host key verification enabled")
         } catch (e: Exception) {
+            Arrays.fill(privateKeyBytes, 0.toByte())
+            passphraseBytes?.let { Arrays.fill(it, 0.toByte()) }
             Log.e(TAG, "Failed to configure SSH", e)
         }
     }
 
     override fun clearSshCredentials() {
-        val oldKey = currentSshKey.getAndSet(null)
-        oldKey?.secureClear()
+        // No-op: credentials are no longer cached, zeroed immediately after use
     }
 
     // ========== Known Hosts Management ==========
@@ -498,11 +467,11 @@ class JGitCoreDataSource @Inject constructor(
                 }
             }
 
-            val keyType = when (key.size) {
-                256 -> "ECDSA-256"
-                384 -> "ECDSA-384"
-                521 -> "ECDSA-521"
-                else -> "RSA-${key.size}"
+            val mismatchedKey = existingKeys.firstOrNull()
+            val keyType = mismatchedKey?.type ?: when {
+                key.size == 32 -> "ssh-ed25519"
+                key.size > 256 -> "ssh-rsa"
+                else -> "unknown"
             }
             Log.e(
                 TAG,
