@@ -1,19 +1,17 @@
 package jamgmilk.fuwagit.ui.screen.myrepos
 
-import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import jamgmilk.fuwagit.core.result.AppResult
 import jamgmilk.fuwagit.data.jgit.GitConfigManager
 import jamgmilk.fuwagit.data.local.prefs.RepoDataStore
-import jamgmilk.fuwagit.domain.model.credential.CloneCredential
 import jamgmilk.fuwagit.domain.model.credential.HttpsCredential
 import jamgmilk.fuwagit.domain.model.credential.SshKey
 import jamgmilk.fuwagit.domain.model.git.CloneOptions
 import jamgmilk.fuwagit.domain.model.repo.RepoData
 import jamgmilk.fuwagit.domain.usecase.credential.CredentialFacade
 import jamgmilk.fuwagit.domain.usecase.git.GitRepoFacade
-import jamgmilk.fuwagit.core.result.AppResult
 import jamgmilk.fuwagit.ui.state.RepoInfo
 import jamgmilk.fuwagit.ui.state.RepoStateManager
 import kotlinx.coroutines.Dispatchers
@@ -66,37 +64,34 @@ class MyReposViewModel @Inject constructor(
         }
     }
 
-    private var storageInitialized = false
+    private fun buildRepoItems(repos: List<RepoData>, currentPath: String?, currentSizes: Map<String, Long>): List<RepoFolderItem> {
+        return repos.map { repo ->
+            RepoFolderItem(
+                path = repo.path,
+                alias = repo.displayName,
+                isGitRepo = File(repo.path, ".git").exists(),
+                isRemote = false,
+                isActive = repo.path == currentPath,
+                lastModified = repo.lastAccessedAt,
+                size = currentSizes[repo.path] ?: 0L
+            )
+        }
+    }
 
     init {
         viewModelScope.launch {
             repoDataStore.getSavedReposFlow().collectLatest { repos ->
                 val currentPath = currentRepoManager.getRepoPath()
                 val currentSizes = _uiState.value.repoSizes
-                val items = repos.map { repo ->
-                    RepoFolderItem(
-                        path = repo.path,
-                        alias = repo.displayName,
-                        isGitRepo = File(repo.path, ".git").exists(),
-                        isRemote = false,
-                        isActive = repo.path == currentPath,
-                        lastModified = repo.lastAccessedAt,
-                        size = currentSizes[repo.path] ?: 0L
-                    )
-                }
+                val items = buildRepoItems(repos, currentPath, currentSizes)
                 _uiState.update { it.copy(savedRepos = repos, repoItems = items) }
-                items.forEach { item ->
-                    if (!currentSizes.containsKey(item.path)) {
-                        calculateSizeAsync(item.path)
-                    }
-                }
+                items.filterNot { currentSizes.containsKey(it.path) }.forEach { calculateSizeAsync(it.path) }
             }
         }
 
         viewModelScope.launch {
             currentRepoManager.repoInfo.collectLatest { info ->
-                val currentPath = info.repoPath
-                if (currentPath != null) {
+                info.repoPath?.let { currentPath ->
                     _uiState.update { state ->
                         state.copy(repoItems = state.repoItems.map { item ->
                             item.copy(isActive = item.path == currentPath)
@@ -112,29 +107,13 @@ class MyReposViewModel @Inject constructor(
             val repos = repoDataStore.getAllRepos()
             val currentPath = currentRepoManager.getRepoPath()
             val currentSizes = _uiState.value.repoSizes
-            val items = repos.map { repo ->
-                RepoFolderItem(
-                    path = repo.path,
-                    alias = repo.displayName,
-                    isGitRepo = File(repo.path, ".git").exists(),
-                    isRemote = false,
-                    isActive = repo.path == currentPath,
-                    lastModified = repo.lastAccessedAt,
-                    size = currentSizes[repo.path] ?: 0L
-                )
-            }
+            val items = buildRepoItems(repos, currentPath, currentSizes)
             _uiState.update { it.copy(savedRepos = repos, repoItems = items) }
-            items.forEach { item ->
-                if (!currentSizes.containsKey(item.path)) {
-                    calculateSizeAsync(item.path)
-                }
-            }
+            items.filterNot { currentSizes.containsKey(it.path) }.forEach { calculateSizeAsync(it.path) }
         }
     }
 
-    fun initializeStorage(context: Context) {
-        if (storageInitialized) return
-        storageInitialized = true
+    fun initializeStorage() {
     }
 
     private fun calculateSizeAsync(path: String) {
@@ -156,53 +135,39 @@ class MyReposViewModel @Inject constructor(
     suspend fun addRepo(path: String, alias: String? = null): Boolean {
         val repo = RepoData(path = path, alias = alias)
         val result = repoDataStore.addRepo(repo)
-        if (result) {
-            if (currentRepoManager.getRepoPath() == null) {
-                currentRepoManager.setRepoPath(path)
-            }
+        if (result && currentRepoManager.getRepoPath() == null) {
+            currentRepoManager.setRepoPath(path)
         }
         return result
     }
 
-    suspend fun removeRepo(repo: RepoData): Boolean {
-        return repoDataStore.removeRepo(repo.path)
-    }
-
-    suspend fun removeRepo(item: RepoFolderItem) {
-        repoDataStore.removeRepo(item.path)
-        if (currentRepoManager.getRepoPath() == item.path) {
+    suspend fun removeRepo(path: String): Boolean {
+        val result = repoDataStore.removeRepo(path)
+        if (result && currentRepoManager.getRepoPath() == path) {
             currentRepoManager.clearRepo()
         }
+        return result
     }
 
     suspend fun setCurrentRepo(path: String?) {
         currentRepoManager.setRepoPath(path)
     }
 
-    fun refreshRepoItems() {
-        loadSavedRepos()
-    }
-
     suspend fun cleanRepo(path: String, dryRun: Boolean = false): AppResult<String> {
         return gitRepo.clean(path, dryRun).map { result ->
             if (dryRun) {
-                // Update untracked files list for previewing
                 _uiState.update { it.copy(untrackedFilesForClean = result.files) }
             }
             result.toString()
         }
     }
 
-    /**
-     * Request Clean preview: execute a dry-run to get the list of files that will be deleted.
-     */
     fun requestCleanPreview() {
         val path = currentRepoInfo.value.repoPath ?: return
 
         viewModelScope.launch {
             _uiState.update { it.copy(isCleanPreviewing = true, cleanMessage = null, untrackedFilesForClean = emptyList()) }
-            val result = gitRepo.clean(path, dryRun = true)
-            result.onSuccess { cleanResult ->
+            gitRepo.clean(path, dryRun = true).onSuccess { cleanResult ->
                 _uiState.update {
                     it.copy(
                         isCleanPreviewing = false,
@@ -232,11 +197,7 @@ class MyReposViewModel @Inject constructor(
             val latestDryRunResult = gitRepo.clean(path, dryRun = true)
 
             latestDryRunResult.onSuccess { latestDryRunResult ->
-                val verifiedFiles = verifyUntrackedFilesStillExist(
-                    path,
-                    originallyPreviewedFiles,
-                    latestDryRunResult.files
-                )
+                val verifiedFiles = verifyUntrackedFilesStillExist(path, originallyPreviewedFiles, latestDryRunResult.files)
 
                 if (verifiedFiles.isEmpty()) {
                     _uiState.update {
@@ -249,9 +210,7 @@ class MyReposViewModel @Inject constructor(
                     return@launch
                 }
 
-                val executeResult = gitRepo.clean(path, dryRun = false)
-
-                executeResult.onSuccess {
+                gitRepo.clean(path, dryRun = false).onSuccess {
                     _uiState.update {
                         it.copy(
                             isCleanPreviewing = false,
@@ -281,23 +240,14 @@ class MyReposViewModel @Inject constructor(
         }
     }
 
-    private suspend fun verifyUntrackedFilesStillExist(
+    private fun verifyUntrackedFilesStillExist(
         repoPath: String,
         originalFiles: List<String>,
         latestFiles: List<String>
     ): List<String> {
         val latestFileSet = latestFiles.toSet()
         return originalFiles.filter { file ->
-            if (file !in latestFileSet) {
-                false
-            } else {
-                val fileExists = File(repoPath, file).exists()
-                if (!fileExists) {
-                    false
-                } else {
-                    true
-                }
-            }
+            file in latestFileSet && File(repoPath, file).exists()
         }
     }
 
@@ -309,24 +259,15 @@ class MyReposViewModel @Inject constructor(
         _uiState.update { it.copy(cleanedFilesForResult = emptyList(), cleanMessage = null) }
     }
 
-    suspend fun getRepoInfo(localPath: String): Map<String, String> {
-        return gitRepo.getRepoInfo(localPath)
-    }
+    suspend fun getRepoInfo(localPath: String): Map<String, String> = gitRepo.getRepoInfo(localPath)
 
     suspend fun getRemotes(localPath: String): List<Pair<String, String>> {
-        return gitRepo.getRemotes(localPath)
-            .getOrNull()
-            ?.map { it.name to it.fetchUrl }
-            ?: emptyList()
+        return gitRepo.getRemotes(localPath).getOrNull()?.map { it.name to it.fetchUrl } ?: emptyList()
     }
 
-    suspend fun getRepoGitConfig(localPath: String): String {
-        return gitConfigManager.getAllRepoConfig(localPath)
-    }
+    suspend fun getRepoGitConfig(localPath: String): String = gitConfigManager.getAllRepoConfig(localPath)
 
-    suspend fun getRemoteUrl(localPath: String, name: String = "origin"): String? {
-        return gitRepo.getRemoteUrl(localPath, name)
-    }
+    suspend fun getRemoteUrl(localPath: String, name: String = "origin"): String? = gitRepo.getRemoteUrl(localPath, name)
 
     suspend fun addLocalRepository(path: String, alias: String?, remoteUrl: String?) {
         withContext(Dispatchers.IO) {
@@ -355,9 +296,7 @@ class MyReposViewModel @Inject constructor(
         viewModelScope.launch {
             val httpsCreds = getHttpsCredentials()
             val sshKeyList = getSshKeys()
-            _uiState.update {
-                it.copy(httpsCredentials = httpsCreds, sshKeys = sshKeyList)
-            }
+            _uiState.update { it.copy(httpsCredentials = httpsCreds, sshKeys = sshKeyList) }
         }
     }
 
@@ -368,29 +307,13 @@ class MyReposViewModel @Inject constructor(
         }
     }
 
-    suspend fun getHttpsCredentials(): List<HttpsCredential> {
-        return credential.getHttpsCredentials().getOrNull() ?: emptyList()
-    }
+    suspend fun getHttpsCredentials(): List<HttpsCredential> = credential.getHttpsCredentials().getOrNull() ?: emptyList()
 
-    suspend fun getHttpsPassword(uuid: String): String? {
-        return credential.getHttpsPassword(uuid).getOrNull()
-    }
+    suspend fun getHttpsPassword(uuid: String): String? = credential.getHttpsPassword(uuid).getOrNull()
 
-    suspend fun getSshKeys(): List<SshKey> {
-        return credential.getSshKeys().getOrNull() ?: emptyList()
-    }
+    suspend fun getSshKeys(): List<SshKey> = credential.getSshKeys().getOrNull() ?: emptyList()
 
-    suspend fun getSshPrivateKey(uuid: String): String? {
-        return credential.getSshPrivateKey(uuid).getOrNull()
-    }
-
-    suspend fun showHttpsCredentialSelector(): String? {
-        return null
-    }
-
-    suspend fun showSshKeySelector(): String? {
-        return null
-    }
+    suspend fun getSshPrivateKey(uuid: String): String? = credential.getSshPrivateKey(uuid).getOrNull()
 
     fun cloneWithCredentials(
         uri: String,
@@ -407,26 +330,14 @@ class MyReposViewModel @Inject constructor(
             val httpsCreds = getHttpsCredentials()
             val sshKeys = getSshKeys()
 
-            val credentials: jamgmilk.fuwagit.domain.model.credential.CloneCredential? = credential.resolveCredentials(
-                httpsCredentialUuid,
-                sshKeyUuid,
-                httpsCreds,
-                sshKeys,
-                uri
-            )
+            val credentials = credential.resolveCredentials(httpsCredentialUuid, sshKeyUuid, httpsCreds, sshKeys, uri)
 
-            val result = gitRepo.clone(uri, localPath, credentials, cloneOptions)
-            result.onSuccess { cloneResult ->
+            gitRepo.clone(uri, localPath, credentials, cloneOptions).onSuccess { cloneResult ->
                 _uiState.update { it.copy(isLoading = false) }
                 addRepo(localPath, null)
                 onResult(AppResult.Success(cloneResult))
             }.onError { e ->
-                _uiState.update {
-                    it.copy(
-                        isLoading = false,
-                        error = e.message
-                    )
-                }
+                _uiState.update { it.copy(isLoading = false, error = e.message) }
                 onResult(AppResult.Error(e))
             }
         }

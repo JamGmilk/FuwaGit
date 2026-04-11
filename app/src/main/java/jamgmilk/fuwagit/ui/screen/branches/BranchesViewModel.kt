@@ -285,6 +285,9 @@ class BranchesViewModel @Inject constructor(
         viewModelScope.launch {
             branchUseCase.checkout(path, name)
                 .onSuccess {
+                    _uiState.update {
+                        it.copy(operationResult = OperationResult.Success("Switched to branch '$name'"))
+                    }
                     loadBranches()
                 }
                 .onError { e ->
@@ -299,6 +302,9 @@ class BranchesViewModel @Inject constructor(
         viewModelScope.launch {
             branchUseCase.create(path, name)
                 .onSuccess {
+                    _uiState.update {
+                        it.copy(operationResult = OperationResult.Success("Branch '$name' created successfully"))
+                    }
                     loadBranches()
                 }
                 .onError { e ->
@@ -313,6 +319,9 @@ class BranchesViewModel @Inject constructor(
         viewModelScope.launch {
             branchUseCase.delete(path, name, force)
                 .onSuccess {
+                    _uiState.update {
+                        it.copy(operationResult = OperationResult.Success("Branch '$name' deleted successfully"))
+                    }
                     loadBranches()
                 }
                 .onError { e ->
@@ -327,6 +336,9 @@ class BranchesViewModel @Inject constructor(
         viewModelScope.launch {
             branchUseCase.rename(path, oldName, newName)
                 .onSuccess {
+                    _uiState.update {
+                        it.copy(operationResult = OperationResult.Success("Branch renamed to '$newName'"))
+                    }
                     loadBranches()
                 }
                 .onError { e ->

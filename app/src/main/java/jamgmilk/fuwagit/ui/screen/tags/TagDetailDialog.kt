@@ -17,7 +17,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Label
+import androidx.compose.material.icons.automirrored.filled.Label
 import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -63,7 +63,7 @@ fun TagDetailDialog(
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    Icons.Default.Label,
+                    Icons.AutoMirrored.Filled.Label,
                     contentDescription = null,
                     tint = colors.primary,
                     modifier = Modifier.size(28.dp)

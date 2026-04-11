@@ -1,7 +1,9 @@
 package jamgmilk.fuwagit.ui.screen.myrepos
 
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
 import android.widget.Toast
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -16,46 +18,33 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AccountTree
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.CleaningServices
-import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Link
-import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Source
-import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.outlined.FolderOpen
-import androidx.compose.material.icons.rounded.ContentCopy
-import androidx.compose.material.icons.rounded.Info
-import androidx.compose.material.icons.rounded.Warning
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.SheetState
@@ -75,24 +64,21 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import jamgmilk.fuwagit.R
 import jamgmilk.fuwagit.ui.components.CleanPreviewDialog
 import jamgmilk.fuwagit.ui.components.CleanResultDialog
 import jamgmilk.fuwagit.ui.components.ConfigureRemoteDialog
 import jamgmilk.fuwagit.ui.components.EmptyState
-import jamgmilk.fuwagit.ui.screen.credentials.CredentialType
 import jamgmilk.fuwagit.ui.components.ScreenTemplate
+import jamgmilk.fuwagit.ui.screen.credentials.CredentialType
 import jamgmilk.fuwagit.ui.state.RepoInfo
 import jamgmilk.fuwagit.ui.theme.AppShapes
 import jamgmilk.fuwagit.ui.util.ViewModelMessagesMapper
@@ -121,7 +107,7 @@ fun MyReposScreen(
     )
 
     LaunchedEffect(Unit) {
-        myReposViewModel.initializeStorage(context)
+        myReposViewModel.initializeStorage()
         myReposViewModel.loadCredentials()
     }
 
@@ -307,7 +293,7 @@ fun MyReposScreen(
             item = pendingDeleteItem.value!!,
             onConfirm = {
                 scope.launch {
-                    myReposViewModel.removeRepo(pendingDeleteItem.value!!)
+                    myReposViewModel.removeRepo(pendingDeleteItem.value!!.path)
                     showDeleteConfirmationDialog.value = false
                     pendingDeleteItem.value = null
                 }
@@ -548,7 +534,7 @@ fun RepoOptionsSheet(
     onShowInfo: () -> Unit
 ) {
     val colors = MaterialTheme.colorScheme
-    val clipboardManager = LocalClipboardManager.current
+    val clipboardManager = LocalContext.current.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -565,7 +551,7 @@ fun RepoOptionsSheet(
             RepoHeader(
                 item = item,
                 onCopyPath = {
-                    clipboardManager.setText(AnnotatedString(item.path))
+                    clipboardManager.setPrimaryClip(ClipData.newPlainText(null, item.path))
                 }
             )
 
