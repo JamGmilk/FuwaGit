@@ -13,7 +13,4 @@ data class RepoData(
 ) {
     val displayName: String
         get() = alias ?: path.substringAfterLast("/")
-
-    val isValid: Boolean
-        get() = path.isNotBlank()
 }

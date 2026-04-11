@@ -23,8 +23,6 @@ data class RepoInfo(
     val error: String? = null
 ) {
     val isValidGit: Boolean get() = repoPath != null && error == null && !isLoading
-    val isNotGit: Boolean get() = repoPath != null && error == "Not a git repository"
-    val isPathInvalid: Boolean get() = repoPath != null && error == "Path does not exist"
 }
 
 @Singleton
@@ -52,13 +50,7 @@ class RepoStateManager @Inject constructor(
         }
     }
 
-    fun updateRepoInfo(info: RepoInfo) {
-        _repoInfo.value = info
-    }
-
     fun getRepoPath(): String? = _repoInfo.value.repoPath
-
-    fun isRepoReady(): Boolean = _repoInfo.value.isValidGit
 
     suspend fun clearRepo() {
         _repoInfo.value = RepoInfo()

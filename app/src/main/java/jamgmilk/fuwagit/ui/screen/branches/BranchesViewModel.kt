@@ -313,23 +313,6 @@ class BranchesViewModel @Inject constructor(
         }
     }
 
-    fun deleteBranch(name: String, force: Boolean = false) {
-        val path = currentRepoPath ?: return
-
-        viewModelScope.launch {
-            branchUseCase.delete(path, name, force)
-                .onSuccess {
-                    _uiState.update {
-                        it.copy(operationResult = OperationResult.Success("Branch '$name' deleted successfully"))
-                    }
-                    loadBranches()
-                }
-                .onError { e ->
-                    _uiState.update { it.copy(error = e.message) }
-                }
-        }
-    }
-
     fun renameBranch(oldName: String, newName: String) {
         val path = currentRepoPath ?: return
 
@@ -340,126 +323,6 @@ class BranchesViewModel @Inject constructor(
                         it.copy(operationResult = OperationResult.Success("Branch renamed to '$newName'"))
                     }
                     loadBranches()
-                }
-                .onError { e ->
-                    _uiState.update { it.copy(error = e.message) }
-                }
-        }
-    }
-
-    /**
-     * Push 当前分支到远程
-     */
-    fun pushCurrentBranch() {
-        val path = currentRepoPath ?: return
-        val branchName = _uiState.value.currentBranch?.name ?: return
-
-        viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true) }
-            gitSync.push(path, null)
-                .onSuccess {
-                    _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            operationResult = OperationResult.Success("Branch '$branchName' pushed successfully")
-                        )
-                    }
-                }
-                .onError { e ->
-                    _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            operationResult = OperationResult.Failure(e.message ?: "Failed to push branch")
-                        )
-                    }
-                }
-        }
-    }
-
-    /**
-     * Pull 远程更新到当前分支
-     */
-    fun pullCurrentBranch() {
-        val path = currentRepoPath ?: return
-
-        viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true) }
-            gitSync.pull(path, null)
-                .onSuccess { result ->
-                    _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            operationResult = OperationResult.Success(result.message)
-                        )
-                    }
-                    loadBranches()
-                }
-                .onError { e ->
-                    _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            operationResult = OperationResult.Failure(e.message ?: "Failed to pull")
-                        )
-                    }
-                }
-        }
-    }
-
-    fun mergeBranch(name: String) {
-        val path = currentRepoPath ?: return
-
-        viewModelScope.launch {
-            mergeUseCase.merge(path, name)
-                .onSuccess { result ->
-                    if (result.isConflicting) {
-                        // 有冲突，显示冲突解决 UI
-                        _uiState.update {
-                            it.copy(
-                                conflictResult = result,
-                                isResolvingConflict = true
-                            )
-                        }
-                    } else {
-                        // 合并成功
-                        loadBranches()
-                        _uiState.update {
-                            it.copy(
-                                operationResult = OperationResult.Success(result.message),
-                                conflictResult = null
-                            )
-                        }
-                    }
-                }
-                .onError { e ->
-                    _uiState.update { it.copy(error = e.message) }
-                }
-        }
-    }
-
-    fun rebaseBranch(name: String) {
-        val path = currentRepoPath ?: return
-
-        viewModelScope.launch {
-            mergeUseCase.rebase(path, name)
-                .onSuccess { result ->
-                    if (result.isConflicting) {
-                        // 有冲突，显示冲突解决 UI
-                        _uiState.update {
-                            it.copy(
-                                conflictResult = result,
-                                isResolvingConflict = true
-                            )
-                        }
-                    } else {
-                        // Rebase 成功
-                        loadBranches()
-                        _uiState.update {
-                            it.copy(
-                                operationResult = OperationResult.Success(result.message),
-                                conflictResult = null
-                            )
-                        }
-                    }
                 }
                 .onError { e ->
                     _uiState.update { it.copy(error = e.message) }
@@ -600,10 +463,6 @@ class BranchesViewModel @Inject constructor(
     }
 
     // ============ 状态清理 ============
-
-    fun clearError() {
-        _uiState.update { it.copy(error = null) }
-    }
 
     fun clearOperationResult() {
         _uiState.update {

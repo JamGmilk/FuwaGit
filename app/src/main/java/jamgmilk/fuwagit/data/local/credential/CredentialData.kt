@@ -2,15 +2,20 @@ package jamgmilk.fuwagit.data.local.credential
 
 import jamgmilk.fuwagit.domain.model.credential.HttpsCredential as DomainHttpsCredential
 import jamgmilk.fuwagit.domain.model.credential.SshKey as DomainSshKey
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
 data class CredentialData(
     val version: Int = 1,
-    val created_at: Long = System.currentTimeMillis(),
-    val updated_at: Long = System.currentTimeMillis(),
-    val https_credentials: List<HttpsCredential> = emptyList(),
-    val ssh_keys: List<SshKey> = emptyList()
+    @SerialName("created_at")
+    val createdAt: Long = System.currentTimeMillis(),
+    @SerialName("updated_at")
+    val updatedAt: Long = System.currentTimeMillis(),
+    @SerialName("https_credentials")
+    val httpsCredentials: List<HttpsCredential> = emptyList(),
+    @SerialName("ssh_keys")
+    val sshKeys: List<SshKey> = emptyList()
 )
 
 @Serializable
@@ -19,16 +24,18 @@ data class HttpsCredential(
     val host: String,
     val username: String,
     val password: String,
-    val created_at: Long = System.currentTimeMillis(),
-    val updated_at: Long = System.currentTimeMillis()
+    @SerialName("created_at")
+    val createdAt: Long = System.currentTimeMillis(),
+    @SerialName("updated_at")
+    val updatedAt: Long = System.currentTimeMillis()
 ) {
     fun toDomain(): DomainHttpsCredential = DomainHttpsCredential(
         uuid = uuid,
         host = host,
         username = username,
         password = password,
-        createdAt = created_at,
-        updatedAt = updated_at
+        createdAt = createdAt,
+        updatedAt = updatedAt
     )
 }
 
@@ -37,15 +44,18 @@ data class SshKey(
     val uuid: String,
     val name: String,
     val type: String,
-    val public_key: String,
-    val private_key: String,
+    @SerialName("public_key")
+    val publicKey: String,
+    @SerialName("private_key")
+    val privateKey: String,
     val passphrase: String? = null,
     val fingerprint: String,
-    val created_at: Long = System.currentTimeMillis()
+    @SerialName("created_at")
+    val createdAt: Long = System.currentTimeMillis()
 ) {
     val comment: String
         get() = try {
-            val parts = public_key.trim().split(" ")
+            val parts = publicKey.trim().split(" ")
             if (parts.size >= 3) parts[2] else ""
         } catch (e: Exception) {
             ""
@@ -55,16 +65,18 @@ data class SshKey(
         uuid = uuid,
         name = name,
         type = type,
-        publicKey = public_key,
-        privateKey = private_key,
+        publicKey = publicKey,
+        privateKey = privateKey,
         passphrase = passphrase,
         fingerprint = fingerprint,
-        createdAt = created_at
+        createdAt = createdAt
     )
 }
 
 @Serializable
 data class ExportData(
-    val credential_data: CredentialData,
-    val exported_at: Long = System.currentTimeMillis()
+    @SerialName("credential_data")
+    val credentialData: CredentialData,
+    @SerialName("exported_at")
+    val exportedAt: Long = System.currentTimeMillis()
 )

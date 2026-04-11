@@ -3,7 +3,6 @@ package jamgmilk.fuwagit.data.jgit
 import jamgmilk.fuwagit.domain.model.git.GitBranch
 import jamgmilk.fuwagit.domain.model.git.GitChangeType
 import jamgmilk.fuwagit.domain.model.git.GitFileStatus
-import org.eclipse.jgit.api.Git
 import org.eclipse.jgit.api.ListBranchCommand
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -113,7 +112,6 @@ class JGitStatusDataSource @Inject constructor(
         } else {
             git.add().addFilepattern(filePath).call()
         }
-        Unit
     }
 
     /**
@@ -179,7 +177,6 @@ class JGitStatusDataSource @Inject constructor(
      */
     override fun createBranch(repoPath: String, branchName: String): Result<Unit> = core.withGit(repoPath) { git ->
         git.branchCreate().setName(branchName).call()
-        Unit
     }
 
     /**
@@ -192,7 +189,7 @@ class JGitStatusDataSource @Inject constructor(
         if (matchResult != null) {
             val remoteName = matchResult.groupValues[1]
             val shortBranchName = matchResult.groupValues[2]
-            val remoteRefName = "refs/remotes/$branchName"
+            val remoteRefName = "refs/remotes/$remoteName/$shortBranchName"
 
             val remoteRef = git.repository.findRef(remoteRefName)
             if (remoteRef != null) {
@@ -214,7 +211,6 @@ class JGitStatusDataSource @Inject constructor(
         } else {
             git.checkout().setName(branchName).call()
         }
-        Unit
     }
 
     /**
@@ -223,7 +219,6 @@ class JGitStatusDataSource @Inject constructor(
     override fun deleteBranch(repoPath: String, branchName: String, force: Boolean): Result<Unit> =
         core.withGit(repoPath) { git ->
             git.branchDelete().setBranchNames(branchName).setForce(force).call()
-            Unit
         }
 
     /**

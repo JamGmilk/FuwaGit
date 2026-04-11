@@ -16,7 +16,6 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.Link
-import androidx.compose.material.icons.filled.Source
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
@@ -57,8 +56,8 @@ fun ConfigureRemoteDialog(
 ) {
     var url by remember { mutableStateOf(currentUrl) }
     var showCredentialDialog by remember { mutableStateOf(false) }
-    var selectedHttpsUuid by remember { mutableStateOf<String?>(selectedCredentialUuid.takeIf { selectedCredentialType == CredentialType.HTTPS }) }
-    var selectedSshUuid by remember { mutableStateOf<String?>(selectedCredentialUuid.takeIf { selectedCredentialType == CredentialType.SSH }) }
+    var selectedHttpsUuid by remember { mutableStateOf(selectedCredentialUuid.takeIf { selectedCredentialType == CredentialType.HTTPS }) }
+    var selectedSshUuid by remember { mutableStateOf(selectedCredentialUuid.takeIf { selectedCredentialType == CredentialType.SSH }) }
     var credentialError by remember { mutableStateOf<String?>(null) }
 
     val isUrlHttps = url.trim().lowercase().startsWith("https://")

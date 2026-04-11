@@ -1,20 +1,15 @@
 package jamgmilk.fuwagit.data.biometric
 
-import android.content.Context
 import android.util.Log
 import androidx.biometric.BiometricPrompt
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.FragmentActivity
 import dagger.hilt.android.AndroidEntryPoint
-import dagger.hilt.android.qualifiers.ApplicationContext
-import kotlinx.coroutines.suspendCancellableCoroutine
 import javax.inject.Inject
 import javax.inject.Singleton
-import kotlin.coroutines.resume
 
 @Singleton
 class BiometricAuthManager @Inject constructor(
-    @param:ApplicationContext private val context: Context
 ) {
     companion object {
         private const val TAG = "BiometricAuthManager"
@@ -88,17 +83,6 @@ class BiometricAuthManager @Inject constructor(
             biometricPrompt.authenticate(promptInfo, cryptoObject)
         } else {
             biometricPrompt.authenticate(promptInfo)
-        }
-    }
-
-    suspend fun authenticateSuspend(
-        activity: FragmentActivity,
-        action: AuthAction
-    ): AuthResult = suspendCancellableCoroutine { continuation ->
-        authenticate(activity, action) { result ->
-            if (continuation.isActive) {
-                continuation.resume(result)
-            }
         }
     }
 }

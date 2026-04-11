@@ -117,13 +117,6 @@ class CredentialStoreViewModel @Inject constructor(
         }
     }
 
-    fun updateHttpsCredential(uuid: String, host: String?, username: String?, password: String?) {
-        executeWithLoading {
-            credentialFacade.updateHttpsCredential(uuid, host, username, password)
-                .onSuccess { loadCredentials() }
-        }
-    }
-
     fun deleteHttpsCredential(uuid: String) {
         executeWithLoading {
             credentialFacade.deleteHttpsCredential(uuid)

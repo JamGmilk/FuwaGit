@@ -5,7 +5,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import jamgmilk.fuwagit.domain.model.git.GitTag
-import jamgmilk.fuwagit.domain.model.git.GitTagType
 import jamgmilk.fuwagit.domain.usecase.git.TagUseCase
 import jamgmilk.fuwagit.ui.components.OperationResult
 import jamgmilk.fuwagit.ui.state.RepoStateManager
@@ -367,13 +366,6 @@ class TagsViewModel @Inject constructor(
      */
     fun clearOperationResult() {
         _uiState.update { it.copy(operationResult = null) }
-    }
-
-    /**
-     * 清除错误
-     */
-    fun clearError() {
-        _uiState.update { it.copy(error = null) }
     }
 
     /**

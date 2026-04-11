@@ -107,7 +107,6 @@ fun MyReposScreen(
     )
 
     LaunchedEffect(Unit) {
-        myReposViewModel.initializeStorage()
         myReposViewModel.loadCredentials()
     }
 

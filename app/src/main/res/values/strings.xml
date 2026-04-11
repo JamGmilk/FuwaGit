@@ -6,9 +6,6 @@
     <string name="screen_status">Status</string>
     <string name="screen_branches">Branches</string>
     <string name="screen_permissions">Permissions</string>
-    <string name="screen_credentials">Credentials</string>
-    <string name="screen_my_repos">My Repos</string>
-    <string name="screen_add_repository">Add Repository</string>
 
     <!-- Common Actions -->
     <string name="action_cancel">Cancel</string>
@@ -22,7 +19,6 @@
     <string name="action_select">Select</string>
     <string name="action_copy">Copy</string>
     <string name="action_import">Import</string>
-    <string name="action_export">Export</string>
     <string name="action_preview">Preview</string>
     <string name="action_finish">Finish</string>
     <string name="action_rename">Rename</string>
@@ -30,10 +26,6 @@
     <string name="action_create">Create</string>
     <string name="action_add">Add</string>
     <string name="action_initialize">Initialize</string>
-    <string name="action_commit">Commit</string>
-    <string name="action_unlock">Unlock</string>
-    <string name="action_lock">Lock</string>
-    <string name="action_i_understand">I Understand</string>
     <string name="action_mark_as_resolved">Mark as Resolved</string>
 
     <!-- Settings Screen -->
@@ -102,55 +94,6 @@
     <string name="settings_default_branch_label">init.defaultBranch</string>
     <string name="settings_default_branch_placeholder">main</string>
 
-    <!-- Git Status Messages -->
-    <string name="git_status_clean">Clean</string>
-    <string name="git_status_changes_detected">Changes detected</string>
-    <string name="git_all_changes_staged">All changes staged</string>
-    <string name="git_no_staged_changes_to_unstage">No staged changes to unstaged</string>
-    <string name="git_all_changes_unstaged">All changes unstaged</string>
-    <string name="git_discard_changes_failed">Failed to discard changes: %1$s. Make sure the file is not locked by another process.</string>
-    <string name="git_branch_renamed">Branch renamed to %1$s</string>
-
-    <!-- Git Remote Messages -->
-    <string name="git_pull_successful">Pull successful</string>
-    <string name="git_pull_failed">Pull failed</string>
-    <string name="git_push_rejected">Push rejected: remote branch has new commits. Fetch and merge first, or use force push to override.</string>
-    <string name="git_push_failed">Push failed: %1$s</string>
-
-    <!-- Git Commit Messages -->
-    <string name="git_commit_lock_failed">Cannot commit: repository lock failed.</string>
-    <string name="git_commit_error">Git error: %1$s</string>
-    <string name="git_reset_lock_failed">Cannot reset: repository lock failed.</string>
-    <string name="git_reset_failed">Reset failed: %1$s</string>
-    <string name="git_reset_soft">Reset to %1$s (soft): HEAD moved, changes kept staged</string>
-    <string name="git_reset_mixed">Reset to %1$s (mixed): HEAD moved, changes unstaged</string>
-    <string name="git_reset_hard">Reset to %1$s (hard): All changes discarded</string>
-    <string name="git_commit_not_found">Commit not found: %1$s</string>
-
-    <!-- Git SSH Messages -->
-    <string name="git_ssh_invalid_host">Invalid host format</string>
-    <string name="git_ssh_connection_failed">SSH connection failed: %1$s</string>
-    <string name="git_ssh_invalid_private_key">Invalid private key: %1$s</string>
-    <string name="git_ssh_connection_success">SSH connection successful to %1$s@%2$s</string>
-
-    <!-- Git Config Messages -->
-    <string name="git_config_repo_path_empty">Repo path cannot be empty</string>
-    <string name="git_config_failed_read">Failed to read repo config: %1$s</string>
-    <string name="git_config_failed_access">Failed to access repo config at %1$s</string>
-
-    <!-- My Repos Messages -->
-    <string name="my_repos_no_untracked_to_clean">No untracked files to clean</string>
-    <string name="my_repos_failed_get_untracked">Failed to get untracked files: %1$s</string>
-    <string name="my_repos_no_files_to_clean">No files to clean: all previously untracked files have been modified, staged, or already deleted</string>
-    <string name="my_repos_failed_clean">Failed to clean: %1$s</string>
-    <string name="my_repos_failed_get_file_list">Failed to get file list: %1$s</string>
-    <string name="my_repos_init_failed">Failed to initialize repository</string>
-    <string name="my_repos_configure_remote_failed">Failed to configure remote</string>
-
-    <!-- Status ViewModel Messages -->
-    <string name="status_discard_success">Changes to \'%1$s\' have been discarded</string>
-    <string name="status_conflicts_resolved">Conflicts resolved</string>
-
     <!-- Test File Picker Dialog Title -->
     <string name="test_file_picker_title">Test File Picker</string>
 
@@ -183,8 +126,6 @@
     <string name="status_initializing">Initializing…</string>
     <string name="status_execute_git_init">Execute git init</string>
     <string name="status_terminal">Terminal</string>
-    <string name="status_terminal_lines">%1$d lines</string>
-    <string name="status_no_output_yet">No output yet</string>
     <string name="status_file_actions">Actions</string>
     <string name="status_discard_changes">Discard Changes</string>
     <string name="status_discard_description">You are about to discard all changes to:</string>
@@ -217,9 +158,6 @@
     <string name="branches_rename">Rename</string>
     <string name="branches_copy_name">Copy Name</string>
     <string name="branches_create_tag">Create Tag</string>
-    <string name="branches_push">Push</string>
-    <string name="branches_pull">Pull</string>
-    <string name="branches_show_in_history">Show in History</string>
     <string name="branches_name_copied">Branch name copied</string>
     <string name="branches_merge_only_local">Merge is only available for local branches</string>
     <string name="branches_rebase_only_local">Rebase is only available for local branches</string>
@@ -251,12 +189,12 @@
     <string name="credentials_passwords_do_not_match">Passwords do not match</string>
     <string name="credentials_at_least_8_characters">At least 6 characters</string>
     <string name="credentials_set_password">Set Password</string>
-    <string name="credentials_setting">Setting...</string>
+    <string name="credentials_setting">Setting…</string>
     <string name="credentials_unlock_credentials">Unlock Credentials</string>
     <string name="credentials_unlock_description">Enter your master password to access sensitive credentials.</string>
     <string name="credentials_master_password_label">Master Password</string>
     <string name="credentials_hint_format">Hint: %1$s</string>
-    <string name="credentials_unlocking">Unlocking...</string>
+    <string name="credentials_unlocking">Unlocking…</string>
     <string name="credentials_unlock">Unlock</string>
     <string name="credentials_unlock_with_biometric">Unlock with biometric</string>
     <string name="credentials_add_https_credential">Add HTTPS Credential</string>
@@ -286,10 +224,10 @@
     <string name="credentials_comment_placeholder">user@host</string>
     <string name="credentials_import_ssh_key">Import SSH Key</string>
     <string name="credentials_private_key_label">Private Key</string>
-    <string name="credentials_private_key_placeholder">Paste your private key here...</string>
+    <string name="credentials_private_key_placeholder">Paste your private key here…</string>
     <string name="credentials_passphrase_if_encrypted">Passphrase (if encrypted)</string>
     <string name="credentials_public_key_optional">Public Key (optional)</string>
-    <string name="credentials_public_key_placeholder">ssh-rsa AAAA...</string>
+    <string name="credentials_public_key_placeholder">ssh-rsa AAAA…</string>
     <string name="credentials_https_credentials_title">HTTPS Credentials</string>
     <string name="credentials_no_https_credentials">No HTTPS Credentials</string>
     <string name="credentials_no_https_credentials_subtitle">Add your first credential to securely store passwords and PATs</string>
@@ -310,17 +248,8 @@
     <string name="credentials_delete_credential_title">Delete Credential?</string>
     <string name="credentials_delete_ssh_key_message">This SSH key will be permanently removed from your vault. This action cannot be undone.</string>
     <string name="credentials_delete_credential_message">This credential will be permanently removed from your vault. This action cannot be undone.</string>
-    <string name="credentials_failed_to_generate_key">Failed to generate SSH key pair</string>
-    <string name="credentials_error_generating_key">Error generating SSH key: %1$s</string>
     <string name="credentials_error_importing_key">Error importing SSH key: %1$s</string>
-    <string name="credentials_invalid_pem_format">Invalid PEM format. Key must contain BEGIN and END markers</string>
-    <string name="credentials_unsupported_algorithm">Unsupported key algorithm. Only RSA and Ed25519 are supported</string>
-    <string name="credentials_invalid_rsa_format">Not a valid RSA private key format. Expected PKCS#1 or PKCS#8 format</string>
-    <string name="credentials_invalid_ed25519_format">Not a valid Ed25519 private key format. Expected OpenSSH format</string>
-    <string name="credentials_empty_key_content">Empty key content</string>
-    <string name="credentials_invalid_base64">Invalid Base64 encoding in private key</string>
     <string name="credentials_invalid_private_key">Invalid private key: %1$s</string>
-    <string name="credentials_key_type_detected">Key type detected: %1$s</string>
     <string name="credentials_host_copied">Host copied</string>
     <string name="credentials_username_copied">Username copied</string>
     <string name="credentials_password_copied">Password copied</string>
@@ -339,7 +268,6 @@
     <string name="credentials_import_paste_description">Paste your exported credentials data below:</string>
     <string name="credentials_import_data_label">Credentials Data</string>
     <string name="credentials_import_paste_placeholder">Paste JSON data here…</string>
-    <string name="credentials_import_success">Credentials imported successfully!</string>
     <string name="credentials_current_hint_format">Current hint: %1$s</string>
     <string name="credentials_copied_to_clipboard">Copied to clipboard!</string>
     <string name="credentials_security_warning">Security Warning</string>
@@ -366,11 +294,6 @@
     <string name="credential_info_date">Date</string>
 
     <!-- Credential Select Dialog -->
-    <string name="credential_select_title">Select Credential</string>
-    <string name="credential_tab_https">HTTPS</string>
-    <string name="credential_tab_ssh">SSH</string>
-    <string name="credential_no_https">No HTTPS Credentials</string>
-    <string name="credential_no_ssh">No SSH Keys</string>
 
     <!-- My Repos Screen -->
     <string name="myrepos_no_repos_title">No repositories yet</string>
@@ -396,8 +319,6 @@
     <string name="myrepos_repository_added">Repository added</string>
     <string name="myrepos_repo_info_title">Repository Info</string>
     <string name="myrepos_not_git_repo_warning">This directory is not a Git repository</string>
-    <string name="myrepos_clone_success">Repository cloned successfully</string>
-    <string name="myrepos_auth_failed">Authentication failed. Please select credentials.</string>
     <string name="myrepos_scanning_files">Scanning for untracked files…</string>
     <string name="myrepos_screen_title">My Repos</string>
     <string name="myrepos_delete_confirm_title">Remove Repository?</string>
@@ -443,7 +364,7 @@
     <string name="clone_shallow_clone_desc">Only download the latest commits</string>
     <string name="clone_commit_depth_label">Commit Depth</string>
     <string name="clone_commit_depth_placeholder">e.g. 1</string>
-    <string name="clone_cloning">Cloning...</string>
+    <string name="clone_cloning">Cloning…</string>
     <string name="clone_repository_button">Clone Repository</string>
     <string name="clone_select_destination">Select Clone Destination</string>
     <string name="clone_select_credential">Select Credential</string>
@@ -453,13 +374,8 @@
     <!-- Add Repository Screen -->
     <string name="add_repo_tab_clone">Clone Remote</string>
     <string name="add_repo_tab_local">Add Local</string>
-    <string name="add_repo_repository_added">Repository added</string>
-    <string name="add_repo_url_invalid_https">Invalid HTTPS URL format</string>
-    <string name="add_repo_url_invalid_ssh">Invalid SSH format (expected: git@host:path)</string>
-    <string name="add_repo_url_invalid_protocol">URL must start with https://, http://, git@, or ssh://</string>
 
     <!-- Configure Remote Dialog -->
-    <string name="remote_configure_title">Configure Remote</string>
     <string name="remote_url_label">Remote URL</string>
     <string name="remote_credential_label">Credential</string>
     <string name="remote_ssh_key_label">SSH Key</string>
@@ -476,7 +392,6 @@
 
     <!-- SSH Test Card -->
     <string name="ssh_test_title">Test SSH Key</string>
-    <string name="ssh_test_subtitle">Verify SSH key connectivity</string>
     <string name="ssh_test_host_label">Host</string>
     <string name="ssh_test_host_placeholder">git@github.com</string>
     <string name="ssh_test_select_key">Select SSH Key</string>
@@ -485,13 +400,9 @@
     <string name="ssh_test_testing">Testing…</string>
     <string name="ssh_test_result_success">Connection successful</string>
     <string name="ssh_test_result_failure">Connection failed</string>
-    <string name="ssh_test_output_title">Server Response</string>
-    <string name="ssh_test_no_output">No output yet</string>
-    <string name="ssh_test_clear">Clear</string>
 
     <!-- Confirm Dialogs -->
     <string name="dialog_confirm_dangerous_title">Warning</string>
-    <string name="dialog_confirm_type_confirm_format">Type \"%1$s\" to confirm:</string>
     <string name="dialog_reset_confirm_title_format">Confirm %1$s Reset</string>
     <string name="dialog_reset_to_commit">Reset current branch to commit:</string>
     <string name="dialog_reset_hash_label">Hash:</string>
@@ -518,7 +429,6 @@
     <string name="dialog_clean_failed">Clean Failed</string>
     <string name="dialog_clean_untracked_title">Clean Untracked Files</string>
     <string name="dialog_clean_files_to_delete_format">The following %1$d untracked file(s) will be permanently deleted:</string>
-    <string name="dialog_clean_cannot_undo">⚠️ This action CANNOT be undone!</string>
     <string name="dialog_clean_no_files">No untracked files found.</string>
     <string name="dialog_delete_all">Delete All</string>
     <string name="dialog_clean_completed">Clean Completed</string>
@@ -538,7 +448,6 @@
     <string name="dialog_conflict_status_format">Status: %1$s</string>
 
     <!-- File Picker Dialog -->
-    <string name="filepicker_title">Select Folder</string>
     <string name="filepicker_cannot_access">Cannot access this directory</string>
     <string name="filepicker_empty_folder">Empty folder</string>
     <string name="filepicker_create_folder">Create Folder</string>
@@ -566,8 +475,6 @@
     <string name="action_apply">Apply</string>
 
     <!-- Credential Screen -->
-    <string name="credentials_errors_generating_key">Error generating SSH key: %1$s</string>
-    <string name="credentials_errors_importing_key">Error importing SSH key: %1$s</string>
 
     <!-- History Screen -->
     <string name="screen_history">History</string>
@@ -588,10 +495,6 @@
     <string name="history_time_minutes_ago">%1$dm ago</string>
     <string name="history_time_hours_ago">%1$dh ago</string>
     <string name="history_time_days_ago">%1$dd ago</string>
-    <string name="history_file_change_added">Added</string>
-    <string name="history_file_change_modified">Modified</string>
-    <string name="history_file_change_deleted">Deleted</string>
-    <string name="history_file_change_renamed">Renamed</string>
 
     <!-- Apply Config Result Dialog -->
     <string name="apply_config_result_success">Success</string>
@@ -651,16 +554,6 @@
     <string name="vm_clean_get_list_failed">Failed to get file list: %1$s</string>
 
     <!-- Status Screen ViewModel Messages -->
-    <string name="status_select_target_repo">Select a target repo</string>
-    <string name="status_select_target_repo_path">Select a target repo path</string>
-    <string name="status_git_repository">Git repository</string>
-    <string name="status_not_git_repository">Not a git repository</string>
-    <string name="status_changes_discarded">Changes to \'%1$s\' have been discarded</string>
-    <string name="status_unknown_error">Unknown error</string>
-    <string name="status_discard_error_hint">Make sure the file is not staged or locked by another process.</string>
-    <string name="status_attempting_pull">Attempting pull. Remote auth may be required</string>
-    <string name="status_attempting_push">Attempting push. Remote auth may be required</string>
-    <string name="status_fetching_remote">Fetching from remote…</string>
 
     <!-- Tags Screen -->
     <string name="screen_tags">Tags</string>
@@ -668,7 +561,6 @@
     <string name="tags_create_tag_description">Create new tag</string>
     <string name="tags_no_tags_found">No tags found</string>
     <string name="tags_init_repo_message">Initialize a repository to see tags</string>
-    <string name="tags_count_format">%1$d tags</string>
     <string name="tags_lightweight_badge">lightweight</string>
     <string name="tags_annotated_badge">annotated</string>
     <string name="tags_target_commit">Target: %1$s</string>
@@ -684,7 +576,6 @@
     <string name="tags_tag_message_placeholder">Release version 1.0.0</string>
     <string name="tags_commit_hash">Commit Hash (optional)</string>
     <string name="tags_commit_hash_placeholder">HEAD or specific commit</string>
-    <string name="tags_remote_name">Remote</string>
     <string name="tags_remote_origin">origin</string>
     <string name="tags_delete_confirmation">Are you sure you want to delete tag \'%1$s\'?</string>
     <string name="tags_delete_warning">This action cannot be undone.</string>
@@ -694,12 +585,6 @@
     <string name="tags_filter_lightweight">Lightweight</string>
     <string name="tags_filter_annotated">Annotated</string>
     <string name="tags_search_hint">Search tags…</string>
-    <string name="tags_created_success">Tag \'%1$s\' created successfully</string>
-    <string name="tags_deleted_success">Tag \'%1$s\' deleted successfully</string>
-    <string name="tags_pushed_success">Tag \'%1$s\' pushed to \'%2$s\' successfully</string>
-    <string name="tags_all_pushed_success">All tags pushed to \'%1$s\' successfully</string>
-    <string name="tags_tag_exists">Tag \'%1$s\' already exists</string>
-    <string name="tags_invalid_tag_name">Invalid tag name</string>
     <string name="tags_tag_name_validation_hint">Tag names cannot contain spaces, ~, ^, :, ?, *, [, \\, or begin with a dot</string>
     <string name="tags_tag_details">Tag Details</string>
     <string name="tags_tag_name_label">Tag Name</string>
@@ -707,37 +592,15 @@
     <string name="tags_tag_target_commit">Target Commit</string>
     <string name="tags_tag_tagger">Tagger</string>
     <string name="tags_tag_created">Created</string>
-    <string name="tags_tag_view_details">View Details</string>
 
     <!-- File Diff Screen -->
-    <string name="screen_file_diff">File Diff</string>
-    <string name="diff_view_title">Changes</string>
-    <string name="diff_loading">Loading diff…</string>
-    <string name="diff_failed_to_load">Failed to load diff</string>
     <string name="diff_binary_file">Binary file not shown</string>
     <string name="diff_no_changes">No changes</string>
-    <string name="diff_added_line">Added line</string>
-    <string name="diff_deleted_line">Deleted line</string>
-    <string name="diff_context_line">Context line</string>
-    <string name="diff_line_number">Line %1$d</string>
     <string name="diff_view_changes">View Changes</string>
-    <string name="diff_file_header">Diff: %1$s</string>
 
     <!-- Push Options -->
-    <string name="push_options_title">Push Options</string>
-    <string name="push_normal">Normal Push</string>
-    <string name="push_normal_description">Push only if remote has no new commits</string>
-    <string name="push_force">Force Push</string>
-    <string name="push_force_description">Override remote branch (dangerous)</string>
-    <string name="push_force_lease">Force with Lease</string>
-    <string name="push_force_lease_description">Safer force push (rejects if remote has new commits)</string>
-    <string name="push_select_mode">Select Push Mode</string>
 
     <!-- Rebase Continue -->
-    <string name="rebase_continue">Continue Rebase</string>
-    <string name="rebase_continue_description">Continue rebase after resolving conflicts</string>
-    <string name="rebase_abort">Abort Rebase</string>
-    <string name="rebase_in_progress">Rebase in progress</string>
 
     <!-- Navigation -->
     <string name="nav_status">Status</string>
@@ -749,21 +612,12 @@
 
     <!-- Add Repository Screen -->
     <string name="add_repo_screen_title">Add Repository</string>
-    <string name="add_repo_default_name">repository</string>
 
     <!-- Credential Screen -->
-    <string name="credential_screen_title">Credentials</string>
-    <string name="credential_failed_generate_key">Failed to generate SSH key pair</string>
-    <string name="credential_error_generating_key">Error generating SSH key: %1$s</string>
-    <string name="credential_error_importing_key">Error importing SSH key: %1$s</string>
 
     <!-- Credential Select Dialog -->
-    <string name="credential_select_dialog_title">Select Credential</string>
-    <string name="credential_action_select">Select</string>
 
     <!-- Import Export Dialogs -->
-    <string name="import_export_warning_icon">\u26A0</string>
-    <string name="import_export_preview_suffix">…</string>
 
     <!-- File Diff Screen -->
     <string name="file_diff_screen_title">File Diff</string>
@@ -798,7 +652,6 @@
     <string name="onboarding_feature_repos_title">Multi-Repo Management</string>
     <string name="onboarding_feature_repos_desc">Manage multiple repositories with ease</string>
     <string name="onboarding_get_started">Get Started</string>
-    <string name="onboarding_back">Back</string>
     <string name="onboarding_next">Next</string>
     <string name="onboarding_finish">Start Using FuwaGit</string>
     <string name="onboarding_permissions_title">Grant Permissions</string>
@@ -809,24 +662,16 @@
     <string name="onboarding_password_placeholder">At least 6 characters</string>
     <string name="onboarding_biometric_title">Biometric Unlock</string>
     <string name="onboarding_biometric_subtitle">Use fingerprint to quickly unlock credentials</string>
-    <string name="onboarding_skip_password">Skip</string>
     <string name="onboarding_skip">Skip</string>
     <string name="onboarding_git_config_title">Git Configuration</string>
     <string name="onboarding_git_config_subtitle">Set your default author information for commits.</string>
     <string name="onboarding_saving">Saving…</string>
-    <string name="onboarding_skip_config">Skip</string>
     <string name="onboarding_add_repo_title">Add Your First Repository</string>
     <string name="onboarding_add_repo_subtitle">Clone a remote repository or add an existing local one.</string>
     <string name="onboarding_clone_repo">Clone Remote</string>
     <string name="onboarding_clone_repo_desc">Clone from GitHub, GitLab, or any Git server</string>
     <string name="onboarding_local_repo">Add Local</string>
     <string name="onboarding_local_repo_desc">Open an existing repository on your device</string>
-    <string name="onboarding_skip_repo">Skip</string>
     <string name="onboarding_add_repo">Add</string>
     <string name="onboarding_complete_title">You\'re All Set!</string>
-    <string name="onboarding_complete_subtitle">FuwaGit is ready to use. Here are a few tips to get started:</string>
-    <string name="onboarding_complete_tips_title">Quick Tips</string>
-    <string name="onboarding_tip_settings">Configure more options in the Settings tab</string>
-    <string name="onboarding_tip_credentials">Add HTTPS credentials or SSH keys in Credentials</string>
-    <string name="onboarding_tip_help">Long-press items for more options</string>
 </resources>

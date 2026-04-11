@@ -88,7 +88,7 @@ class SecureCredentialStore @Inject constructor(
     }
 
     fun saveCredentialData(data: CredentialData) {
-        val updatedData = data.copy(updated_at = System.currentTimeMillis())
+        val updatedData = data.copy(updatedAt = System.currentTimeMillis())
         val jsonString = json.encodeToString(updatedData)
 
         // Atomic write using a temporary file
@@ -106,11 +106,11 @@ class SecureCredentialStore @Inject constructor(
     }
 
     fun getPublicCredentials(): List<HttpsCredential> {
-        return loadCredentialData().https_credentials
+        return loadCredentialData().httpsCredentials
     }
 
     fun getPublicSshKeys(): List<SshKey> {
-        return loadCredentialData().ssh_keys
+        return loadCredentialData().sshKeys
     }
 
     fun cacheMasterKey(key: SecretKey) {
@@ -179,43 +179,6 @@ class SecureCredentialStore @Inject constructor(
         }
     }
 
-    suspend fun isSessionValid(): Boolean {
-        val sessionTimeout = getSessionTimeoutMillis()
-
-        return synchronized(sessionLock) {
-            val key = cachedMasterKey
-
-            if (key == null) {
-                isBiometricSession = false
-                return@synchronized false
-            }
-
-            val effectiveTimeout = if (isBiometricSession) sessionTimeout else 0L
-
-            if (effectiveTimeout == 0L) {
-                return@synchronized true
-            }
-
-            val elapsed = System.currentTimeMillis() - lastUnlockTime
-            val isValid = elapsed < effectiveTimeout
-
-            if (!isValid) {
-                secureClearCachedKey()
-                lastUnlockTime = 0
-                isBiometricSession = false
-            }
-
-            isValid
-        }
-    }
-
-    suspend fun getCredentialDataWithDecryptedSecrets(masterKey: SecretKey): CredentialData {
-        return withContext(Dispatchers.IO) {
-            val data = loadCredentialData()
-            decryptAllSecrets(data, masterKey)
-        }
-    }
-
     suspend fun exportAllCredentials(masterKey: SecretKey): String {
         return withContext(Dispatchers.IO) {
             val data = loadCredentialData()
@@ -230,7 +193,7 @@ class SecureCredentialStore @Inject constructor(
             runCatching {
                 val exportData = json.decodeFromString<ExportData>(jsonString)
                 validateImportData(exportData)
-                val importedData = encryptAllSecrets(exportData.credential_data, masterKey)
+                val importedData = encryptAllSecrets(exportData.credentialData, masterKey)
                 val existingData = loadCredentialData()
                 val mergedData = mergeCredentialData(existingData, importedData)
                 saveCredentialData(mergedData)
@@ -239,17 +202,17 @@ class SecureCredentialStore @Inject constructor(
     }
 
     private fun validateImportData(exportData: ExportData) {
-        val data = exportData.credential_data
+        val data = exportData.credentialData
 
-        if (data.https_credentials.size > 1000) {
-            throw SecurityException("Too many HTTPS credentials: ${data.https_credentials.size}")
+        if (data.httpsCredentials.size > 1000) {
+            throw SecurityException("Too many HTTPS credentials: ${data.httpsCredentials.size}")
         }
 
-        if (data.ssh_keys.size > 1000) {
-            throw SecurityException("Too many SSH keys: ${data.ssh_keys.size}")
+        if (data.sshKeys.size > 1000) {
+            throw SecurityException("Too many SSH keys: ${data.sshKeys.size}")
         }
 
-        for (cred in data.https_credentials) {
+        for (cred in data.httpsCredentials) {
             validateUuid(cred.uuid, "HTTPS credential")
             if (cred.host.length > 500) {
                 throw SecurityException("HTTPS credential host too long: ${cred.host}")
@@ -265,7 +228,7 @@ class SecureCredentialStore @Inject constructor(
             }
         }
 
-        for (key in data.ssh_keys) {
+        for (key in data.sshKeys) {
             validateUuid(key.uuid, "SSH key")
             if (key.name.isEmpty() || key.name.length > 200) {
                 throw SecurityException("SSH key name invalid: ${key.name}")
@@ -273,13 +236,13 @@ class SecureCredentialStore @Inject constructor(
             if (key.type.isEmpty() || key.type.length > 50) {
                 throw SecurityException("SSH key type invalid: ${key.type}")
             }
-            if (key.public_key.isEmpty() || key.public_key.length > 10000) {
+            if (key.publicKey.isEmpty() || key.publicKey.length > 10000) {
                 throw SecurityException("SSH public key invalid for key: ${key.uuid}")
             }
-            if (key.private_key.isEmpty()) {
+            if (key.privateKey.isEmpty()) {
                 throw SecurityException("SSH private key is empty for: ${key.uuid}")
             }
-            if (key.private_key.length > 50000) {
+            if (key.privateKey.length > 50000) {
                 throw SecurityException("SSH private key too long for: ${key.uuid}")
             }
             if (key.fingerprint.isEmpty() || key.fingerprint.length > 200) {
@@ -299,17 +262,17 @@ class SecureCredentialStore @Inject constructor(
 
     private fun mergeCredentialData(existing: CredentialData, imported: CredentialData): CredentialData {
         val mergedHttpsCredentials = mergeCredentialLists(
-            existing.https_credentials,
-            imported.https_credentials
+            existing.httpsCredentials,
+            imported.httpsCredentials
         )
         val mergedSshKeys = mergeSshKeyLists(
-            existing.ssh_keys,
-            imported.ssh_keys
+            existing.sshKeys,
+            imported.sshKeys
         )
         return existing.copy(
-            https_credentials = mergedHttpsCredentials,
-            ssh_keys = mergedSshKeys,
-            updated_at = System.currentTimeMillis()
+            httpsCredentials = mergedHttpsCredentials,
+            sshKeys = mergedSshKeys,
+            updatedAt = System.currentTimeMillis()
         )
     }
 
@@ -327,7 +290,7 @@ class SecureCredentialStore @Inject constructor(
                 existingCred == null -> {
                     mergedMap[cred.uuid] = cred
                 }
-                cred.updated_at > existingCred.updated_at -> {
+                cred.updatedAt > existingCred.updatedAt -> {
                     mergedMap[cred.uuid] = cred
                 }
             }
@@ -349,7 +312,7 @@ class SecureCredentialStore @Inject constructor(
                 existingKey == null -> {
                     mergedMap[key.uuid] = key
                 }
-                key.created_at > existingKey.created_at -> {
+                key.createdAt > existingKey.createdAt -> {
                     mergedMap[key.uuid] = key
                 }
             }
@@ -357,7 +320,7 @@ class SecureCredentialStore @Inject constructor(
         return mergedMap.values.toList()
     }
 
-    suspend fun addHttpsCredential(
+    fun addHttpsCredential(
         host: String,
         username: String,
         password: String,
@@ -374,18 +337,18 @@ class SecureCredentialStore @Inject constructor(
             host = host,
             username = username,
             password = encryptedPassword,
-            created_at = now,
-            updated_at = now
+            createdAt = now,
+            updatedAt = now
         )
 
         saveCredentialData(data.copy(
-            https_credentials = data.https_credentials + newCredential
+            httpsCredentials = data.httpsCredentials + newCredential
         ))
 
         return uuid
     }
 
-    suspend fun updateHttpsCredential(
+    fun updateHttpsCredential(
         uuid: String,
         host: String? = null,
         username: String? = null,
@@ -395,30 +358,30 @@ class SecureCredentialStore @Inject constructor(
         val now = System.currentTimeMillis()
 
         val data = loadCredentialData()
-        val existingCred = data.https_credentials.find { it.uuid == uuid } ?: return
+        val existingCred = data.httpsCredentials.find { it.uuid == uuid } ?: return
 
         val updatedCred = existingCred.copy(
             host = host ?: existingCred.host,
             username = username ?: existingCred.username,
             password = if (password != null) encryptField(password, masterKey) else existingCred.password,
-            updated_at = now
+            updatedAt = now
         )
 
         saveCredentialData(data.copy(
-            https_credentials = data.https_credentials.map {
+            httpsCredentials = data.httpsCredentials.map {
                 if (it.uuid == uuid) updatedCred else it
             }
         ))
     }
 
-    suspend fun deleteHttpsCredential(uuid: String) {
+    fun deleteHttpsCredential(uuid: String) {
         val data = loadCredentialData()
         saveCredentialData(data.copy(
-            https_credentials = data.https_credentials.filter { it.uuid != uuid }
+            httpsCredentials = data.httpsCredentials.filter { it.uuid != uuid }
         ))
     }
 
-    suspend fun addSshKey(
+    fun addSshKey(
         name: String,
         type: String,
         publicKey: String,
@@ -438,42 +401,42 @@ class SecureCredentialStore @Inject constructor(
             uuid = uuid,
             name = name,
             type = type,
-            public_key = publicKey,
-            private_key = encryptedPrivateKey,
+            publicKey = publicKey,
+            privateKey = encryptedPrivateKey,
             passphrase = encryptedPassphrase,
             fingerprint = fingerprint,
-            created_at = now
+            createdAt = now
         )
 
         saveCredentialData(data.copy(
-            ssh_keys = data.ssh_keys + newKey
+            sshKeys = data.sshKeys + newKey
         ))
 
         return uuid
     }
 
-    suspend fun deleteSshKey(uuid: String) {
+    fun deleteSshKey(uuid: String) {
         val data = loadCredentialData()
         saveCredentialData(data.copy(
-            ssh_keys = data.ssh_keys.filter { it.uuid != uuid }
+            sshKeys = data.sshKeys.filter { it.uuid != uuid }
         ))
     }
 
-    suspend fun getHttpsPassword(uuid: String, masterKey: SecretKey): String? {
+    fun getHttpsPassword(uuid: String, masterKey: SecretKey): String? {
         val data = loadCredentialData()
-        val cred = data.https_credentials.find { it.uuid == uuid } ?: return null
+        val cred = data.httpsCredentials.find { it.uuid == uuid } ?: return null
         return decryptField(cred.password, masterKey)
     }
 
-    suspend fun getSshPrivateKey(uuid: String, masterKey: SecretKey): String? {
+    fun getSshPrivateKey(uuid: String, masterKey: SecretKey): String? {
         val data = loadCredentialData()
-        val key = data.ssh_keys.find { it.uuid == uuid } ?: return null
-        return decryptField(key.private_key, masterKey)
+        val key = data.sshKeys.find { it.uuid == uuid } ?: return null
+        return decryptField(key.privateKey, masterKey)
     }
 
-    suspend fun getSshPassphrase(uuid: String, masterKey: SecretKey): String? {
+    fun getSshPassphrase(uuid: String, masterKey: SecretKey): String? {
         val data = loadCredentialData()
-        val key = data.ssh_keys.find { it.uuid == uuid } ?: return null
+        val key = data.sshKeys.find { it.uuid == uuid } ?: return null
         val passphrase = key.passphrase ?: return null
         return decryptField(passphrase, masterKey)
     }
@@ -505,7 +468,7 @@ class SecureCredentialStore @Inject constructor(
         val failedCredentials = mutableListOf<String>()
         val failedKeys = mutableListOf<String>()
 
-        val decryptedCredentials = data.https_credentials.map { cred ->
+        val decryptedCredentials = data.httpsCredentials.map { cred ->
             val decryptedPassword = decryptField(cred.password, masterKey)
             if (decryptedPassword == null) {
                 failedCredentials.add(cred.uuid)
@@ -513,38 +476,38 @@ class SecureCredentialStore @Inject constructor(
             cred.copy(password = decryptedPassword ?: cred.password)
         }
 
-        val decryptedKeys = data.ssh_keys.map { key ->
-            val decryptedPrivateKey = decryptField(key.private_key, masterKey)
+        val decryptedKeys = data.sshKeys.map { key ->
+            val decryptedPrivateKey = decryptField(key.privateKey, masterKey)
             val decryptedPassphrase = key.passphrase?.let { decryptField(it, masterKey) }
             if (decryptedPrivateKey == null) {
                 failedKeys.add(key.uuid)
             }
             key.copy(
-                private_key = decryptedPrivateKey ?: key.private_key,
+                privateKey = decryptedPrivateKey ?: key.privateKey,
                 passphrase = decryptedPassphrase ?: key.passphrase
             )
         }
 
         if (failedCredentials.isNotEmpty() || failedKeys.isNotEmpty()) {
             throw jamgmilk.fuwagit.core.result.AppException.DecryptionFailed(
-                "Decryption failed for credentials: $failedCredentials, ssh_keys: $failedKeys"
+                "Decryption failed for credentials: $failedCredentials, sshKeys: $failedKeys"
             )
         }
 
         return data.copy(
-            https_credentials = decryptedCredentials,
-            ssh_keys = decryptedKeys
+            httpsCredentials = decryptedCredentials,
+            sshKeys = decryptedKeys
         )
     }
 
     private fun encryptAllSecrets(data: CredentialData, masterKey: SecretKey): CredentialData {
         return data.copy(
-            https_credentials = data.https_credentials.map { cred ->
+            httpsCredentials = data.httpsCredentials.map { cred ->
                 cred.copy(password = encryptField(cred.password, masterKey))
             },
-            ssh_keys = data.ssh_keys.map { key ->
+            sshKeys = data.sshKeys.map { key ->
                 key.copy(
-                    private_key = encryptField(key.private_key, masterKey),
+                    privateKey = encryptField(key.privateKey, masterKey),
                     passphrase = key.passphrase?.let { encryptField(it, masterKey) }
                 )
             }

@@ -44,18 +44,6 @@ class GitConfigDataStore @Inject constructor(
         )
     }
 
-    suspend fun setUserName(name: String) {
-        context.gitConfigDataStore.edit { prefs ->
-            prefs[GitConfigKeys.USER_NAME] = name
-        }
-    }
-
-    suspend fun setUserEmail(email: String) {
-        context.gitConfigDataStore.edit { prefs ->
-            prefs[GitConfigKeys.USER_EMAIL] = email
-        }
-    }
-
     suspend fun setUserConfig(name: String, email: String) {
         context.gitConfigDataStore.edit { prefs ->
             prefs[GitConfigKeys.USER_NAME] = name

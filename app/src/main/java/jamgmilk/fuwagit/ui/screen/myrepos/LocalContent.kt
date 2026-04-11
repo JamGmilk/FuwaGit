@@ -40,6 +40,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -73,7 +74,7 @@ internal fun LocalContent(
     var showFolderPicker by remember { mutableStateOf(false) }
 
     var remotes by remember { mutableStateOf<List<Pair<String, String>>>(emptyList()) }
-    var selectedRemoteIndex by remember { mutableStateOf(0) }
+    var selectedRemoteIndex by remember { mutableIntStateOf(0) }
     var showNonEmptyWarning by remember { mutableStateOf(false) }
 
     LaunchedEffect(path) {

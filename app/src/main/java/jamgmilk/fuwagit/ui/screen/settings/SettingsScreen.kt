@@ -57,8 +57,6 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -75,6 +73,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -520,15 +519,14 @@ private fun SecuritySettingsCard(
 
                 HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
 
-                val seconds = autoLockTimeout.toLongOrNull()
-                val displayTimeout = when (seconds) {
+                val displayTimeout = when (autoLockTimeout.toLongOrNull()) {
                     0L -> stringResource(R.string.settings_auto_lock_never)
                     60L -> stringResource(R.string.settings_auto_lock_1_minute)
                     300L -> stringResource(R.string.settings_auto_lock_5_minutes)
                     600L -> stringResource(R.string.settings_auto_lock_10_minutes)
                     1800L -> stringResource(R.string.settings_auto_lock_30_minutes)
                     3600L -> stringResource(R.string.settings_auto_lock_1_hour)
-                    else -> stringResource(R.string.settings_auto_lock_seconds_format, seconds ?: 0L)
+                    else -> stringResource(R.string.settings_auto_lock_seconds_format, (autoLockTimeout.toLongOrNull() ?: 0L).toInt())
                 }
 
                 ExpandableSettingsItem(
@@ -847,8 +845,8 @@ private fun GlobalConfigCard(
     var userConfigExpanded by rememberSaveable { mutableStateOf(false) }
     var branchConfigExpanded by rememberSaveable { mutableStateOf(false) }
 
-    var userConfigKey by rememberSaveable { mutableStateOf(0) }
-    var branchConfigKey by rememberSaveable { mutableStateOf(0) }
+    var userConfigKey by rememberSaveable { mutableIntStateOf(0) }
+    var branchConfigKey by rememberSaveable { mutableIntStateOf(0) }
 
     var localUserName by remember(userConfigKey) { mutableStateOf(userName) }
     var localUserEmail by remember(userConfigKey) { mutableStateOf(userEmail) }

@@ -27,14 +27,6 @@ data class GitPushOptions(
         fun default() = GitPushOptions()
 
         /**
-         * 推送当前分支和 tags
-         */
-        fun withTags() = GitPushOptions(
-            pushCurrentBranch = true,
-            pushTags = true
-        )
-
-        /**
          * 推送所有分支和 tags（原 setPushAll 行为）
          */
         fun all() = GitPushOptions(
@@ -48,14 +40,6 @@ data class GitPushOptions(
         fun force() = GitPushOptions(
             pushCurrentBranch = true,
             forcePush = true
-        )
-
-        /**
-         * 使用 force-with-lease 推送（更安全）
-         */
-        fun forceWithLease() = GitPushOptions(
-            pushCurrentBranch = true,
-            forceWithLease = true
         )
     }
 }

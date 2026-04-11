@@ -52,7 +52,6 @@ class JGitOperationCheckDataSource @Inject constructor(
 
     override fun checkPrePushStatus(repoPath: String): Result<PrePushCheckResult> {
         return core.withGit(repoPath) { git ->
-            val gitDir = git.repository.directory
             val status = git.status().call()
             val lockStatus = core.isRepositoryLocked(repoPath)
             val currentBranch = git.repository.branch
@@ -104,7 +103,7 @@ class JGitOperationCheckDataSource @Inject constructor(
             val status = git.status().call()
 
             if (status.conflicting.isEmpty()) {
-                return@withGit emptyList<ConflictFileInfo>()
+                return@withGit emptyList()
             }
 
             status.conflicting.map { path ->

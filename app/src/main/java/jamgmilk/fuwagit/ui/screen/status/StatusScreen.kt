@@ -21,6 +21,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -36,7 +37,6 @@ import jamgmilk.fuwagit.ui.components.DangerousOperationType
 import jamgmilk.fuwagit.ui.components.OperationResultDialog
 import jamgmilk.fuwagit.ui.components.ScreenTemplate
 import jamgmilk.fuwagit.ui.components.TwoStepConfirmDialog
-import jamgmilk.fuwagit.ui.util.ViewModelMessagesMapper
 
 data class StatusStats(
     val totalChanges: Int,
@@ -304,7 +304,7 @@ private fun RefreshIconButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var rotationCount by remember { mutableStateOf(0) }
+    var rotationCount by remember { mutableIntStateOf(0) }
     val targetRotation = rotationCount * 360f
     val animatedRotation by animateFloatAsState(
         targetValue = targetRotation,

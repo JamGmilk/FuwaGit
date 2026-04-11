@@ -9,7 +9,7 @@ import javax.inject.Inject
 class ApplyGitConfigToRepo @Inject constructor(
     private val configRepository: ConfigRepository
 ) {
-    suspend operator fun invoke(repoPath: String, name: String, email: String): Result<Unit> {
+    operator fun invoke(repoPath: String, name: String, email: String): Result<Unit> {
         if (repoPath.isBlank()) {
             return Result.failure(IllegalArgumentException("Repository path cannot be empty"))
         }
@@ -40,7 +40,6 @@ class ApplyGitConfigToGlobal @Inject constructor(
  * Apply user config to all known repositories
  */
 class ApplyGitConfigToAllRepos @Inject constructor(
-    private val configRepository: ConfigRepository,
     private val applyGitConfigToRepo: ApplyGitConfigToRepo,
     private val applyGitConfigToGlobal: ApplyGitConfigToGlobal
 ) {
@@ -87,10 +86,7 @@ data class ApplyToAllReposResult(
     val successCount: Int,
     val failureCount: Int,
     val totalCount: Int
-) {
-    val allSuccess: Boolean get() = failureCount == 0 && successCount > 0
-    val successRate: Float get() = if (totalCount > 0) successCount.toFloat() / totalCount else 0f
-}
+)
 
 /**
  * Remove repository local config (use global config instead)
@@ -98,7 +94,7 @@ data class ApplyToAllReposResult(
 class RemoveRepoLocalConfig @Inject constructor(
     private val configRepository: ConfigRepository
 ) {
-    suspend operator fun invoke(repoPath: String): Result<Unit> {
+    operator fun invoke(repoPath: String): Result<Unit> {
         if (repoPath.isBlank()) {
             return Result.failure(IllegalArgumentException("Repository path cannot be empty"))
         }

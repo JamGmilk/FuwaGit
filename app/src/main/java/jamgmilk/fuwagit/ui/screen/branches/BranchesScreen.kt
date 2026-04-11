@@ -22,6 +22,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.MergeType
 import androidx.compose.material.icons.filled.Add
@@ -100,16 +101,11 @@ fun BranchesScreen(
     val remote = uiState.remoteBranches
     val currentBranch = uiState.currentBranch?.name
     val colors = MaterialTheme.colorScheme
-    val context = LocalContext.current
-    val scope = rememberCoroutineScope()
 
     var showCreateDialog by remember { mutableStateOf(false) }
     var showRenameDialog by remember { mutableStateOf(false) }
     var branchToRename by remember { mutableStateOf<String?>(null) }
-    var branchForTag by remember { mutableStateOf<String?>(null) }
     var showTagsView by remember { mutableStateOf(false) }
-
-    val snackbarMessage = remember { mutableStateOf<String?>(null) }
 
     ScreenTemplate(
         title = stringResource(R.string.screen_branches),
@@ -383,22 +379,19 @@ fun BranchesScreen(
 
     // OperationResultDialog
     val operationResult = uiState.operationResult
-    if (operationResult != null) {
+    if (operationResult != null && operationResult !is OperationResult.Success) {
         val operationType = pendingOperation ?: DangerousOperationType.DELETE_BRANCH
-        when (operationResult) {
-            is OperationResult.Success -> {
-                scope.launch {
-                    snackbarHostState.showSnackbar(operationResult.message)
-                }
-                branchesViewModel.clearOperationResult()
-            }
-            else -> {
-                OperationResultDialog(
-                    result = operationResult,
-                    operationType = operationType,
-                    onDismiss = { branchesViewModel.clearOperationResult() }
-                )
-            }
+        OperationResultDialog(
+            result = operationResult,
+            operationType = operationType,
+            onDismiss = { branchesViewModel.clearOperationResult() }
+        )
+    }
+
+    LaunchedEffect(operationResult) {
+        if (operationResult is OperationResult.Success) {
+            snackbarHostState.showSnackbar(operationResult.message)
+            branchesViewModel.clearOperationResult()
         }
     }
 }

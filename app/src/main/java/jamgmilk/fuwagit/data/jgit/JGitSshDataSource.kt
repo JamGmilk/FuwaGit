@@ -79,7 +79,7 @@ class JGitSshDataSource @Inject constructor() : SshDataSource {
 
         var serverBanner = ""
 
-        session.setUserInfo(object : com.jcraft.jsch.UserInfo {
+        session.userInfo = object : com.jcraft.jsch.UserInfo {
             override fun getPassphrase(): String? = passphrase
             override fun getPassword(): String? = null
             override fun promptPassword(message: String): Boolean = false
@@ -89,7 +89,7 @@ class JGitSshDataSource @Inject constructor() : SshDataSource {
                 serverBanner = message
                 debugLog("Server banner via showMessage: $message")
             }
-        })
+        }
 
         var channel: com.jcraft.jsch.ChannelExec? = null
         return try {
@@ -179,9 +179,7 @@ class JGitSshDataSource @Inject constructor() : SshDataSource {
             StringReader(privateKeyPem).use { reader ->
                 PemReader(reader).use { pemReader ->
                     val pemObject = pemReader.readPemObject()
-                    if (pemObject == null) {
-                        throw IllegalArgumentException("Invalid PEM format - no PEM object found")
-                    }
+                        ?: throw IllegalArgumentException("Invalid PEM format - no PEM object found")
 
                     val type = pemObject.type
                     return when {

@@ -13,11 +13,11 @@ class ConfigRepositoryImpl @Inject constructor(
     private val gitConfigDataStore: GitConfigDataStore
 ) : ConfigRepository {
 
-    override suspend fun getGlobalUserName(): String? {
+    override suspend fun getGlobalUserName(): String {
         return gitConfigDataStore.configFlow.first().userName
     }
 
-    override suspend fun getGlobalUserEmail(): String? {
+    override suspend fun getGlobalUserEmail(): String {
         return gitConfigDataStore.configFlow.first().userEmail
     }
 

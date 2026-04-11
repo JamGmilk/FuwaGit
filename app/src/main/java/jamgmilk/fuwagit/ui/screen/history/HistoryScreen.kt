@@ -45,11 +45,9 @@ import androidx.compose.material.icons.filled.Replay
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.outlined.Commit
 import androidx.compose.material3.Button
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -79,7 +77,6 @@ import jamgmilk.fuwagit.domain.model.git.GitCommit
 import jamgmilk.fuwagit.domain.model.git.GitResetMode
 import jamgmilk.fuwagit.ui.components.ResetConfirmDialog
 import jamgmilk.fuwagit.ui.components.ScreenTemplate
-import jamgmilk.fuwagit.ui.screen.history.HistoryUiState
 import jamgmilk.fuwagit.ui.theme.AppShapes
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -494,7 +491,7 @@ private fun CommitDetails(
             DetailRow(
                 icon = Icons.Default.AccountTree,
                 label = stringResource(R.string.history_parents_label),
-                value = commit.parentHashes.map { it.take(7) }.joinToString(", ")
+                value = commit.parentHashes.joinToString(", ") { it.take(7) }
             )
         }
 

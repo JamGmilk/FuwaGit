@@ -15,7 +15,7 @@ class CalculateRepoSizeUseCase @Inject constructor() {
      * @param path The path to the repository folder
      * @return Total size in bytes, or 0L if path doesn't exist or error occurs
      */
-    suspend operator fun invoke(path: String): Long {
+    operator fun invoke(path: String): Long {
         return try {
             val file = File(path)
             if (!file.exists()) return 0L

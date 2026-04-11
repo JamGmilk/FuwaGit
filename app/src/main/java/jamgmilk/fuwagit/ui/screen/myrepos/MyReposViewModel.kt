@@ -113,9 +113,6 @@ class MyReposViewModel @Inject constructor(
         }
     }
 
-    fun initializeStorage() {
-    }
-
     private fun calculateSizeAsync(path: String) {
         viewModelScope.launch(Dispatchers.IO) {
             val size = calculateFolderSize(path)
@@ -151,15 +148,6 @@ class MyReposViewModel @Inject constructor(
 
     suspend fun setCurrentRepo(path: String?) {
         currentRepoManager.setRepoPath(path)
-    }
-
-    suspend fun cleanRepo(path: String, dryRun: Boolean = false): AppResult<String> {
-        return gitRepo.clean(path, dryRun).map { result ->
-            if (dryRun) {
-                _uiState.update { it.copy(untrackedFilesForClean = result.files) }
-            }
-            result.toString()
-        }
     }
 
     fun requestCleanPreview() {
@@ -265,7 +253,7 @@ class MyReposViewModel @Inject constructor(
         return gitRepo.getRemotes(localPath).getOrNull()?.map { it.name to it.fetchUrl } ?: emptyList()
     }
 
-    suspend fun getRepoGitConfig(localPath: String): String = gitConfigManager.getAllRepoConfig(localPath)
+    fun getRepoGitConfig(localPath: String): String = gitConfigManager.getAllRepoConfig(localPath)
 
     suspend fun getRemoteUrl(localPath: String, name: String = "origin"): String? = gitRepo.getRemoteUrl(localPath, name)
 
@@ -294,9 +282,9 @@ class MyReposViewModel @Inject constructor(
 
     fun loadCredentials() {
         viewModelScope.launch {
-            val httpsCreds = getHttpsCredentials()
+            val httpsCredentials = getHttpsCredentials()
             val sshKeyList = getSshKeys()
-            _uiState.update { it.copy(httpsCredentials = httpsCreds, sshKeys = sshKeyList) }
+            _uiState.update { it.copy(httpsCredentials = httpsCredentials, sshKeys = sshKeyList) }
         }
     }
 
@@ -309,11 +297,7 @@ class MyReposViewModel @Inject constructor(
 
     suspend fun getHttpsCredentials(): List<HttpsCredential> = credential.getHttpsCredentials().getOrNull() ?: emptyList()
 
-    suspend fun getHttpsPassword(uuid: String): String? = credential.getHttpsPassword(uuid).getOrNull()
-
     suspend fun getSshKeys(): List<SshKey> = credential.getSshKeys().getOrNull() ?: emptyList()
-
-    suspend fun getSshPrivateKey(uuid: String): String? = credential.getSshPrivateKey(uuid).getOrNull()
 
     fun cloneWithCredentials(
         uri: String,
@@ -327,10 +311,10 @@ class MyReposViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
 
-            val httpsCreds = getHttpsCredentials()
+            val httpsCredentials = getHttpsCredentials()
             val sshKeys = getSshKeys()
 
-            val credentials = credential.resolveCredentials(httpsCredentialUuid, sshKeyUuid, httpsCreds, sshKeys, uri)
+            val credentials = credential.resolveCredentials(httpsCredentialUuid, sshKeyUuid, httpsCredentials, sshKeys, uri)
 
             gitRepo.clone(uri, localPath, credentials, cloneOptions).onSuccess { cloneResult ->
                 _uiState.update { it.copy(isLoading = false) }
@@ -341,9 +325,5 @@ class MyReposViewModel @Inject constructor(
                 onResult(AppResult.Error(e))
             }
         }
-    }
-
-    fun clearError() {
-        _uiState.update { it.copy(error = null) }
     }
 }

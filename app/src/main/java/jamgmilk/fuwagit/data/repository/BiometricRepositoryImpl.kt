@@ -46,7 +46,6 @@ class BiometricRepositoryImpl @Inject constructor(
     override fun disableBiometric(): AppResult<Unit> {
         return AppResult.catching {
             masterKeyManager.disableBiometric()
-            Unit
         }
     }
 

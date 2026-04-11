@@ -41,9 +41,4 @@ class MergeUseCase @Inject constructor(
         if (repoPath.isBlank()) return AppResult.Error(AppException.Validation("Repository path cannot be empty"))
         return repository.abortRebase(repoPath)
     }
-
-    suspend fun abortMerge(repoPath: String): AppResult<String> {
-        if (repoPath.isBlank()) return AppResult.Error(AppException.Validation("Repository path cannot be empty"))
-        return repository.abortMerge(repoPath)
-    }
 }
