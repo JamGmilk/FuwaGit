@@ -31,11 +31,8 @@
 
 # Keep missing classes for R8
 -keep class com.google.errorprone.annotations.** { *; }
--keep class java.lang.ProcessHandle { *; }
--keep class java.lang.management.ManagementFactory { *; }
 -keep class javax.management.** { *; }
 -keep class org.ietf.jgss.** { *; }
--keep class org.slf4j.impl.StaticLoggerBinder { *; }
 
 # Don't warn about missing platform classes
 -dontwarn com.google.errorprone.annotations.**

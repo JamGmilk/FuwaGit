@@ -73,7 +73,7 @@ fun SetupPasswordDialog(
     } else null
 
     val passwordLengthError = if (password.isNotEmpty() && password.length < 6) {
-        stringResource(R.string.credentials_at_least_8_characters)
+        stringResource(R.string.credentials_at_least_6_characters)
     } else null
 
     AlertDialog(
@@ -298,7 +298,7 @@ fun ChangeMasterPasswordDialog(
     } else null
 
     val passwordLengthError = if (newPassword.isNotEmpty() && newPassword.length < 6) {
-        stringResource(R.string.credentials_at_least_8_characters)
+        stringResource(R.string.credentials_at_least_6_characters)
     } else null
 
     val isFormValid = oldPassword.isNotBlank() && newPassword.length >= 6 && newPassword == confirmPassword
@@ -491,7 +491,7 @@ fun SetupMasterPasswordDialog(
     } else null
 
     val passwordLengthError = if (password.isNotEmpty() && password.length < 6) {
-        stringResource(R.string.credentials_at_least_8_characters)
+        stringResource(R.string.credentials_at_least_6_characters)
     } else null
 
     val isFormValid = password.length >= 6 && password == confirmPassword
@@ -623,7 +623,7 @@ fun SetupMasterPasswordContent(
     } else null
 
     val passwordLengthError = if (password.isNotEmpty() && password.length < 6) {
-        stringResource(R.string.credentials_at_least_8_characters)
+        stringResource(R.string.credentials_at_least_6_characters)
     } else null
 
     val isFormValid = password.length >= 6 && password == confirmPassword

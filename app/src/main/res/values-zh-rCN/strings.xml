@@ -187,7 +187,7 @@
     <string name="credentials_password_hint_optional">密码提示（可选）</string>
     <string name="credentials_password_hint_placeholder">帮助您记住</string>
     <string name="credentials_passwords_do_not_match">密码不匹配</string>
-    <string name="credentials_at_least_8_characters">至少6个字符</string>
+    <string name="credentials_at_least_6_characters">至少6个字符</string>
     <string name="credentials_set_password">设置密码</string>
     <string name="credentials_setting">正在设置…</string>
     <string name="credentials_unlock_credentials">解锁凭据</string>
@@ -507,7 +507,7 @@
 
     <!-- ViewModel Messages -->
     <string name="vm_passwords_do_not_match">密码不匹配</string>
-    <string name="vm_password_min_8_chars">新密码必须至少6个字符</string>
+    <string name="vm_password_min_chars">密码必须至少6个字符</string>
     <string name="vm_incorrect_old_password">旧密码不正确</string>
     <string name="vm_branch_deleted_success">分支\'%1$s\'已成功删除</string>
     <string name="vm_branch_not_fully_merged">该分支包含未合并的提交。使用强制删除来移除它。</string>

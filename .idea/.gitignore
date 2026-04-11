@@ -1,9 +1,13 @@
 /caches/
+/libraries/
 /modules/
 /shelf/
 /androidTestResultsUserPreferences.xml
+/assetWizardSettings.xml
 /workspace.xml
 /deploymentTargetSelector.xml
 /deviceManager.xml
 /studiobot.xml
 *.iml
+/modules.xml
+/navEditor.xml
