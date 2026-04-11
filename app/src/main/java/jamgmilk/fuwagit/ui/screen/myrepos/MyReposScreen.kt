@@ -1,6 +1,7 @@
 package jamgmilk.fuwagit.ui.screen.myrepos
 
 import android.widget.Toast
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -15,6 +16,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -40,9 +42,13 @@ import androidx.compose.material.icons.filled.Source
 import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.outlined.FolderOpen
+import androidx.compose.material.icons.rounded.ContentCopy
+import androidx.compose.material.icons.rounded.Info
+import androidx.compose.material.icons.rounded.Warning
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -78,6 +84,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import jamgmilk.fuwagit.R
 import jamgmilk.fuwagit.ui.components.CleanPreviewDialog
@@ -759,224 +766,6 @@ fun RepoOptionsSheetItem(
                 }
             }
         }
-    }
-}
-
-// TODO: review
-@Composable
-fun RepoInfoDialog(
-    repoName: String,
-    repoPath: String,
-    isGitRepo: Boolean,
-    repoInfo: Map<String, String>,
-    repoGitConfig: String = "",
-    onDismiss: () -> Unit
-) {
-    val colors = MaterialTheme.colorScheme
-    val scope = rememberCoroutineScope()
-    val clipboardManager = LocalClipboardManager.current
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        icon = {
-            Box(
-                modifier = Modifier
-                    .size(56.dp)
-                    .background(colors.primary.copy(alpha = 0.15f), CircleShape),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    Icons.Default.Info,
-                    contentDescription = null,
-                    tint = colors.primary,
-                    modifier = Modifier.size(28.dp)
-                )
-            }
-        },
-        title = {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(
-                    text = stringResource(R.string.myrepos_repo_info_title),
-                    fontWeight = FontWeight.Bold,
-                    style = MaterialTheme.typography.titleLarge
-                )
-                Text(
-                    text = repoName,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = colors.onSurfaceVariant
-                )
-            }
-        },
-        text = {
-            Column(modifier = Modifier.fillMaxWidth()) {
-                if (!isGitRepo) {
-                    Surface(
-                        shape = RoundedCornerShape(12.dp),
-                        color = colors.tertiary.copy(alpha = 0.15f)
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(12.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                Icons.Default.Warning,
-                                contentDescription = null,
-                                tint = colors.error,
-                                modifier = Modifier.size(20.dp)
-                            )
-                            Spacer(Modifier.width(8.dp))
-                            Text(
-                                text = stringResource(R.string.myrepos_not_git_repo_warning),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = colors.error
-                            )
-                        }
-                    }
-                    Spacer(Modifier.height(12.dp))
-                }
-
-                LazyColumn(
-                    modifier = Modifier.height(if (isGitRepo) 340.dp else 200.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    items(repoInfo.toList(), key = { it.first }, contentType = { "info_item" }) { (key, value) ->
-                        RepoInfoItem(
-                            icon = getInfoIcon(key),
-                            label = key,
-                            value = value,
-                            accentColor = MaterialTheme.colorScheme.primary,
-                            onCopy = {
-                                clipboardManager.setText(AnnotatedString(value))
-                            }
-                        )
-                    }
-                }
-
-                if (repoGitConfig.isNotEmpty()) {
-                    Spacer(Modifier.height(16.dp))
-                    Text(
-                        text = ".git/config",
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = colors.primary
-                    )
-                    Spacer(Modifier.height(8.dp))
-                    Surface(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(180.dp),
-                        shape = RoundedCornerShape(8.dp),
-                        color = colors.surfaceVariant.copy(alpha = 0.5f)
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(8.dp)
-                                .verticalScroll(rememberScrollState())
-                        ) {
-                            Text(
-                                text = repoGitConfig,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = colors.onSurface
-                            )
-                        }
-                    }
-                }
-            }
-        },
-        confirmButton = {
-            Button(
-                onClick = onDismiss,
-                colors = ButtonDefaults.buttonColors(containerColor = colors.primary),
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Text(stringResource(R.string.action_close))
-            }
-        },
-        shape = RoundedCornerShape(24.dp)
-    )
-}
-
-// TODO: review
-@Composable
-private fun RepoInfoItem(
-    icon: ImageVector,
-    label: String,
-    value: String,
-    accentColor: Color,
-    onCopy: () -> Unit
-) {
-    val colors = MaterialTheme.colorScheme
-
-    Surface(
-        shape = RoundedCornerShape(12.dp),
-        color = accentColor.copy(alpha = 0.08f)
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Surface(
-                shape = RoundedCornerShape(8.dp),
-                color = accentColor.copy(alpha = 0.15f),
-                modifier = Modifier.size(36.dp)
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        icon,
-                        contentDescription = null,
-                        tint = accentColor,
-                        modifier = Modifier.size(18.dp)
-                    )
-                }
-            }
-
-            Spacer(Modifier.width(12.dp))
-
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = label,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = accentColor,
-                    fontWeight = FontWeight.SemiBold
-                )
-                Text(
-                    text = value,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    fontFamily = FontFamily.Monospace,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
-
-            IconButton(
-                onClick = onCopy,
-                modifier = Modifier.size(28.dp)
-            ) {
-                Icon(
-                    Icons.Default.ContentCopy,
-                    contentDescription = stringResource(R.string.action_copy),
-                    tint = colors.onSurfaceVariant.copy(alpha = 0.5f),
-                    modifier = Modifier.size(16.dp)
-                )
-            }
-        }
-    }
-}
-
-private fun getInfoIcon(key: String): ImageVector {
-    return when {
-        key.contains("Branch", ignoreCase = true) -> Icons.Default.AccountTree
-        key.contains("Commit", ignoreCase = true) -> Icons.Default.Source
-        key.contains("Remote", ignoreCase = true) -> Icons.Default.Sync
-        key.contains("Date", ignoreCase = true) -> Icons.Default.Schedule
-        key.contains("Path", ignoreCase = true) -> Icons.Default.Folder
-        key.contains("Status", ignoreCase = true) -> Icons.Default.CheckCircle
-        key.contains("Hash", ignoreCase = true) -> Icons.Default.AccountTree
-        else -> Icons.Default.Info
     }
 }
 
