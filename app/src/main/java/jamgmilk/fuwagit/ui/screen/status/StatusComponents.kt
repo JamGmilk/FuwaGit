@@ -487,40 +487,43 @@ private fun FileStatusItem(
                 )
             }
 
-            if (onDiscard != null && !file.isStaged) {
-                IconButton(
-                    onClick = { showMenuState.value = true },
-                    modifier = Modifier.size(32.dp)
-                ) {
-                    Icon(
-                        Icons.Default.MoreVert,
-                        contentDescription = stringResource(R.string.status_actions),
-                        tint = colors.onSurfaceVariant,
-                        modifier = Modifier.size(18.dp)
-                    )
-                }
-
-                DropdownMenu(
-                    expanded = showMenuState.value,
-                    onDismissRequest = { showMenuState.value = false }
-                ) {
-                    if (onViewDiff != null) {
-                        DropdownMenuItem(
-                            text = { Text(stringResource(R.string.diff_view_changes)) },
-                            onClick = {
-                                onViewDiff(file)
-                                showMenuState.value = false
-                            },
-                            leadingIcon = {
-                                Icon(
-                                    Icons.Default.Code,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                            }
+            Box(
+                modifier = Modifier.size(32.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                if (onDiscard != null && !file.isStaged) {
+                    IconButton(
+                        onClick = { showMenuState.value = true },
+                        modifier = Modifier.size(32.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.MoreVert,
+                            contentDescription = stringResource(R.string.status_actions),
+                            tint = colors.onSurfaceVariant,
+                            modifier = Modifier.size(18.dp)
                         )
                     }
-                    if (onDiscard != null) {
+
+                    DropdownMenu(
+                        expanded = showMenuState.value,
+                        onDismissRequest = { showMenuState.value = false }
+                    ) {
+                        if (onViewDiff != null) {
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.diff_view_changes)) },
+                                onClick = {
+                                    onViewDiff(file)
+                                    showMenuState.value = false
+                                },
+                                leadingIcon = {
+                                    Icon(
+                                        Icons.Default.Code,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
+                            )
+                        }
                         DropdownMenuItem(
                             text = { Text(stringResource(R.string.status_discard_changes)) },
                             onClick = {
@@ -536,14 +539,14 @@ private fun FileStatusItem(
                             }
                         )
                     }
+                } else {
+                    Icon(
+                        Icons.Default.ChevronRight,
+                        contentDescription = null,
+                        tint = colors.onSurfaceVariant.copy(alpha = 0.5f),
+                        modifier = Modifier.size(18.dp)
+                    )
                 }
-            } else {
-                Icon(
-                    Icons.Default.ChevronRight,
-                    contentDescription = null,
-                    tint = colors.onSurfaceVariant.copy(alpha = 0.5f),
-                    modifier = Modifier.size(18.dp)
-                )
             }
         }
     }

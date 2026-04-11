@@ -3,7 +3,6 @@ package jamgmilk.fuwagit.ui.screen.branches
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
-import android.widget.Toast
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -28,12 +27,9 @@ import androidx.compose.material.icons.automirrored.filled.MergeType
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Cloud
-import androidx.compose.material.icons.filled.CloudDownload
-import androidx.compose.material.icons.filled.CloudUpload
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.ImportExport
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Label
@@ -43,10 +39,8 @@ import androidx.compose.material.icons.outlined.AccountTree
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -54,6 +48,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -61,6 +56,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -78,6 +74,7 @@ import jamgmilk.fuwagit.domain.model.git.GitBranch
 import jamgmilk.fuwagit.ui.components.ConflictResolutionDialog
 import jamgmilk.fuwagit.ui.components.DangerousOperationType
 import jamgmilk.fuwagit.ui.components.DialogWithIcon
+import jamgmilk.fuwagit.ui.components.OperationResult
 import jamgmilk.fuwagit.ui.components.OperationResultDialog
 import jamgmilk.fuwagit.ui.components.ScreenTemplate
 import jamgmilk.fuwagit.ui.components.TipInDialog
@@ -86,6 +83,7 @@ import jamgmilk.fuwagit.ui.screen.tags.TagsContent
 import jamgmilk.fuwagit.ui.screen.tags.TagsDialogs
 import jamgmilk.fuwagit.ui.screen.tags.TagsViewModel
 import jamgmilk.fuwagit.ui.theme.AppShapes
+import kotlinx.coroutines.launch
 
 
 @Composable
@@ -94,7 +92,8 @@ fun BranchesScreen(
     modifier: Modifier = Modifier,
     tagsViewModel: TagsViewModel? = null,
     onCreateTag: ((String) -> Unit)? = null,
-    onShowInHistory: ((String) -> Unit)? = null
+    onShowInHistory: ((String) -> Unit)? = null,
+    snackbarHostState: SnackbarHostState = remember { SnackbarHostState() }
 ) {
     val uiState by branchesViewModel.uiState.collectAsStateWithLifecycle()
     val local = uiState.localBranches
@@ -102,6 +101,7 @@ fun BranchesScreen(
     val currentBranch = uiState.currentBranch?.name
     val colors = MaterialTheme.colorScheme
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
 
     var showCreateDialog by remember { mutableStateOf(false) }
     var showRenameDialog by remember { mutableStateOf(false) }
@@ -109,9 +109,12 @@ fun BranchesScreen(
     var branchForTag by remember { mutableStateOf<String?>(null) }
     var showTagsView by remember { mutableStateOf(false) }
 
+    val snackbarMessage = remember { mutableStateOf<String?>(null) }
+
     ScreenTemplate(
         title = stringResource(R.string.screen_branches),
         modifier = modifier.fillMaxSize(),
+        snackbarHostState = snackbarHostState,
         actions = {
             if (tagsViewModel != null) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -193,6 +196,7 @@ fun BranchesScreen(
                             },
                             onCreateTag = onCreateTag,
                             onShowInHistory = onShowInHistory,
+                            snackbarHostState = snackbarHostState,
                             modifier = Modifier.fillMaxSize()
                         )
                     }
@@ -305,7 +309,7 @@ fun BranchesScreen(
         )
     }
 
-    // 危险操作双确认对话框
+    // TwoStepConfirmDialog
     val pendingOperation = uiState.pendingOperation
     val pendingTarget = uiState.pendingOperationTarget
     if (pendingOperation != null && pendingTarget != null) {
@@ -347,7 +351,7 @@ fun BranchesScreen(
         }
     }
 
-    // 冲突解决对话框
+    // ConflictResolutionDialog
     val conflictResult = uiState.conflictResult
     if (conflictResult != null && uiState.isResolvingConflict) {
         val isRebase = conflictResult.operationType == "REBASE"
@@ -377,15 +381,25 @@ fun BranchesScreen(
         )
     }
 
-    // 操作结果反馈对话框
+    // OperationResultDialog
     val operationResult = uiState.operationResult
     if (operationResult != null) {
         val operationType = pendingOperation ?: DangerousOperationType.DELETE_BRANCH
-        OperationResultDialog(
-            result = operationResult,
-            operationType = operationType,
-            onDismiss = { branchesViewModel.clearOperationResult() }
-        )
+        when (operationResult) {
+            is OperationResult.Success -> {
+                scope.launch {
+                    snackbarHostState.showSnackbar(operationResult.message)
+                }
+                branchesViewModel.clearOperationResult()
+            }
+            else -> {
+                OperationResultDialog(
+                    result = operationResult,
+                    operationType = operationType,
+                    onDismiss = { branchesViewModel.clearOperationResult() }
+                )
+            }
+        }
     }
 }
 
@@ -431,6 +445,7 @@ private fun BranchListContent(
     onRenameRequest: (String) -> Unit,
     onCreateTag: ((String) -> Unit)?,
     onShowInHistory: ((String) -> Unit)?,
+    snackbarHostState: SnackbarHostState,
     modifier: Modifier = Modifier
 ) {
     val colors = MaterialTheme.colorScheme
@@ -473,7 +488,8 @@ private fun BranchListContent(
                     },
                     onDelete = { branchesViewModel.requestDeleteBranch(branch.name) },
                     onCreateTag = onCreateTag,
-                    onShowInHistory = onShowInHistory
+                    onShowInHistory = onShowInHistory,
+                    snackbarHostState = snackbarHostState
                 )
             }
         }
@@ -514,6 +530,7 @@ private fun BranchListContent(
                     onDelete = null,
                     onCreateTag = null,
                     onShowInHistory = null,
+                    snackbarHostState = snackbarHostState,
                     isRemote = true
                 )
             }
@@ -585,12 +602,14 @@ private fun BranchItem(
     onDelete: (() -> Unit)?,
     onCreateTag: ((String) -> Unit)?,
     onShowInHistory: ((String) -> Unit)?,
+    snackbarHostState: SnackbarHostState,
     isRemote: Boolean = false
 ) {
     var expanded by remember { mutableStateOf(false) }
     var showMenu by remember { mutableStateOf(false) }
     val colors = MaterialTheme.colorScheme
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
 
     val strings = BranchItemStrings(
         mergeOnlyLocal = stringResource(R.string.branches_merge_only_local),
@@ -708,7 +727,7 @@ private fun BranchItem(
                         onClick = {
                             val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                             clipboard.setPrimaryClip(ClipData.newPlainText(strings.branchNameClipboard, branch.name))
-                            Toast.makeText(context, strings.nameCopied, Toast.LENGTH_SHORT).show()
+                            scope.launch { snackbarHostState.showSnackbar(strings.nameCopied) }
                             showMenu = false
                         },
                         leadingIcon = {
@@ -737,7 +756,7 @@ private fun BranchItem(
                             text = { Text(stringResource(R.string.branches_merge_into_current)) },
                             onClick = {
                                 onMerge?.invoke() ?: run {
-                                    Toast.makeText(context, strings.mergeOnlyLocal, Toast.LENGTH_SHORT).show()
+                                    scope.launch { snackbarHostState.showSnackbar(strings.mergeOnlyLocal) }
                                 }
                                 showMenu = false
                             },
@@ -750,7 +769,7 @@ private fun BranchItem(
                             text = { Text(stringResource(R.string.branches_rebase_onto_current)) },
                             onClick = {
                                 onRebase?.invoke() ?: run {
-                                    Toast.makeText(context, strings.rebaseOnlyLocal, Toast.LENGTH_SHORT).show()
+                                    scope.launch { snackbarHostState.showSnackbar(strings.rebaseOnlyLocal) }
                                 }
                                 showMenu = false
                             },
@@ -763,7 +782,7 @@ private fun BranchItem(
                             text = { Text(stringResource(R.string.branches_rename)) },
                             onClick = {
                                 onRename?.invoke() ?: run {
-                                    Toast.makeText(context, strings.renameOnlyLocal, Toast.LENGTH_SHORT).show()
+                                    scope.launch { snackbarHostState.showSnackbar(strings.renameOnlyLocal) }
                                 }
                                 showMenu = false
                             },
@@ -776,7 +795,7 @@ private fun BranchItem(
                             text = { Text(stringResource(R.string.branches_delete_branch)) },
                             onClick = {
                                 onDelete?.invoke() ?: run {
-                                    Toast.makeText(context, strings.deleteOnlyLocal, Toast.LENGTH_SHORT).show()
+                                    scope.launch { snackbarHostState.showSnackbar(strings.deleteOnlyLocal) }
                                 }
                                 showMenu = false
                             },

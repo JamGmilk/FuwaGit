@@ -491,7 +491,7 @@
     <string name="ssh_test_clear">清除</string>
 
     <!-- Confirm Dialogs -->
-    <string name="dialog_confirm_dangerous_title">确认危险操作</string>
+    <string name="dialog_confirm_dangerous_title">警告</string>
     <string name="dialog_confirm_type_confirm_format">输入\"%1$s\"以确认：</string>
     <string name="dialog_reset_confirm_title_format">确认重置%1$s</string>
     <string name="dialog_reset_to_commit">将当前分支重置到提交：</string>

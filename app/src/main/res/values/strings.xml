@@ -490,7 +490,7 @@
     <string name="ssh_test_clear">Clear</string>
 
     <!-- Confirm Dialogs -->
-    <string name="dialog_confirm_dangerous_title">Confirm Dangerous Operation</string>
+    <string name="dialog_confirm_dangerous_title">Warning</string>
     <string name="dialog_confirm_type_confirm_format">Type \"%1$s\" to confirm:</string>
     <string name="dialog_reset_confirm_title_format">Confirm %1$s Reset</string>
     <string name="dialog_reset_to_commit">Reset current branch to commit:</string>
