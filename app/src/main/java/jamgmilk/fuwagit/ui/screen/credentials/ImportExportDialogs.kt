@@ -1,5 +1,8 @@
 package jamgmilk.fuwagit.ui.screen.credentials
 
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -25,7 +28,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -40,9 +42,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -60,7 +61,7 @@ fun ExportCredentialsDialog(
 ) {
     val colors = MaterialTheme.colorScheme
     val scope = rememberCoroutineScope()
-    val clipboardManager = LocalClipboardManager.current
+    val clipboardManager = LocalContext.current.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var isLoading by remember { mutableStateOf(false) }
     val copiedMessage = stringResource(R.string.credentials_copied_to_clipboard)
@@ -98,7 +99,7 @@ fun ExportCredentialsDialog(
                     Surface(shape = RoundedCornerShape(12.dp), color = colors.surfaceVariant.copy(alpha = 0.5f), modifier = Modifier.fillMaxWidth()) {
                         Row(modifier = Modifier.fillMaxWidth().padding(12.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                             Text(text = "${exportedData.take(50)}...", style = MaterialTheme.typography.bodySmall, fontFamily = FontFamily.Monospace, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
-                            IconButton(onClick = { clipboardManager.setText(AnnotatedString(exportedData)); scope.launch { snackbarHostState.showSnackbar(copiedMessage) } }) {
+                            IconButton(onClick = { clipboardManager.setPrimaryClip(ClipData.newPlainText(null, exportedData)); scope.launch { snackbarHostState.showSnackbar(copiedMessage) } }) {
                                 Icon(Icons.Default.ContentCopy, contentDescription = stringResource(R.string.action_copy), tint = colors.onSurfaceVariant)
                             }
                         }

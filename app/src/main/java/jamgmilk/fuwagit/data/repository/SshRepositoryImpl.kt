@@ -42,7 +42,7 @@ class SshRepositoryImpl @Inject constructor(
             }
             url.startsWith("https://") || url.startsWith("http://") -> {
                 val pathPart = url.substringAfter("://").substringAfter("/")
-                if (pathPart.isNotBlank()) pathPart else null
+                pathPart.ifBlank { null }
             }
             url.startsWith("/") -> url
             else -> null

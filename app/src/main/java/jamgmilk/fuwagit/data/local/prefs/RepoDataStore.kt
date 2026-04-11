@@ -3,13 +3,10 @@ package jamgmilk.fuwagit.data.local.prefs
 import android.content.Context
 import dagger.hilt.android.qualifiers.ApplicationContext
 import jamgmilk.fuwagit.domain.model.repo.RepoData
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.io.File
 import javax.inject.Inject
@@ -36,18 +33,15 @@ class RepoDataStore @Inject constructor(
     }
 
     private val _reposFlow = MutableStateFlow<List<RepoData>>(emptyList())
+    val reposFlow: Flow<List<RepoData>> = _reposFlow.asStateFlow()
+
+    fun getSavedReposFlow(): Flow<List<RepoData>> = reposFlow
+
+    private var cachedWrapper: RepoListWrapper = loadFromFile()
 
     init {
-        _reposFlow.value = getSavedRepos()
+        _reposFlow.value = cachedWrapper.repos
     }
-
-    fun getSavedReposFlow(): Flow<List<RepoData>> = _reposFlow.asStateFlow()
-
-    fun getSavedRepos(): List<RepoData> {
-        return loadFromFile().repos
-    }
-
-    suspend fun getAllRepos(): List<RepoData> = getSavedRepos()
 
     private fun loadFromFile(): RepoListWrapper {
         return try {
@@ -81,71 +75,71 @@ class RepoDataStore @Inject constructor(
         }
     }
 
-    private suspend fun updateAndSave(repos: List<RepoData>, currentPath: String?): List<RepoData> {
-        saveToFile(RepoListWrapper(repos, currentPath))
+    private fun persistAndNotify(repos: List<RepoData>, currentPath: String?): List<RepoData> {
+        val wrapper = RepoListWrapper(repos, currentPath)
+        cachedWrapper = wrapper
+        saveToFile(wrapper)
         _reposFlow.value = repos
         return repos
     }
 
+    fun getSavedRepos(): List<RepoData> = cachedWrapper.repos
+
+    suspend fun getAllRepos(): List<RepoData> = cachedWrapper.repos
+
+    fun getCurrentRepoPathFlow(): Flow<String?> = MutableStateFlow(cachedWrapper.currentRepoPath).asStateFlow()
+
     suspend fun setCurrentRepo(path: String?) {
-        val wrapper = loadFromFile()
-        updateAndSave(wrapper.repos, path)
+        persistAndNotify(cachedWrapper.repos, path)
     }
 
-    suspend fun getCurrentRepoPath(): String? {
-        return loadFromFile().currentRepoPath
-    }
+    suspend fun getCurrentRepoPath(): String? = cachedWrapper.currentRepoPath
 
     suspend fun addRepo(repo: RepoData): Boolean {
-        val wrapper = loadFromFile()
-        val currentList = wrapper.repos.toMutableList()
+        val currentList = cachedWrapper.repos.toMutableList()
         currentList.removeAll { it.path == repo.path }
         currentList.add(repo)
-        updateAndSave(currentList, wrapper.currentRepoPath)
+        persistAndNotify(currentList, cachedWrapper.currentRepoPath)
         return true
     }
 
     suspend fun removeRepo(path: String): Boolean {
-        val wrapper = loadFromFile()
-        val currentList = wrapper.repos.toMutableList()
+        val currentList = cachedWrapper.repos.toMutableList()
         currentList.removeAll { it.path == path }
-        val newCurrentPath = if (wrapper.currentRepoPath == path) null else wrapper.currentRepoPath
-        updateAndSave(currentList, newCurrentPath)
+        val newCurrentPath = if (cachedWrapper.currentRepoPath == path) null else cachedWrapper.currentRepoPath
+        persistAndNotify(currentList, newCurrentPath)
         return true
     }
 
     suspend fun updateRepo(path: String, update: (RepoData) -> RepoData) {
-        val wrapper = loadFromFile()
-        val currentList = wrapper.repos.toMutableList()
+        val currentList = cachedWrapper.repos.toMutableList()
         val index = currentList.indexOfFirst { it.path == path }
         if (index >= 0) {
             currentList[index] = update(currentList[index])
-            updateAndSave(currentList, wrapper.currentRepoPath)
+            persistAndNotify(currentList, cachedWrapper.currentRepoPath)
         }
     }
 
     suspend fun toggleFavorite(path: String) {
-        val wrapper = loadFromFile()
-        val currentList = wrapper.repos.toMutableList()
+        val currentList = cachedWrapper.repos.toMutableList()
         val index = currentList.indexOfFirst { it.path == path }
         if (index >= 0) {
             currentList[index] = currentList[index].copy(isFavorite = !currentList[index].isFavorite)
-            updateAndSave(currentList, wrapper.currentRepoPath)
+            persistAndNotify(currentList, cachedWrapper.currentRepoPath)
         }
     }
 
     suspend fun updateLastAccessed(path: String) {
-        val wrapper = loadFromFile()
-        val currentList = wrapper.repos.toMutableList()
+        val currentList = cachedWrapper.repos.toMutableList()
         val index = currentList.indexOfFirst { it.path == path }
         if (index >= 0) {
             currentList[index] = currentList[index].copy(lastAccessedAt = System.currentTimeMillis())
-            updateAndSave(currentList, wrapper.currentRepoPath)
+            persistAndNotify(currentList, cachedWrapper.currentRepoPath)
         }
     }
 
     suspend fun getLastAccessed(path: String): Long {
-        return loadFromFile().repos.find { it.path == path }?.lastAccessedAt ?: 0L
+        return cachedWrapper.repos.find { it.path == path }?.lastAccessedAt ?: 0L
     }
 
     companion object {

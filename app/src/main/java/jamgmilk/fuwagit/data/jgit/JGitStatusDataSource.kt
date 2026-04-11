@@ -107,7 +107,7 @@ class JGitStatusDataSource @Inject constructor(
      * Stages a specific file.
      */
     override fun stageFile(repoPath: String, filePath: String): Result<Unit> = core.withGit(repoPath) { git ->
-        val status = git.status().addPath(filePath).call()
+        val status = git.status().call()
         if (status.missing.contains(filePath) || status.removed.contains(filePath)) {
             git.rm().addFilepattern(filePath).call()
         } else {

@@ -43,9 +43,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.AnnotatedString
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -64,7 +66,7 @@ fun RepoInfoDialog(
     onDismiss: () -> Unit
 ) {
     val colors = MaterialTheme.colorScheme
-    val clipboardManager = LocalClipboardManager.current
+    val clipboardManager = LocalContext.current.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -119,7 +121,7 @@ fun RepoInfoDialog(
                             icon = getInfoIcon(key),
                             label = key,
                             value = value,
-                            onCopy = { clipboardManager.setText(AnnotatedString(value)) }
+                            onCopy = { clipboardManager.setPrimaryClip(ClipData.newPlainText(null, value)) }
                         )
                     }
 

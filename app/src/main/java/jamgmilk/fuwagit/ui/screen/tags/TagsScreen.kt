@@ -24,18 +24,16 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Label
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Cloud
 import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.FilterList
-import androidx.compose.material.icons.filled.Label
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.outlined.Label
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -60,7 +58,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -70,9 +67,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import jamgmilk.fuwagit.R
 import jamgmilk.fuwagit.domain.model.git.GitTag
-import jamgmilk.fuwagit.domain.model.git.GitTagType
 import jamgmilk.fuwagit.ui.components.DangerousOperationType
-import jamgmilk.fuwagit.ui.components.OperationResult
 import jamgmilk.fuwagit.ui.components.OperationResultDialog
 import jamgmilk.fuwagit.ui.components.ScreenTemplate
 import jamgmilk.fuwagit.ui.theme.AppShapes
@@ -270,7 +265,7 @@ private fun EmptyTagsState() {
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Icon(
-                Icons.Outlined.Label,
+                Icons.AutoMirrored.Filled.Label,
                 contentDescription = null,
                 tint = colors.onSurfaceVariant.copy(alpha = 0.5f),
                 modifier = Modifier.size(48.dp)
@@ -471,7 +466,7 @@ private fun TagItem(
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    Icons.Default.Label,
+                    Icons.AutoMirrored.Filled.Label,
                     contentDescription = null,
                     tint = accentColor,
                     modifier = Modifier.size(14.dp)
@@ -642,7 +637,7 @@ private fun CreateTagDialog(
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    Icons.Default.Label,
+                    Icons.AutoMirrored.Filled.Label,
                     contentDescription = null,
                     tint = colors.primary,
                     modifier = Modifier.size(28.dp)

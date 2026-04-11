@@ -163,8 +163,8 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
-    suspend fun reloadUserConfig() {
-        // Repositories automatically reload from disk when needed
+    fun reloadUserConfig() {
+        loadGlobalConfig()
     }
 
     fun applyConfigToGlobal(name: String, email: String) {

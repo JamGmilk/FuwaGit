@@ -165,10 +165,30 @@ class JGitCommitDataSource @Inject constructor(
         }
 
     override suspend fun commit(repoPath: String, message: String): Result<String> {
+        val statusResult = core.withGit(repoPath) { git ->
+            val status = git.status().call()
+            status.added.isNotEmpty() || status.changed.isNotEmpty() || status.removed.isNotEmpty()
+        }
+
+        if (statusResult.isFailure) {
+            return Result.failure(statusResult.exceptionOrNull() ?: Exception("Failed to check status"))
+        }
+        val hasStagedChanges = statusResult.getOrNull() == true
+
+        if (!hasStagedChanges) {
+            return Result.failure(Exception("Nothing to commit"))
+        }
+
         return try {
             val config = core.gitConfigDataStore.configFlow.first()
             core.withGit(repoPath) { git ->
                 val storedConfig = git.repository.config
+                
+                // 保存原始配置值
+                val originalName = storedConfig.getString("user", null, "name")
+                val originalEmail = storedConfig.getString("user", null, "email")
+                
+                // 临时设置用户配置
                 if (config.userName.isNotBlank() || config.userEmail.isNotBlank()) {
                     if (config.userName.isNotBlank()) {
                         storedConfig.setString("user", null, "name", config.userName)
@@ -179,11 +199,29 @@ class JGitCommitDataSource @Inject constructor(
                     storedConfig.save()
                 }
 
-                val commit = git.commit()
-                    .setMessage(message)
-                    .setAllowEmpty(false)
-                    .call()
-                commit.id.name()
+                val commitHash = try {
+                    git.commit()
+                        .setMessage(message)
+                        .setAllowEmpty(false)
+                        .call()
+                        .id.name()
+                } finally {
+                    // 恢复原始配置
+                    if (originalName != null) {
+                        storedConfig.setString("user", null, "name", originalName)
+                    } else {
+                        storedConfig.unset("user", null, "name")
+                    }
+                    
+                    if (originalEmail != null) {
+                        storedConfig.setString("user", null, "email", originalEmail)
+                    } else {
+                        storedConfig.unset("user", null, "email")
+                    }
+                    storedConfig.save()
+                }
+                
+                commitHash
             }
         } catch (e: LockFailedException) {
             Result.failure(Exception("Cannot commit: repository lock failed."))
@@ -195,6 +233,10 @@ class JGitCommitDataSource @Inject constructor(
     override fun reset(repoPath: String, commitHash: String, mode: GitResetMode): Result<String> {
         return try {
             core.withGit(repoPath) { git ->
+                // 验证 commitHash 是否存在
+                git.repository.resolve(commitHash)
+                    ?: throw Exception("Commit not found: $commitHash")
+
                 val resetCommand = git.reset().setRef(commitHash)
                 when (mode) {
                     GitResetMode.SOFT -> resetCommand.setMode(org.eclipse.jgit.api.ResetCommand.ResetType.SOFT)
