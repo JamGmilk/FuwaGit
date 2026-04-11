@@ -350,7 +350,7 @@ fun RepoListContent(
         }
 
         LazyColumn(
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier.fillMaxSize().clip(AppShapes.small),
             verticalArrangement = Arrangement.spacedBy(10.dp),
             contentPadding = PaddingValues(vertical = 8.dp)
         ) {
@@ -366,7 +366,6 @@ fun RepoListContent(
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun RepoItemCard(
     item: RepoFolderItem,
@@ -635,8 +634,6 @@ private fun RepoHeader(
     onCopyPath: () -> Unit
 ) {
     val context = LocalContext.current
-    
-    // Pre-fetch strings for use in non-composable contexts
     val strPathCopied = stringResource(R.string.myrepos_path_copied)
 
     Row(

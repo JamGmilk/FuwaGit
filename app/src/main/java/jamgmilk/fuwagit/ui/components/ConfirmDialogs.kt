@@ -44,14 +44,11 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -110,8 +107,6 @@ fun TwoStepConfirmDialog(
     onConfirm: () -> Unit,
     onDismiss: () -> Unit
 ) {
-    var step by remember { mutableIntStateOf(1) }
-    var confirmInput by remember { mutableStateOf("") }
     val colors = MaterialTheme.colorScheme
 
     val iconData = Icons.Default.Warning
@@ -145,14 +140,12 @@ fun TwoStepConfirmDialog(
             Column(
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                // 操作描述
                 Text(
                     text = description,
                     style = MaterialTheme.typography.bodyMedium,
                     color = colors.onSurfaceVariant
                 )
 
-                // 目标名称高亮
                 if (targetName.isNotBlank()) {
                     Box(
                         modifier = Modifier
@@ -170,7 +163,6 @@ fun TwoStepConfirmDialog(
                     }
                 }
 
-                // 警告信息
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -183,60 +175,21 @@ fun TwoStepConfirmDialog(
                         color = colors.onErrorContainer
                     )
                 }
-
-                // 第二步：输入确认
-                if (step >= 2) {
-                    Spacer(Modifier.height(8.dp))
-                    Text(
-                        text = stringResource(R.string.dialog_confirm_type_confirm_format, confirmText),
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = colors.error
-                    )
-                    OutlinedTextField(
-                        value = confirmInput,
-                        onValueChange = { confirmInput = it },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(8.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = colors.error,
-                            focusedLabelColor = colors.error
-                        )
-                    )
-                }
             }
         },
         confirmButton = {
-            if (step == 1) {
-                Button(
-                    onClick = { step = 2 },
-                    colors = ButtonDefaults.buttonColors(containerColor = iconColor),
-                    shape = RoundedCornerShape(10.dp)
-                ) {
-                    Icon(
-                        Icons.Default.Warning,
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Spacer(Modifier.width(6.dp))
-                    Text(stringResource(R.string.action_i_understand))
-                }
-            } else {
-                Button(
-                    onClick = onConfirm,
-                    enabled = confirmInput == confirmText,
-                    colors = ButtonDefaults.buttonColors(containerColor = colors.error),
-                    shape = RoundedCornerShape(10.dp)
-                ) {
-                    Icon(
-                        Icons.Default.Clear,
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Spacer(Modifier.width(6.dp))
-                    Text(confirmText)
-                }
+            Button(
+                onClick = onConfirm,
+                colors = ButtonDefaults.buttonColors(containerColor = iconColor),
+                shape = RoundedCornerShape(10.dp)
+            ) {
+                Icon(
+                    Icons.Default.Warning,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(Modifier.width(6.dp))
+                Text(confirmText)
             }
         },
         dismissButton = {
@@ -248,9 +201,6 @@ fun TwoStepConfirmDialog(
     )
 }
 
-/**
- * Reset 确认对话框
- */
 @Composable
 fun ResetConfirmDialog(
     commit: GitCommit,
@@ -456,9 +406,8 @@ fun ResetConfirmDialog(
         },
         shape = RoundedCornerShape(24.dp)
     )
-}/**
- * 操作结果对话框 - 显示成功、失败或冲突信息
- */
+}
+
 @Composable
 fun OperationResultDialog(
     result: OperationResult,
@@ -587,9 +536,6 @@ fun OperationResultDialog(
     )
 }
 
-/**
- * Clean 操作预览对话框
- */
 @Composable
 fun CleanPreviewDialog(
     untrackedFiles: List<String>,
@@ -764,9 +710,6 @@ fun CleanPreviewDialog(
     )
 }
 
-/**
- * Clean 操作结果对话框 - 显示已删除的文件列表
- */
 @Composable
 fun CleanResultDialog(
     cleanedFiles: List<String>,
@@ -872,9 +815,6 @@ fun CleanResultDialog(
     )
 }
 
-/**
- * 冲突解决对话框
- */
 @Composable
 fun ConflictResolutionDialog(
     conflictResult: ConflictResult,

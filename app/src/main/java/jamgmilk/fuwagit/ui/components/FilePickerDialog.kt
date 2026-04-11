@@ -2,7 +2,6 @@ package jamgmilk.fuwagit.ui.components
 
 import android.os.Environment
 import android.util.Log
-import jamgmilk.fuwagit.BuildConfig
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
@@ -39,7 +38,6 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -50,7 +48,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -58,6 +55,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import jamgmilk.fuwagit.BuildConfig
 import jamgmilk.fuwagit.R
 import jamgmilk.fuwagit.ui.theme.AppShapes
 import jamgmilk.fuwagit.ui.theme.DialogShapes
@@ -254,7 +252,10 @@ fun FilePickerDialog(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.weight(1f, fill = false)
+                    ) {
                         Icon(
                             Icons.Default.FolderOpen,
                             contentDescription = null,
@@ -265,7 +266,9 @@ fun FilePickerDialog(
                         Text(
                             text = title,
                             style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                     }
                     Row {
@@ -278,7 +281,7 @@ fun FilePickerDialog(
                                 imageVector = Icons.Default.Add,
                                 contentDescription = stringResource(R.string.filepicker_create_folder),
                                 tint = colors.onSurfaceVariant,
-                                modifier = Modifier.size(28.dp)
+                                modifier = Modifier.size(24.dp)
                             )
                         }
                         IconButton(onClick = { loadFiles(currentPath) }) {
@@ -286,7 +289,7 @@ fun FilePickerDialog(
                                 imageVector = Icons.Default.Refresh,
                                 contentDescription = stringResource(R.string.action_refresh),
                                 tint = colors.onSurfaceVariant,
-                                modifier = Modifier.size(28.dp)
+                                modifier = Modifier.size(24.dp)
                             )
                         }
                     }
