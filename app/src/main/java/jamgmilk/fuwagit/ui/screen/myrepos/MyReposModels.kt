@@ -45,18 +45,3 @@ data class RepoUiState(
     val httpsCredentials: List<HttpsCredential> = emptyList(),
     val sshKeys: List<SshKey> = emptyList()
 )
-
-// TODO: 何意味
-data class HttpsCredentialItem(
-    val uuid: String,
-    val host: String,
-    val username: String,
-    val displayName: String
-)
-
-data class SshKeyItem(
-    val uuid: String,
-    val name: String,
-    val fingerprint: String,
-    val displayName: String
-)

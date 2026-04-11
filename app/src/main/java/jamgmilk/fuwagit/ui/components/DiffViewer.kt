@@ -4,10 +4,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
@@ -35,7 +33,6 @@ import jamgmilk.fuwagit.domain.model.git.DiffLine
 import jamgmilk.fuwagit.domain.model.git.DiffLineType
 import jamgmilk.fuwagit.domain.model.git.FileDiff
 import jamgmilk.fuwagit.domain.model.git.InlineDiff
-import jamgmilk.fuwagit.domain.model.git.InlineDiffSegment
 import jamgmilk.fuwagit.ui.util.CodeSyntaxHighlighter
 
 /**
@@ -49,8 +46,6 @@ fun DiffViewer(
     fileDiff: FileDiff,
     modifier: Modifier = Modifier
 ) {
-    val colors = MaterialTheme.colorScheme
-
     Column(modifier = modifier) {
         // 文件头信息
         DiffFileHeader(fileDiff = fileDiff)
@@ -103,7 +98,7 @@ private fun DiffFileHeader(fileDiff: FileDiff) {
         Text(
             text = fileDiff.path,
             style = MaterialTheme.typography.bodyMedium,
-            fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+            fontWeight = FontWeight.Bold,
             color = colors.onSurface,
             maxLines = 2,
             overflow = TextOverflow.Ellipsis
@@ -306,7 +301,7 @@ private fun InlineDiffContent(
                     DiffLineType.Deleted -> SpanStyle(
                         background = deletedHighlightColor.copy(alpha = 0.4f),
                         color = baseTextColor,
-                        textDecoration = androidx.compose.ui.text.style.TextDecoration.LineThrough,
+                        textDecoration = TextDecoration.LineThrough,
                         fontFamily = FontFamily.Monospace
                     )
                     else -> SpanStyle(

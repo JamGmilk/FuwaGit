@@ -64,10 +64,6 @@ class OnboardingViewModel @Inject constructor(
         }
     }
 
-    fun goToStep(step: OnboardingStep) {
-        _uiState.update { it.copy(currentStep = step) }
-    }
-
     fun nextStep() {
         val next = entriesOf<OnboardingStep>().getOrNull(_uiState.value.currentStep.ordinal + 1)
         if (next != null) {

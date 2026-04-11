@@ -35,7 +35,6 @@ class MasterKeyManager @Inject constructor(
 
     companion object {
         private const val TAG = "MasterKeyManager"
-        private const val KEYSTORE_ALIAS = "fuwagit_credential_key"
         private const val KEYSTORE_BIOMETRIC_ALIAS = "fuwagit_biometric_key"
         private const val PREFS_NAME = "credential_key_store"
         private const val KEY_ENCRYPTED_MASTER = "encrypted_master_key"
@@ -160,7 +159,7 @@ class MasterKeyManager @Inject constructor(
             createBiometricKey()
 
             if (BuildConfig.DEBUG) Log.d(TAG, "enableBiometric: creating cipher")
-            val cipher = createBiometricCipher(Cipher.ENCRYPT_MODE)
+            val cipher = createBiometricCipher()
 
             biometricAuthManager.authenticateWithCrypto(
                 activity = activity,
@@ -357,10 +356,10 @@ class MasterKeyManager @Inject constructor(
         keyGenerator.generateKey()
     }
 
-    private fun createBiometricCipher(mode: Int): Cipher {
+    private fun createBiometricCipher(): Cipher {
         val secretKey = keyStore.getKey(KEYSTORE_BIOMETRIC_ALIAS, null) as SecretKey
         val cipher = Cipher.getInstance("AES/GCM/NoPadding")
-        cipher.init(mode, secretKey)
+        cipher.init(Cipher.ENCRYPT_MODE, secretKey)
         return cipher
     }
 

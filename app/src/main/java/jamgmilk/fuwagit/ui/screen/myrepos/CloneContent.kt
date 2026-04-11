@@ -93,7 +93,7 @@ internal fun CloneContent(
     var debouncedUrl by remember { mutableStateOf("") }
     var localPath by remember { mutableStateOf("") }
     var suggestedFolderName by remember { mutableStateOf("") }
-    var validationResult by remember { mutableStateOf<UrlValidationResult>(UrlValidationResult(false, UrlProtocol.NONE)) }
+    var validationResult by remember { mutableStateOf(UrlValidationResult(false, UrlProtocol.NONE)) }
     var error by remember { mutableStateOf<String?>(null) }
     var isLoading by remember { mutableStateOf(false) }
 
@@ -125,10 +125,10 @@ internal fun CloneContent(
 
     LaunchedEffect(debouncedUrl) {
         validationResult = validateUrl(debouncedUrl)
-        if (validationResult.isValid && debouncedUrl.isNotBlank()) {
-            suggestedFolderName = extractRepoName(debouncedUrl)
+        suggestedFolderName = if (validationResult.isValid && debouncedUrl.isNotBlank()) {
+            extractRepoName(debouncedUrl)
         } else {
-            suggestedFolderName = ""
+            ""
         }
     }
 
@@ -138,7 +138,6 @@ internal fun CloneContent(
 
     val isHttps = validationResult.protocol == UrlProtocol.HTTPS
     val isSsh = validationResult.protocol == UrlProtocol.SSH
-    val hasCredentials = (isHttps && httpsCredentials.isNotEmpty()) || (isSsh && sshKeys.isNotEmpty())
     val showCredentialSection = isHttps || isSsh
 
     Column(
@@ -226,7 +225,6 @@ internal fun CloneContent(
             val selectedCred = httpsCredentials.find { it.uuid == selectedHttpsUuid }
             CredentialSelector(
                 label = if (selectedCred != null) stringResource(R.string.clone_credential_selected_format, selectedCred.username) else stringResource(R.string.clone_credential_selector_https),
-                isEnabled = true,
                 onClick = { showCredentialDialog = true }
             )
         }
@@ -235,7 +233,6 @@ internal fun CloneContent(
             val selectedKey = sshKeys.find { it.uuid == selectedSshUuid }
             CredentialSelector(
                 label = if (selectedKey != null) stringResource(R.string.clone_credential_selected_ssh, selectedKey.name) else stringResource(R.string.clone_credential_selector_ssh),
-                isEnabled = true,
                 onClick = { showCredentialDialog = true }
             )
         }
@@ -390,22 +387,17 @@ internal fun CloneContent(
 @Composable
 private fun CredentialSelector(
     label: String,
-    isEnabled: Boolean,
     onClick: () -> Unit
 ) {
     OutlinedCard(
         onClick = onClick,
-        enabled = isEnabled,
+        enabled = true,
         shape = AppShapes.extraSmall,
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.outlinedCardColors(
-            containerColor = if (isEnabled) {
-                MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.4f)
-            } else {
-                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f)
-            }
+            containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.4f)
         ),
-        border = CardDefaults.outlinedCardBorder(enabled = isEnabled)
+        border = CardDefaults.outlinedCardBorder(enabled = true)
     ) {
         Row(
             modifier = Modifier
@@ -418,14 +410,14 @@ private fun CredentialSelector(
                 Icon(
                     imageVector = if (label.startsWith("Using:")) Icons.Default.CheckCircle else Icons.Default.Key,
                     contentDescription = null,
-                    tint = if (isEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                    tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(20.dp)
                 )
                 Spacer(Modifier.width(12.dp))
                 Text(
                     text = label,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = if (isEnabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
+                    color = MaterialTheme.colorScheme.onSurface
                 )
             }
         }

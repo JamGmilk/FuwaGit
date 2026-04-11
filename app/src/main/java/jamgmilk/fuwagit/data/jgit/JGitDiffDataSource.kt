@@ -10,18 +10,12 @@ import jamgmilk.fuwagit.domain.model.git.InlineDiffSegment
 import org.eclipse.jgit.diff.DiffEntry
 import org.eclipse.jgit.diff.DiffEntry.ChangeType
 import org.eclipse.jgit.diff.DiffFormatter
-import org.eclipse.jgit.diff.RawText
 import org.eclipse.jgit.diff.RawTextComparator
-import org.eclipse.jgit.lib.ObjectReader
 import org.eclipse.jgit.lib.Repository
-import org.eclipse.jgit.revwalk.RevCommit
 import org.eclipse.jgit.revwalk.RevTree
 import org.eclipse.jgit.revwalk.RevWalk
-import org.eclipse.jgit.treewalk.AbstractTreeIterator
-import org.eclipse.jgit.treewalk.CanonicalTreeParser
 import org.eclipse.jgit.treewalk.TreeWalk
 import org.eclipse.jgit.util.io.DisabledOutputStream
-import java.io.ByteArrayOutputStream
 import java.io.File
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -183,23 +177,17 @@ class JGitDiffDataSource @Inject constructor(
         newTree: RevTree?,
         filePath: String
     ): List<DiffEntry> {
-        val outputStream = DisabledOutputStream.INSTANCE
-        val diffFormatter = DiffFormatter(outputStream)
-        diffFormatter.setRepository(repository)
-        diffFormatter.setDiffComparator(RawTextComparator.DEFAULT)
-
-        return try {
+        return DiffFormatter(DisabledOutputStream.INSTANCE).use { diffFormatter ->
+            diffFormatter.setRepository(repository)
+            diffFormatter.setDiffComparator(RawTextComparator.DEFAULT)
             val entries = if (newTree == null) {
                 diffFormatter.scan(oldTree, null)
             } else {
                 diffFormatter.scan(oldTree, newTree)
             }
-
             entries.filter { entry ->
                 entry.newPath == filePath || entry.oldPath == filePath
             }
-        } finally {
-            diffFormatter.close()
         }
     }
 
@@ -208,15 +196,10 @@ class JGitDiffDataSource @Inject constructor(
         oldTree: RevTree,
         newTree: RevTree
     ): List<DiffEntry> {
-        val outputStream = DisabledOutputStream.INSTANCE
-        val diffFormatter = DiffFormatter(outputStream)
-        diffFormatter.setRepository(repository)
-        diffFormatter.setDiffComparator(RawTextComparator.DEFAULT)
-
-        return try {
+        return DiffFormatter(DisabledOutputStream.INSTANCE).use { diffFormatter ->
+            diffFormatter.setRepository(repository)
+            diffFormatter.setDiffComparator(RawTextComparator.DEFAULT)
             diffFormatter.scan(oldTree, newTree)
-        } finally {
-            diffFormatter.close()
         }
     }
 
@@ -486,7 +469,7 @@ class JGitDiffDataSource @Inject constructor(
                     operations.add(Triple("added", -1, j - 1))
                     j--
                 }
-                i > 0 && (j == 0 || dp[i][j - 1] < dp[i - 1][j]) -> {
+                j == 0 || dp[i][j - 1] < dp[i - 1][j] -> {
                     operations.add(Triple("deleted", i - 1, -1))
                     i--
                 }
@@ -576,7 +559,7 @@ class JGitDiffDataSource @Inject constructor(
                     diffResult.add(Triple(null, j, DiffLineType.Added))
                     j--
                 }
-                i > 0 && (j == 0 || dp[i][j - 1] < dp[i - 1][j]) -> {
+                j == 0 || dp[i][j - 1] < dp[i - 1][j] -> {
                     diffResult.add(Triple(i, null, DiffLineType.Deleted))
                     i--
                 }
@@ -590,7 +573,7 @@ class JGitDiffDataSource @Inject constructor(
         var oldLineNum = 1
         var newLineNum = 1
 
-        for ((oldL, newL, type) in diffResult) {
+        for ((_, _, type) in diffResult) {
             val line = when (type) {
                 DiffLineType.Context -> {
                     val line = DiffLine(
@@ -648,6 +631,5 @@ class JGitDiffDataSource @Inject constructor(
         ChangeType.MODIFY -> GitChangeType.Modified
         ChangeType.RENAME -> GitChangeType.Renamed
         ChangeType.COPY -> GitChangeType.Added
-        else -> GitChangeType.Modified
     }
 }

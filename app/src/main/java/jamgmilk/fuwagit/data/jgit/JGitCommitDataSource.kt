@@ -18,10 +18,7 @@ class JGitCommitDataSource @Inject constructor(
 
     override fun getLog(repoPath: String, maxCount: Int): Result<List<GitCommit>> =
         core.withGit(repoPath) { git ->
-            val headRef = git.repository.resolve("HEAD")
-            if (headRef == null) {
-                return@withGit emptyList()
-            }
+            git.repository.resolve("HEAD") ?: return@withGit emptyList()
             git.log().setMaxCount(maxCount).call().map { revCommit ->
                 val author = revCommit.authorIdent
                 GitCommit(
@@ -60,8 +57,7 @@ class JGitCommitDataSource @Inject constructor(
 
                 if (parentTree != null) {
                     val outputStream = java.io.ByteArrayOutputStream()
-                    val diffFormatter = org.eclipse.jgit.diff.DiffFormatter(outputStream)
-                    try {
+                    org.eclipse.jgit.diff.DiffFormatter(outputStream).use { diffFormatter ->
                         diffFormatter.setRepository(repository)
                         val diffEntries = diffFormatter.scan(parentTree.id, tree.id)
                         for (diffEntry in diffEntries) {
@@ -93,9 +89,9 @@ class JGitCommitDataSource @Inject constructor(
                                     additions = maxOf(0, newLines - oldLines)
                                     deletions = maxOf(0, oldLines - newLines)
                                 }
-                                GitChangeType.Renamed,
-                                GitChangeType.Untracked,
-                                GitChangeType.Conflicting -> {
+                                GitChangeType.Renamed -> {
+                                }
+                                else -> {
                                 }
                             }
 
@@ -111,12 +107,9 @@ class JGitCommitDataSource @Inject constructor(
                             totalAdditions += additions
                             totalDeletions += deletions
                         }
-                    } finally {
-                        diffFormatter.close()
                     }
                 } else {
-                    val walk = org.eclipse.jgit.treewalk.TreeWalk(repository)
-                    try {
+                    org.eclipse.jgit.treewalk.TreeWalk(repository).use { walk ->
                         walk.addTree(tree)
                         walk.isRecursive = true
                         while (walk.next()) {
@@ -136,8 +129,6 @@ class JGitCommitDataSource @Inject constructor(
                                 )
                             )
                         }
-                    } finally {
-                        walk.close()
                     }
                 }
             } finally {

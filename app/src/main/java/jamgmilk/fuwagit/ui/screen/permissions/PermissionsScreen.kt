@@ -22,15 +22,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Key
-import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material.icons.filled.Verified
@@ -40,7 +37,6 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -62,7 +58,6 @@ import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
@@ -77,11 +72,11 @@ import jamgmilk.fuwagit.ui.screen.credentials.CredentialType
 
 @Composable
 fun PermissionsScreen(
+    onBack: () -> Unit,
+    modifier: Modifier = Modifier,
     sshKeys: List<SshKey> = emptyList(),
     onTestSshConnection: (host: String, sshKeyUuid: String) -> Unit,
-    sshTestResult: SshTestResult = SshTestResult.Idle,
-    onBack: () -> Unit,
-    modifier: Modifier = Modifier
+    sshTestResult: SshTestResult = SshTestResult.Idle
 ) {
     val context = LocalContext.current
 
@@ -210,7 +205,6 @@ private fun SystemPermissionsCard(
                     status = allFilesStatus,
                     actionLabel = stringResource(R.string.permissions_grant),
                     onAction = onRequestAllFilesAccess,
-                    actionEnabled = true,
                     accentColor = colors.primary
                 )
             }
@@ -382,7 +376,6 @@ private fun SshTestCard(
                     val message = when (sshTestResult) {
                         is SshTestResult.Success -> sshTestResult.message
                         is SshTestResult.Failure -> sshTestResult.message
-                        else -> ""
                     }
 
                     Surface(
@@ -462,7 +455,6 @@ private fun PermissionItem(
     status: PermissionStatus,
     actionLabel: String,
     onAction: () -> Unit,
-    actionEnabled: Boolean,
     accentColor: Color
 ) {
     val colors = MaterialTheme.colorScheme
@@ -508,7 +500,7 @@ private fun PermissionItem(
             Spacer(Modifier.height(6.dp))
             Button(
                 onClick = onAction,
-                enabled = actionEnabled,
+                enabled = true,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = accentColor,
                     disabledContainerColor = accentColor.copy(alpha = 0.3f)

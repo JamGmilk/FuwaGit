@@ -4,7 +4,6 @@ import jamgmilk.fuwagit.domain.model.git.CleanResult
 import jamgmilk.fuwagit.domain.model.git.ConflictResult
 import jamgmilk.fuwagit.domain.model.git.GitConflict
 import jamgmilk.fuwagit.domain.model.git.ConflictStatus
-import org.eclipse.jgit.api.Git
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -163,7 +162,6 @@ class JGitMergeDataSource @Inject constructor(
     override fun markConflictResolved(repoPath: String, filePath: String): Result<Unit> =
         core.withGit(repoPath) { git ->
             git.add().addFilepattern(filePath).call()
-            Unit
         }
 
     override fun abortRebase(repoPath: String): Result<String> =

@@ -60,18 +60,4 @@ class DiffUseCase @Inject constructor(
         }
         return repository.getCommitDiff(repoPath, oldCommit, newCommit)
     }
-
-    suspend fun getFileContent(
-        repoPath: String,
-        filePath: String,
-        commitHash: String? = null
-    ): AppResult<String> {
-        if (repoPath.isBlank()) {
-            return AppResult.Error(AppException.Validation("Repository path cannot be empty"))
-        }
-        if (filePath.isBlank()) {
-            return AppResult.Error(AppException.Validation("File path cannot be empty"))
-        }
-        return repository.getFileContent(repoPath, filePath, commitHash)
-    }
 }

@@ -56,14 +56,8 @@ data class DiffLine(
     val newLineNumber: Int? = null,
     val inlineDiff: InlineDiff? = null
 ) {
-    /**
-     * Get line display with symbols (for raw diff display)
-     */
-    val displayContent: String get() = when (lineType) {
-        DiffLineType.Added -> "+ $content"
-        DiffLineType.Deleted -> "- $content"
-        DiffLineType.Context -> "  $content"
-        DiffLineType.Header -> content
+    companion object {
+        private const val serialVersionUID: Long = 1L
     }
 }
 
@@ -124,51 +118,4 @@ data class FileDiff(
      * File path (prefers new path)
      */
     val path: String get() = if (changeType == GitChangeType.Renamed) "$oldPath → $newPath" else newPath
-
-    /**
-     * File name
-     */
-    val fileName: String get() = newPath.substringAfterLast("/")
-
-    /**
-     * Total number of changed lines
-     */
-    val totalChanges: Int get() = additions + deletions
-
-    /**
-     * Whether only whitespace changed
-     */
-    val isWhitespaceOnly: Boolean
-        get() {
-            if (hunks.isEmpty()) return false
-            return hunks.all { hunk ->
-                hunk.lines.all { line ->
-                    line.content.trim().isEmpty()
-                }
-            }
-        }
 }
-
-/**
- * Working tree file diff query parameters
- *
- * @param filePath File path
- * @param isStaged Whether to view staged changes (true: staged vs HEAD, false: working tree vs staged)
- */
-data class WorkingDiffParams(
-    val filePath: String,
-    val isStaged: Boolean = false
-)
-
-/**
- * File diff query parameters between commits
- *
- * @param filePath File path
- * @param oldCommit Old commit hash (supports HEAD~1, HEAD^, etc.)
- * @param newCommit New commit hash (defaults to HEAD)
- */
-data class CommitDiffParams(
-    val filePath: String,
-    val oldCommit: String,
-    val newCommit: String = "HEAD"
-)

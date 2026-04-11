@@ -1,7 +1,6 @@
 package jamgmilk.fuwagit.data.repository
 
 import jamgmilk.fuwagit.core.result.AppResult
-import jamgmilk.fuwagit.core.result.AppException
 import jamgmilk.fuwagit.core.result.toAppResult
 import jamgmilk.fuwagit.data.jgit.ConflictFileInfo
 import jamgmilk.fuwagit.data.jgit.GitCommitDataSource

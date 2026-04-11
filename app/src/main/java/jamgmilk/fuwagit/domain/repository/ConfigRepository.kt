@@ -1,7 +1,5 @@
 package jamgmilk.fuwagit.domain.repository
 
-import kotlinx.coroutines.flow.Flow
-
 /**
  * Domain interface for Git configuration operations.
  * Extracted to prevent Domain → Data layer dependency violations.
@@ -10,12 +8,12 @@ interface ConfigRepository {
     /**
      * Get global Git user name.
      */
-    suspend fun getGlobalUserName(): String?
+    suspend fun getGlobalUserName(): String
 
     /**
      * Get global Git user email.
      */
-    suspend fun getGlobalUserEmail(): String?
+    suspend fun getGlobalUserEmail(): String
 
     /**
      * Set global Git user name and email.

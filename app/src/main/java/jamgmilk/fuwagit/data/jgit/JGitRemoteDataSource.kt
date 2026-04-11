@@ -25,7 +25,7 @@ class JGitRemoteDataSource @Inject constructor(
         options: CloneOptions
     ): Result<String> {
         return try {
-            val targetDir = java.io.File(localPath)
+            val targetDir = File(localPath)
 
             if (targetDir.exists() && targetDir.isDirectory) {
                 val files = targetDir.listFiles()
@@ -121,7 +121,7 @@ class JGitRemoteDataSource @Inject constructor(
                 val conflictFiles = postPullStatus.conflicting.map { path ->
                     ConflictFileInfo(
                         path = path,
-                        name = java.io.File(path).name
+                        name = File(path).name
                     )
                 }
 
@@ -176,7 +176,7 @@ class JGitRemoteDataSource @Inject constructor(
                             }
                         }
                         if (conflictFiles.isNotEmpty()) {
-                            append(" Conflict files: ${conflictFiles.map { it.path }.joinToString(", ")}")
+                            append(" Conflict files: ${conflictFiles.joinToString(", ") { it.path }}")
                         }
                     } else {
                         append("Pull failed.")
@@ -241,9 +241,10 @@ class JGitRemoteDataSource @Inject constructor(
                         if (!localAncestor && !remoteAncestor) {
                             throw Exception("Branch has diverged from remote '$targetRemote'. Fetch and merge the remote changes, or use force push to overwrite.")
                         }
-                    } else if (localRef != null && remoteRef == null) {
+                    } else if (localRef != null) {
                         // remote ref doesn't exist yet — this is a first push, allowed
-                    } else if (localRef == null) {
+                    } else {
+                        // localRef == null
                         val headRevision = try { git.repository.resolve("HEAD") } catch (_: Exception) { null }
                         if (headRevision == null) {
                             throw Exception("Repository has no commits. Make at least one commit before pushing.")

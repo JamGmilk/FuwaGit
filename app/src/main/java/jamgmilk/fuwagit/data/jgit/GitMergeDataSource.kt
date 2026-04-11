@@ -2,7 +2,6 @@ package jamgmilk.fuwagit.data.jgit
 
 import jamgmilk.fuwagit.domain.model.git.CleanResult
 import jamgmilk.fuwagit.domain.model.git.ConflictResult
-import jamgmilk.fuwagit.domain.model.git.GitConflict
 
 /**
  * Interface for Git merge, rebase, conflict resolution, and clean operations.

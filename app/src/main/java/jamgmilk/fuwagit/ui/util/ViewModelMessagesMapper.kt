@@ -64,13 +64,4 @@ object ViewModelMessagesMapper {
             else -> R.string.vm_unknown_error
         }
     }
-
-    /**
-     * Checks if a message is a known ViewModel message that should be localized.
-     * @param message The message to check
-     * @return true if the message should be localized, false if it should be displayed as-is
-     */
-    fun isKnownMessage(message: String?): Boolean {
-        return message != null && mapMessageToResource(message) != R.string.vm_unknown_error
-    }
 }

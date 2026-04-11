@@ -9,15 +9,8 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
 
-/**
- * 代码语法高亮器
- * 基于正则表达式实现基础的语法高亮
- */
 object CodeSyntaxHighlighter {
 
-    /**
-     * 语法高亮规则
-     */
     private data class SyntaxRule(
         val regex: Regex,
         val color: Color,
@@ -25,9 +18,7 @@ object CodeSyntaxHighlighter {
         val fontStyle: FontStyle? = null
     )
 
-    /**
-     * 通用编程语言的高亮规则
-     */
+
     private val rules = listOf(
         // 注释
         SyntaxRule(Regex("(//.*$|/\\*.*?\\*/|#.*$)"), Color(0xFF6A9955)),
@@ -54,125 +45,6 @@ object CodeSyntaxHighlighter {
         // 类型名（大驼峰）
         SyntaxRule(Regex("\\b([A-Z][a-zA-Z0-9]*)\\b"), Color(0xFF4EC9B0)),
     )
-
-    /**
-     * 对代码行应用语法高亮
-     *
-     * @param line 代码行内容
-     * @param isDiffLine 是否为 diff 行（已包含 +/- 符号）
-     * @return 带高亮的 AnnotatedString
-     */
-    fun highlight(line: String, isDiffLine: Boolean = false): AnnotatedString {
-        return buildAnnotatedString {
-            // 简单实现：应用基础高亮
-            var remaining = line
-            
-            // 按规则顺序应用高亮
-            val segments = mutableListOf<TextSegment>()
-            var position = 0
-            
-            for (rule in rules) {
-                val newSegments = mutableListOf<TextSegment>()
-                for (segment in segments) {
-                    if (segment.appliedRules.contains(rule)) {
-                        newSegments.add(segment)
-                        continue
-                    }
-                    
-                    var text = segment.text
-                    var offset = segment.startIndex
-                    
-                    for (match in rule.regex.findAll(text)) {
-                        val before = text.substring(0, match.range.first)
-                        val matched = text.substring(match.range)
-                        val after = text.substring(match.range.last + 1)
-                        
-                        if (before.isNotEmpty()) {
-                            newSegments.add(
-                                TextSegment(before, offset, segment.appliedRules)
-                            )
-                        }
-                        
-                        newSegments.add(
-                            TextSegment(
-                                matched,
-                                offset + match.range.first,
-                                segment.appliedRules + rule
-                            )
-                        )
-                        
-                        text = after
-                        offset += match.range.last + 1
-                    }
-                    
-                    if (text.isNotEmpty()) {
-                        newSegments.add(TextSegment(text, offset, segment.appliedRules))
-                    }
-                }
-                
-                // 处理未匹配的文本
-                if (segments.isEmpty()) {
-                    for (match in rule.regex.findAll(line)) {
-                        val before = line.substring(0, match.range.first)
-                        val matched = line.substring(match.range)
-                        val after = line.substring(match.range.last + 1)
-                        
-                        if (before.isNotEmpty()) {
-                            segments.add(TextSegment(before, 0, emptyList()))
-                        }
-                        
-                        segments.add(
-                            TextSegment(
-                                matched,
-                                match.range.first,
-                                listOf(rule)
-                            )
-                        )
-                        
-                        remaining = after
-                    }
-                }
-                
-                segments.clear()
-                segments.addAll(newSegments)
-            }
-            
-            // 如果没有匹配任何规则，使用默认样式
-            if (segments.isEmpty()) {
-                append(line)
-            } else {
-                for (segment in segments.sortedBy { it.startIndex }) {
-                    applySegment(segment)
-                }
-            }
-        }
-    }
-    
-    private data class TextSegment(
-        val text: String,
-        val startIndex: Int,
-        val appliedRules: List<SyntaxRule>
-    )
-    
-    private fun AnnotatedString.Builder.applySegment(segment: TextSegment) {
-        val style = if (segment.appliedRules.isNotEmpty()) {
-            val rule = segment.appliedRules.last()
-            SpanStyle(
-                color = rule.color,
-                fontWeight = rule.fontWeight,
-                fontStyle = rule.fontStyle,
-                fontFamily = FontFamily.Monospace
-            )
-        } else {
-            SpanStyle(
-                fontFamily = FontFamily.Monospace
-            )
-        }
-        
-        withStyle(style) {
-            append(segment.text)
-        }
-    }
 
     /**
      * 简化的语法高亮（性能更好，适合大文件）
@@ -241,13 +113,13 @@ object CodeSyntaxHighlighter {
                         remaining = remaining.substring(nextMatchPos)
                         position += nextMatchPos
                     } else if (nextMatchPos == 0 && nextRule != null) {
-                        // 当前位置有匹配
-                        val match = nextRule!!.regex.find(remaining)!!
+                        val rule = nextRule
+                        val match = rule.regex.find(remaining)!!
                         val matchedText = match.value
                         withStyle(SpanStyle(
-                            color = nextRule!!.color,
-                            fontWeight = nextRule!!.fontWeight,
-                            fontStyle = nextRule!!.fontStyle,
+                            color = rule.color,
+                            fontWeight = rule.fontWeight,
+                            fontStyle = rule.fontStyle,
                             fontFamily = FontFamily.Monospace
                         )) {
                             append(matchedText)

@@ -1,7 +1,5 @@
 package jamgmilk.fuwagit.data.jgit
 
-import jamgmilk.fuwagit.domain.model.git.GitRepoStatus
-
 interface GitOperationCheckDataSource {
     fun checkPrePullStatus(repoPath: String): Result<PrePullCheckResult>
     fun checkPrePushStatus(repoPath: String): Result<PrePushCheckResult>

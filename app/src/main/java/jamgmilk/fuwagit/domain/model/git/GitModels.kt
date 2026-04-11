@@ -193,11 +193,3 @@ data class CleanResult(
     val isEmpty: Boolean get() = files.isEmpty()
     val count: Int get() = files.size
 }
-
-data class CommitStats(
-    val totalCommits: Int,
-    val uniqueAuthors: Int,
-    val commitsToday: Int,
-    val commitsThisWeek: Int,
-    val commitsThisMonth: Int
-)

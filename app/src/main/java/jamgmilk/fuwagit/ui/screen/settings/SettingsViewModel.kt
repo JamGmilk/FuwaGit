@@ -167,19 +167,6 @@ class SettingsViewModel @Inject constructor(
         loadGlobalConfig()
     }
 
-    fun applyConfigToGlobal(name: String, email: String) {
-        viewModelScope.launch {
-            configRepository.setGlobalUserConfig(name, email)
-                .onSuccess { loadGlobalConfig() }
-        }
-    }
-
-    fun applyConfigToRepo(repoPath: String, name: String, email: String) {
-        viewModelScope.launch {
-            configRepository.setRepoUserConfig(repoPath, name, email)
-        }
-    }
-
     fun applyConfigToAllRepos(name: String, email: String, alsoApplyToGlobal: Boolean) {
         viewModelScope.launch {
             val repos = repoRepository.getAllRepos()
@@ -193,9 +180,9 @@ class SettingsViewModel @Inject constructor(
                         failureCount = result.failureCount,
                         totalCount = result.totalCount,
                         failures = result.results
-                            .filterValues { it.isFailure }
-                            .mapValues { (_, resultValue) ->
-                                resultValue.exceptionOrNull()?.message ?: "Failed to apply config"
+                            .filterValues { result -> result.isFailure }
+                            .mapValues { (_, result) ->
+                                result.exceptionOrNull()?.message ?: "Failed to apply config"
                             }
                     )
                 )

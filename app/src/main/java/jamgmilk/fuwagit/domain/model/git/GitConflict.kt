@@ -41,9 +41,7 @@ data class ConflictResult(
     val conflicts: List<GitConflict> = emptyList(),
     val message: String = ""
 ) {
-    val hasUnresolvedConflicts: Boolean get() = conflicts.any { it.status == ConflictStatus.UNRESOLVED }
     val allResolved: Boolean get() = conflicts.isNotEmpty() && conflicts.all { it.status != ConflictStatus.UNRESOLVED }
     val allStaged: Boolean get() = conflicts.isNotEmpty() && conflicts.all { it.status == ConflictStatus.STAGED }
     val unresolvedCount: Int get() = conflicts.count { it.status == ConflictStatus.UNRESOLVED }
-    val resolvedCount: Int get() = conflicts.count { it.status == ConflictStatus.RESOLVED || it.status == ConflictStatus.STAGED }
 }

@@ -54,7 +54,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -72,11 +71,8 @@ import jamgmilk.fuwagit.ui.util.ViewModelMessagesMapper
 enum class DangerousOperationType {
     DELETE_BRANCH,
     DISCARD_CHANGES,
-    CLEAN_UNTRACKED,
     MERGE,
     REBASE,
-    FORCE_PUSH,
-    RESET_HARD,
     DELETE_TAG,
     PUSH_TAG
 }

@@ -215,7 +215,7 @@ fun AppNavHost(navController: NavHostController, startDestination: String = NavR
             composable(
                 route = "${NavRoutes.FILE_DIFF}?filePath={filePath}&diffType={diffType}&oldCommit={oldCommit}&newCommit={newCommit}",
                 arguments = listOf(
-                    navArgument("filePath") { type = androidx.navigation.NavType.StringType },
+                    navArgument("filePath") { type = NavType.StringType },
                     navArgument("diffType") {
                         type = NavType.StringType
                         defaultValue = "WORKING_TREE"

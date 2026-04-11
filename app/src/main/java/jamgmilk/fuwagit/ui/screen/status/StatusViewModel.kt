@@ -3,8 +3,6 @@ package jamgmilk.fuwagit.ui.screen.status
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
-import jamgmilk.fuwagit.R
-import jamgmilk.fuwagit.core.result.AppResult
 import jamgmilk.fuwagit.ui.state.RepoStateManager
 import jamgmilk.fuwagit.domain.model.git.GitBranch
 import jamgmilk.fuwagit.domain.model.git.GitFileStatus
@@ -375,34 +373,16 @@ class StatusViewModel @Inject constructor(
 
     private suspend fun refreshCredentials() {
         withContext(Dispatchers.IO) {
-            val httpsCreds = credential.getHttpsCredentials().getOrNull() ?: emptyList()
+            val httpsCredentials = credential.getHttpsCredentials().getOrNull() ?: emptyList()
             val sshKeyList = credential.getSshKeys().getOrNull() ?: emptyList()
             withContext(Dispatchers.Main) {
                 _uiState.update {
                     it.copy(
-                        httpsCredentials = httpsCreds,
+                        httpsCredentials = httpsCredentials,
                         sshKeys = sshKeyList
                     )
                 }
             }
-        }
-    }
-
-    fun selectHttpsCredential(uuid: String?) {
-        _uiState.update {
-            it.copy(
-                selectedCredentialUuid = uuid,
-                selectedSshKeyUuid = null
-            )
-        }
-    }
-
-    fun selectSshKey(uuid: String?) {
-        _uiState.update {
-            it.copy(
-                selectedSshKeyUuid = uuid,
-                selectedCredentialUuid = null
-            )
         }
     }
 
@@ -427,10 +407,6 @@ class StatusViewModel @Inject constructor(
         val time = SimpleDateFormat("HH:mm:ss", Locale.US).format(Date())
         val line = "[$time] > $command\n$result"
         _uiState.update { it.copy(terminalOutput = it.terminalOutput + line) }
-    }
-
-    fun clearError() {
-        _uiState.update { it.copy(error = null) }
     }
 
     fun clearOperationResult() {

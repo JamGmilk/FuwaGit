@@ -2,10 +2,8 @@ package jamgmilk.fuwagit.data.jgit
 
 import jamgmilk.fuwagit.domain.model.git.GitTag
 import jamgmilk.fuwagit.domain.model.git.GitTagType
-import org.eclipse.jgit.lib.ObjectId
 import org.eclipse.jgit.lib.Ref
 import org.eclipse.jgit.lib.Repository
-import org.eclipse.jgit.revwalk.RevCommit
 import org.eclipse.jgit.revwalk.RevTag
 import org.eclipse.jgit.revwalk.RevWalk
 import javax.inject.Inject
@@ -25,7 +23,7 @@ class JGitTagDataSource @Inject constructor(
     override fun getTags(repoPath: String): Result<List<GitTag>> =
         core.withGit(repoPath) { git ->
             val repository = git.repository
-            val refList = repository.getRefDatabase().getRefsByPrefix("refs/tags/")
+            val refList = repository.refDatabase.getRefsByPrefix("refs/tags/")
             val tags = mutableListOf<GitTag>()
 
             for (ref in refList) {
@@ -51,7 +49,7 @@ class JGitTagDataSource @Inject constructor(
             }
 
             // Sort by timestamp descending (if timestamp available)
-            tags.sortWith(compareByDescending<GitTag> { it.timestamp ?: 0L })
+            tags.sortWith(compareByDescending { it.timestamp ?: 0L })
             tags
         }
 
@@ -134,8 +132,6 @@ class JGitTagDataSource @Inject constructor(
 
             // Delete tag reference
             git.tagDelete().setTags(tagName).call()
-
-            Unit
         }
 
     /**

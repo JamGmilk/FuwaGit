@@ -85,33 +85,39 @@ class RepoDataStore @Inject constructor(
 
     fun getSavedRepos(): List<RepoData> = cachedWrapper.repos
 
-    suspend fun getAllRepos(): List<RepoData> = cachedWrapper.repos
+    fun getAllRepos(): List<RepoData> = cachedWrapper.repos
 
-    fun getCurrentRepoPathFlow(): Flow<String?> = MutableStateFlow(cachedWrapper.currentRepoPath).asStateFlow()
-
-    suspend fun setCurrentRepo(path: String?) {
+    fun setCurrentRepo(path: String?) {
         persistAndNotify(cachedWrapper.repos, path)
     }
 
-    suspend fun getCurrentRepoPath(): String? = cachedWrapper.currentRepoPath
+    fun getCurrentRepoPath(): String? = cachedWrapper.currentRepoPath
 
-    suspend fun addRepo(repo: RepoData): Boolean {
-        val currentList = cachedWrapper.repos.toMutableList()
-        currentList.removeAll { it.path == repo.path }
-        currentList.add(repo)
-        persistAndNotify(currentList, cachedWrapper.currentRepoPath)
-        return true
+    fun addRepo(repo: RepoData): Boolean {
+        return try {
+            val currentList = cachedWrapper.repos.toMutableList()
+            currentList.removeAll { it.path == repo.path }
+            currentList.add(repo)
+            persistAndNotify(currentList, cachedWrapper.currentRepoPath)
+            true
+        } catch (e: Exception) {
+            false
+        }
     }
 
-    suspend fun removeRepo(path: String): Boolean {
-        val currentList = cachedWrapper.repos.toMutableList()
-        currentList.removeAll { it.path == path }
-        val newCurrentPath = if (cachedWrapper.currentRepoPath == path) null else cachedWrapper.currentRepoPath
-        persistAndNotify(currentList, newCurrentPath)
-        return true
+    fun removeRepo(path: String): Boolean {
+        return try {
+            val currentList = cachedWrapper.repos.toMutableList()
+            currentList.removeAll { it.path == path }
+            val newCurrentPath = if (cachedWrapper.currentRepoPath == path) null else cachedWrapper.currentRepoPath
+            persistAndNotify(currentList, newCurrentPath)
+            true
+        } catch (e: Exception) {
+            false
+        }
     }
 
-    suspend fun updateRepo(path: String, update: (RepoData) -> RepoData) {
+    fun updateRepo(path: String, update: (RepoData) -> RepoData) {
         val currentList = cachedWrapper.repos.toMutableList()
         val index = currentList.indexOfFirst { it.path == path }
         if (index >= 0) {
@@ -120,7 +126,7 @@ class RepoDataStore @Inject constructor(
         }
     }
 
-    suspend fun toggleFavorite(path: String) {
+    fun toggleFavorite(path: String) {
         val currentList = cachedWrapper.repos.toMutableList()
         val index = currentList.indexOfFirst { it.path == path }
         if (index >= 0) {
@@ -129,17 +135,13 @@ class RepoDataStore @Inject constructor(
         }
     }
 
-    suspend fun updateLastAccessed(path: String) {
+    fun updateLastAccessed(path: String) {
         val currentList = cachedWrapper.repos.toMutableList()
         val index = currentList.indexOfFirst { it.path == path }
         if (index >= 0) {
             currentList[index] = currentList[index].copy(lastAccessedAt = System.currentTimeMillis())
             persistAndNotify(currentList, cachedWrapper.currentRepoPath)
         }
-    }
-
-    suspend fun getLastAccessed(path: String): Long {
-        return cachedWrapper.repos.find { it.path == path }?.lastAccessedAt ?: 0L
     }
 
     companion object {

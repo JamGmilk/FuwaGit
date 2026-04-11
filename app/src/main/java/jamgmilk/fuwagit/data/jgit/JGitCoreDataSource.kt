@@ -22,7 +22,7 @@ import javax.inject.Singleton
 @Singleton
 class JGitCoreDataSource @Inject constructor(
     private val configDataStore: jamgmilk.fuwagit.data.local.prefs.GitConfigDataStore,
-    @ApplicationContext private val context: Context
+    @param:ApplicationContext private val context: Context
 ) : GitCoreDataSource {
     override val gitConfigDataStore: jamgmilk.fuwagit.data.local.prefs.GitConfigDataStore = configDataStore
 
@@ -36,6 +36,25 @@ class JGitCoreDataSource @Inject constructor(
             val privateKey: ByteArray,
             val passphrase: ByteArray?
         ) {
+            override fun equals(other: Any?): Boolean {
+                if (this === other) return true
+                if (javaClass != other?.javaClass) return false
+                other as SshKeyInfo
+                if (!privateKey.contentEquals(other.privateKey)) return false
+                if (passphrase == null) {
+                    if (other.passphrase != null) return false
+                } else {
+                    if (!passphrase.contentEquals(other.passphrase)) return false
+                }
+                return true
+            }
+
+            override fun hashCode(): Int {
+                var result = privateKey.contentHashCode()
+                result = 31 * result + (passphrase?.contentHashCode() ?: 0)
+                return result
+            }
+
             fun secureClear() {
                 Arrays.fill(privateKey, 0.toByte())
                 passphrase?.let { Arrays.fill(it, 0.toByte()) }
@@ -296,7 +315,7 @@ class JGitCoreDataSource @Inject constructor(
                             try {
                                 jsch.removeAllIdentity()
 
-                                jsch.setHostKeyRepository(FuwaHostKeyRepository(khFile))
+                                jsch.hostKeyRepository = FuwaHostKeyRepository(khFile)
 
                                 jsch.addIdentity(
                                     "fuwa-git-ssh-key",
@@ -399,10 +418,6 @@ class JGitCoreDataSource @Inject constructor(
             }
         }
 
-        private fun base64Encode(data: ByteArray): String {
-            return android.util.Base64.encodeToString(data, android.util.Base64.NO_WRAP)
-        }
-
         private fun base64Decode(str: String): ByteArray {
             return android.util.Base64.decode(str, android.util.Base64.NO_WRAP)
         }
@@ -411,7 +426,7 @@ class JGitCoreDataSource @Inject constructor(
             return REPOSITORY_ID
         }
 
-        override fun getHostKey(): Array<out HostKey>? {
+        override fun getHostKey(): Array<out HostKey> {
             return hostKeys.toTypedArray()
         }
 
@@ -443,7 +458,7 @@ class JGitCoreDataSource @Inject constructor(
                 val hk = iterator.next()
                 val matchesHost = hk.host == host
                 val matchesType = type == null || hk.type == type
-                val matchesKey = java.util.Arrays.equals(base64Decode(hk.key), key)
+                val matchesKey = base64Decode(hk.key).contentEquals(key)
                 if (matchesHost && matchesType && matchesKey) {
                     iterator.remove()
                 }
@@ -478,7 +493,7 @@ class JGitCoreDataSource @Inject constructor(
 
             for (existing in existingKeys) {
                 val existingKeyBytes = try { base64Decode(existing.key) } catch (e: Exception) { continue }
-                if (java.util.Arrays.equals(existingKeyBytes, key)) {
+                if (existingKeyBytes.contentEquals(key)) {
                     return HOST_KEY_OK
                 }
             }
