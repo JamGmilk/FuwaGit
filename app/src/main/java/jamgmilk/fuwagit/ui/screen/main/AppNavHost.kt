@@ -112,9 +112,15 @@ fun AppNavHost(navController: NavHostController, startDestination: String = NavR
 
             composable(NavRoutes.MAIN) {
                 MainScreen(
-                    onNavigateToAddRepository = { navController.navigate(NavRoutes.ADD_REPOSITORY) },
-                    onNavigateToPermissions = { navController.navigate(NavRoutes.PERMISSIONS) },
-                    onNavigateToCredentials = { navController.navigate(NavRoutes.CREDENTIALS) },
+                    onNavigateToAddRepository = {
+                        navController.navigate(NavRoutes.ADD_REPOSITORY)
+                    },
+                    onNavigateToPermissions = {
+                        navController.navigate(NavRoutes.PERMISSIONS)
+                    },
+                    onNavigateToCredentials = {
+                        navController.navigate(NavRoutes.CREDENTIALS)
+                    },
                     onViewFileDiff = { filePath, diffType ->
                         val encodedPath = java.net.URLEncoder.encode(filePath, "UTF-8")
                         navController.navigate("${NavRoutes.FILE_DIFF}?filePath=$encodedPath&diffType=$diffType")
@@ -293,7 +299,7 @@ fun MainScreen(
         Column(modifier = Modifier.weight(1f)) {
             HorizontalPager(
                 state = pagerState,
-                beyondViewportPageCount = 1,
+                beyondViewportPageCount = navItems.size - 1,
                 key = { it },
                 modifier = Modifier
                     .weight(1f)
