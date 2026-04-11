@@ -5,8 +5,11 @@ import jamgmilk.fuwagit.domain.usecase.repo.ValidateRepoUseCase
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import java.io.File
@@ -32,6 +35,9 @@ class RepoStateManager @Inject constructor(
     private val _repoInfo = MutableStateFlow(RepoInfo())
     val repoInfo: StateFlow<RepoInfo> = _repoInfo.asStateFlow()
     private val scope = CoroutineScope(Dispatchers.Main + SupervisorJob())
+
+    private val _refreshEvents = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+    val refreshEvents: SharedFlow<Unit> = _refreshEvents.asSharedFlow()
 
     init {
         scope.launch {
@@ -89,5 +95,9 @@ class RepoStateManager @Inject constructor(
             )
             ValidateRepoUseCase.ValidationResult.Cleared -> RepoInfo()
         }
+    }
+
+    suspend fun notifyRefresh() {
+        _refreshEvents.emit(Unit)
     }
 }

@@ -69,6 +69,11 @@ class BranchesViewModel @Inject constructor(
                 }
             }
         }
+        viewModelScope.launch {
+            currentRepoManager.refreshEvents.collectLatest {
+                loadBranches()
+            }
+        }
     }
 
     fun loadBranches() {
