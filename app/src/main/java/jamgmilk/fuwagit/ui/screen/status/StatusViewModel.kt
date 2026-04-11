@@ -291,6 +291,7 @@ class StatusViewModel @Inject constructor(
                 .onSuccess { result ->
                     appendTerminalLog("git commit -m \"${message.trim()}\"", result)
                     refreshWorkspace()
+                    currentRepoManager.notifyRefresh()
                 }
                 .onError { e ->
                     appendTerminalLog("git commit", "Error: ${e.message}")

@@ -60,6 +60,11 @@ class HistoryViewModel @Inject constructor(
                 }
             }
         }
+        viewModelScope.launch {
+            currentRepoManager.refreshEvents.collectLatest {
+                loadCommitHistory()
+            }
+        }
     }
 
     fun loadCommitHistory() {
