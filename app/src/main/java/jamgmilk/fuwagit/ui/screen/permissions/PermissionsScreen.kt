@@ -44,6 +44,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -228,6 +229,51 @@ private fun SshTestCard(
     var selectedKeyName by remember { mutableStateOf<String?>(null) }
     var showKeySelector by remember { mutableStateOf(false) }
 
+    var lastTestedHost by remember { mutableStateOf<String?>(null) }
+    var lastTestedKeyUuid by remember { mutableStateOf<String?>(null) }
+    var hostError by remember { mutableStateOf<String?>(null) }
+
+    val displayResult = remember(host, selectedKeyUuid, sshTestResult, lastTestedHost, lastTestedKeyUuid) {
+        derivedStateOf {
+            when (sshTestResult) {
+                is SshTestResult.Idle -> SshTestResult.Idle
+                is SshTestResult.Testing -> sshTestResult
+                is SshTestResult.Success -> {
+                    if (host == lastTestedHost && selectedKeyUuid == lastTestedKeyUuid) {
+                        sshTestResult
+                    } else {
+                        SshTestResult.Idle
+                    }
+                }
+                is SshTestResult.Failure -> {
+                    if (host == lastTestedHost && selectedKeyUuid == lastTestedKeyUuid) {
+                        sshTestResult
+                    } else {
+                        SshTestResult.Idle
+                    }
+                }
+            }
+        }
+    }.value
+
+    LaunchedEffect(sshTestResult) {
+        if (sshTestResult is SshTestResult.Success || sshTestResult is SshTestResult.Failure) {
+            lastTestedHost = host
+            lastTestedKeyUuid = selectedKeyUuid
+        }
+    }
+
+    LaunchedEffect(host) {
+        val trimmedHost = host.trim()
+        hostError = when {
+            trimmedHost.isBlank() -> null
+            !trimmedHost.contains("@") -> "Host must be in user@hostname format (e.g., git@github.com)"
+            trimmedHost.split("@").size != 2 || trimmedHost.split("@")[0].isBlank() || trimmedHost.split("@")[1].isBlank() ->
+                "Host must be in user@hostname format (e.g., git@github.com)"
+            else -> null
+        }
+    }
+
     ElevatedCard(
         modifier = modifier
             .fillMaxWidth()
@@ -281,10 +327,14 @@ private fun SshTestCard(
                     singleLine = true,
                     shape = RoundedCornerShape(12.dp),
                     modifier = Modifier.fillMaxWidth(),
+                    isError = hostError != null,
+                    supportingText = hostError?.let { { Text(it) } },
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = colors.primary,
                         focusedLabelColor = colors.primary,
-                        cursorColor = colors.primary
+                        cursorColor = colors.primary,
+                        errorBorderColor = colors.error,
+                        errorLabelColor = colors.error
                     )
                 )
 
@@ -332,16 +382,16 @@ private fun SshTestCard(
                 }
 
                 // Test button
-                val isTesting = sshTestResult is SshTestResult.Testing
-                val hasResult = sshTestResult is SshTestResult.Success || sshTestResult is SshTestResult.Failure
+                val isTesting = displayResult is SshTestResult.Testing
+                val hasResult = displayResult is SshTestResult.Success || displayResult is SshTestResult.Failure
 
                 Button(
                     onClick = {
-                        if (selectedKeyUuid != null && host.isNotBlank()) {
-                            onTestSshConnection(host, selectedKeyUuid!!)
+                        if (selectedKeyUuid != null && host.isNotBlank() && hostError == null) {
+                            onTestSshConnection(host.trim(), selectedKeyUuid!!)
                         }
                     },
-                    enabled = selectedKeyUuid != null && host.isNotBlank() && !isTesting,
+                    enabled = selectedKeyUuid != null && host.isNotBlank() && hostError == null && !isTesting,
                     colors = ButtonDefaults.buttonColors(
                         containerColor = colors.primary,
                         disabledContainerColor = colors.primary.copy(alpha = 0.3f)
@@ -372,10 +422,11 @@ private fun SshTestCard(
 
                 // Result display
                 if (hasResult) {
-                    val isSuccess = sshTestResult is SshTestResult.Success
-                    val message = when (sshTestResult) {
-                        is SshTestResult.Success -> sshTestResult.message
-                        is SshTestResult.Failure -> sshTestResult.message
+                    val isSuccess = displayResult is SshTestResult.Success
+                    val message = when (displayResult) {
+                        is SshTestResult.Success -> displayResult.message
+                        is SshTestResult.Failure -> displayResult.message
+                        else -> ""
                     }
 
                     Surface(
