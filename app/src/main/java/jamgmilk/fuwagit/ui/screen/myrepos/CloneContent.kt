@@ -71,6 +71,7 @@ import jamgmilk.fuwagit.domain.model.credential.HttpsCredential
 import jamgmilk.fuwagit.domain.model.credential.SshKey
 import jamgmilk.fuwagit.domain.model.git.CloneOptions
 import jamgmilk.fuwagit.ui.components.FilePickerDialog
+import jamgmilk.fuwagit.ui.components.SectionCard
 import jamgmilk.fuwagit.ui.screen.credentials.CredentialSelectDialog
 import jamgmilk.fuwagit.ui.screen.credentials.CredentialType
 import jamgmilk.fuwagit.ui.theme.AppShapes
@@ -82,10 +83,7 @@ internal fun CloneContent(
     onCloneComplete: (String) -> Unit
 ) {
     val context = LocalContext.current
-    // val scope = rememberCoroutineScope()
-    // val colors = MaterialTheme.colorScheme
-    
-    // Pre-fetch strings for use in non-composable contexts
+
     val strCloneSuccess = stringResource(R.string.clone_clone_success)
     val strAuthFailed = stringResource(R.string.clone_auth_failed)
 
@@ -142,18 +140,9 @@ internal fun CloneContent(
 
     Column(
         modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        Column(modifier = Modifier.fillMaxWidth()) {
-            // Section Header
-            Text(
-                text = stringResource(R.string.clone_remote_url_header),
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(start = 4.dp, bottom = 4.dp)
-            )
-
-            // TODO: 清除焦点
+        SectionCard(title = stringResource(R.string.clone_remote_url_header)) {
             OutlinedTextField(
                 value = cloneUrl,
                 onValueChange = { cloneUrl = it },
@@ -165,21 +154,10 @@ internal fun CloneContent(
                         modifier = Modifier.size(20.dp)
                     )
                 },
-                trailingIcon = {
-                    if (showCredentialSection) {
-                        Icon(
-                            imageVector = if (isHttps) Icons.Default.Lock else Icons.Default.Key,
-                            contentDescription = null,
-                            tint = colors.secondary,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
-                },
                 isError = validationResult.errorMessage != null,
                 supportingText = {
                     if (validationResult.errorMessage != null) {
                         Text(
-                            // TODO: why !!
                             text = validationResult.errorMessage!!,
                             color = colors.error
                         )
@@ -189,72 +167,61 @@ internal fun CloneContent(
                 shape = AppShapes.extraSmall,
                 modifier = Modifier.fillMaxWidth()
             )
+        }
 
-            if (showCredentialSection) {
-                Row(
-                    modifier = Modifier.padding(start = 4.dp, top = 4.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Surface(
-                        shape = RoundedCornerShape(6.dp),
-                        color = colors.secondaryContainer
-                    ) {
-                        Text(
-                            text = if (isHttps) stringResource(R.string.clone_protocol_https) else stringResource(R.string.clone_protocol_ssh),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = colors.onSecondaryContainer,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                        )
-                    }
-                    Text(
-                        text = if (isHttps) {
-                            stringResource(R.string.clone_credential_selector_https)
-                        } else {
-                            stringResource(R.string.clone_credential_selector_ssh)
-                        },
-                        style = MaterialTheme.typography.bodySmall,
-                        color = colors.onSurfaceVariant
-                    )
-                }
+        val credentialLabel = when {
+            !showCredentialSection -> stringResource(R.string.clone_credential_not_applicable)
+            isHttps -> {
+                val selectedCred = httpsCredentials.find { it.uuid == selectedHttpsUuid }
+                if (selectedCred != null)
+                    stringResource(R.string.clone_credential_selected_format, selectedCred.username)
+                else if (httpsCredentials.isEmpty())
+                    stringResource(R.string.clone_credential_no_credential)
+                else
+                    stringResource(R.string.clone_credential_selector_https)
             }
+            isSsh -> {
+                val selectedKey = sshKeys.find { it.uuid == selectedSshUuid }
+                if (selectedKey != null)
+                    stringResource(R.string.clone_credential_selected_ssh, selectedKey.name)
+                else if (sshKeys.isEmpty())
+                    stringResource(R.string.clone_credential_no_ssh_key)
+                else
+                    stringResource(R.string.clone_credential_selector_ssh)
+            }
+            else -> stringResource(R.string.clone_credential_not_applicable)
         }
 
-        if (isHttps && httpsCredentials.isNotEmpty()) {
-            val selectedCred = httpsCredentials.find { it.uuid == selectedHttpsUuid }
+        SectionCard(title = stringResource(R.string.clone_credential_header)) {
             CredentialSelector(
-                label = if (selectedCred != null) stringResource(R.string.clone_credential_selected_format, selectedCred.username) else stringResource(R.string.clone_credential_selector_https),
-                onClick = { showCredentialDialog = true }
+                label = credentialLabel,
+                onClick = { showCredentialDialog = true },
+                enabled = showCredentialSection && ((isHttps && httpsCredentials.isNotEmpty()) || (isSsh && sshKeys.isNotEmpty()))
             )
         }
 
-        if (isSsh && sshKeys.isNotEmpty()) {
-            val selectedKey = sshKeys.find { it.uuid == selectedSshUuid }
-            CredentialSelector(
-                label = if (selectedKey != null) stringResource(R.string.clone_credential_selected_ssh, selectedKey.name) else stringResource(R.string.clone_credential_selector_ssh),
-                onClick = { showCredentialDialog = true }
+        SectionCard(title = stringResource(R.string.clone_destination_label)) {
+            TargetFolderSelector(
+                localPath = localPath,
+                suggestedFolderName = suggestedFolderName,
+                isDirectoryEmpty = localPath.isBlank() || isDirectoryEmptyState,
+                onPickFolder = { showFolderPicker = true }
             )
         }
 
-        TargetFolderSelector(
-            localPath = localPath,
-            suggestedFolderName = suggestedFolderName,
-            isDirectoryEmpty = localPath.isBlank() || isDirectoryEmptyState,
-            onPickFolder = { showFolderPicker = true }
-        )
-
-        CloneOptionsSection(
-            cloneAllBranches = cloneAllBranches,
-            onCloneAllBranchesChange = { cloneAllBranches = it },
-            enableShallowClone = enableShallowClone,
-            onEnableShallowCloneChange = {
-                enableShallowClone = it
-                if (!it) shallowDepth = "50"
-            },
-            shallowDepth = shallowDepth,
-            onShallowDepthChange = { shallowDepth = it }
-        )
+        SectionCard(title = stringResource(R.string.clone_advanced_options)) {
+            CloneOptionsSection(
+                cloneAllBranches = cloneAllBranches,
+                onCloneAllBranchesChange = { cloneAllBranches = it },
+                enableShallowClone = enableShallowClone,
+                onEnableShallowCloneChange = {
+                    enableShallowClone = it
+                    if (!it) shallowDepth = "50"
+                },
+                shallowDepth = shallowDepth,
+                onShallowDepthChange = { shallowDepth = it }
+            )
+        }
 
         if (error != null) {
             Surface(
@@ -287,8 +254,7 @@ internal fun CloneContent(
                 localPath.isNotBlank() &&
                 isDirectoryEmptyState &&
                 !isLoading &&
-                (!isSsh || selectedSshUuid != null) &&
-                (!isHttps || httpsCredentials.isEmpty() || selectedHttpsUuid != null)
+                (!isSsh || selectedSshUuid != null)
 
         Button(
             onClick = {
@@ -387,17 +353,21 @@ internal fun CloneContent(
 @Composable
 private fun CredentialSelector(
     label: String,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    enabled: Boolean = true
 ) {
     OutlinedCard(
         onClick = onClick,
-        enabled = true,
+        enabled = enabled,
         shape = AppShapes.extraSmall,
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.outlinedCardColors(
-            containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.4f)
+            containerColor = if (enabled)
+                MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.4f)
+            else
+                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
         ),
-        border = CardDefaults.outlinedCardBorder(enabled = true)
+        border = CardDefaults.outlinedCardBorder(enabled = enabled)
     ) {
         Row(
             modifier = Modifier
@@ -410,14 +380,20 @@ private fun CredentialSelector(
                 Icon(
                     imageVector = if (label.startsWith("Using:")) Icons.Default.CheckCircle else Icons.Default.Key,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
+                    tint = if (enabled)
+                        MaterialTheme.colorScheme.primary
+                    else
+                        MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(20.dp)
                 )
                 Spacer(Modifier.width(12.dp))
                 Text(
                     text = label,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = if (enabled)
+                        MaterialTheme.colorScheme.onSurface
+                    else
+                        MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
@@ -441,15 +417,7 @@ internal fun TargetFolderSelector(
         else -> colorScheme.error
     }
 
-    Column(modifier = Modifier.fillMaxWidth()) {
-        Text(
-            text = stringResource(R.string.clone_destination_label),
-            style = MaterialTheme.typography.labelMedium,
-            color = colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(start = 4.dp, bottom = 8.dp)
-        )
-
-        Surface(
+    Surface(
             onClick = onPickFolder,
             shape = AppShapes.medium,
             color = colorScheme.surfaceContainerHigh,
@@ -532,7 +500,6 @@ internal fun TargetFolderSelector(
                             )
                         }
                     }
-                }
             }
         }
     }
@@ -550,65 +517,48 @@ private fun CloneOptionsSection(
     val colorScheme = MaterialTheme.colorScheme
 
     Column(
-        modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(AppShapes.medium)
+            .background(MaterialTheme.colorScheme.surfaceContainerHigh),
+        verticalArrangement = Arrangement.spacedBy(0.dp)
     ) {
-        // Section Header
-        Text(
-            text = stringResource(R.string.clone_advanced_options),
-            style = MaterialTheme.typography.labelMedium,
-            color = colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(start = 4.dp, bottom = 4.dp)
+        CloneOptionToggleRow(
+            title = stringResource(R.string.clone_all_branches),
+            description = stringResource(R.string.clone_all_branches_desc),
+            checked = cloneAllBranches,
+            onCheckedChange = onCloneAllBranchesChange,
+            icon = Icons.Default.AccountTree
         )
 
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(AppShapes.medium)
-                .background(MaterialTheme.colorScheme.surfaceContainerHigh)
-            //.padding(16.dp)
+        HorizontalDivider(
+            color = colorScheme.outlineVariant.copy(alpha = 0.5f)
+        )
+
+        CloneOptionToggleRow(
+            title = stringResource(R.string.clone_shallow_clone),
+            description = stringResource(R.string.clone_shallow_clone_desc),
+            checked = enableShallowClone,
+            onCheckedChange = onEnableShallowCloneChange,
+            icon = Icons.Default.Speed
+        )
+
+        AnimatedVisibility(
+            visible = enableShallowClone,
+            enter = expandVertically() + fadeIn(),
+            exit = shrinkVertically() + fadeOut()
         ) {
-            // Clone All Branches
-            CloneOptionToggleRow(
-                title = stringResource(R.string.clone_all_branches),
-                description = stringResource(R.string.clone_all_branches_desc),
-                checked = cloneAllBranches,
-                onCheckedChange = onCloneAllBranchesChange,
-                icon = Icons.Default.AccountTree
-            )
-
-            HorizontalDivider(
-                // modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                color = colorScheme.outlineVariant.copy(alpha = 0.5f)
-            )
-
-            // Shallow Clone
-            CloneOptionToggleRow(
-                title = stringResource(R.string.clone_shallow_clone),
-                description = stringResource(R.string.clone_shallow_clone_desc),
-                checked = enableShallowClone,
-                onCheckedChange = onEnableShallowCloneChange,
-                icon = Icons.Default.Speed
-            )
-
-            // Depth Input
-            AnimatedVisibility(
-                visible = enableShallowClone,
-                enter = expandVertically() + fadeIn(),
-                exit = shrinkVertically() + fadeOut()
-            ) {
-                Box(modifier = Modifier.padding(16.dp)) {
-                    OutlinedTextField(
-                        value = shallowDepth,
-                        onValueChange = { if (it.all { char -> char.isDigit() }) onShallowDepthChange(it) },
-                        label = { Text(stringResource(R.string.clone_commit_depth_label)) },
-                        placeholder = { Text(stringResource(R.string.clone_commit_depth_placeholder)) },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp),
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    )
-                }
+            Box(modifier = Modifier.padding(16.dp)) {
+                OutlinedTextField(
+                    value = shallowDepth,
+                    onValueChange = { if (it.all { char -> char.isDigit() }) onShallowDepthChange(it) },
+                    label = { Text(stringResource(R.string.clone_commit_depth_label)) },
+                    placeholder = { Text(stringResource(R.string.clone_commit_depth_placeholder)) },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                )
             }
         }
     }

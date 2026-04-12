@@ -347,10 +347,14 @@
     <string name="clone_repository_url_label">Repository URL</string>
     <string name="clone_protocol_https">HTTPS</string>
     <string name="clone_protocol_ssh">SSH</string>
-    <string name="clone_credential_selector_https">Select HTTPS Credential</string>
+    <string name="clone_credential_selector_https">HTTPS Credential (optional)</string>
     <string name="clone_credential_selector_ssh">Select SSH Key</string>
     <string name="clone_credential_selected_format">HTTPS: %1$s</string>
     <string name="clone_credential_selected_ssh">SSH: %1$s</string>
+    <string name="clone_credential_not_applicable">Credential not needed</string>
+    <string name="clone_credential_no_credential">No HTTPS credential stored</string>
+    <string name="clone_credential_no_ssh_key">No SSH key stored</string>
+    <string name="clone_credential_header">Credential</string>
     <string name="clone_destination_label">Destination</string>
     <string name="clone_target_path">Target Path</string>
     <string name="clone_no_folder_selected">No folder selected</string>
