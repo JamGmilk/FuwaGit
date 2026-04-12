@@ -21,6 +21,7 @@ import androidx.compose.material.icons.filled.CloudDownload
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -59,7 +60,8 @@ fun AddRepositoryScreen(
     onAddRepository: (path: String, alias: String?) -> Unit,
     modifier: Modifier = Modifier,
     selectedTab: AddRepoTab = AddRepoTab.Clone,
-    myReposViewModel: MyReposViewModel = hiltViewModel()
+    myReposViewModel: MyReposViewModel = hiltViewModel(),
+    snackbarHostState: SnackbarHostState = remember { SnackbarHostState() }
 ) {
     val context = LocalContext.current
     var currentTab by remember { mutableStateOf(selectedTab) }
@@ -70,6 +72,7 @@ fun AddRepositoryScreen(
     SubSettingsTemplate(
         title = stringResource(R.string.add_repo_screen_title),
         onBack = onBack,
+        snackbarHostState = snackbarHostState,
         modifier = modifier
     ) {
         Column(
@@ -92,6 +95,7 @@ fun AddRepositoryScreen(
                     AddRepoTab.Clone -> {
                         CloneContent(
                             myReposViewModel = myReposViewModel,
+                            snackbarHostState = snackbarHostState,
                             onCloneComplete = onCloneComplete
                         )
                     }

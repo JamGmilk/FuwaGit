@@ -241,7 +241,8 @@ class JGitCoreDataSource @Inject constructor(
 
     override fun configureCredentials(
         command: org.eclipse.jgit.api.TransportCommand<*, *>,
-        credentials: jamgmilk.fuwagit.domain.model.credential.CloneCredential?
+        credentials: jamgmilk.fuwagit.domain.model.credential.CloneCredential?,
+        skipHostKeyCheck: Boolean
     ) {
         when (credentials) {
             is jamgmilk.fuwagit.domain.model.credential.CloneCredential.Https -> {
@@ -255,7 +256,7 @@ class JGitCoreDataSource @Inject constructor(
             is jamgmilk.fuwagit.domain.model.credential.CloneCredential.Ssh -> {
                 val privateKeyBytes = credentials.privateKey.toByteArray(Charsets.UTF_8)
                 val passphraseBytes = credentials.passphrase?.toByteArray(Charsets.UTF_8)
-                configureSshForCommand(command, privateKeyBytes, passphraseBytes)
+                configureSshForCommand(command, privateKeyBytes, passphraseBytes, skipHostKeyCheck)
             }
             null -> {}
         }
@@ -264,13 +265,11 @@ class JGitCoreDataSource @Inject constructor(
     private fun configureSshForCommand(
         command: org.eclipse.jgit.api.TransportCommand<*, *>,
         privateKeyBytes: ByteArray,
-        passphraseBytes: ByteArray?
+        passphraseBytes: ByteArray?,
+        skipHostKeyCheck: Boolean
     ) {
         try {
             java.security.Security.addProvider(BouncyCastleProvider())
-
-            com.jcraft.jsch.JSch.setConfig("StrictHostKeyChecking", "yes")
-            com.jcraft.jsch.JSch.setConfig("PreferredAuthentications", "publickey")
 
             val khFile = knownHostsFile
 
@@ -281,7 +280,8 @@ class JGitCoreDataSource @Inject constructor(
                             val jsch = super.createDefaultJSch(fs)
                             try {
                                 jsch.removeAllIdentity()
-                                jsch.hostKeyRepository = FuwaHostKeyRepository(khFile)
+                                jsch.hostKeyRepository = FuwaHostKeyRepository(khFile, skipHostKeyCheck)
+
                                 jsch.addIdentity(
                                     "fuwa-git-ssh-key",
                                     privateKeyBytes,
@@ -299,7 +299,7 @@ class JGitCoreDataSource @Inject constructor(
                     }
                 }
             }
-            if (BuildConfig.DEBUG) Log.d(TAG, "SSH configured with host key verification enabled")
+            if (BuildConfig.DEBUG) Log.d(TAG, "SSH configured with host key verification ${if (skipHostKeyCheck) "disabled" else "enabled"}")
         } catch (e: Exception) {
             Arrays.fill(privateKeyBytes, 0.toByte())
             passphraseBytes?.let { Arrays.fill(it, 0.toByte()) }
@@ -324,7 +324,8 @@ class JGitCoreDataSource @Inject constructor(
      * This provides equivalent security to OpenSSH's `StrictHostKeyChecking=accept-new`.
      */
     private class FuwaHostKeyRepository(
-        private val khFile: File?
+        private val khFile: File?,
+        private val skipHostKeyCheck: Boolean = false
     ) : HostKeyRepository {
 
         private val hostKeys = mutableListOf<HostKey>()
@@ -453,10 +454,23 @@ class JGitCoreDataSource @Inject constructor(
         override fun check(host: String?, key: ByteArray?): Int {
             if (host == null || key == null) return HOST_KEY_NOT_FOUND
 
+            if (skipHostKeyCheck) {
+                Log.i(TAG, "SSH host key verification skipped for $host")
+                return HOST_KEY_OK
+            }
+
             val existingKeys = getHostKey(host, null)
 
             if (existingKeys.isNullOrEmpty()) {
-                Log.i(TAG, "New SSH host detected: $host — auto-accepting (accept-new policy)")
+                Log.i(TAG, "New SSH host detected: $host — auto-accepting and saving key (accept-new policy)")
+                val keyType = when {
+                    key.size == 32 -> 3
+                    key.size > 256 -> 0
+                    else -> 0
+                }
+                val hostKey = HostKey(host, keyType, key)
+                hostKeys.add(hostKey)
+                saveToFile()
                 return HOST_KEY_NOT_FOUND
             }
 

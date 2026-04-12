@@ -44,6 +44,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -52,6 +53,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -76,13 +78,16 @@ import jamgmilk.fuwagit.ui.screen.credentials.CredentialSelectDialog
 import jamgmilk.fuwagit.ui.screen.credentials.CredentialType
 import jamgmilk.fuwagit.ui.theme.AppShapes
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 @Composable
 internal fun CloneContent(
     myReposViewModel: MyReposViewModel,
+    snackbarHostState: SnackbarHostState,
     onCloneComplete: (String) -> Unit
 ) {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
 
     val strCloneSuccess = stringResource(R.string.clone_clone_success)
     val strAuthFailed = stringResource(R.string.clone_auth_failed)
@@ -284,7 +289,9 @@ internal fun CloneContent(
                 ) { result ->
                     isLoading = false
                     result.onSuccess {
-                        Toast.makeText(context, strCloneSuccess, Toast.LENGTH_SHORT).show()
+                        scope.launch {
+                            snackbarHostState.showSnackbar(strCloneSuccess)
+                        }
                         onCloneComplete(fullPath)
                     }.onError { e ->
                         error = e.message
