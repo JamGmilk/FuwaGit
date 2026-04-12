@@ -94,6 +94,10 @@
     <string name="settings_default_branch_label">init.defaultBranch</string>
     <string name="settings_default_branch_placeholder">main</string>
 
+    <!-- Set Upstream on Push -->
+    <string name="settings_set_upstream_on_push">首次推送时设置上游</string>
+    <string name="settings_set_upstream_on_push_subtitle">首次推送时自动设置上游分支</string>
+
     <!-- Test File Picker Dialog Title -->
     <string name="test_file_picker_title">测试文件选择器</string>
 

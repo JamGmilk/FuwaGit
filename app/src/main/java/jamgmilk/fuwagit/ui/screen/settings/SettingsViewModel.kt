@@ -22,6 +22,7 @@ data class SettingsUiState(
     val userName: String = "",
     val userEmail: String = "",
     val defaultBranch: String = "main",
+    val setUpstreamOnPush: Boolean = true,
     val autoSync: Boolean = false,
     val conflictSafeMode: Boolean = true,
     val backupBeforeSync: Boolean = true,
@@ -73,7 +74,8 @@ class SettingsViewModel @Inject constructor(
                         it.copy(
                             userName = config.userName,
                             userEmail = config.userEmail,
-                            defaultBranch = config.defaultBranch
+                            defaultBranch = config.defaultBranch,
+                            setUpstreamOnPush = config.setUpstreamOnPush
                         )
                     }
                 }
@@ -118,6 +120,12 @@ class SettingsViewModel @Inject constructor(
     fun saveDefaultBranch(branch: String) {
         viewModelScope.launch {
             settingsRepository.saveDefaultBranch(branch)
+        }
+    }
+
+    fun saveSetUpstreamOnPush(enabled: Boolean) {
+        viewModelScope.launch {
+            settingsRepository.saveSetUpstreamOnPush(enabled)
         }
     }
 

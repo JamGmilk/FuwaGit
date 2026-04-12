@@ -94,6 +94,10 @@
     <string name="settings_default_branch_label">init.defaultBranch</string>
     <string name="settings_default_branch_placeholder">main</string>
 
+    <!-- Set Upstream on Push -->
+    <string name="settings_set_upstream_on_push">Set Upstream on Push</string>
+    <string name="settings_set_upstream_on_push_subtitle">Automatically set upstream branch when pushing for the first time</string>
+
     <!-- Test File Picker Dialog Title -->
     <string name="test_file_picker_title">Test File Picker</string>
 

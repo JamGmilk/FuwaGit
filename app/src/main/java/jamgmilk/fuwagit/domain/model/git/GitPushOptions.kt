@@ -18,7 +18,8 @@ data class GitPushOptions(
     val remote: String = "origin",
     val branch: String? = null,
     val forcePush: Boolean = false,
-    val forceWithLease: Boolean = false
+    val forceWithLease: Boolean = false,
+    val setUpstreamOnPush: Boolean = true
 ) {
     companion object {
         /**

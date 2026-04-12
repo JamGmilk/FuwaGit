@@ -21,7 +21,8 @@ class SettingsRepositoryImpl @Inject constructor(
             GitConfigSettings(
                 userName = config.userName,
                 userEmail = config.userEmail,
-                defaultBranch = config.defaultBranch
+                defaultBranch = config.defaultBranch,
+                setUpstreamOnPush = config.setUpstreamOnPush
             )
         }
     }
@@ -46,6 +47,10 @@ class SettingsRepositoryImpl @Inject constructor(
 
     override suspend fun saveDefaultBranch(branch: String) {
         gitConfigDataStore.setDefaultBranch(branch)
+    }
+
+    override suspend fun saveSetUpstreamOnPush(enabled: Boolean) {
+        gitConfigDataStore.setSetUpstreamOnPush(enabled)
     }
 
     override suspend fun saveAutoSync(enabled: Boolean) {
