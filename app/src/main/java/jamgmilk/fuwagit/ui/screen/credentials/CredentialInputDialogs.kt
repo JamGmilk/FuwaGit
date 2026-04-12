@@ -128,7 +128,7 @@ fun AddHttpsCredentialDialog(
         },
         confirmButton = {
             Button(
-                onClick = { onAdd(host, username, password) },
+                onClick = { onAdd(host.trim(), username.trim(), password.trim()) },
                 enabled = host.isNotBlank() && username.isNotBlank() && password.isNotBlank(),
                 colors = ButtonDefaults.buttonColors(containerColor = colors.primary),
                 shape = RoundedCornerShape(12.dp)
@@ -221,7 +221,7 @@ fun GenerateSshKeyDialog(
         },
         confirmButton = {
             Button(
-                onClick = { onGenerate(name, selectedType, comment) },
+                onClick = { onGenerate(name.trim(), selectedType, comment.trim()) },
                 enabled = name.isNotBlank(),
                 colors = ButtonDefaults.buttonColors(containerColor = colors.tertiary),
                 shape = RoundedCornerShape(12.dp)
@@ -388,11 +388,14 @@ fun ImportSshKeyDialog(
             Button(
                 onClick = {
                     validationError = null
+                    val trimmedPrivateKey = privateKey.trim()
+                    val trimmedPublicKey = publicKey.trim()
+                    val trimmedPassphrase = passphrase.trim()
                     try {
-                        val (isValid, keyType) = validatePrivateKey(privateKey)
+                        val (isValid, keyType) = validatePrivateKey(trimmedPrivateKey)
                         if (isValid) {
                             if (BuildConfig.DEBUG) Log.d("ImportSshKeyDialog", "Key validation successful, type: $keyType")
-                            onImport(name, privateKey, publicKey.ifBlank { null }, passphrase.ifBlank { null })
+                            onImport(name.trim(), trimmedPrivateKey, trimmedPublicKey.ifBlank { null }, trimmedPassphrase.ifBlank { null })
                         }
                     } catch (e: IllegalArgumentException) {
                         validationError = e.message ?: strInvalidPrivateKey

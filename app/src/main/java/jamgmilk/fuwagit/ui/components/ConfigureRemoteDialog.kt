@@ -137,7 +137,7 @@ fun ConfigureRemoteDialog(
         },
         confirmButton = {
             Button(
-                onClick = { onSave(url, selectedHttpsUuid, selectedSshUuid) },
+                onClick = { onSave(url.trim(), selectedHttpsUuid, selectedSshUuid) },
                 enabled = saveEnabled,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.primary,

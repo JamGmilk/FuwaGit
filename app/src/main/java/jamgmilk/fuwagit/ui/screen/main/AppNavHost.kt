@@ -1,6 +1,7 @@
 package jamgmilk.fuwagit.ui.screen.main
 
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
@@ -30,6 +31,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -39,6 +41,7 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
+import androidx.fragment.app.FragmentActivity
 import jamgmilk.fuwagit.ui.navigation.AddRepoTab
 import jamgmilk.fuwagit.ui.navigation.NavRoutes
 import jamgmilk.fuwagit.ui.navigation.rememberNavItems
@@ -46,6 +49,7 @@ import jamgmilk.fuwagit.ui.screen.branches.BranchesScreen
 import jamgmilk.fuwagit.ui.screen.branches.BranchesViewModel
 import jamgmilk.fuwagit.ui.screen.credentials.CredentialScreen
 import jamgmilk.fuwagit.ui.screen.credentials.CredentialStoreViewModel
+import jamgmilk.fuwagit.ui.screen.credentials.UnlockDialog
 import jamgmilk.fuwagit.ui.screen.filediff.FileDiffScreen
 import jamgmilk.fuwagit.ui.screen.filediff.FileDiffViewModel
 import jamgmilk.fuwagit.ui.screen.history.HistoryScreen
@@ -74,27 +78,27 @@ fun AppNavHost(navController: NavHostController, startDestination: String = NavR
             startDestination = startDestination,
             enterTransition = {
                 slideInHorizontally(
-                    animationSpec = tween(220),
+                    animationSpec = tween(durationMillis = 250, easing = FastOutSlowInEasing),
                     initialOffsetX = { it }
-                ) + fadeIn(animationSpec = tween(220))
+                ) + fadeIn(animationSpec = tween(durationMillis = 250, easing = FastOutSlowInEasing))
             },
             exitTransition = {
                 slideOutHorizontally(
-                    animationSpec = tween(220),
+                    animationSpec = tween(durationMillis = 200, easing = FastOutSlowInEasing),
                     targetOffsetX = { -it / 3 }
-                ) + fadeOut(animationSpec = tween(150))
+                ) + fadeOut(animationSpec = tween(durationMillis = 150, easing = FastOutSlowInEasing))
             },
             popEnterTransition = {
                 slideInHorizontally(
-                    animationSpec = tween(220),
+                    animationSpec = tween(durationMillis = 250, easing = FastOutSlowInEasing),
                     initialOffsetX = { -it / 3 }
-                ) + fadeIn(animationSpec = tween(220))
+                ) + fadeIn(animationSpec = tween(durationMillis = 250, easing = FastOutSlowInEasing))
             },
             popExitTransition = {
                 slideOutHorizontally(
-                    animationSpec = tween(220),
+                    animationSpec = tween(durationMillis = 200, easing = FastOutSlowInEasing),
                     targetOffsetX = { it }
-                ) + fadeOut(animationSpec = tween(150))
+                ) + fadeOut(animationSpec = tween(durationMillis = 150, easing = FastOutSlowInEasing))
             }
         ) {
             composable(NavRoutes.ONBOARDING) {
@@ -186,6 +190,8 @@ fun AppNavHost(navController: NavHostController, startDestination: String = NavR
             }
 
             composable(NavRoutes.PERMISSIONS) {
+                val context = LocalContext.current
+                val activity = context as? FragmentActivity
                 val settingsViewModel: SettingsViewModel = hiltViewModel()
                 val credentialStoreViewModel: CredentialStoreViewModel = hiltViewModel()
                 val settingsUiState by settingsViewModel.uiState.collectAsStateWithLifecycle()
@@ -195,6 +201,10 @@ fun AppNavHost(navController: NavHostController, startDestination: String = NavR
                 PermissionsScreen(
                     sshKeys = credentialUiState.sshKeys,
                     onTestSshConnection = { host, sshKeyUuid ->
+                        if (!credentialUiState.isDecryptionUnlocked) {
+                            credentialStoreViewModel.showUnlockDialog()
+                            return@PermissionsScreen
+                        }
                         credentialStoreViewModel.testSshConnection(host, sshKeyUuid) { result ->
                             sshTestResult = result
                         }
@@ -202,6 +212,19 @@ fun AppNavHost(navController: NavHostController, startDestination: String = NavR
                     sshTestResult = sshTestResult,
                     onBack = { navController.popBackStack() }
                 )
+
+                if (credentialUiState.showUnlockDialog) {
+                    UnlockDialog(
+                        onDismiss = { credentialStoreViewModel.dismissUnlockDialog() },
+                        onUnlock = { password ->
+                            credentialStoreViewModel.unlockWithPassword(password)
+                        },
+                        biometricEnabled = credentialUiState.isBiometricEnabled,
+                        onUnlockWithBiometric = {
+                            activity?.let { credentialStoreViewModel.unlockWithBiometric(it) }
+                        }
+                    )
+                }
             }
 
             composable(NavRoutes.CREDENTIALS) {
@@ -250,8 +273,6 @@ fun MainScreen(
     onViewFileDiff: ((String, String) -> Unit)? = null,
     onViewCommitDiff: ((String, String, String) -> Unit)? = null
 ) {
-    // Hoist ViewModels to MainScreen scope so they are created once
-    // and reused across page swipes, rather than being recreated inside the Pager.
     val statusViewModel: StatusViewModel = hiltViewModel()
     val historyViewModel: HistoryViewModel = hiltViewModel()
     val branchesViewModel: BranchesViewModel = hiltViewModel()
