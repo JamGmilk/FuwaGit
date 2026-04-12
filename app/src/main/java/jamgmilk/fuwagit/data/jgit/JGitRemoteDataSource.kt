@@ -4,6 +4,7 @@ import android.util.Log
 import jamgmilk.fuwagit.domain.model.credential.CloneCredential
 import jamgmilk.fuwagit.domain.model.git.*
 import org.eclipse.jgit.api.Git
+import org.eclipse.jgit.lib.RepositoryState
 import java.io.File
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -222,6 +223,28 @@ class JGitRemoteDataSource @Inject constructor(
                     throw Exception("Cannot push: ${lockStatus.message}")
                 }
 
+                val repoState = git.repository.repositoryState
+                val unsafeStates = listOf(
+                    RepositoryState.REBASING,
+                    RepositoryState.REBASING_INTERACTIVE,
+                    RepositoryState.CHERRY_PICKING,
+                    RepositoryState.REVERTING,
+                    RepositoryState.BISECTING,
+                    RepositoryState.MERGING
+                )
+                if (unsafeStates.contains(repoState)) {
+                    val stateMessage = when (repoState) {
+                        RepositoryState.REBASING -> "A rebase is in progress. Complete or abort the rebase first."
+                        RepositoryState.REBASING_INTERACTIVE -> "An interactive rebase is in progress. Complete or abort it first."
+                        RepositoryState.CHERRY_PICKING -> "A cherry-pick is in progress. Complete or abort it first."
+                        RepositoryState.REVERTING -> "A revert is in progress. Complete or abort it first."
+                        RepositoryState.BISECTING -> "A bisect is in progress. Complete or abort it first."
+                        RepositoryState.MERGING -> "A merge is in progress. Complete or abort it first."
+                        else -> "Repository is in an unsafe state. Please resolve any ongoing operations first."
+                    }
+                    throw Exception(stateMessage)
+                }
+
                 val remotes = git.repository.config.getSubsections("remote")
                 val targetRemote = options.remote
                 if (!remotes.contains(targetRemote)) {
@@ -243,6 +266,7 @@ class JGitRemoteDataSource @Inject constructor(
                         }
                     } else if (localRef != null) {
                         // remote ref doesn't exist yet — this is a first push, allowed
+                        // If setUpstreamOnPush is enabled, we need to set upstream
                     } else {
                         // localRef == null
                         val headRevision = try { git.repository.resolve("HEAD") } catch (_: Exception) { null }
@@ -270,6 +294,16 @@ class JGitRemoteDataSource @Inject constructor(
 
                 core.configureCredentials(pushCommand, credentials)
                 pushCommand.call()
+
+                if (options.setUpstreamOnPush) {
+                    val currentBranch = git.repository.branch
+                    val remoteRef = git.repository.exactRef("refs/remotes/$targetRemote/$currentBranch")
+                    if (remoteRef == null) {
+                        git.repository.config.setString("branch", currentBranch, "remote", targetRemote)
+                        git.repository.config.setString("branch", currentBranch, "merge", "refs/heads/$currentBranch")
+                        git.repository.config.save()
+                    }
+                }
 
                 val forceIndicator = when {
                     options.forceWithLease -> " (force-with-lease)"

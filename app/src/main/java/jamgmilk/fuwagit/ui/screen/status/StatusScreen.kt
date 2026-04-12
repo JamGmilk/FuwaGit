@@ -17,6 +17,7 @@ import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
@@ -64,10 +65,24 @@ fun StatusScreen(
     val terminalLogs = uiState.terminalOutput
     val currentBranch = uiState.currentBranch
     val colors = MaterialTheme.colorScheme
+    val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(uiState.repoPath) {
         if (uiState.repoPath != null) {
             statusViewModel.refreshAll()
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        statusViewModel.events.collect { event ->
+            when (event) {
+                is StatusEvent.PushSuccess -> {
+                    snackbarHostState.showSnackbar(event.message)
+                }
+                is StatusEvent.PushError -> {
+                    snackbarHostState.showSnackbar("Push failed: ${event.message}")
+                }
+            }
         }
     }
 
@@ -98,7 +113,6 @@ fun StatusScreen(
         }
     }
 
-    // ✅ 直接创建 lambda（成本更低，避免 remember 的存储和键比较开销）
     val onRefresh = { statusViewModel.refreshWorkspace() }
     val onInit = { statusViewModel.initRepo() }
     val onStageAll = { statusViewModel.stageAll() }
@@ -110,7 +124,6 @@ fun StatusScreen(
     val onUnstageFile: (GitFileStatus) -> Unit = { file -> statusViewModel.unstageFile(file.path) }
     val onDiscard: (GitFileStatus) -> Unit = { file -> statusViewModel.requestDiscardChanges(file.path) }
     
-    // ✅ 保留 remember，因为 lambda 捕获了可变状态 commitMessage
     val onCommit: () -> Unit = remember {
         {
             if (commitMessage.isNotBlank()) {
@@ -123,6 +136,7 @@ fun StatusScreen(
     ScreenTemplate(
         title = stringResource(R.string.screen_status),
         modifier = modifier,
+        snackbarHostState = snackbarHostState,
         actions = {
             RefreshIconButton(
                 onClick = onRefresh,
@@ -233,7 +247,7 @@ fun StatusScreen(
                 logs = terminalLogs,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(160.dp)
+                    .height(260.dp)
             )
         }
     }

@@ -3,6 +3,7 @@ package jamgmilk.fuwagit.data.local.prefs
 import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
@@ -22,13 +23,15 @@ object GitConfigKeys {
     val USER_NAME = stringPreferencesKey("user.name")
     val USER_EMAIL = stringPreferencesKey("user.email")
     val DEFAULT_BRANCH = stringPreferencesKey("init.defaultBranch")
+    val SET_UPSTREAM_ON_PUSH = booleanPreferencesKey("push.setUpstream")
 }
 
 // Git config data class (for type-safe access)
 data class GitConfig(
     val userName: String = "",
     val userEmail: String = "",
-    val defaultBranch: String = "main"
+    val defaultBranch: String = "main",
+    val setUpstreamOnPush: Boolean = true
 )
 
 @Singleton
@@ -40,7 +43,8 @@ class GitConfigDataStore @Inject constructor(
         GitConfig(
             userName = prefs[GitConfigKeys.USER_NAME] ?: "",
             userEmail = prefs[GitConfigKeys.USER_EMAIL] ?: "",
-            defaultBranch = prefs[GitConfigKeys.DEFAULT_BRANCH] ?: "main"
+            defaultBranch = prefs[GitConfigKeys.DEFAULT_BRANCH] ?: "main",
+            setUpstreamOnPush = prefs[GitConfigKeys.SET_UPSTREAM_ON_PUSH] ?: true
         )
     }
 
@@ -54,6 +58,12 @@ class GitConfigDataStore @Inject constructor(
     suspend fun setDefaultBranch(branch: String) {
         context.gitConfigDataStore.edit { prefs ->
             prefs[GitConfigKeys.DEFAULT_BRANCH] = branch
+        }
+    }
+
+    suspend fun setSetUpstreamOnPush(enabled: Boolean) {
+        context.gitConfigDataStore.edit { prefs ->
+            prefs[GitConfigKeys.SET_UPSTREAM_ON_PUSH] = enabled
         }
     }
 }

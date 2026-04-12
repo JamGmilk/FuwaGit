@@ -280,6 +280,7 @@ class JGitCoreDataSource @Inject constructor(
                             val jsch = super.createDefaultJSch(fs)
                             try {
                                 jsch.removeAllIdentity()
+                                Log.i(TAG, "Configuring SSH: skipHostKeyCheck=$skipHostKeyCheck, khFile=${khFile?.absolutePath}")
                                 jsch.hostKeyRepository = FuwaHostKeyRepository(khFile, skipHostKeyCheck)
 
                                 jsch.addIdentity(
@@ -299,7 +300,7 @@ class JGitCoreDataSource @Inject constructor(
                     }
                 }
             }
-            if (BuildConfig.DEBUG) Log.d(TAG, "SSH configured with host key verification ${if (skipHostKeyCheck) "disabled" else "enabled"}")
+            Log.i(TAG, "SSH transport configured for command")
         } catch (e: Exception) {
             Arrays.fill(privateKeyBytes, 0.toByte())
             passphraseBytes?.let { Arrays.fill(it, 0.toByte()) }
@@ -454,6 +455,8 @@ class JGitCoreDataSource @Inject constructor(
         override fun check(host: String?, key: ByteArray?): Int {
             if (host == null || key == null) return HOST_KEY_NOT_FOUND
 
+            Log.i(TAG, "FuwaHostKeyRepository.check() called for host=$host, skipHostKeyCheck=$skipHostKeyCheck, keySize=${key.size}")
+
             if (skipHostKeyCheck) {
                 Log.i(TAG, "SSH host key verification skipped for $host")
                 return HOST_KEY_OK
@@ -471,7 +474,8 @@ class JGitCoreDataSource @Inject constructor(
                 val hostKey = HostKey(host, keyType, key)
                 hostKeys.add(hostKey)
                 saveToFile()
-                return HOST_KEY_NOT_FOUND
+                Log.i(TAG, "Saved new host key for $host to ${khFile?.absolutePath}")
+                return HOST_KEY_OK
             }
 
             for (existing in existingKeys) {

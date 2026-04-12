@@ -205,9 +205,11 @@ fun SettingsScreen(
             userName = settingsUiState.userName,
             userEmail = settingsUiState.userEmail,
             defaultBranch = settingsUiState.defaultBranch,
+            setUpstreamOnPush = settingsUiState.setUpstreamOnPush,
             applyResult = applyResult,
             onUserConfigSave = { name, email -> settingsViewModel.saveUserConfig(name, email) },
             onDefaultBranchSave = { settingsViewModel.saveDefaultBranch(it) },
+            onSetUpstreamOnPushChange = { settingsViewModel.saveSetUpstreamOnPush(it) },
             onReload = { settingsViewModel.reloadUserConfig() },
             onApplyToAllRepos = { name, email, alsoToGlobal ->
                 settingsViewModel.applyConfigToAllRepos(name, email, alsoToGlobal)
@@ -831,9 +833,11 @@ private fun GlobalConfigCard(
     userName: String,
     userEmail: String,
     defaultBranch: String,
+    setUpstreamOnPush: Boolean,
     applyResult: ApplyConfigResult?,
     onUserConfigSave: (String, String) -> Unit,
     onDefaultBranchSave: (String) -> Unit,
+    onSetUpstreamOnPushChange: (Boolean) -> Unit,
     onReload: suspend () -> Unit,
     onApplyToAllRepos: (String, String, Boolean) -> Unit,
     onClearApplyResult: () -> Unit,
@@ -1032,6 +1036,19 @@ private fun GlobalConfigCard(
                     }
                 }
             }
+
+            HorizontalDivider(
+                modifier = Modifier.padding(horizontal = 16.dp),
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
+            )
+
+            SettingsSwitchItem(
+                title = stringResource(R.string.settings_set_upstream_on_push),
+                subtitle = stringResource(R.string.settings_set_upstream_on_push_subtitle),
+                icon = Icons.Default.CloudSync,
+                checked = setUpstreamOnPush,
+                onCheckedChange = onSetUpstreamOnPushChange
+            )
         }
     }
 }

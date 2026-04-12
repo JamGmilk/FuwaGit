@@ -6,7 +6,8 @@ import kotlinx.coroutines.flow.Flow
 data class GitConfigSettings(
     val userName: String = "",
     val userEmail: String = "",
-    val defaultBranch: String = "main"
+    val defaultBranch: String = "main",
+    val setUpstreamOnPush: Boolean = true
 )
 
 interface SettingsRepository {
@@ -17,6 +18,8 @@ interface SettingsRepository {
     suspend fun saveUserConfig(name: String, email: String)
 
     suspend fun saveDefaultBranch(branch: String)
+
+    suspend fun saveSetUpstreamOnPush(enabled: Boolean)
 
     suspend fun saveAutoSync(enabled: Boolean)
 

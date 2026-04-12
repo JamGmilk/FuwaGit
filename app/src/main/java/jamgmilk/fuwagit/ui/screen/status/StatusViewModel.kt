@@ -17,8 +17,11 @@ import jamgmilk.fuwagit.domain.usecase.git.GitSyncFacade
 import jamgmilk.fuwagit.domain.usecase.git.MergeUseCase
 import jamgmilk.fuwagit.domain.usecase.credential.CredentialFacade
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.update
@@ -30,6 +33,11 @@ import javax.inject.Inject
 
 import androidx.compose.runtime.Stable
 import java.util.Locale
+
+sealed class StatusEvent {
+    data class PushSuccess(val message: String) : StatusEvent()
+    data class PushError(val message: String) : StatusEvent()
+}
 
 @Stable
 data class StatusUiState(
@@ -69,6 +77,9 @@ class StatusViewModel @Inject constructor(
 
     private val _uiState = MutableStateFlow(StatusUiState())
     val uiState: StateFlow<StatusUiState> = _uiState.asStateFlow()
+
+    private val _events = MutableSharedFlow<StatusEvent>()
+    val events: SharedFlow<StatusEvent> = _events.asSharedFlow()
 
     private var currentRepoPath: String? = null
 
@@ -338,9 +349,11 @@ class StatusViewModel @Inject constructor(
             gitSync.push(path, credentials)
                 .onSuccess { result ->
                     appendTerminalLog("git push", result)
+                    _events.emit(StatusEvent.PushSuccess(result))
                 }
                 .onError { e ->
                     appendTerminalLog("git push", "Error: ${e.message}")
+                    _events.emit(StatusEvent.PushError(e.message ?: "Push failed"))
                 }
         }
     }
