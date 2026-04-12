@@ -23,7 +23,8 @@ interface GitCoreDataSource {
 
     fun configureCredentials(
         command: org.eclipse.jgit.api.TransportCommand<*, *>,
-        credentials: CloneCredential?
+        credentials: CloneCredential?,
+        skipHostKeyCheck: Boolean = false
     )
 
     fun clearSshCredentials()

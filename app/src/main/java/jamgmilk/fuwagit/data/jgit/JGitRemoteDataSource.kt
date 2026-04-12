@@ -52,7 +52,7 @@ class JGitRemoteDataSource @Inject constructor(
                 cloneCommand.setBare(true)
             }
 
-            core.configureCredentials(cloneCommand, credentials)
+            core.configureCredentials(cloneCommand, credentials, skipHostKeyCheck = true)
             if (options.branch != null) {
                 cloneCommand.setBranch(options.branch)
             }
