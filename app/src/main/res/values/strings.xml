@@ -128,7 +128,10 @@
     <string name="settings_clear_known_hosts_subtitle">Delete the stored SSH host keys</string>
     <string name="settings_clear_known_hosts_confirm_title">Clear SSH Known Hosts</string>
     <string name="settings_clear_known_hosts_empty">No known hosts stored</string>
-    <string name="settings_clear_known_hosts_deleted">Known hosts file deleted</string>
+    <string name="settings_clear_known_hosts_deleted">Known hosts deleted</string>
+    <string name="settings_commit_editmsg_deleted">COMMIT_EDITMSG deleted</string>
+    <string name="settings_no_commit_editmsg">No COMMIT_EDITMSG file found</string>
+    <string name="settings_no_repository_selected">No repository selected</string>
     <string name="settings_clear_commit_editmsg">Clear COMMIT_EDITMSG</string>
     <string name="settings_clear_commit_editmsg_subtitle">Delete .git/COMMIT_EDITMSG in current repo</string>
     <string name="settings_clear_commit_editmsg_confirm_title">Clear COMMIT_EDITMSG</string>
@@ -181,6 +184,10 @@
     <string name="status_discard_warning">Any unstaged modifications will be permanently lost. This action cannot be undone.</string>
     <string name="status_discard_confirm">DISCARD</string>
     <string name="status_action_pull">Pull</string>
+    <string name="status_push_failed">Push failed: %1$s</string>
+    <string name="status_pull_failed">Pull failed: %1$s</string>
+    <string name="status_fetch_failed">Fetch failed: %1$s</string>
+    <string name="status_credential_unlock_required">Please unlock credential vault in Settings first</string>
     <string name="status_action_push">Push</string>
     <string name="status_action_fetch">Fetch</string>
     <string name="status_action_stage_all">Stage All</string>
@@ -331,6 +338,7 @@
     <string name="credentials_copied_to_clipboard">Copied to clipboard!</string>
     <string name="credentials_security_warning">Security Warning</string>
     <string name="credentials_importing">Importing…</string>
+    <string name="credentials_export_copied">Copied to clipboard!</string>
 
     <!-- Credential Info Dialog -->
     <string name="credential_info_host">Host</string>
@@ -374,6 +382,7 @@
     <string name="myrepos_clean_untracked_title">Clean Untracked Files</string>
     <string name="myrepos_clean_untracked_description">Remove untracked files from the working directory. This action cannot be undone. Click \'Preview\' to see which files will be deleted.</string>
     <string name="myrepos_repository_added">Repository added</string>
+    <string name="myrepos_repository_added_success">Repository added successfully</string>
     <string name="myrepos_repo_info_title">Repository Info</string>
     <string name="myrepos_not_git_repo_warning">This directory is not a Git repository</string>
     <string name="myrepos_scanning_files">Scanning for untracked files…</string>
@@ -450,6 +459,8 @@
     <string name="ssh_test_testing">Testing…</string>
     <string name="ssh_test_result_success">Connection successful</string>
     <string name="ssh_test_result_failure">Connection failed</string>
+    <string name="credentials_failed_generate_ssh_key">Failed to generate SSH key pair</string>
+    <string name="credentials_error_generating_ssh_key">Error generating SSH key: %1$s</string>
 
     <!-- ========== Permissions Screen ========== -->
     <string name="permissions_system_title">System Permissions</string>
@@ -472,6 +483,7 @@
     <string name="history_changed_files">Changed Files</string>
     <string name="history_no_file_changes">No file changes</string>
     <string name="history_reset_to_commit">Reset to this commit</string>
+    <string name="history_reset_completed">Reset to commit completed</string>
     <string name="history_time_just_now">just now</string>
     <string name="history_time_minutes_ago">%1$dm ago</string>
     <string name="history_time_hours_ago">%1$dh ago</string>

@@ -44,7 +44,7 @@ data class RepoUiState(
     val cleanMessage: String? = null,
     val httpsCredentials: List<HttpsCredential> = emptyList(),
     val sshKeys: List<SshKey> = emptyList(),
-    // 解锁状态
     val isCredentialUnlocked: Boolean = false,
-    val pendingCredentialOperation: (suspend () -> Unit)? = null
+    val pendingCredentialOperation: (suspend () -> Unit)? = null,
+    val snackbarMessage: String? = null
 )

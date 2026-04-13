@@ -57,16 +57,21 @@ fun CredentialSelectDialog(
     title: String = "Select Credential",
     httpsCredentials: List<HttpsCredential> = emptyList(),
     sshKeys: List<SshKey> = emptyList(),
+    initialType: CredentialType? = null,
     onDismiss: () -> Unit,
     onSelect: (uuid: String, type: CredentialType) -> Unit
 ) {
-    var selectedTab by remember { mutableIntStateOf(0) }
+    var selectedTab by remember { mutableIntStateOf(initialType?.let { if (it == CredentialType.HTTPS) 0 else 1 } ?: 0) }
     var selectedUuid by remember { mutableStateOf<String?>(null) }
 
     val hasHttps = httpsCredentials.isNotEmpty()
     val hasSsh = sshKeys.isNotEmpty()
+    val showTabs = initialType == null && hasHttps && hasSsh
 
-    LaunchedEffect(hasHttps, hasSsh) {
+    LaunchedEffect(hasHttps, hasSsh, initialType) {
+        if (initialType != null) {
+            return@LaunchedEffect
+        }
         if (!hasHttps && hasSsh) selectedTab = 1
         else if (hasHttps) selectedTab = 0
     }
@@ -79,8 +84,7 @@ fun CredentialSelectDialog(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                // Tab 切换区域
-                if (hasHttps && hasSsh) {
+                if (showTabs) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -110,7 +114,6 @@ fun CredentialSelectDialog(
 
                 Spacer(Modifier.height(4.dp))
 
-                // 核心列表逻辑
                 val colors = MaterialTheme.colorScheme
                 val currentItems = if (selectedTab == 0) httpsCredentials else sshKeys
                 val currentType = if (selectedTab == 0) CredentialType.HTTPS else CredentialType.SSH
@@ -118,7 +121,7 @@ fun CredentialSelectDialog(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(AppShapes.small) // 关键修复：外层统一裁切圆角
+                        .clip(AppShapes.small)
                         .border(1.dp, colors.outlineVariant, AppShapes.small)
                         .background(colors.surfaceContainerLow)
                 ) {

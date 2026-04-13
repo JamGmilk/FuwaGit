@@ -481,6 +481,7 @@ private fun SshTestCard(
     // SSH Key Selection Dialog
     if (showKeySelector) {
         CredentialSelectDialog(
+            title = stringResource(R.string.ssh_test_select_key),
             onDismiss = { showKeySelector = false },
             onSelect = { uuid, type ->
                 if (type == CredentialType.SSH || type == CredentialType.BOTH) {
@@ -493,7 +494,8 @@ private fun SshTestCard(
                 showKeySelector = false
             },
             sshKeys = sshKeys,
-            httpsCredentials = emptyList()
+            httpsCredentials = emptyList(),
+            initialType = CredentialType.SSH
         )
     }
 }
