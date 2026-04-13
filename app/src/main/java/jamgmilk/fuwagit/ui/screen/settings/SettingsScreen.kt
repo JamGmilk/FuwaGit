@@ -282,15 +282,15 @@ fun SettingsScreen(
             modifier = Modifier.fillMaxWidth()
         )
 
-        SyncSettingsCard(
-            autoSync = settingsUiState.autoSync,
-            onAutoSyncChange = { settingsViewModel.saveAutoSync(it) },
-            conflictSafeMode = settingsUiState.conflictSafeMode,
-            onConflictSafeModeChange = { settingsViewModel.saveConflictSafeMode(it) },
-            backupBeforeSync = settingsUiState.backupBeforeSync,
-            onBackupBeforeSyncChange = { settingsViewModel.saveBackupBeforeSync(it) },
-            modifier = Modifier.fillMaxWidth()
-        )
+        // SyncSettingsCard(
+        //     autoSync = settingsUiState.autoSync,
+        //     onAutoSyncChange = { settingsViewModel.saveAutoSync(it) },
+        //     conflictSafeMode = settingsUiState.conflictSafeMode,
+        //     onConflictSafeModeChange = { settingsViewModel.saveConflictSafeMode(it) },
+        //     backupBeforeSync = settingsUiState.backupBeforeSync,
+        //     onBackupBeforeSyncChange = { settingsViewModel.saveBackupBeforeSync(it) },
+        //     modifier = Modifier.fillMaxWidth()
+        // )
 
         val knownHostsDeletedText = stringResource(R.string.settings_clear_known_hosts_deleted)
         val commitEditmsgDeletedText = stringResource(R.string.settings_commit_editmsg_deleted)

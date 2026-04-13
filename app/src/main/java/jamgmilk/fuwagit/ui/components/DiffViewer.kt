@@ -54,23 +54,20 @@ fun DiffViewer(
         if (fileDiff.isBinary) {
             BinaryFileIndicator()
         } else {
-            // Diff 内容
             if (fileDiff.hunks.isEmpty()) {
                 NoChangesIndicator()
             } else {
                 LazyColumn(
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    fileDiff.hunks.forEachIndexed { index, hunk ->
-                        // Hunk 头
-                        item(key = "hunk_header_$index") {
+                    fileDiff.hunks.forEachIndexed { hunkIndex, hunk ->
+                        item(key = "hunk_header_$hunkIndex") {
                             HunkHeader(hunk = hunk)
                         }
 
-                        // Hunk 内容
                         items(
                             items = hunk.lines,
-                            key = { line -> "${line.oldLineNumber}-${line.newLineNumber}-${line.content.hashCode()}" }
+                            key = { line -> "hunk_${hunkIndex}_line_${hunk.lines.indexOf(line)}" }
                         ) { line ->
                             DiffLineItem(line = line)
                         }
