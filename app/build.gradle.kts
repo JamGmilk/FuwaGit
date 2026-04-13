@@ -50,7 +50,7 @@ android {
     buildTypes {
         release {
             isMinifyEnabled = false
-            isShrinkResources = true
+            isShrinkResources = false
             signingConfig = signingConfigs.getByName("mirukey")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),

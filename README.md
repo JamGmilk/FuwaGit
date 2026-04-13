@@ -23,6 +23,8 @@ FuwaGit is a lightweight and powerful Git client for Android that brings full Gi
 
 Built with modern Android technologies including Jetpack Compose and Material Design 3, FuwaGit offers a beautiful interface while maintaining robust functionality for developers on the go.
 
+Fuwa (ふわ): light and airy~
+
 </div>
 
 
