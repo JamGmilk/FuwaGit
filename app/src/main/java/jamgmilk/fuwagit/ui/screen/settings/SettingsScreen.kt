@@ -19,9 +19,12 @@ import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -55,6 +58,7 @@ import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ElevatedCard
@@ -275,6 +279,27 @@ fun SettingsScreen(
             onVerboseLoggingChange = { settingsViewModel.saveVerboseLogging(it) },
             onTestFilePicker = { showFilePicker = true },
             onResetOnboarding = { settingsViewModel.resetOnboarding() },
+            onClearKnownHostsComplete = {
+                scope.launch {
+                    snackbarHostState.showSnackbar("Known hosts deleted")
+                }
+            },
+            onClearCommitEditMsgComplete = {
+                scope.launch {
+                    val repoPath = settingsViewModel.getCurrentRepoPath()
+                    if (repoPath != null) {
+                        val commitEditMsg = java.io.File(repoPath, ".git/COMMIT_EDITMSG")
+                        if (commitEditMsg.exists()) {
+                            commitEditMsg.delete()
+                            snackbarHostState.showSnackbar("COMMIT_EDITMSG deleted")
+                        } else {
+                            snackbarHostState.showSnackbar("No COMMIT_EDITMSG file found")
+                        }
+                    } else {
+                        snackbarHostState.showSnackbar("No repository selected")
+                    }
+                }
+            },
             modifier = Modifier.fillMaxWidth()
         )
 
@@ -657,10 +682,14 @@ private fun DeveloperOptionsCard(
     onVerboseLoggingChange: (Boolean) -> Unit,
     onTestFilePicker: () -> Unit,
     onResetOnboarding: () -> Unit,
+    onClearKnownHostsComplete: () -> Unit,
+    onClearCommitEditMsgComplete: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val colors = MaterialTheme.colorScheme
     var showResetConfirm by remember { mutableStateOf(false) }
+    var showKnownHostsDialog by remember { mutableStateOf(false) }
+    var showCommitEditMsgDialog by remember { mutableStateOf(false) }
 
     ElevatedCard(
         modifier = modifier.border(1.dp, colors.outlineVariant, RoundedCornerShape(24.dp)),
@@ -699,6 +728,24 @@ private fun DeveloperOptionsCard(
                 subtitle = stringResource(R.string.settings_reset_onboarding_subtitle),
                 icon = Icons.Default.AccountTree,
                 onClick = { showResetConfirm = true }
+            )
+
+            HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+
+            SettingsClickableItem(
+                title = stringResource(R.string.settings_clear_known_hosts),
+                subtitle = stringResource(R.string.settings_clear_known_hosts_subtitle),
+                icon = Icons.Default.Key,
+                onClick = { showKnownHostsDialog = true }
+            )
+
+            HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+
+            SettingsClickableItem(
+                title = stringResource(R.string.settings_clear_commit_editmsg),
+                subtitle = stringResource(R.string.settings_clear_commit_editmsg_subtitle),
+                icon = Icons.Default.Build,
+                onClick = { showCommitEditMsgDialog = true }
             )
         }
     }
@@ -754,6 +801,169 @@ private fun DeveloperOptionsCard(
             shape = RoundedCornerShape(24.dp)
         )
     }
+
+    if (showKnownHostsDialog) {
+        ClearKnownHostsDialog(
+            onDismiss = { showKnownHostsDialog = false },
+            onDeleted = {
+                onClearKnownHostsComplete()
+                showKnownHostsDialog = false
+            }
+        )
+    }
+
+    if (showCommitEditMsgDialog) {
+        ClearCommitEditMsgDialog(
+            onDismiss = { showCommitEditMsgDialog = false },
+            onDeleted = {
+                onClearCommitEditMsgComplete()
+                showCommitEditMsgDialog = false
+            }
+        )
+    }
+}
+
+@Composable
+private fun ClearKnownHostsDialog(
+    onDismiss: () -> Unit,
+    onDeleted: () -> Unit
+) {
+    val context = LocalContext.current
+    val knownHostsFile = java.io.File(context.filesDir, "ssh_known_hosts")
+    val fileContent = remember { if (knownHostsFile.exists()) knownHostsFile.readText() else "" }
+    val colors = MaterialTheme.colorScheme
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        icon = {
+            Box(
+                modifier = Modifier
+                    .size(56.dp)
+                    .background(colors.error.copy(alpha = 0.15f), CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    Icons.Default.Key,
+                    contentDescription = null,
+                    tint = colors.error,
+                    modifier = Modifier.size(28.dp)
+                )
+            }
+        },
+        title = {
+            Text(
+                text = stringResource(R.string.settings_clear_known_hosts_confirm_title),
+                fontWeight = FontWeight.Bold,
+                style = MaterialTheme.typography.titleLarge
+            )
+        },
+        text = {
+            Column {
+                if (fileContent.isBlank()) {
+                    Text(
+                        text = stringResource(R.string.settings_clear_known_hosts_empty),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                } else {
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(150.dp),
+                        shape = RoundedCornerShape(8.dp),
+                        color = colors.surfaceContainerLow
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .padding(8.dp)
+                                .verticalScroll(rememberScrollState())
+                        ) {
+                            Text(
+                                text = fileContent,
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            if (fileContent.isNotBlank()) {
+                Button(
+                    onClick = {
+                        knownHostsFile.delete()
+                        onDeleted()
+                    },
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = colors.error)
+                ) {
+                    Text(stringResource(R.string.action_delete))
+                }
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.action_cancel))
+            }
+        },
+        shape = RoundedCornerShape(24.dp)
+    )
+}
+
+@Composable
+private fun ClearCommitEditMsgDialog(
+    onDismiss: () -> Unit,
+    onDeleted: () -> Unit
+) {
+    val colors = MaterialTheme.colorScheme
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        icon = {
+            Box(
+                modifier = Modifier
+                    .size(56.dp)
+                    .background(colors.error.copy(alpha = 0.15f), CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    Icons.Default.Build,
+                    contentDescription = null,
+                    tint = colors.error,
+                    modifier = Modifier.size(28.dp)
+                )
+            }
+        },
+        title = {
+            Text(
+                text = stringResource(R.string.settings_clear_commit_editmsg_confirm_title),
+                fontWeight = FontWeight.Bold,
+                style = MaterialTheme.typography.titleLarge
+            )
+        },
+        text = {
+            Text(
+                text = stringResource(R.string.settings_clear_commit_editmsg_empty),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        },
+        confirmButton = {
+            Button(
+                onClick = onDeleted,
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = colors.error)
+            ) {
+                Text(stringResource(R.string.action_delete))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.action_cancel))
+            }
+        },
+        shape = RoundedCornerShape(24.dp)
+    )
 }
 
 @Composable

@@ -7,6 +7,7 @@ import jamgmilk.fuwagit.domain.repository.ConfigRepository
 import jamgmilk.fuwagit.domain.repository.RepoRepository
 import jamgmilk.fuwagit.domain.repository.SettingsRepository
 import jamgmilk.fuwagit.domain.usecase.git.ApplyGitConfigToAllRepos
+import jamgmilk.fuwagit.ui.state.RepoStateManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -50,7 +51,8 @@ class SettingsViewModel @Inject constructor(
     private val settingsRepository: SettingsRepository,
     private val configRepository: ConfigRepository,
     private val repoRepository: RepoRepository,
-    private val applyGitConfigToAllRepos: ApplyGitConfigToAllRepos
+    private val applyGitConfigToAllRepos: ApplyGitConfigToAllRepos,
+    private val repoStateManager: RepoStateManager
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SettingsUiState())
@@ -206,5 +208,9 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch {
             settingsRepository.resetFirstRun()
         }
+    }
+
+    suspend fun getCurrentRepoPath(): String? {
+        return repoStateManager.getRepoPath()
     }
 }
