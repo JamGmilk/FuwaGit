@@ -47,7 +47,10 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SheetState
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -117,40 +120,51 @@ fun MyReposScreen(
     val showRepoInfoDialog = remember { mutableStateOf(false) }
     val showDeleteConfirmationDialog = remember { mutableStateOf(false) }
     val pendingDeleteItem = remember { mutableStateOf<RepoFolderItem?>(null) }
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    LaunchedEffect(uiState.snackbarMessage) {
+        uiState.snackbarMessage?.let {
+            snackbarHostState.showSnackbar(it)
+        }
+    }
 
     Box(modifier = modifier.fillMaxSize()) {
-        ScreenTemplate(
-            title = stringResource(R.string.myrepos_screen_title),
-            modifier = Modifier.fillMaxSize()
-        ) {
-            Surface(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f)
-                    .border(1.dp, MaterialTheme.colorScheme.outlineVariant, AppShapes.medium),
-                shape = AppShapes.medium,
-                color = MaterialTheme.colorScheme.surfaceContainerLow
+        Scaffold(
+            snackbarHost = { SnackbarHost(snackbarHostState) }
+        ) { _ ->
+            ScreenTemplate(
+                title = stringResource(R.string.myrepos_screen_title),
+                modifier = Modifier.fillMaxSize()
             ) {
-                if (folders.isEmpty()) {
-                    EmptyState(
-                        icon = Icons.Outlined.FolderOpen,
-                        title = stringResource(R.string.myrepos_no_repos_title),
-                        description = stringResource(R.string.myrepos_no_repos_description),
-                        modifier = modifier
-                    )
-                } else {
-                    RepoListContent(
-                        folders = folders,
-                        selectedTarget = selectedTarget,
-                        onSetTarget = { path ->
-                            scope.launch {
-                                myReposViewModel.setCurrentRepo(path)
+                Surface(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
+                        .border(1.dp, MaterialTheme.colorScheme.outlineVariant, AppShapes.medium),
+                    shape = AppShapes.medium,
+                    color = MaterialTheme.colorScheme.surfaceContainerLow
+                ) {
+                    if (folders.isEmpty()) {
+                        EmptyState(
+                            icon = Icons.Outlined.FolderOpen,
+                            title = stringResource(R.string.myrepos_no_repos_title),
+                            description = stringResource(R.string.myrepos_no_repos_description),
+                            modifier = modifier
+                        )
+                    } else {
+                        RepoListContent(
+                            folders = folders,
+                            selectedTarget = selectedTarget,
+                            onSetTarget = { path ->
+                                scope.launch {
+                                    myReposViewModel.setCurrentRepo(path)
+                                }
+                            },
+                            onItemLongClick = { item ->
+                                itemForSheet.value = item
                             }
-                        },
-                        onItemLongClick = { item ->
-                            itemForSheet.value = item
-                        }
-                    )
+                        )
+                    }
                 }
             }
         }

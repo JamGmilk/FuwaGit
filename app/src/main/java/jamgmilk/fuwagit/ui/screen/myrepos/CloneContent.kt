@@ -61,6 +61,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.fragment.app.FragmentActivity
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -75,7 +77,9 @@ import jamgmilk.fuwagit.domain.model.git.CloneOptions
 import jamgmilk.fuwagit.ui.components.FilePickerDialog
 import jamgmilk.fuwagit.ui.components.SectionCard
 import jamgmilk.fuwagit.ui.screen.credentials.CredentialSelectDialog
+import jamgmilk.fuwagit.ui.screen.credentials.CredentialStoreViewModel
 import jamgmilk.fuwagit.ui.screen.credentials.CredentialType
+import jamgmilk.fuwagit.ui.screen.credentials.UnlockDialog
 import jamgmilk.fuwagit.ui.theme.AppShapes
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -83,11 +87,14 @@ import kotlinx.coroutines.launch
 @Composable
 internal fun CloneContent(
     myReposViewModel: MyReposViewModel,
+    credentialsViewModel: CredentialStoreViewModel,
     snackbarHostState: SnackbarHostState,
     onCloneComplete: (String) -> Unit
 ) {
     val context = LocalContext.current
+    val activity = context as? FragmentActivity
     val scope = rememberCoroutineScope()
+    val credentialsUiState by credentialsViewModel.uiState.collectAsStateWithLifecycle()
 
     val strCloneSuccess = stringResource(R.string.clone_clone_success)
     val strAuthFailed = stringResource(R.string.clone_auth_failed)
@@ -107,6 +114,7 @@ internal fun CloneContent(
 
     var showFolderPicker by remember { mutableStateOf(false) }
     var showCredentialDialog by remember { mutableStateOf(false) }
+    var showUnlockDialog by remember { mutableStateOf(false) }
 
     var isDirectoryEmptyState by remember { mutableStateOf(true) }
 
@@ -142,6 +150,54 @@ internal fun CloneContent(
     val isHttps = validationResult.protocol == UrlProtocol.HTTPS
     val isSsh = validationResult.protocol == UrlProtocol.SSH
     val showCredentialSection = isHttps || isSsh
+
+    fun executeClone(httpsUuid: String?, sshUuid: String?) {
+        val repoName = extractRepoName(cloneUrl)
+        val targetPath = if (localPath.endsWith("/")) localPath else "$localPath/"
+        val fullPath = "${targetPath}$repoName"
+
+        error = null
+        isLoading = true
+
+        val options = CloneOptions(
+            branch = null,
+            cloneAllBranches = cloneAllBranches,
+            depth = if (enableShallowClone) shallowDepth.toIntOrNull()?.takeIf { it > 0 } else null
+        )
+
+        myReposViewModel.cloneWithCredentials(
+            uri = cloneUrl,
+            localPath = fullPath,
+            branch = null,
+            httpsCredentialUuid = httpsUuid,
+            sshKeyUuid = sshUuid,
+            cloneOptions = options
+        ) { result ->
+            isLoading = false
+            result.onSuccess {
+                scope.launch {
+                    val credentialId = if (isHttps) selectedHttpsUuid else selectedSshUuid
+                    myReposViewModel.addRepo(fullPath, null, credentialId)
+                    snackbarHostState.showSnackbar(strCloneSuccess)
+                }
+                onCloneComplete(fullPath)
+            }.onError { e ->
+                error = e.message
+                if (e.message?.contains("401") == true) {
+                    error = strAuthFailed
+                }
+            }
+        }
+    }
+
+    LaunchedEffect(credentialsUiState.isDecryptionUnlocked, showUnlockDialog) {
+        if (showUnlockDialog && credentialsUiState.isDecryptionUnlocked) {
+            showUnlockDialog = false
+            val httpsUuid = if (isHttps) selectedHttpsUuid else null
+            val sshUuid = if (isSsh) selectedSshUuid else null
+            executeClone(httpsUuid, sshUuid)
+        }
+    }
 
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -263,43 +319,16 @@ internal fun CloneContent(
 
         Button(
             onClick = {
-                val repoName = extractRepoName(cloneUrl)
-                val targetPath = if (localPath.endsWith("/")) localPath else "$localPath/"
-                val fullPath = "${targetPath}$repoName"
-
-                error = null
-                isLoading = true
-
                 val httpsUuid = if (isHttps) selectedHttpsUuid else null
                 val sshUuid = if (isSsh) selectedSshUuid else null
 
-                val options = CloneOptions(
-                    branch = null,
-                    cloneAllBranches = cloneAllBranches,
-                    depth = if (enableShallowClone) shallowDepth.toIntOrNull()?.takeIf { it > 0 } else null
-                )
-
-                myReposViewModel.cloneWithCredentials(
-                    uri = cloneUrl,
-                    localPath = fullPath,
-                    branch = null,
-                    httpsCredentialUuid = httpsUuid,
-                    sshKeyUuid = sshUuid,
-                    cloneOptions = options
-                ) { result ->
-                    isLoading = false
-                    result.onSuccess {
-                        scope.launch {
-                            snackbarHostState.showSnackbar(strCloneSuccess)
-                        }
-                        onCloneComplete(fullPath)
-                    }.onError { e ->
-                        error = e.message
-                        if (e.message?.contains("401") == true) {
-                            error = strAuthFailed
-                        }
-                    }
+                val needsCred = (isHttps && selectedHttpsUuid != null) || (isSsh && selectedSshUuid != null)
+                if (needsCred && !credentialsUiState.isDecryptionUnlocked) {
+                    showUnlockDialog = true
+                    return@Button
                 }
+
+                executeClone(httpsUuid, sshUuid)
             },
             enabled = isCloneButtonEnabled,
             modifier = Modifier
@@ -344,6 +373,7 @@ internal fun CloneContent(
             title = stringResource(R.string.clone_select_credential),
             httpsCredentials = httpsCredentials,
             sshKeys = sshKeys,
+            initialType = if (isHttps) CredentialType.HTTPS else CredentialType.SSH,
             onDismiss = { showCredentialDialog = false },
             onSelect = { uuid, type ->
                 when (type) {
@@ -353,6 +383,22 @@ internal fun CloneContent(
                 }
                 showCredentialDialog = false
             }
+        )
+    }
+
+    if (showUnlockDialog) {
+        UnlockDialog(
+            onDismiss = { showUnlockDialog = false },
+            onUnlock = { password ->
+                credentialsViewModel.unlockWithPassword(password)
+            },
+            biometricEnabled = credentialsUiState.isBiometricEnabled,
+            onUnlockWithBiometric = {
+                activity?.let { credentialsViewModel.unlockWithBiometric(it) }
+            },
+            passwordHint = credentialsUiState.passwordHint,
+            error = credentialsUiState.error,
+            isLoading = credentialsUiState.isLoading
         )
     }
 }

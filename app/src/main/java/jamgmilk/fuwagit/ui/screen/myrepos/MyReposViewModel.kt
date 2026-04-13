@@ -129,11 +129,14 @@ class MyReposViewModel @Inject constructor(
         }
     }
 
-    suspend fun addRepo(path: String, alias: String? = null): Boolean {
-        val repo = RepoData(path = path, alias = alias)
+    suspend fun addRepo(path: String, alias: String? = null, credentialId: String? = null, showSnackbar: Boolean = true): Boolean {
+        val repo = RepoData(path = path, alias = alias, credentialId = credentialId)
         val result = repoDataStore.addRepo(repo)
         if (result && currentRepoManager.getRepoPath() == null) {
             currentRepoManager.setRepoPath(path)
+        }
+        if (result && showSnackbar) {
+            _uiState.update { it.copy(snackbarMessage = "Repository added successfully") }
         }
         return result
     }

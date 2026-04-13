@@ -52,6 +52,9 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -99,36 +102,47 @@ fun HistoryScreen(
 ) {
     val uiState by historyViewModel.uiState.collectAsStateWithLifecycle()
     val history = uiState.commits
+    val snackbarHostState = remember { SnackbarHostState() }
 
-    ScreenTemplate(
-        title = stringResource(R.string.screen_history),
-        modifier = modifier.fillMaxSize(),
-        actions = {
-            Text(
-                text = stringResource(R.string.history_commits_count_format, history.size),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+    LaunchedEffect(uiState.snackbarMessage) {
+        uiState.snackbarMessage?.let {
+            snackbarHostState.showSnackbar(it)
         }
-    ) {
-        Surface(
-            modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f)
-                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, AppShapes.medium),
-            shape = AppShapes.medium,
-            color = MaterialTheme.colorScheme.surfaceContainerLow
-        ) {
-            if (history.isEmpty()) {
-                EmptyHistoryState()
-            } else {
-                CommitTimelineList(
-                    commits = history,
-                    uiState = uiState,
-                    viewModel = historyViewModel,
-                    modifier = Modifier.fillMaxSize(),
-                    onViewCommitDiff = onViewCommitDiff
+    }
+
+    Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) }
+    ) { _ ->
+        ScreenTemplate(
+            title = stringResource(R.string.screen_history),
+            modifier = modifier.fillMaxSize(),
+            actions = {
+                Text(
+                    text = stringResource(R.string.history_commits_count_format, history.size),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+            }
+        ) {
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .border(1.dp, MaterialTheme.colorScheme.outlineVariant, AppShapes.medium),
+                shape = AppShapes.medium,
+                color = MaterialTheme.colorScheme.surfaceContainerLow
+            ) {
+                if (history.isEmpty()) {
+                    EmptyHistoryState()
+                } else {
+                    CommitTimelineList(
+                        commits = history,
+                        uiState = uiState,
+                        viewModel = historyViewModel,
+                        modifier = Modifier.fillMaxSize(),
+                        onViewCommitDiff = onViewCommitDiff
+                    )
+                }
             }
         }
     }

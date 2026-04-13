@@ -32,7 +32,9 @@ data class HistoryUiState(
     val isResetting: Boolean = false,
     // Commit 详情相关状态
     val selectedCommitDetail: GitCommitDetail? = null,
-    val isLoadingCommitDetail: Boolean = false
+    val isLoadingCommitDetail: Boolean = false,
+    // Snackbar 消息
+    val snackbarMessage: String? = null
 )
 
 @HiltViewModel
@@ -130,7 +132,8 @@ class HistoryViewModel @Inject constructor(
                             isResetting = false,
                             pendingResetCommit = null,
                             pendingResetMode = null,
-                            error = null
+                            error = null,
+                            snackbarMessage = "Reset to commit completed"
                         )
                     }
                     loadCommitHistory()

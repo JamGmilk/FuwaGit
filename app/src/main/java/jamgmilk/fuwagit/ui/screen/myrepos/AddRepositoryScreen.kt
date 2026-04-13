@@ -41,6 +41,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import jamgmilk.fuwagit.R
 import jamgmilk.fuwagit.ui.components.SubSettingsTemplate
 import jamgmilk.fuwagit.ui.navigation.AddRepoTab
+import jamgmilk.fuwagit.ui.screen.credentials.CredentialStoreViewModel
 import jamgmilk.fuwagit.ui.theme.AppShapes
 
 enum class UrlProtocol {
@@ -61,6 +62,7 @@ fun AddRepositoryScreen(
     modifier: Modifier = Modifier,
     selectedTab: AddRepoTab = AddRepoTab.Clone,
     myReposViewModel: MyReposViewModel = hiltViewModel(),
+    credentialsViewModel: CredentialStoreViewModel = hiltViewModel(),
     snackbarHostState: SnackbarHostState = remember { SnackbarHostState() }
 ) {
     val context = LocalContext.current
@@ -95,6 +97,7 @@ fun AddRepositoryScreen(
                     AddRepoTab.Clone -> {
                         CloneContent(
                             myReposViewModel = myReposViewModel,
+                            credentialsViewModel = credentialsViewModel,
                             snackbarHostState = snackbarHostState,
                             onCloneComplete = onCloneComplete
                         )
