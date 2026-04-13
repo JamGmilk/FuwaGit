@@ -1,13 +1,9 @@
-<?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools">
 
-    <!-- Screen Titles -->
-    <string name="screen_settings">设置</string>
-    <string name="screen_status">状态</string>
-    <string name="screen_branches">分支</string>
-    <string name="screen_permissions">权限</string>
+    <!-- ========== App Config ========== -->
+    <string name="app_name" translatable="false">FuwaGit</string>
 
-    <!-- Common Actions -->
+    <!-- ========== Common Actions ========== -->
     <string name="action_cancel">取消</string>
     <string name="action_save">保存</string>
     <string name="action_ok">确定</string>
@@ -19,6 +15,7 @@
     <string name="action_select">选择</string>
     <string name="action_copy">复制</string>
     <string name="action_import">导入</string>
+    <string name="action_export">导出</string>
     <string name="action_preview">预览</string>
     <string name="action_finish">完成</string>
     <string name="action_rename">重命名</string>
@@ -26,22 +23,49 @@
     <string name="action_create">创建</string>
     <string name="action_add">添加</string>
     <string name="action_initialize">初始化</string>
+    <string name="action_apply">应用</string>
+    <string name="action_expand">展开</string>
+    <string name="action_collapse">收起</string>
     <string name="action_mark_as_resolved">标记为已解决</string>
 
-    <!-- Settings Screen -->
-    <string name="settings_beta_version_notice">测试版注意事项</string>
-    <string name="settings_beta_features_unstable">功能可能不稳定或会有变化。</string>
-    <string name="settings_beta_backup_warning">重要提示：请备份您的仓库和凭据。</string>
-    <string name="settings_storage">存储</string>
-    <string name="settings_permissions">权限</string>
-    <string name="settings_permissions_subtitle">管理存储访问权限</string>
+    <!-- ========== Screen Titles ========== -->
+    <string name="screen_status">状态</string>
+    <string name="screen_history">历史</string>
+    <string name="screen_branches">分支</string>
+    <string name="screen_tags">标签</string>
+    <string name="screen_settings">设置</string>
+    <string name="screen_permissions">权限</string>
+    <string name="add_repo_screen_title">添加仓库</string>
+    <string name="myrepos_screen_title">我的仓库</string>
+
+    <!-- ========== Navigation ========== -->
+    <string name="nav_status">状态</string>
+    <string name="nav_history">历史</string>
+    <string name="nav_branches">分支</string>
+    <string name="nav_tags">标签</string>
+    <string name="nav_my_repos">我的仓库</string>
+    <string name="nav_settings">设置</string>
+
+    <!-- ========== Settings Screen ========== -->
+    <!-- General -->
+    <string name="settings_appearance">外观</string>
+    <string name="settings_dark_mode">深色模式</string>
+    <string name="settings_dark_mode_system">跟随系统</string>
+    <string name="settings_dark_mode_always_on">始终开启</string>
+    <string name="settings_dark_mode_always_off">始终关闭</string>
+    <string name="settings_language">语言</string>
+    <string name="settings_language_system">跟随系统</string>
+    <string name="settings_language_zh_cn">简体中文</string>
+    <string name="settings_language_en">English</string>
+
+    <!-- Security -->
     <string name="settings_security">安全</string>
     <string name="settings_credentials_title">凭据</string>
-    <string name="settings_credentials_subtitle">HTTPS密码和SSH密钥</string>
-    <string name="settings_change_master_password">更改主密码</string>
+    <string name="settings_credentials_subtitle">HTTPS 密码和 SSH 密钥</string>
     <string name="settings_set_master_password">设置主密码</string>
-    <string name="settings_change_master_password_subtitle">更新您的主密码</string>
     <string name="settings_set_master_password_subtitle">保护您的凭据</string>
+    <string name="settings_change_master_password">更改主密码</string>
+    <string name="settings_change_master_password_subtitle">更新您的主密码</string>
     <string name="settings_biometric_unlock">生物识别解锁</string>
     <string name="settings_biometric_tap_to_unlock">请先点击解锁凭据</string>
     <string name="settings_biometric_enabled">已启用</string>
@@ -49,27 +73,54 @@
     <string name="settings_auto_lock_timeout">自动锁定超时</string>
     <string name="settings_auto_lock_subtitle_format">会话将在%1$s后过期</string>
     <string name="settings_auto_lock_never">从不</string>
-    <string name="settings_auto_lock_1_minute">1分钟</string>
-    <string name="settings_auto_lock_5_minutes">5分钟</string>
-    <string name="settings_auto_lock_10_minutes">10分钟</string>
-    <string name="settings_auto_lock_30_minutes">30分钟</string>
-    <string name="settings_auto_lock_1_hour">1小时</string>
-    <string name="settings_auto_lock_seconds_format">%1$d秒</string>
-    <string name="settings_auto_lock_description">设置凭据自动锁定前的超时时间（秒）。设为0可禁用自动锁定。</string>
-    <string name="settings_timeout_label">超时时间（秒）</string>
-    <string name="settings_timeout_placeholder">300</string>
+    <string name="settings_auto_lock_1_minute"> 1 分钟</string>
+    <string name="settings_auto_lock_5_minutes"> 5 分钟</string>
+    <string name="settings_auto_lock_10_minutes"> 10 分钟</string>
+    <string name="settings_auto_lock_30_minutes"> 30 分钟</string>
+    <string name="settings_auto_lock_1_hour"> 1 小时</string>
+    <string name="settings_auto_lock_seconds_format"> %1$d 秒</string>
+    <string name="settings_auto_lock_description">设置凭据自动锁定前的超时时间（秒）。设为 0 可禁用自动锁定。</string>
+
+    <!-- Git Configuration -->
+    <string name="settings_configuration">配置</string>
+    <string name="settings_user_email">用户和邮箱</string>
+    <string name="settings_user_email_subtitle">设置提交的全局作者信息</string>
+    <string name="settings_user_email_description">设置提交的默认作者信息</string>
+    <string name="settings_user_name_label">user.name</string>
+    <string name="settings_user_name_placeholder">您的名字</string>
+    <string name="settings_user_email_input_label">user.email</string>
+    <string name="settings_user_email_input_placeholder">your.email@example.com</string>
+    <string name="settings_default_branch">默认分支</string>
+    <string name="settings_default_branch_subtitle">init.defaultBranch = %1$s</string>
+    <string name="settings_default_branch_description">设置新仓库的默认分支名称。</string>
+    <string name="settings_default_branch_label">init.defaultBranch</string>
+    <string name="settings_default_branch_placeholder">main</string>
+    <string name="settings_set_upstream_on_push">首次 Push 时设置上游</string>
+    <string name="settings_set_upstream_on_push_subtitle">首次 Push 时自动设置上游分支</string>
+
+    <!-- Sync & Backup -->
     <string name="settings_sync_backup">同步与备份</string>
     <string name="settings_auto_sync">自动同步</string>
-    <string name="settings_auto_sync_subtitle">后台定期拉取/推送</string>
+    <string name="settings_auto_sync_subtitle">后台定期 Pull/Push</string>
     <string name="settings_conflict_safe_mode">安全冲突策略</string>
-    <string name="settings_conflict_safe_mode_subtitle">合并时优先不覆盖</string>
+    <string name="settings_conflict_safe_mode_subtitle">Merge 时优先不覆盖</string>
     <string name="settings_backup_before_sync">同步前备份</string>
-    <string name="settings_backup_before_sync_subtitle">拉取/变基前创建快照</string>
+    <string name="settings_backup_before_sync_subtitle">Pull/Rebase 前创建快照</string>
+
+    <!-- Storage & Permissions -->
+    <string name="settings_storage">存储</string>
+    <string name="settings_permissions">权限</string>
+    <string name="settings_permissions_subtitle">管理存储访问权限</string>
+
+    <!-- Developer Options -->
     <string name="settings_developer_options">开发者选项</string>
     <string name="settings_verbose_logging">详细日志</string>
-    <string name="settings_verbose_logging_subtitle">在终端显示Git操作详情</string>
+    <string name="settings_verbose_logging_subtitle">在终端显示 Git 操作详情</string>
     <string name="settings_test_file_picker">测试文件选择器</string>
     <string name="settings_test_file_picker_subtitle">打开文件选择器并显示所选路径</string>
+    <string name="test_file_picker_title">测试文件选择器</string>
+    <string name="settings_timeout_label">超时时间（秒）</string>
+    <string name="settings_timeout_placeholder">300</string>
     <string name="settings_reset_onboarding">重置引导</string>
     <string name="settings_reset_onboarding_subtitle">立即显示引导屏幕</string>
     <string name="settings_reset_onboarding_confirm">这将重置首次运行标记。引导屏幕将立即显示。</string>
@@ -83,6 +134,8 @@
     <string name="settings_clear_commit_editmsg_confirm_title">清除 COMMIT_EDITMSG</string>
     <string name="settings_clear_commit_editmsg_empty">当前仓库中没有 COMMIT_EDITMSG 文件</string>
     <string name="settings_clear_commit_editmsg_deleted">COMMIT_EDITMSG 文件已删除</string>
+
+    <!-- About -->
     <string name="settings_about">关于</string>
     <string name="settings_version">版本</string>
     <string name="settings_build">构建</string>
@@ -90,36 +143,14 @@
     <string name="settings_source_code_subtitle">JamGmilk/FuwaGit</string>
     <string name="settings_report_issue">报告问题</string>
     <string name="settings_report_issue_subtitle">提交错误报告或功能请求</string>
-    <string name="settings_configuration">配置</string>
-    <string name="settings_user_email">用户和邮箱</string>
-    <string name="settings_user_email_subtitle">设置提交的全局作者信息</string>
-    <string name="settings_user_email_description">设置提交的默认作者信息。\n克隆或初始化仓库时，您可以选择将此信息复制到仓库的本地配置。</string>
-    <string name="settings_user_name_label">user.name</string>
-    <string name="settings_user_name_placeholder">您的名字</string>
-    <string name="settings_user_email_input_label">user.email</string>
-    <string name="settings_user_email_input_placeholder">your.email@example.com</string>
-    <string name="settings_default_branch">默认分支</string>
-    <string name="settings_default_branch_subtitle">init.defaultBranch = %1$s</string>
-    <string name="settings_default_branch_description">设置新仓库的默认分支名称。</string>
-    <string name="settings_default_branch_label">init.defaultBranch</string>
-    <string name="settings_default_branch_placeholder">main</string>
+    <string name="settings_beta_version_notice">测试版注意事项</string>
+    <string name="settings_beta_features_unstable">功能可能不稳定或会有变化。</string>
+    <string name="settings_beta_backup_warning">重要提示：请备份您的仓库和凭据。</string>
 
-    <!-- Set Upstream on Push -->
-    <string name="settings_set_upstream_on_push">首次推送时设置上游</string>
-    <string name="settings_set_upstream_on_push_subtitle">首次推送时自动设置上游分支</string>
-
-    <!-- Test File Picker Dialog Title -->
-    <string name="test_file_picker_title">测试文件选择器</string>
-
-    <!-- Status Screen -->
+    <!-- ========== Status Screen ========== -->
     <string name="status_refresh_description">刷新</string>
-    <string name="status_action_pull">拉取</string>
-    <string name="status_action_push">推送</string>
-    <string name="status_action_fetch">获取</string>
-    <string name="status_action_stage_all">暂存全部</string>
-    <string name="status_action_unstage">取消暂存</string>
     <string name="status_checking_repo">正在检查仓库…</string>
-    <string name="status_not_a_repo">不是Git仓库</string>
+    <string name="status_not_a_repo">不是 Git 仓库</string>
     <string name="status_repo_active">仓库已激活</string>
     <string name="status_select_repo">选择仓库</string>
     <string name="status_no_repo_selected">未选择仓库</string>
@@ -131,12 +162,12 @@
     <string name="status_staged_subtitle">可以提交</string>
     <string name="status_nothing_to_commit">没有可提交的内容</string>
     <string name="status_commit_changes">提交更改</string>
-    <string name="status_staged_count">%1$d个已暂存</string>
+    <string name="status_staged_count">%1$d 个已暂存</string>
     <string name="status_commit_message_placeholder">输入提交信息…</string>
     <string name="status_commit_button">提交</string>
     <string name="status_actions">操作</string>
     <string name="status_initialize_repository">初始化仓库</string>
-    <string name="status_not_git_repo_yet">此目录还不是Git仓库。</string>
+    <string name="status_not_git_repo_yet">此目录还不是 Git 仓库。</string>
     <string name="status_initializing">正在初始化…</string>
     <string name="status_execute_git_init">执行git init</string>
     <string name="status_terminal">终端</string>
@@ -145,8 +176,13 @@
     <string name="status_discard_description">您即将放弃以下文件的所有更改：</string>
     <string name="status_discard_warning">所有未暂存的修改都将永久丢失。此操作无法撤销。</string>
     <string name="status_discard_confirm">放弃</string>
+    <string name="status_action_pull">Pull</string>
+    <string name="status_action_push">Push</string>
+    <string name="status_action_fetch">Fetch</string>
+    <string name="status_action_stage_all">暂存全部</string>
+    <string name="status_action_unstage">取消暂存</string>
 
-    <!-- Branches Screen -->
+    <!-- ========== Branches Screen ========== -->
     <string name="branches_refresh_description">刷新</string>
     <string name="branches_create_branch_description">创建分支</string>
     <string name="branches_rename_branch">重命名分支</string>
@@ -157,51 +193,56 @@
     <string name="branches_init_repo_message">初始化仓库以查看分支</string>
     <string name="branches_local_branches">本地分支</string>
     <string name="branches_remote_branches">远程分支</string>
-    <string name="branches_count_format">%1$d个分支</string>
+    <string name="branches_count_format">%1$d 个分支</string>
     <string name="branches_no_local_branches">没有本地分支</string>
     <string name="branches_no_remote_branches">没有远程分支</string>
     <string name="branches_remote_label">远程</string>
     <string name="branches_current_branch_subtitle">当前分支</string>
     <string name="branches_local_subtitle">本地</string>
     <string name="branches_active_badge">活跃</string>
-    <string name="branches_checkout_remote">检出并创建本地分支</string>
-    <string name="branches_checkout">检出</string>
-    <string name="branches_merge_into_current">合并到当前分支</string>
-    <string name="branches_rebase_onto_current">变基到当前分支</string>
     <string name="branches_delete_branch">删除</string>
     <string name="branches_rename">重命名</string>
     <string name="branches_copy_name">复制名称</string>
     <string name="branches_create_tag">创建标签</string>
     <string name="branches_name_copied">分支名称已复制</string>
-    <string name="branches_merge_only_local">合并仅适用于本地分支</string>
-    <string name="branches_rebase_only_local">变基仅适用于本地分支</string>
+    <string name="branches_branch_name_label">分支名称</string>
+    <string name="branches_branch_name_placeholder">feature/my-new-feature</string>
+    <string name="branches_branch_name_clipboard">分支名称</string>
+    <string name="branches_create_new_branch">创建新分支</string>
+    <string name="branches_create_from_head">从当前 HEAD 创建新分支</string>
+    <string name="branches_create_tip">分支将从当前 HEAD 创建</string>
+
+    <!-- Branch Actions -->
+    <string name="branches_checkout">Checkout</string>
+    <string name="branches_checkout_remote">Checkout 并创建本地分支</string>
+    <string name="branches_merge_into_current">Merge 到当前分支</string>
+    <string name="branches_rebase_onto_current">Rebase 到当前分支</string>
+    <string name="branches_merge_only_local">Merge 仅适用于本地分支</string>
+    <string name="branches_rebase_only_local">Rebase 仅适用于本地分支</string>
     <string name="branches_delete_only_local">删除仅适用于本地分支</string>
     <string name="branches_rename_only_local">重命名仅适用于本地分支</string>
+
+    <!-- Branch Confirm Dialogs -->
     <string name="branches_delete_description">您即将删除分支：</string>
     <string name="branches_delete_warning">此分支独有的所有提交都将丢失。此操作无法撤销。</string>
     <string name="branches_delete_confirm">删除</string>
-    <string name="branches_merge_description">您即将合并到当前分支：</string>
+    <string name="branches_merge_description">您即将 Merge 到当前分支：</string>
     <string name="branches_merge_warning">这可能会导致冲突或更改您的工作目录。请确保已提交您的更改。</string>
-    <string name="branches_merge_confirm">合并</string>
-    <string name="branches_rebase_description">您即将将当前分支变基到：</string>
-    <string name="branches_rebase_warning">变基会重写提交历史。请勿对已与他人共享的分支进行变基。</string>
-    <string name="branches_rebase_confirm">变基</string>
-    <string name="branches_create_new_branch">创建新分支</string>
-    <string name="branches_create_from_head">从当前HEAD创建新分支</string>
-    <string name="branches_branch_name_label">分支名称</string>
-    <string name="branches_branch_name_placeholder">feature/my-new-feature</string>
-    <string name="branches_create_tip">分支将从当前HEAD创建</string>
+    <string name="branches_merge_confirm">MERGE</string>
+    <string name="branches_rebase_description">您即将将当前分支 Rebase 到：</string>
+    <string name="branches_rebase_warning">Rebase会重写提交历史。请勿对已与他人共享的分支进行 Rebase。</string>
+    <string name="branches_rebase_confirm">REBASE</string>
 
-    <!-- Credentials Screen -->
+    <!-- ========== Credentials Screen ========== -->
     <string name="credentials_setup_master_password">设置主密码</string>
     <string name="credentials_setup_description">创建主密码以保护您的敏感凭据。</string>
     <string name="credentials_password_label">密码</string>
-    <string name="credentials_password_placeholder">至少6个字符</string>
+    <string name="credentials_password_placeholder">至少 6 个字符</string>
     <string name="credentials_confirm_password_label">确认密码</string>
     <string name="credentials_password_hint_optional">密码提示（可选）</string>
     <string name="credentials_password_hint_placeholder">帮助您记住</string>
     <string name="credentials_passwords_do_not_match">密码不匹配</string>
-    <string name="credentials_at_least_6_characters">至少6个字符</string>
+    <string name="credentials_at_least_6_characters">至少 6 个字符</string>
     <string name="credentials_set_password">设置密码</string>
     <string name="credentials_setting">正在设置…</string>
     <string name="credentials_unlock_credentials">解锁凭据</string>
@@ -211,7 +252,7 @@
     <string name="credentials_unlocking">正在解锁…</string>
     <string name="credentials_unlock">解锁</string>
     <string name="credentials_unlock_with_biometric">使用生物识别解锁</string>
-    <string name="credentials_add_https_credential">添加HTTPS凭据</string>
+    <string name="credentials_add_https_credential">添加 HTTPS 凭据</string>
     <string name="credentials_host_label">主机</string>
     <string name="credentials_host_placeholder">github.com</string>
     <string name="credentials_username_label">用户名</string>
@@ -226,7 +267,7 @@
     <string name="credentials_change_password">更改密码</string>
     <string name="credentials_setup_master_password_full">设置主密码</string>
     <string name="credentials_setup_full_description">创建主密码以保护您的敏感凭据。您需要此密码来查看密码和私钥。</string>
-    <string name="credentials_generate_ssh_key">生成SSH密钥</string>
+    <string name="credentials_generate_ssh_key">生成 SSH 密钥</string>
     <string name="credentials_key_name_label">密钥名称</string>
     <string name="credentials_key_name_placeholder">我的密钥</string>
     <string name="credentials_key_type_label">密钥类型</string>
@@ -236,17 +277,17 @@
     <string name="credentials_rsa_description">传统</string>
     <string name="credentials_comment_optional_label">注释（可选）</string>
     <string name="credentials_comment_placeholder">user@host</string>
-    <string name="credentials_import_ssh_key">导入SSH密钥</string>
+    <string name="credentials_import_ssh_key">导入 SSH 密钥</string>
     <string name="credentials_private_key_label">私钥</string>
     <string name="credentials_private_key_placeholder">在此粘贴您的私钥…</string>
     <string name="credentials_passphrase_if_encrypted">密码短语（如果有加密）</string>
     <string name="credentials_public_key_optional">公钥（可选）</string>
     <string name="credentials_public_key_placeholder">ssh-rsa AAAA…</string>
-    <string name="credentials_https_credentials_title">HTTPS凭据</string>
-    <string name="credentials_no_https_credentials">没有HTTPS凭据</string>
+    <string name="credentials_https_credentials_title">HTTPS 凭据</string>
+    <string name="credentials_no_https_credentials">没有 HTTPS 凭据</string>
     <string name="credentials_no_https_credentials_subtitle">添加您的第一个凭据以安全存储密码和个人访问令牌</string>
-    <string name="credentials_ssh_keys_title">SSH密钥</string>
-    <string name="credentials_no_ssh_keys">没有SSH密钥</string>
+    <string name="credentials_ssh_keys_title">SSH 密钥</string>
+    <string name="credentials_no_ssh_keys">没有 SSH 密钥</string>
     <string name="credentials_no_ssh_keys_subtitle">生成新的密钥对或导入现有密钥</string>
     <string name="credentials_add_description">添加</string>
     <string name="credentials_generate_description">生成</string>
@@ -258,11 +299,11 @@
     <string name="credentials_lock_vault">锁定保险库</string>
     <string name="credentials_unlock_vault">解锁保险库</string>
     <string name="credentials_unlock_to_reveal">解锁以显示</string>
-    <string name="credentials_delete_ssh_key_title">删除SSH密钥？</string>
+    <string name="credentials_delete_ssh_key_title">删除 SSH 密钥？</string>
     <string name="credentials_delete_credential_title">删除凭据？</string>
-    <string name="credentials_delete_ssh_key_message">此SSH密钥将从您的保险库中永久删除。此操作无法撤销。</string>
+    <string name="credentials_delete_ssh_key_message">此 SSH 密钥将从您的保险库中永久删除。此操作无法撤销。</string>
     <string name="credentials_delete_credential_message">此凭据将从您的保险库中永久删除。此操作无法撤销。</string>
-    <string name="credentials_error_importing_key">导入SSH密钥错误：%1$s</string>
+    <string name="credentials_error_importing_key">导入 SSH 密钥错误：%1$s</string>
     <string name="credentials_invalid_private_key">无效的私钥：%1$s</string>
     <string name="credentials_host_copied">主机已复制</string>
     <string name="credentials_username_copied">用户名已复制</string>
@@ -287,7 +328,7 @@
     <string name="credentials_security_warning">安全警告</string>
     <string name="credentials_importing">正在导入…</string>
 
-    <!-- Credential Info Dialog Labels -->
+    <!-- Credential Info Dialog -->
     <string name="credential_info_host">主机</string>
     <string name="credential_info_username">用户名</string>
     <string name="credential_info_password">密码</string>
@@ -307,9 +348,7 @@
     <string name="credential_info_email">邮箱</string>
     <string name="credential_info_date">日期</string>
 
-    <!-- Credential Select Dialog -->
-
-    <!-- My Repos Screen -->
+    <!-- ========== My Repos Screen ========== -->
     <string name="myrepos_no_repos_title">暂无仓库</string>
     <string name="myrepos_no_repos_description">使用+按钮添加仓库</string>
     <string name="myrepos_add_repository_description">添加仓库</string>
@@ -321,7 +360,7 @@
     <string name="myrepos_show_info">显示信息</string>
     <string name="myrepos_show_info_subtitle">查看仓库详情</string>
     <string name="myrepos_configure_remote">配置远程</string>
-    <string name="myrepos_configure_remote_subtitle">设置推送/拉取的远程URL</string>
+    <string name="myrepos_configure_remote_subtitle">设置 Push/Pull 的远程 URL</string>
     <string name="myrepos_danger_zone">危险区域</string>
     <string name="myrepos_clean_repository">清理仓库</string>
     <string name="myrepos_clean_repository_subtitle">移除未跟踪的文件</string>
@@ -332,37 +371,21 @@
     <string name="myrepos_clean_untracked_description">从工作目录中移除未跟踪的文件。此操作无法撤销。点击\'预览\'查看将被删除的文件。</string>
     <string name="myrepos_repository_added">仓库已添加</string>
     <string name="myrepos_repo_info_title">仓库信息</string>
-    <string name="myrepos_not_git_repo_warning">此目录不是Git仓库</string>
+    <string name="myrepos_not_git_repo_warning">此目录不是 Git 仓库</string>
     <string name="myrepos_scanning_files">正在扫描未跟踪的文件…</string>
-    <string name="myrepos_screen_title">我的仓库</string>
     <string name="myrepos_delete_confirm_title">移除仓库？</string>
     <string name="myrepos_delete_confirm_description">这将从FuwaGit的列表中移除该仓库。设备上的实际仓库文件不会被删除。</string>
     <string name="myrepos_delete_confirm_warning">此操作无法撤销。</string>
 
-    <!-- Local Content -->
-    <string name="local_repo_detected">检测到仓库</string>
-    <string name="local_new_repo_setup">新仓库设置</string>
-    <string name="local_display_name_label">显示名称</string>
-    <string name="local_display_name_placeholder">FuwaGit的友好别名</string>
-    <string name="local_remote_url_optional">远程URL（可选）</string>
-    <string name="local_info_guide">选择一个本地文件夹开始使用Git管理它。</string>
-    <string name="local_select_folder">选择文件夹</string>
-    <string name="local_remote_count_format">远程（找到%1$d个）</string>
-    <string name="local_no_folder_selected">未选择文件夹</string>
-    <string name="local_git_repo_detected">检测到Git仓库</string>
-    <string name="local_not_git_repo">不是Git仓库</string>
-    <string name="local_pick_folder">选择文件夹</string>
-    <string name="local_repository_label_format">仓库：%1$s</string>
-    <string name="local_user_label_format">用户：%1$s</string>
-    <string name="local_head_label_format">HEAD：%1$s</string>
-
-    <!-- Clone Content -->
-    <string name="clone_remote_url_header">远程URL</string>
-    <string name="clone_repository_url_label">仓库URL</string>
+    <!-- ========== Add/Clone Repository ========== -->
+    <string name="add_repo_tab_clone">克隆远程</string>
+    <string name="add_repo_tab_local">添加本地</string>
+    <string name="clone_remote_url_header">远程 URL</string>
+    <string name="clone_repository_url_label">仓库 URL</string>
     <string name="clone_protocol_https">HTTPS</string>
     <string name="clone_protocol_ssh">SSH</string>
-    <string name="clone_credential_selector_https">HTTPS凭据（可选）</string>
-    <string name="clone_credential_selector_ssh">选择SSH密钥</string>
+    <string name="clone_credential_selector_https">HTTPS 凭据（可选）</string>
+    <string name="clone_credential_selector_ssh">选择 SSH 密钥</string>
     <string name="clone_credential_selected_format">HTTPS：%1$s</string>
     <string name="clone_credential_selected_ssh">SSH：%1$s</string>
     <string name="clone_credential_not_applicable">无需凭据</string>
@@ -389,39 +412,131 @@
     <string name="clone_clone_success">仓库克隆成功</string>
     <string name="clone_auth_failed">认证失败。请选择凭据。</string>
 
-    <!-- Add Repository Screen -->
-    <string name="add_repo_tab_clone">克隆远程</string>
-    <string name="add_repo_tab_local">添加本地</string>
+    <!-- ========== Local Repository ========== -->
+    <string name="local_repo_detected">检测到仓库</string>
+    <string name="local_new_repo_setup">新仓库设置</string>
+    <string name="local_display_name_label">显示名称</string>
+    <string name="local_display_name_placeholder">FuwaGit 的友好别名</string>
+    <string name="local_remote_url_optional">远程 URL（可选）</string>
+    <string name="local_info_guide">选择一个本地文件夹开始使用 Git 管理它。</string>
+    <string name="local_select_folder">选择文件夹</string>
+    <string name="local_remote_count_format">远程（找到 %1$d 个）</string>
+    <string name="local_no_folder_selected">未选择文件夹</string>
+    <string name="local_git_repo_detected">检测到 Git 仓库</string>
+    <string name="local_not_git_repo">不是 Git 仓库</string>
+    <string name="local_pick_folder">选择文件夹</string>
+    <string name="local_repository_label_format">仓库：%1$s</string>
+    <string name="local_user_label_format">用户：%1$s</string>
+    <string name="local_head_label_format">HEAD：%1$s</string>
 
-    <!-- Configure Remote Dialog -->
-    <string name="remote_url_label">远程URL</string>
+    <!-- ========== Configure Remote ========== -->
+    <string name="remote_url_label">远程 URL</string>
     <string name="remote_credential_label">凭据</string>
-    <string name="remote_ssh_key_label">SSH密钥</string>
-    <string name="remote_credential_url_mismatch">凭据类型与URL不匹配</string>
+    <string name="remote_ssh_key_label">SSH 密钥</string>
+    <string name="remote_credential_url_mismatch">凭据类型与 URL 不匹配</string>
     <string name="remote_configure_select_credential">选择凭据</string>
 
-    <!-- Permissions Screen -->
-    <string name="permissions_system_title">系统权限</string>
-    <string name="permissions_all_files_access">访问所有文件</string>
-    <string name="permissions_all_files_access_desc">需要对所有目录进行Git操作</string>
-    <string name="permissions_grant">授予</string>
-    <string name="permissions_status_granted">已授予</string>
-    <string name="permissions_status_denied">已拒绝</string>
-    <string name="permissions_status_unknown">未知</string>
-
-    <!-- SSH Test Card -->
-    <string name="ssh_test_title">测试SSH密钥</string>
+    <!-- ========== SSH Test ========== -->
+    <string name="ssh_test_title">测试 SSH 密钥</string>
     <string name="ssh_test_host_label">主机</string>
     <string name="ssh_test_host_placeholder">git@github.com</string>
-    <string name="ssh_test_select_key">选择SSH密钥</string>
+    <string name="ssh_test_select_key">选择 SSH 密钥</string>
     <string name="ssh_test_key_not_selected">未选择密钥</string>
     <string name="ssh_test_button">测试连接</string>
     <string name="ssh_test_testing">正在测试…</string>
     <string name="ssh_test_result_success">连接成功</string>
     <string name="ssh_test_result_failure">连接失败</string>
 
-    <!-- Confirm Dialogs -->
+    <!-- ========== Permissions Screen ========== -->
+    <string name="permissions_system_title">系统权限</string>
+    <string name="permissions_all_files_access">访问所有文件</string>
+    <string name="permissions_all_files_access_desc">需要对所有目录进行 Git 操作</string>
+    <string name="permissions_grant">授予</string>
+    <string name="permissions_status_granted">已授予</string>
+    <string name="permissions_status_denied">已拒绝</string>
+    <string name="permissions_status_unknown">未知</string>
+
+    <!-- ========== History Screen ========== -->
+    <string name="history_commits_count_format">%1$d 个提交</string>
+    <string name="history_no_commits">暂无提交</string>
+    <string name="history_first_commit_message">进行第一次提交以查看历史</string>
+    <string name="history_merge_badge">Merge</string>
+    <string name="history_parents_label">父提交</string>
+    <string name="history_files_label">文件</string>
+    <string name="history_additions_label">新增</string>
+    <string name="history_deletions_label">删除</string>
+    <string name="history_changed_files">变更文件</string>
+    <string name="history_no_file_changes">没有文件变更</string>
+    <string name="history_reset_to_commit">重置到此提交</string>
+    <string name="history_time_just_now">刚刚</string>
+    <string name="history_time_minutes_ago">%1$d 分钟前</string>
+    <string name="history_time_hours_ago">%1$d 小时前</string>
+    <string name="history_time_days_ago">%1$d 天前</string>
+
+    <!-- ========== Tags Screen ========== -->
+    <string name="tags_refresh_description">刷新标签列表</string>
+    <string name="tags_create_tag_description">创建新标签</string>
+    <string name="tags_no_tags_found">未找到标签</string>
+    <string name="tags_init_repo_message">初始化仓库以查看标签</string>
+    <string name="tags_lightweight_badge">轻量级</string>
+    <string name="tags_annotated_badge">附注</string>
+    <string name="tags_target_commit">目标：%1$s</string>
+    <string name="tags_push_tag">Push Tag</string>
+    <string name="tags_checkout_tag">Checkout Tag</string>
+    <string name="tags_push_all_tags">Push All Tags</string>
+    <string name="tags_delete_tag">删除标签</string>
+    <string name="tags_create_lightweight_tag">创建轻量级标签</string>
+    <string name="tags_create_annotated_tag">创建附注标签</string>
+    <string name="tags_tag_name">标签名称</string>
+    <string name="tags_tag_name_placeholder">v1.0.0</string>
+    <string name="tags_tag_message">标签信息</string>
+    <string name="tags_tag_message_placeholder">发布版本1.0.0</string>
+    <string name="tags_commit_hash">提交哈希（可选）</string>
+    <string name="tags_commit_hash_placeholder">HEAD 或特定提交</string>
+    <string name="tags_remote_origin">origin</string>
+    <string name="tags_delete_confirmation">确定要删除标签\'%1$s\'吗？</string>
+    <string name="tags_delete_warning">此操作无法撤销。</string>
+    <string name="tags_push_single_tag">将标签\'%1$s\' Push 到\'%2$s\'？</string>
+    <string name="tags_push_all_confirmation">将所有标签 Push 到\'%1$s\'？</string>
+    <string name="tags_filter_all">全部</string>
+    <string name="tags_filter_lightweight">轻量级</string>
+    <string name="tags_filter_annotated">附注</string>
+    <string name="tags_search_hint">搜索标签…</string>
+    <string name="tags_tag_name_validation_hint">标签名称不能包含空格、~、^、:、?、*、[、\\，也不能以点开头</string>
+    <string name="tags_tag_details">标签详情</string>
+    <string name="tags_tag_name_label">标签名称</string>
+    <string name="tags_tag_type_label">标签类型</string>
+    <string name="tags_tag_target_commit">目标提交</string>
+    <string name="tags_tag_tagger">打标签者</string>
+    <string name="tags_tag_created">创建时间</string>
+    <string name="tags_tag_name_copied">标签名称已复制</string>
+
+    <!-- ========== File Diff Screen ========== -->
+    <string name="diff_binary_file">二进制文件不显示</string>
+    <string name="diff_no_changes">没有更改</string>
+    <string name="diff_view_changes">查看更改</string>
+    <string name="diff_additions_prefix">+%1$d</string>
+    <string name="diff_deletions_prefix">-%1$d</string>
+    <string name="diff_change_type_format">(%1$s)</string>
+    <string name="file_diff_screen_title">文件差异</string>
+    <string name="file_diff_back">返回</string>
+    <string name="file_diff_loading">正在加载差异…</string>
+    <string name="file_diff_empty">没有差异可显示</string>
+    <string name="file_diff_error">加载差异失败</string>
+
+    <!-- ========== Terminal ========== -->
+    <string name="terminal_lines_format">%1$d行</string>
+    <string name="terminal_no_output">暂无输出</string>
+
+    <!-- ========== Dialogs ========== -->
+    <!-- General Dialogs -->
     <string name="dialog_confirm_dangerous_title">警告</string>
+    <string name="dialog_operation_successful">操作成功</string>
+    <string name="dialog_operation_failed">操作失败</string>
+    <string name="dialog_error_format">错误：%1$s</string>
+    <string name="dialog_suggestion_format">建议：%1$s</string>
+
+    <!-- Reset Dialog -->
     <string name="dialog_reset_confirm_title_format">确认重置%1$s</string>
     <string name="dialog_reset_to_commit">将当前分支重置到提交：</string>
     <string name="dialog_reset_hash_label">哈希：</string>
@@ -437,24 +552,12 @@
     <string name="dialog_reset_mixed_label">混合</string>
     <string name="dialog_reset_hard_label">硬</string>
     <string name="dialog_reset_button_format">重置%1$s</string>
-    <string name="dialog_operation_successful">操作成功</string>
-    <string name="dialog_operation_failed">操作失败</string>
-    <string name="dialog_merge_conflicts">检测到合并冲突</string>
-    <string name="dialog_error_format">错误：%1$s</string>
-    <string name="dialog_suggestion_format">建议：%1$s</string>
-    <string name="dialog_conflict_files_message">以下文件存在冲突：</string>
-    <string name="dialog_scanning_files">正在扫描文件</string>
-    <string name="dialog_clean_info">清理信息</string>
-    <string name="dialog_clean_failed">清理失败</string>
-    <string name="dialog_clean_untracked_title">清理未跟踪的文件</string>
-    <string name="dialog_clean_files_to_delete_format">以下%1$d个未跟踪的文件将被永久删除：</string>
-    <string name="dialog_clean_no_files">未找到未跟踪的文件。</string>
-    <string name="dialog_delete_all">删除全部</string>
-    <string name="dialog_clean_completed">清理完成</string>
-    <string name="dialog_clean_deleted_count_format">成功删除%1$d个文件：</string>
-    <string name="dialog_clean_no_files_deleted">没有文件被删除</string>
+
+    <!-- Conflict Dialog -->
+    <string name="dialog_merge_conflicts">检测到 Merge 冲突</string>
     <string name="dialog_merge_conflict_title_format">%1$s个冲突</string>
     <string name="dialog_conflict_count_format">%1$s个冲突需要解决</string>
+    <string name="dialog_conflict_files_message">以下文件存在冲突：</string>
     <string name="dialog_how_to_resolve">如何解决：</string>
     <string name="dialog_resolve_step1">1. 编辑每个文件以解决冲突标记(&lt;&lt;&lt;&lt;&lt;&lt;, ======, &gt;&gt;&gt;&gt;&gt;&gt;)</string>
     <string name="dialog_resolve_step2">2. 编辑后点击\"标记为已解决\"</string>
@@ -466,45 +569,23 @@
     <string name="dialog_conflict_status_staged">已暂存</string>
     <string name="dialog_conflict_status_format">状态：%1$s</string>
 
-    <!-- File Picker Dialog -->
-    <string name="filepicker_cannot_access">无法访问此目录</string>
-    <string name="filepicker_empty_folder">空文件夹</string>
-    <string name="filepicker_create_folder">创建文件夹</string>
-    <string name="filepicker_folder_name">文件夹名称</string>
-    <string name="filepicker_invalid_folder_name">无效的文件夹名称或已存在</string>
+    <!-- Clean Dialog -->
+    <string name="dialog_scanning_files">正在扫描文件</string>
+    <string name="dialog_clean_info">清理信息</string>
+    <string name="dialog_clean_failed">清理失败</string>
+    <string name="dialog_clean_untracked_title">清理未跟踪的文件</string>
+    <string name="dialog_clean_files_to_delete_format">以下%1$d个未跟踪的文件将被永久删除：</string>
+    <string name="dialog_clean_no_files">未找到未跟踪的文件。</string>
+    <string name="dialog_delete_all">删除全部</string>
+    <string name="dialog_clean_completed">清理完成</string>
+    <string name="dialog_clean_deleted_count_format">成功删除%1$d个文件：</string>
+    <string name="dialog_clean_no_files_deleted">没有文件被删除</string>
 
-    <!-- Terminal Logs -->
-    <string name="terminal_lines_format">%1$d行</string>
-    <string name="terminal_no_output">暂无输出</string>
-
-    <!-- Apply to All Repositories Dialog -->
+    <!-- Apply to All Dialog -->
     <string name="apply_to_all_repos_title">应用到所有仓库</string>
     <string name="apply_to_all_repos_description">这将把以下设置应用到所有已保存的仓库：</string>
     <string name="apply_to_all_repos_also_global">也应用到全局配置</string>
     <string name="apply_to_all_repos_also_global_subtitle">这将更新全局设置</string>
-    <string name="action_apply">应用</string>
-
-    <!-- Credential Screen -->
-
-    <!-- History Screen -->
-    <string name="screen_history">历史</string>
-    <string name="history_commits_count_format">%1$d个提交</string>
-    <string name="history_no_commits">暂无提交</string>
-    <string name="history_first_commit_message">进行第一次提交以查看历史</string>
-    <string name="action_expand">展开</string>
-    <string name="action_collapse">收起</string>
-    <string name="history_merge_badge">合并</string>
-    <string name="history_parents_label">父提交</string>
-    <string name="history_files_label">文件</string>
-    <string name="history_additions_label">新增</string>
-    <string name="history_deletions_label">删除</string>
-    <string name="history_changed_files">变更文件</string>
-    <string name="history_no_file_changes">没有文件变更</string>
-    <string name="history_reset_to_commit">重置到此提交</string>
-    <string name="history_time_just_now">刚刚</string>
-    <string name="history_time_minutes_ago">%1$d分钟前</string>
-    <string name="history_time_hours_ago">%1$d小时前</string>
-    <string name="history_time_days_ago">%1$d天前</string>
 
     <!-- Apply Config Result Dialog -->
     <string name="apply_config_result_success">成功</string>
@@ -512,33 +593,34 @@
     <string name="apply_config_result_success_format">%1$d/%2$d个仓库更新成功</string>
     <string name="apply_config_result_failed_repos">失败的仓库：</string>
 
-    <!-- Appearance Settings -->
-    <string name="settings_appearance">外观</string>
-    <string name="settings_dark_mode">深色模式</string>
-    <string name="settings_dark_mode_system">跟随系统</string>
-    <string name="settings_dark_mode_always_on">始终开启</string>
-    <string name="settings_dark_mode_always_off">始终关闭</string>
-    <string name="settings_language">语言</string>
-    <string name="settings_language_system">跟随系统</string>
-    <string name="settings_language_zh_cn">简体中文</string>
-    <string name="settings_language_en">English</string>
+    <!-- File Picker Dialog -->
+    <string name="filepicker_cannot_access">无法访问此目录</string>
+    <string name="filepicker_empty_folder">空文件夹</string>
+    <string name="filepicker_create_folder">创建文件夹</string>
+    <string name="filepicker_folder_name">文件夹名称</string>
+    <string name="filepicker_invalid_folder_name">无效的文件夹名称或已存在</string>
 
-    <!-- ViewModel Messages -->
+    <!-- Settings Config Dialog -->
+    <string name="settings_config_name_format">user.name：%1$s</string>
+    <string name="settings_config_email_format">user.email：%1$s</string>
+    <string name="settings_error_format">%1$s：%2$s</string>
+
+    <!-- ========== ViewModel Messages ========== -->
     <string name="vm_passwords_do_not_match">密码不匹配</string>
-    <string name="vm_password_min_chars">密码必须至少6个字符</string>
+    <string name="vm_password_min_chars">密码必须至少 6 个字符</string>
     <string name="vm_incorrect_old_password">旧密码不正确</string>
     <string name="vm_branch_deleted_success">分支\'%1$s\'已成功删除</string>
-    <string name="vm_branch_not_fully_merged">该分支包含未合并的提交。使用强制删除来移除它。</string>
-    <string name="vm_branch_checked_out">无法删除当前检出的分支。请先切换到其他分支。</string>
+    <string name="vm_branch_not_fully_merged">该分支包含未 Merge 的提交。使用强制删除来移除它。</string>
+    <string name="vm_branch_checked_out">无法删除当前 Checkout 的分支。请先切换到其他分支。</string>
     <string name="vm_unknown_error">未知错误</string>
-    <string name="vm_merge_success">成功将\'%1$s\'合并到当前分支</string>
+    <string name="vm_merge_success">成功将\'%1$s\' Merge 到当前分支</string>
     <string name="vm_merge_conflict_hint">在状态屏幕中手动解决冲突，然后提交更改。</string>
-    <string name="vm_merge_not_fully_merged">该分支包含未合并的提交。这对于合并操作是正常的。</string>
+    <string name="vm_merge_not_fully_merged">该分支包含未 Merge 的提交。这对于 Merge 操作是正常的。</string>
     <string name="vm_merge_up_to_date">请检查当前分支是否是最新的后重试。</string>
-    <string name="vm_rebase_success">成功变基到\'%1$s\'</string>
+    <string name="vm_rebase_success">成功 Rebase 到\'%1$s\'</string>
     <string name="vm_rebase_conflict_hint" tools:ignore="TypographyDashes">解决冲突后运行\'git rebase --continue\'，或运行\'git rebase --abort\'取消。</string>
     <string name="vm_rebase_up_to_date">当前分支已经与目标分支同步。</string>
-    <string name="vm_rebase_abort_hint" tools:ignore="TypographyDashes">运行\'git rebase --abort\'取消变基操作。</string>
+    <string name="vm_rebase_abort_hint" tools:ignore="TypographyDashes">运行\'git rebase --abort\'取消 Rebase 操作。</string>
     <string name="vm_conflicts_resolved">冲突已解决</string>
     <string name="vm_select_target_repo">选择目标仓库</string>
     <string name="vm_select_target_repo_path">选择目标仓库路径</string>
@@ -551,100 +633,11 @@
     <string name="vm_clean_get_files_failed">获取未跟踪文件失败：%1$s</string>
     <string name="vm_clean_get_list_failed">获取文件列表失败：%1$s</string>
 
-    <!-- Status Screen ViewModel Messages -->
-
-    <!-- Tags Screen -->
-    <string name="screen_tags">标签</string>
-    <string name="tags_refresh_description">刷新标签列表</string>
-    <string name="tags_create_tag_description">创建新标签</string>
-    <string name="tags_no_tags_found">未找到标签</string>
-    <string name="tags_init_repo_message">初始化仓库以查看标签</string>
-    <string name="tags_lightweight_badge">轻量级</string>
-    <string name="tags_annotated_badge">附注</string>
-    <string name="tags_target_commit">目标：%1$s</string>
-    <string name="tags_push_tag">推送标签</string>
-    <string name="tags_checkout_tag">检出标签</string>
-    <string name="tags_push_all_tags">推送所有标签</string>
-    <string name="tags_delete_tag">删除标签</string>
-    <string name="tags_create_lightweight_tag">创建轻量级标签</string>
-    <string name="tags_create_annotated_tag">创建附注标签</string>
-    <string name="tags_tag_name">标签名称</string>
-    <string name="tags_tag_name_placeholder">v1.0.0</string>
-    <string name="tags_tag_message">标签信息</string>
-    <string name="tags_tag_message_placeholder">发布版本1.0.0</string>
-    <string name="tags_commit_hash">提交哈希（可选）</string>
-    <string name="tags_commit_hash_placeholder">HEAD或特定提交</string>
-    <string name="tags_remote_origin">origin</string>
-    <string name="tags_delete_confirmation">确定要删除标签\'%1$s\'吗？</string>
-    <string name="tags_delete_warning">此操作无法撤销。</string>
-    <string name="tags_push_single_tag">将标签\'%1$s\'推送到\'%2$s\'？</string>
-    <string name="tags_push_all_confirmation">将所有标签推送到\'%1$s\'？</string>
-    <string name="tags_filter_all">全部</string>
-    <string name="tags_filter_lightweight">轻量级</string>
-    <string name="tags_filter_annotated">附注</string>
-    <string name="tags_search_hint">搜索标签…</string>
-    <string name="tags_tag_name_validation_hint">标签名称不能包含空格、~、^、:、?、*、[、\\，也不能以点开头</string>
-    <string name="tags_tag_details">标签详情</string>
-    <string name="tags_tag_name_label">标签名称</string>
-    <string name="tags_tag_type_label">标签类型</string>
-    <string name="tags_tag_target_commit">目标提交</string>
-    <string name="tags_tag_tagger">打标签者</string>
-    <string name="tags_tag_created">创建时间</string>
-
-    <!-- File Diff Screen -->
-    <string name="diff_binary_file">二进制文件不显示</string>
-    <string name="diff_no_changes">没有更改</string>
-    <string name="diff_view_changes">查看更改</string>
-
-    <!-- Push Options -->
-
-    <!-- Rebase Continue -->
-
-    <!-- Navigation -->
-    <string name="nav_status">状态</string>
-    <string name="nav_history">历史</string>
-    <string name="nav_branches">分支</string>
-    <string name="nav_tags">标签</string>
-    <string name="nav_my_repos">我的仓库</string>
-    <string name="nav_settings">设置</string>
-
-    <!-- Add Repository Screen -->
-    <string name="add_repo_screen_title">添加仓库</string>
-
-    <!-- Credential Screen -->
-
-    <!-- Credential Select Dialog -->
-
-    <!-- Import Export Dialogs -->
-
-    <!-- File Diff Screen -->
-    <string name="file_diff_screen_title">文件差异</string>
-    <string name="file_diff_back">返回</string>
-    <string name="file_diff_loading">正在加载差异…</string>
-    <string name="file_diff_empty">没有差异可显示</string>
-    <string name="file_diff_error">加载差异失败</string>
-
-    <!-- Diff Viewer -->
-    <string name="diff_additions_prefix">+%1$d</string>
-    <string name="diff_deletions_prefix">-%1$d</string>
-    <string name="diff_change_type_format">(%1$s)</string>
-
-    <!-- Settings Screen -->
-    <string name="settings_config_name_format">user.name：%1$s</string>
-    <string name="settings_config_email_format">user.email：%1$s</string>
-    <string name="settings_error_format">%1$s：%2$s</string>
-
-    <!-- Tags Screen -->
-    <string name="tags_tag_name_copied">标签名称已复制</string>
-
-    <!-- Branches Screen -->
-    <string name="branches_branch_name_clipboard">分支名称</string>
-
-    <!-- Onboarding -->
-    <string name="onboarding_welcome_title">欢迎使用FuwaGit</string>
-    <string name="onboarding_welcome_subtitle">一款轻量级的Android Git客户端。管理仓库、保护凭据，随时随地提交代码。</string>
-    <string name="onboarding_feature_git_title">完整的Git操作</string>
-    <string name="onboarding_feature_git_desc">克隆、提交、推送、拉取、分支、合并等</string>
+    <!-- ========== Onboarding ========== -->
+    <string name="onboarding_welcome_title">欢迎使用 FuwaGit</string>
+    <string name="onboarding_welcome_subtitle">一款轻量级的 Android Git 客户端。管理仓库、保护凭据，随时随地提交代码。</string>
+    <string name="onboarding_feature_git_title">完整的 Git 操作</string>
+    <string name="onboarding_feature_git_desc">克隆、提交、Push、Pull、分支、Merge 等</string>
     <string name="onboarding_feature_security_title">安全的凭据</string>
     <string name="onboarding_feature_security_desc">加密保险库，支持主密码和生物识别解锁</string>
     <string name="onboarding_feature_repos_title">多仓库管理</string>
@@ -653,23 +646,24 @@
     <string name="onboarding_next">下一步</string>
     <string name="onboarding_finish">开始使用FuwaGit</string>
     <string name="onboarding_permissions_title">授予权限</string>
-    <string name="onboarding_permissions_subtitle">FuwaGit需要存储访问权限来管理您的Git仓库。</string>
-    <string name="onboarding_permissions_storage_desc">需要对所有目录进行Git操作</string>
+    <string name="onboarding_permissions_subtitle">FuwaGit 需要存储访问权限来管理您的 Git 仓库。</string>
+    <string name="onboarding_permissions_storage_desc">需要对所有目录进行 Git 操作</string>
     <string name="onboarding_master_password_title">保护您的凭据</string>
-    <string name="onboarding_master_password_subtitle">设置主密码以加密您的HTTPS密码和SSH密钥。</string>
-    <string name="onboarding_password_placeholder">至少6个字符</string>
+    <string name="onboarding_master_password_subtitle">设置主密码以加密您的 HTTPS 密码和 SSH 密钥。</string>
+    <string name="onboarding_password_placeholder">至少 6 个字符</string>
     <string name="onboarding_biometric_title">生物识别解锁</string>
     <string name="onboarding_biometric_subtitle">使用指纹快速解锁凭据</string>
     <string name="onboarding_skip">跳过</string>
-    <string name="onboarding_git_config_title">Git配置</string>
+    <string name="onboarding_git_config_title">Git 配置</string>
     <string name="onboarding_git_config_subtitle">设置您的默认提交作者信息。</string>
     <string name="onboarding_saving">正在保存…</string>
     <string name="onboarding_add_repo_title">添加您的第一个仓库</string>
     <string name="onboarding_add_repo_subtitle">克隆远程仓库或添加现有的本地仓库。</string>
     <string name="onboarding_clone_repo">克隆远程</string>
-    <string name="onboarding_clone_repo_desc">从GitHub、GitLab或任何Git服务器克隆</string>
+    <string name="onboarding_clone_repo_desc">从 GitHub、GitLab 或任何 Git 服务器克隆</string>
     <string name="onboarding_local_repo">添加本地</string>
     <string name="onboarding_local_repo_desc">打开设备上的现有仓库</string>
     <string name="onboarding_add_repo">添加</string>
-    <string name="onboarding_complete_title">一切就绪！</string>
+    <string name="onboarding_complete_title">要开始了哟~</string>
+
 </resources>
