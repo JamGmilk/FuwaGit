@@ -18,7 +18,6 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
-
 import androidx.compose.runtime.Stable
 
 @Stable
@@ -165,16 +164,28 @@ class BranchesViewModel @Inject constructor(
                     loadBranches()
                 }
                 .onError { e ->
-                    val suggestion = when {
-                        e.message?.contains("not fully merged") == true ->
-                            "The branch contains commits that haven't been merged. Use force delete to remove it anyway."
-                        e.message?.contains("currently checked out") == true ->
-                            "Cannot delete the currently checked out branch. Switch to another branch first."
-                        else -> "Please try again or check the git logs for more details."
+                    val errorMsg = e.message ?: "Unknown error"
+                    val causeMsg = e.cause?.message ?: errorMsg
+                    val fullMessage = "$errorMsg (Cause: $causeMsg)"
+
+                    val (userMessage, suggestion) = when {
+                        errorMsg.contains("not fully merged", ignoreCase = true) ||
+                        causeMsg.contains("not fully merged", ignoreCase = true) -> {
+                            "The branch '$branchName' has not been fully merged into the current branch." to
+                                "Use force delete to remove it, or merge the branch first."
+                        }
+                        errorMsg.contains("cannot delete current branch", ignoreCase = true) ||
+                        causeMsg.contains("cannot delete current branch", ignoreCase = true) -> {
+                            "Cannot delete the branch '$branchName' because it is currently checked out." to
+                                "Switch to another branch first, then delete this branch."
+                        }
+                        else -> {
+                            fullMessage to "Please try again or check the git logs for more details."
+                        }
                     }
                     _uiState.update {
                         it.copy(
-                            operationResult = OperationResult.Failure(e.message ?: "Unknown error", suggestion),
+                            operationResult = OperationResult.Failure(userMessage, suggestion),
                             pendingOperation = null,
                             pendingOperationTarget = null
                         )
