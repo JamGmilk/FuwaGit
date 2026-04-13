@@ -94,6 +94,9 @@ fun StatusScreen(
                 is StatusEvent.FetchError -> {
                     snackbarHostState.showSnackbar("Fetch failed: ${event.message}")
                 }
+                is StatusEvent.CredentialUnlockRequired -> {
+                    snackbarHostState.showSnackbar("Please unlock credential vault in Settings first")
+                }
             }
         }
     }

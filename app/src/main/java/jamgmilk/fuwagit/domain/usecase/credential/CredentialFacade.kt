@@ -16,7 +16,8 @@ class CredentialFacade @Inject constructor(
     private val getSshKeysUseCase: GetSshKeysUseCase,
     private val getSshPrivateKeyUseCase: GetSshPrivateKeyUseCase,
     private val getSshPassphraseUseCase: GetSshPassphraseUseCase,
-    private val resolveCloneCredentialUseCase: ResolveCloneCredentialUseCase
+    private val resolveCloneCredentialUseCase: ResolveCloneCredentialUseCase,
+    private val credentialRepository: jamgmilk.fuwagit.domain.repository.CredentialRepository
 ) {
     suspend fun getHttpsCredentials(): AppResult<List<HttpsCredential>> =
         getHttpsCredentialsUseCase()
@@ -32,6 +33,8 @@ class CredentialFacade @Inject constructor(
 
     suspend fun getSshPassphrase(uuid: String): AppResult<String?> =
         getSshPassphraseUseCase(uuid)
+
+    suspend fun isUnlocked(): Boolean = credentialRepository.isUnlocked()
 
     /**
      * Resolves credentials based on selected UUIDs.

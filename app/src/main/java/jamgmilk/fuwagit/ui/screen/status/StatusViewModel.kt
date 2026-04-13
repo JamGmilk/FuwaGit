@@ -41,6 +41,7 @@ sealed class StatusEvent {
     data class PullError(val message: String) : StatusEvent()
     data class FetchSuccess(val message: String) : StatusEvent()
     data class FetchError(val message: String) : StatusEvent()
+    data object CredentialUnlockRequired : StatusEvent()
 }
 
 @Stable
@@ -67,7 +68,10 @@ data class StatusUiState(
     val selectedCredentialUuid: String? = null,
     val selectedSshKeyUuid: String? = null,
     val httpsCredentials: List<HttpsCredential> = emptyList(),
-    val sshKeys: List<SshKey> = emptyList()
+    val sshKeys: List<SshKey> = emptyList(),
+    // 解锁状态
+    val isCredentialUnlocked: Boolean = false,
+    val pendingCredentialOperation: suspend () -> Unit = {}
 )
 
 @HiltViewModel
@@ -90,6 +94,7 @@ class StatusViewModel @Inject constructor(
     init {
         viewModelScope.launch {
             loadCredentials()
+            refreshUnlockState()
             currentRepoManager.repoInfo.collectLatest { info ->
                 currentRepoPath = info.repoPath
                 _uiState.update {
@@ -316,71 +321,110 @@ class StatusViewModel @Inject constructor(
         val path = currentRepoPath ?: return
 
         viewModelScope.launch {
-            appendTerminalLog("git pull", "Attempting pull. Remote auth may be required")
-            val remoteUrl = gitStatus.getRemoteUrl(path)
-            val credentials = loadSelectedCredentials(remoteUrl)
-            gitSync.pull(path, credentials)
-                .onSuccess { result ->
-                    appendTerminalLog("git pull", result.toString())
-                    if (result.hasConflicts) {
-                        val conflictResult = mergeUseCase.getConflicts(path)
-                        conflictResult.onSuccess { conflicts ->
-                            _uiState.update {
-                                it.copy(
-                                    conflictResult = conflicts,
-                                    isResolvingConflict = true
-                                )
-                            }
-                        }
-                    } else {
-                        _events.emit(StatusEvent.PullSuccess(result.message))
-                        refreshWorkspace()
-                    }
+            if (!credential.isUnlocked()) {
+                _uiState.update {
+                    it.copy(
+                        pendingCredentialOperation = { executePull(path) }
+                    )
                 }
-                .onError { e ->
-                    appendTerminalLog("git pull", "Error: ${e.message}")
-                    _events.emit(StatusEvent.PullError(e.message ?: "Pull failed"))
-                }
+                _events.emit(StatusEvent.CredentialUnlockRequired)
+                return@launch
+            }
+            executePull(path)
         }
+    }
+
+    private suspend fun executePull(path: String) {
+        appendTerminalLog("git pull", "Attempting pull. Remote auth may be required")
+        val remoteUrl = gitStatus.getRemoteUrl(path)
+        val credentials = loadSelectedCredentials(remoteUrl)
+        gitSync.pull(path, credentials)
+            .onSuccess { result ->
+                appendTerminalLog("git pull", result.toString())
+                if (result.hasConflicts) {
+                    val conflictResult = mergeUseCase.getConflicts(path)
+                    conflictResult.onSuccess { conflicts ->
+                        _uiState.update {
+                            it.copy(
+                                conflictResult = conflicts,
+                                isResolvingConflict = true
+                            )
+                        }
+                    }
+                } else {
+                    _events.emit(StatusEvent.PullSuccess(result.message))
+                    refreshWorkspace()
+                }
+            }
+            .onError { e ->
+                appendTerminalLog("git pull", "Error: ${e.message}")
+                _events.emit(StatusEvent.PullError(e.message ?: "Pull failed"))
+            }
     }
 
     fun pushRepo() {
         val path = currentRepoPath ?: return
 
         viewModelScope.launch {
-            appendTerminalLog("git push", "Attempting push. Remote auth may be required")
-            val remoteUrl = gitStatus.getRemoteUrl(path)
-            val credentials = loadSelectedCredentials(remoteUrl)
-            gitSync.push(path, credentials)
-                .onSuccess { result ->
-                    appendTerminalLog("git push", result)
-                    _events.emit(StatusEvent.PushSuccess(result))
+            if (!credential.isUnlocked()) {
+                _uiState.update {
+                    it.copy(
+                        pendingCredentialOperation = { executePush(path) }
+                    )
                 }
-                .onError { e ->
-                    appendTerminalLog("git push", "Error: ${e.message}")
-                    _events.emit(StatusEvent.PushError(e.message ?: "Push failed"))
-                }
+                _events.emit(StatusEvent.CredentialUnlockRequired)
+                return@launch
+            }
+            executePush(path)
         }
+    }
+
+    private suspend fun executePush(path: String) {
+        appendTerminalLog("git push", "Attempting push. Remote auth may be required")
+        val remoteUrl = gitStatus.getRemoteUrl(path)
+        val credentials = loadSelectedCredentials(remoteUrl)
+        gitSync.push(path, credentials)
+            .onSuccess { result ->
+                appendTerminalLog("git push", result)
+                _events.emit(StatusEvent.PushSuccess(result))
+            }
+            .onError { e ->
+                appendTerminalLog("git push", "Error: ${e.message}")
+                _events.emit(StatusEvent.PushError(e.message ?: "Push failed"))
+            }
     }
 
     fun fetchRepo() {
         val path = currentRepoPath ?: return
 
         viewModelScope.launch {
-            appendTerminalLog("git fetch", "Fetching from remote...")
-            val remoteUrl = gitStatus.getRemoteUrl(path)
-            val credentials = loadSelectedCredentials(remoteUrl)
-            gitSync.fetch(path, credentials)
-                .onSuccess { result ->
-                    appendTerminalLog("git fetch", result)
-                    _events.emit(StatusEvent.FetchSuccess(result))
-                    refreshAll()
+            if (!credential.isUnlocked()) {
+                _uiState.update {
+                    it.copy(
+                        pendingCredentialOperation = { executeFetch(path) }
+                    )
                 }
-                .onError { e ->
-                    appendTerminalLog("git fetch", "Error: ${e.message}")
-                    _events.emit(StatusEvent.FetchError(e.message ?: "Fetch failed"))
-                }
+                _events.emit(StatusEvent.CredentialUnlockRequired)
+                return@launch
+            }
+            executeFetch(path)
         }
+    }
+
+    private suspend fun executeFetch(path: String) {
+        appendTerminalLog("git fetch", "Fetching from remote...")
+        val remoteUrl = gitStatus.getRemoteUrl(path)
+        val credentials = loadSelectedCredentials(remoteUrl)
+        gitSync.fetch(path, credentials)
+            .onSuccess { result ->
+                appendTerminalLog("git fetch", result)
+                _events.emit(StatusEvent.FetchSuccess(result))
+                refreshAll()
+            }
+            .onError { e ->
+                appendTerminalLog("git fetch", "Error: ${e.message}")
+                _events.emit(StatusEvent.FetchError(e.message ?: "Fetch failed"))
+            }
     }
 
     // ============ 凭证管理 ============
@@ -526,6 +570,27 @@ class StatusViewModel @Inject constructor(
                     refreshWorkspace()
                 }
                 .onError { e -> _uiState.update { it.copy(error = e.message) } }
+        }
+    }
+
+    fun onCredentialUnlocked() {
+        viewModelScope.launch {
+            val pendingOp = _uiState.value.pendingCredentialOperation
+            if (pendingOp != {}) {
+                pendingOp()
+            }
+            _uiState.update {
+                it.copy(
+                    pendingCredentialOperation = {},
+                    isCredentialUnlocked = credential.isUnlocked()
+                )
+            }
+        }
+    }
+
+    fun refreshUnlockState() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isCredentialUnlocked = credential.isUnlocked()) }
         }
     }
 }
