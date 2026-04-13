@@ -2,6 +2,8 @@ package jamgmilk.fuwagit.ui.screen.settings
 
 import android.content.Intent
 import android.util.Log
+import androidx.appcompat.app.AppCompatDelegate
+import androidx.core.os.LocaleListCompat
 import jamgmilk.fuwagit.BuildConfig
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
@@ -165,6 +167,21 @@ fun SettingsScreen(
             val message = resources.getString(messageResId)
             android.widget.Toast.makeText(context, message, android.widget.Toast.LENGTH_SHORT).show()
             credentialsViewModel.clearError()
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        settingsViewModel.events.collect { event ->
+            when (event) {
+                is SettingsEvent.LanguageChanged -> {
+                    val localeList = when (event.language) {
+                        "zh" -> LocaleListCompat.forLanguageTags("zh")
+                        "en" -> LocaleListCompat.forLanguageTags("en")
+                        else -> LocaleListCompat.getEmptyLocaleList()
+                    }
+                    AppCompatDelegate.setApplicationLocales(localeList)
+                }
+            }
         }
     }
 
@@ -758,6 +775,8 @@ private fun DeveloperOptionsCard(
 
             HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
 
+            val emptyLogsText = stringResource(R.string.settings_export_logs_empty)
+            val shareTitleText = stringResource(R.string.settings_export_logs_share_title)
             SettingsClickableItem(
                 title = stringResource(R.string.settings_export_logs),
                 subtitle = stringResource(R.string.settings_export_logs_subtitle),
@@ -765,10 +784,10 @@ private fun DeveloperOptionsCard(
                 onClick = {
                     val logFiles = CrashLogManager.getLogFiles()
                     if (logFiles.isEmpty()) {
-                        onExportLogsComplete(false, context.getString(R.string.settings_export_logs_empty))
+                        onExportLogsComplete(false, emptyLogsText)
                     } else {
                         val shareIntent = CrashLogManager.createShareIntent(context)
-                        context.startActivity(Intent.createChooser(shareIntent, context.getString(R.string.settings_export_logs_share_title)))
+                        context.startActivity(Intent.createChooser(shareIntent, shareTitleText))
                         onExportLogsComplete(true, "Logs exported")
                     }
                 }
@@ -1908,7 +1927,7 @@ private fun AppearanceSettingsCard(
     }
 
     val languageLabel = when (language) {
-        "zh_CN" -> stringResource(R.string.settings_language_zh_cn)
+        "zh" -> stringResource(R.string.settings_language_zh_cn)
         "en" -> stringResource(R.string.settings_language_en)
         else -> stringResource(R.string.settings_language_system)
     }
@@ -1992,7 +2011,7 @@ private fun AppearanceSettingsCard(
                 ) {
                     val languageOptions = listOf(
                         "system" to stringResource(R.string.settings_language_system),
-                        "zh_CN" to stringResource(R.string.settings_language_zh_cn),
+                        "zh" to stringResource(R.string.settings_language_zh_cn),
                         "en" to stringResource(R.string.settings_language_en)
                     )
 

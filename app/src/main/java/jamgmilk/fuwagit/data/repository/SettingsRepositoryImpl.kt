@@ -35,6 +35,7 @@ class SettingsRepositoryImpl @Inject constructor(
                 backupBeforeSync = prefs.backupBeforeSync,
                 verboseLogging = prefs.verboseLogging,
                 darkMode = prefs.darkMode,
+                language = prefs.language,
                 autoLockTimeout = prefs.autoLockTimeout,
                 isFirstRun = prefs.isFirstRun
             )

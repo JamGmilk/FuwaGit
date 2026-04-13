@@ -1,5 +1,6 @@
 package jamgmilk.fuwagit.ui.screen.settings
 
+import androidx.compose.runtime.Stable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -8,14 +9,15 @@ import jamgmilk.fuwagit.domain.repository.RepoRepository
 import jamgmilk.fuwagit.domain.repository.SettingsRepository
 import jamgmilk.fuwagit.domain.usecase.git.ApplyGitConfigToAllRepos
 import jamgmilk.fuwagit.ui.state.RepoStateManager
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
-
-import androidx.compose.runtime.Stable
 
 @Stable
 data class SettingsUiState(
@@ -46,6 +48,10 @@ data class ApplyConfigResult(
     val allSuccess: Boolean get() = failureCount == 0 && successCount > 0
 }
 
+sealed class SettingsEvent {
+    data class LanguageChanged(val language: String) : SettingsEvent()
+}
+
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
     private val settingsRepository: SettingsRepository,
@@ -57,6 +63,9 @@ class SettingsViewModel @Inject constructor(
 
     private val _uiState = MutableStateFlow(SettingsUiState())
     val uiState: StateFlow<SettingsUiState> = _uiState.asStateFlow()
+
+    private val _events = MutableSharedFlow<SettingsEvent>()
+    val events: SharedFlow<SettingsEvent> = _events.asSharedFlow()
 
     init {
         loadGlobalConfig()
@@ -164,6 +173,7 @@ class SettingsViewModel @Inject constructor(
     fun saveLanguage(language: String) {
         viewModelScope.launch {
             settingsRepository.saveLanguage(language)
+            _events.emit(SettingsEvent.LanguageChanged(language))
         }
     }
 
