@@ -82,6 +82,18 @@ fun StatusScreen(
                 is StatusEvent.PushError -> {
                     snackbarHostState.showSnackbar("Push failed: ${event.message}")
                 }
+                is StatusEvent.PullSuccess -> {
+                    snackbarHostState.showSnackbar(event.message)
+                }
+                is StatusEvent.PullError -> {
+                    snackbarHostState.showSnackbar("Pull failed: ${event.message}")
+                }
+                is StatusEvent.FetchSuccess -> {
+                    snackbarHostState.showSnackbar(event.message)
+                }
+                is StatusEvent.FetchError -> {
+                    snackbarHostState.showSnackbar("Fetch failed: ${event.message}")
+                }
             }
         }
     }
