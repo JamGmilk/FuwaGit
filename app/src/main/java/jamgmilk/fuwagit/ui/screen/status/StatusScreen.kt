@@ -66,6 +66,10 @@ fun StatusScreen(
     val currentBranch = uiState.currentBranch
     val colors = MaterialTheme.colorScheme
     val snackbarHostState = remember { SnackbarHostState() }
+    val pushFailedText = stringResource(R.string.status_push_failed, "")
+    val pullFailedText = stringResource(R.string.status_pull_failed, "")
+    val fetchFailedText = stringResource(R.string.status_fetch_failed, "")
+    val credentialUnlockText = stringResource(R.string.status_credential_unlock_required)
 
     LaunchedEffect(uiState.repoPath) {
         if (uiState.repoPath != null) {
@@ -80,22 +84,22 @@ fun StatusScreen(
                     snackbarHostState.showSnackbar(event.message)
                 }
                 is StatusEvent.PushError -> {
-                    snackbarHostState.showSnackbar("Push failed: ${event.message}")
+                    snackbarHostState.showSnackbar(pushFailedText.replace("%1\$s", event.message))
                 }
                 is StatusEvent.PullSuccess -> {
                     snackbarHostState.showSnackbar(event.message)
                 }
                 is StatusEvent.PullError -> {
-                    snackbarHostState.showSnackbar("Pull failed: ${event.message}")
+                    snackbarHostState.showSnackbar(pullFailedText.replace("%1\$s", event.message))
                 }
                 is StatusEvent.FetchSuccess -> {
                     snackbarHostState.showSnackbar(event.message)
                 }
                 is StatusEvent.FetchError -> {
-                    snackbarHostState.showSnackbar("Fetch failed: ${event.message}")
+                    snackbarHostState.showSnackbar(fetchFailedText.replace("%1\$s", event.message))
                 }
                 is StatusEvent.CredentialUnlockRequired -> {
-                    snackbarHostState.showSnackbar("Please unlock credential vault in Settings first")
+                    snackbarHostState.showSnackbar(credentialUnlockText)
                 }
             }
         }

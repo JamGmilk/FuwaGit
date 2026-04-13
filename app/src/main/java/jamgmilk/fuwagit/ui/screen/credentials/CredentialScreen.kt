@@ -159,6 +159,8 @@ fun CredentialScreen(
             )
         }
         is CredentialDialogState.GenerateSsh -> {
+            val failedGenerateText = stringResource(R.string.credentials_failed_generate_ssh_key)
+            val errorGeneratingText = stringResource(R.string.credentials_error_generating_ssh_key, "")
             GenerateSshKeyDialog(
                 onDismiss = { dialogState = CredentialDialogState.None },
                 onGenerate = { name, type, comment ->
@@ -176,12 +178,12 @@ fun CredentialScreen(
                             )
                         } else {
                             scope.launch {
-                                snackbarHostState.showSnackbar("Failed to generate SSH key pair")
+                                snackbarHostState.showSnackbar(failedGenerateText)
                             }
                         }
                     } catch (e: Exception) {
                         scope.launch {
-                            snackbarHostState.showSnackbar("Error generating SSH key: ${e.message}")
+                            snackbarHostState.showSnackbar(errorGeneratingText.replace("%1\$s", e.message ?: ""))
                         }
                     }
                     dialogState = CredentialDialogState.None
