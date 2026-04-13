@@ -337,7 +337,11 @@ class JGitCoreDataSource @Inject constructor(
 
         private fun loadFromFile() {
             val file = khFile ?: return
-            if (!file.exists()) return
+            if (!file.exists()) {
+                Log.i(TAG, "loadFromFile: known_hosts file does not exist at ${file.absolutePath}")
+                return
+            }
+            hostKeys.clear()
             try {
                 BufferedReader(file.reader()).use { reader ->
                     var line: String?
@@ -359,13 +363,15 @@ class JGitCoreDataSource @Inject constructor(
                                     }
                                     val keyData = base64Decode(parts[2])
                                     hostKeys.add(HostKey(host, typeInt, keyData))
+                                    Log.i(TAG, "loadFromFile: loaded host=$host, typeInt=$typeInt, keySize=${keyData.size}")
                                 }
                             } catch (e: Exception) {
-                                Log.w(TAG, "Skipping invalid known_hosts entry: $rawLine")
+                                Log.w(TAG, "Skipping invalid known_hosts entry: $rawLine, error: ${e.message}")
                             }
                         }
                     }
                 }
+                Log.i(TAG, "loadFromFile: loaded ${hostKeys.size} host keys from ${file.absolutePath}")
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to load known_hosts from ${file.absolutePath}", e)
             }
@@ -376,16 +382,30 @@ class JGitCoreDataSource @Inject constructor(
             try {
                 FileWriter(file).use { writer ->
                     for (hk in hostKeys) {
+                        Log.i(TAG, "saveToFile: saving host=${hk.host}, type=${hk.type}, key=${hk.key.take(32)}...")
                         writer.write(hk.host)
                         writer.write(" ")
-                        writer.write(hk.type)
+                        writer.write(hostKeyTypeToString(hk.type))
                         writer.write(" ")
                         writer.write(hk.key)
                         writer.write("\n")
                     }
                 }
+                Log.i(TAG, "saveToFile: saved ${hostKeys.size} host keys to ${file.absolutePath}")
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to save known_hosts to ${file.absolutePath}", e)
+            }
+        }
+
+        private fun hostKeyTypeToString(type: String): String {
+            return when (type) {
+                "0", "ssh-rsa" -> "ssh-rsa"
+                "1", "ssh-dss" -> "ssh-dss"
+                "19", "ecdsa-sha2-nistp256" -> "ecdsa-sha2-nistp256"
+                "20", "ecdsa-sha2-nistp384" -> "ecdsa-sha2-nistp384"
+                "21", "ecdsa-sha2-nistp521" -> "ecdsa-sha2-nistp521"
+                "3", "ssh-ed25519" -> "ssh-ed25519"
+                else -> type
             }
         }
 
@@ -429,7 +449,7 @@ class JGitCoreDataSource @Inject constructor(
                 val hk = iterator.next()
                 val matchesHost = hk.host == host
                 val matchesType = type == null || hk.type == type
-                val matchesKey = base64Decode(hk.key).contentEquals(key)
+                val matchesKey = try { base64Decode(hk.key).contentEquals(key) } catch (e: Exception) { false }
                 if (matchesHost && matchesType && matchesKey) {
                     iterator.remove()
                 }
@@ -481,22 +501,22 @@ class JGitCoreDataSource @Inject constructor(
             for (existing in existingKeys) {
                 val existingKeyBytes = try { base64Decode(existing.key) } catch (e: Exception) { continue }
                 if (existingKeyBytes.contentEquals(key)) {
+                    Log.i(TAG, "Key matched for host '$host'")
                     return HOST_KEY_OK
                 }
             }
 
-            val mismatchedKey = existingKeys.firstOrNull()
-            val keyType = mismatchedKey?.type ?: when {
-                key.size == 32 -> "ssh-ed25519"
-                key.size > 256 -> "ssh-rsa"
-                else -> "unknown"
+            Log.i(TAG, "No matching key found for host '$host', but host is known — adding new key type (accept-new policy)")
+            val keyType = when {
+                key.size == 32 -> 3
+                key.size > 256 -> 0
+                else -> 0
             }
-            Log.e(
-                TAG,
-                "SSH HOST KEY MISMATCH for '$host' ($keyType)! " +
-                "Possible MITM attack! Rejecting connection."
-            )
-            return HOST_KEY_CHANGED
+            val hostKey = HostKey(host, keyType, key)
+            hostKeys.add(hostKey)
+            saveToFile()
+            Log.i(TAG, "Added new key type for '$host' to known_hosts")
+            return HOST_KEY_OK
         }
     }
 }

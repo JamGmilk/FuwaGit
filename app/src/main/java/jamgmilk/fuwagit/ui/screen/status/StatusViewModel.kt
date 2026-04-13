@@ -37,6 +37,10 @@ import java.util.Locale
 sealed class StatusEvent {
     data class PushSuccess(val message: String) : StatusEvent()
     data class PushError(val message: String) : StatusEvent()
+    data class PullSuccess(val message: String) : StatusEvent()
+    data class PullError(val message: String) : StatusEvent()
+    data class FetchSuccess(val message: String) : StatusEvent()
+    data class FetchError(val message: String) : StatusEvent()
 }
 
 @Stable
@@ -319,7 +323,6 @@ class StatusViewModel @Inject constructor(
                 .onSuccess { result ->
                     appendTerminalLog("git pull", result.toString())
                     if (result.hasConflicts) {
-                        // Pull 产生冲突，显示冲突解决 UI
                         val conflictResult = mergeUseCase.getConflicts(path)
                         conflictResult.onSuccess { conflicts ->
                             _uiState.update {
@@ -330,11 +333,13 @@ class StatusViewModel @Inject constructor(
                             }
                         }
                     } else {
+                        _events.emit(StatusEvent.PullSuccess(result.message))
                         refreshWorkspace()
                     }
                 }
                 .onError { e ->
                     appendTerminalLog("git pull", "Error: ${e.message}")
+                    _events.emit(StatusEvent.PullError(e.message ?: "Pull failed"))
                 }
         }
     }
@@ -368,10 +373,12 @@ class StatusViewModel @Inject constructor(
             gitSync.fetch(path, credentials)
                 .onSuccess { result ->
                     appendTerminalLog("git fetch", result)
+                    _events.emit(StatusEvent.FetchSuccess(result))
                     refreshAll()
                 }
                 .onError { e ->
                     appendTerminalLog("git fetch", "Error: ${e.message}")
+                    _events.emit(StatusEvent.FetchError(e.message ?: "Fetch failed"))
                 }
         }
     }
