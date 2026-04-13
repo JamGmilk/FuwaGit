@@ -1,141 +1,119 @@
-# FuwaGit 🐱
-
 <p align="center">
-  <strong>A Powerful Android Git Client</strong>
+  <img src="./app/src/main/res/mipmap-xxxhdpi/ic_launcher.webp" width="200" alt="FuwaGit Logo" />
 </p>
 
+# <p align="center">FuwaGit</p>
+
+</br>
+
 <p align="center">
-  <img src="https://img.shields.io/badge/Kotlin-2.3.20-7F52FF?style=flat-square&logo=kotlin" alt="Kotlin">
-  <img src="https://img.shields.io/badge/Jetpack%20Compose-Material3-4285F4?style=flat-square&logo=android" alt="Compose">
-  <img src="https://img.shields.io/badge/JGit-6.8.0-FF6B6B?style=flat-square" alt="JGit">
-  <img src="https://img.shields.io/badge/API-26%2B-green?style=flat-square&logo=android" alt="API Level">
-  <img src="https://img.shields.io/badge/License-MIT-blue?style=flat-square" alt="License">
+  <img alt="API" src="https://img.shields.io/badge/API%2026+-50f270?logo=android&logoColor=black&style=for-the-badge"/>
+  <img alt="Kotlin" src="https://img.shields.io/badge/Kotlin-a503fc?logo=kotlin&logoColor=white&style=for-the-badge"/>
+  <img alt="Jetpack Compose" src="https://img.shields.io/badge/Jetpack%20Compose-4285F4?logo=jetpackcompose&logoColor=white&style=for-the-badge"/>
+  <img alt="Material You" src="https://custom-icon-badges.demolab.com/badge/Material%20You-lightblue?logo=material-you&logoColor=333&style=for-the-badge"/>
 </p>
 
----
+</br>
 
-## ✨ Introduction
+<div align="center">
 
-**FuwaGit** is a native Android Git client application built with a modern technology stack, providing comprehensive Git version control functionality. The app supports local repository management, remote repository operations, secure credential storage, and biometric authentication — making it an ideal tool for mobile developers and Git users.
+# 🗺️ Overview
 
-## 🎯 Core Features
+FuwaGit is a lightweight and powerful Git client for Android that brings full Git operations to your mobile device. Whether you're managing repositories, committing changes, or collaborating with others, FuwaGit provides a smooth and intuitive experience with secure credential management.
 
-### 📦 Repository Management
-- **Initialize Repositories** - Create new Git repositories in any directory
-- **Clone Repositories** - Clone remote repositories via HTTPS or SSH protocols
-- **Multi-repository Management** - Manage multiple local Git repositories with quick switching
-- **Remote Configuration** - Add, edit, and remove remote repository URLs
-- **Repository Information** - Display detailed repository metadata (path, branches, user config, etc.)
+Built with modern Android technologies including Jetpack Compose and Material Design 3, FuwaGit offers a beautiful interface while maintaining robust functionality for developers on the go.
 
-### 🔧 Git Operations
-- **Status View** - Real-time display of workspace file change status (modified, staged, untracked, etc.)
-- **Staging Management** - Selectively stage or unstage files
-- **Commit Changes** - Create commits with commit messages
-- **Branch Operations**
-  - Create, switch, and delete branches
-  - View all local and remote branches
-- **Sync Operations**
-  - Push to remote repositories
-  - Pull remote updates
-  - Fetch remote references
-- **History** - Browse commit history with detailed commit info and file change diffs
-- **Merge & Reset** - Support for branch merging and workspace reset operations
-- **Clean Workspace** - Remove untracked files
+</div>
 
-### 🔐 Secure Credential System
-- **Master Password Protection** - AES-256-GCM encryption protects all credential data
-- **HTTPS Credentials** - Securely store usernames and passwords for GitHub/GitLab platforms
-- **SSH Key Management** - Support SSH private key import and management (including passphrase-protected keys)
-- **PBKDF2 Key Derivation** - Strong key derivation algorithm with 100,000 iterations
-- **Android Keystore** - Leverage hardware-level security modules to protect encryption keys
 
-### 👆 Biometric Support
-- **Fingerprint Unlock** - Quick access to credential vault using fingerprint without entering password each time
-- **Secure Integration** - Biometric seamlessly integrated with master password system
-- **Flexible Switching** - Switch between biometric and password unlock at any time
+# 📲 Download
 
-### ⚙️ Settings & Customization
-- **Dark Mode** - Support for light, dark, and follow system theme modes
-- **Git Configuration** - Customize global username, email, and default branch name
-- **Password Hint** - Set master password hints to prevent forgetting
+Go to the [Releases](https://github.com/JamGmilk/FuwaGit/releases/latest) and download the latest APK.
 
-## 📱 Screenshots
+# 💻 Installation Instructions
 
-> Screenshots coming soon
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/JamGmilk/FuwaGit.git
+   ```
+2. Install dependencies using Gradle:
+   ```bash
+   ./gradlew build
+   ```
+3. The debug APK will be generated at:
+   ```bash
+   app/build/outputs/apk/debug/app-debug.apk
+   ```
 
-## 📖 User Guide
+# ⚔️ Tech Stack
 
-### First Time Use
-1. **Launch the app** - First launch will request storage permission
-2. **Set up master password** - Create a strong password to protect your credentials
-3. **Add a repository** - Select a local Git repository directory or clone a remote repository
-4. **Configure credentials** (optional) - If you need push/pull functionality, add corresponding HTTPS or SSH credentials
+| Component | Technology |
+|:----------|:----------|
+| Language | Kotlin |
+| UI Framework | Jetpack Compose |
+| Design System | Material Design 3 |
+| Git Library | Eclipse JGit 6.8.0 |
+| SSH | JSch |
+| DI | Hilt |
+| Min SDK | 26 (Android 8.0) |
+| Target SDK | 36 |
 
-### Daily Operations
-- **Bottom navigation bar** switches between five main features:
-  - 📋 Status - View workspace status and file changes
-  - 📜 History - Browse commit history
-  - 🌳 Branches - Manage branches
-  - 📁 My Repos - Manage multiple repositories
-  - ⚙️ Settings - App settings and credential management
+# ✨ Features
 
-### Enable Fingerprint Unlock
-1. Go to Settings → Credentials
-2. Tap "Enable Fingerprint"
-3. Verify identity with fingerprint
-4. You can now quickly unlock the credential vault using fingerprint
+## Git Operations
 
-## 🐛 Issue Reporting
+- **Clone** - Clone remote repositories via HTTPS or SSH
+- **Commit** - Stage changes and create commits with custom messages
+- **Push** - Push commits to remote repositories
+- **Pull** - Pull changes from remote with merge/rebase support
+- **Fetch** - Fetch updates without merging
+- **Branch Management** - Create, delete, rename, checkout branches
+- **Merge** - Merge branches with conflict detection
+- **Rebase** - Interactive rebase support
+- **Tags** - Create, delete, and push tags (lightweight and annotated)
+- **Reset** - Soft, mixed, and hard reset support
+- **Diff** - View file differences with syntax highlighting
 
-If you find a bug or have a feature suggestion, please submit it on [GitHub Issues](https://github.com/YOUR_USERNAME/FuwaGit/issues).
+## Repository Management
 
-When submitting an issue, please include:
-- Description of the issue and steps to reproduce
-- Device model and Android version
-- Application version number
-- Relevant log information (if available)
+- **Multi-Repo Support** - Manage multiple repositories simultaneously
+- **Local Repos** - Add existing local Git repositories
+- **Remote Cloning** - Clone from GitHub, GitLab, Bitbucket, or any Git server
+- **Repository Info** - View detailed repository information
+- **Clean** - Remove untracked files with preview
 
-## 📄 License
+## Security
 
-This project is licensed under the MIT License.
+- **Master Password** - Encrypt all stored credentials with AES-256
+- **Biometric Unlock** - Use fingerprint to quickly unlock credentials
+- **Secure Storage** - Android Keystore-backed credential encryption
+- **SSH Key Management** - Generate and store Ed25519/RSA SSH keys
+- **HTTPS Credentials** - Securely store usernames and personal access tokens
+- **Auto-Lock** - Configurable automatic vault locking
 
+## User Experience
+
+- **Material Design 3** - Modern and beautiful UI with dynamic theming
+- **Dark/Light Mode** - System-following or manual theme selection
+- **Multi-language** - English and Simplified Chinese support
+
+
+# 📚 Dependencies
+
+- [Eclipse JGit](https://www.eclipse.org/jgit/) - Pure Java implementation of Git
+- [JSch](https://github.com/mwiede/jsch) - SSH2 protocol implementation
+- [Bouncy Castle](https://www.bouncycastle.org/) - Cryptographic algorithms
+- [Jetpack Compose](https://developer.android.com/jetpack/compose) - Modern declarative UI
+- [Material 3](https://developer.android.com/compose/material3) - Material Design components
+- [Hilt](https://dagger.dev/hilt/) - Dependency injection
+- [Kotlinx Serialization](https://kotlinlang.org/docs/serialization.html) - JSON parsing
+
+
+# ⚖️ License
+
+```xml
+Copyright 2024 JamGmilk
+
+这里放 MIT 的
 ```
-MIT License
-
-Copyright (c) 2025 jamgmilk
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-```
-
-## 🙏 Acknowledgments
-
-- [Eclipse JGit](https://www.eclipse.org/jgit/) - Powerful pure Java Git implementation
-- [Jetpack Compose](https://developer.android.com/jetpack/compose) - Modern Android UI toolkit
-- [Dagger Hilt](https://dagger.dev/hilt/) - Excellent dependency injection framework
-- [Material Design 3](https://m3.material.io/) - Google's design system
-
----
-
-<p align="center">
-  <strong>⭐ If this project helps you, please give it a Star! ⭐</strong>
-</p>
-
-<p align="center">
-  Made with ❤️ by <a href="https://github.com/JamGmilk">JamGmilk</a>
-</p>
+</div>

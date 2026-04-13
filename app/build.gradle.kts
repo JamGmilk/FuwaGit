@@ -77,6 +77,7 @@ dependencies {
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.navigation.runtime.ktx)
     implementation(libs.androidx.biometric)
+    implementation(libs.androidx.appcompat)
     implementation(libs.androidx.datastore.preferences)
 
     // Third-party Libraries
