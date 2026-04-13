@@ -321,6 +321,11 @@ class CredentialStoreViewModel @Inject constructor(
         onResult: (SshTestResult) -> Unit
     ) {
         viewModelScope.launch {
+            if (!credentialFacade.isUnlocked()) {
+                onResult(SshTestResult.Failure("Credential vault is locked. Please unlock first."))
+                return@launch
+            }
+
             onResult(SshTestResult.Testing)
 
             try {

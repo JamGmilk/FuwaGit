@@ -309,21 +309,51 @@ class MyReposViewModel @Inject constructor(
         onResult: (AppResult<String>) -> Unit
     ) {
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true) }
-
-            val httpsCredentials = getHttpsCredentials()
-            val sshKeys = getSshKeys()
-
-            val credentials = credential.resolveCredentials(httpsCredentialUuid, sshKeyUuid, httpsCredentials, sshKeys, uri)
-
-            gitRepo.clone(uri, localPath, credentials, cloneOptions).onSuccess { cloneResult ->
-                _uiState.update { it.copy(isLoading = false) }
-                addRepo(localPath, null)
-                onResult(AppResult.Success(cloneResult))
-            }.onError { e ->
-                _uiState.update { it.copy(isLoading = false, error = e.message) }
-                onResult(AppResult.Error(e))
+            if (!credential.isUnlocked()) {
+                _uiState.update {
+                    it.copy(
+                        pendingCredentialOperation = {
+                            executeClone(uri, localPath, branch, httpsCredentialUuid, sshKeyUuid, cloneOptions, onResult)
+                        }
+                    )
+                }
+                return@launch
             }
+            executeClone(uri, localPath, branch, httpsCredentialUuid, sshKeyUuid, cloneOptions, onResult)
+        }
+    }
+
+    private suspend fun executeClone(
+        uri: String,
+        localPath: String,
+        branch: String? = null,
+        httpsCredentialUuid: String? = null,
+        sshKeyUuid: String? = null,
+        cloneOptions: CloneOptions = CloneOptions(),
+        onResult: (AppResult<String>) -> Unit
+    ) {
+        _uiState.update { it.copy(isLoading = true) }
+
+        val httpsCredentials = getHttpsCredentials()
+        val sshKeys = getSshKeys()
+
+        val credentials = credential.resolveCredentials(httpsCredentialUuid, sshKeyUuid, httpsCredentials, sshKeys, uri)
+
+        gitRepo.clone(uri, localPath, credentials, cloneOptions).onSuccess { cloneResult ->
+            _uiState.update { it.copy(isLoading = false) }
+            addRepo(localPath, null)
+            onResult(AppResult.Success(cloneResult))
+        }.onError { e ->
+            _uiState.update { it.copy(isLoading = false, error = e.message) }
+            onResult(AppResult.Error(e))
+        }
+    }
+
+    fun onCredentialUnlocked() {
+        viewModelScope.launch {
+            val pendingOp = _uiState.value.pendingCredentialOperation
+            pendingOp?.let { it() }
+            _uiState.update { it.copy(pendingCredentialOperation = null, isCredentialUnlocked = true) }
         }
     }
 }
