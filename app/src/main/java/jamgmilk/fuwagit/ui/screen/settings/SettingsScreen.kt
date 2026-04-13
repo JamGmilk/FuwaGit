@@ -113,6 +113,7 @@ import jamgmilk.fuwagit.ui.screen.credentials.CredentialStoreViewModel
 import jamgmilk.fuwagit.ui.screen.credentials.SetupMasterPasswordDialog
 import jamgmilk.fuwagit.ui.screen.credentials.UnlockDialog
 import jamgmilk.fuwagit.ui.util.ViewModelMessagesMapper
+import jamgmilk.fuwagit.util.CrashLogManager
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
@@ -298,6 +299,11 @@ fun SettingsScreen(
                     } else {
                         snackbarHostState.showSnackbar("No repository selected")
                     }
+                }
+            },
+            onExportLogsComplete = { hasLogs, message ->
+                scope.launch {
+                    snackbarHostState.showSnackbar(message)
                 }
             },
             modifier = Modifier.fillMaxWidth()
@@ -684,8 +690,10 @@ private fun DeveloperOptionsCard(
     onResetOnboarding: () -> Unit,
     onClearKnownHostsComplete: () -> Unit,
     onClearCommitEditMsgComplete: () -> Unit,
+    onExportLogsComplete: (Boolean, String) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
     val colors = MaterialTheme.colorScheme
     var showResetConfirm by remember { mutableStateOf(false) }
     var showKnownHostsDialog by remember { mutableStateOf(false) }
@@ -746,6 +754,24 @@ private fun DeveloperOptionsCard(
                 subtitle = stringResource(R.string.settings_clear_commit_editmsg_subtitle),
                 icon = Icons.Default.Build,
                 onClick = { showCommitEditMsgDialog = true }
+            )
+
+            HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+
+            SettingsClickableItem(
+                title = stringResource(R.string.settings_export_logs),
+                subtitle = stringResource(R.string.settings_export_logs_subtitle),
+                icon = Icons.Default.BugReport,
+                onClick = {
+                    val logFiles = CrashLogManager.getLogFiles()
+                    if (logFiles.isEmpty()) {
+                        onExportLogsComplete(false, context.getString(R.string.settings_export_logs_empty))
+                    } else {
+                        val shareIntent = CrashLogManager.createShareIntent(context)
+                        context.startActivity(Intent.createChooser(shareIntent, context.getString(R.string.settings_export_logs_share_title)))
+                        onExportLogsComplete(true, "Logs exported")
+                    }
+                }
             )
         }
     }
