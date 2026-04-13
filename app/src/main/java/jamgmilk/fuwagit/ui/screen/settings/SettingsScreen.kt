@@ -292,6 +292,11 @@ fun SettingsScreen(
             modifier = Modifier.fillMaxWidth()
         )
 
+        val knownHostsDeletedText = stringResource(R.string.settings_clear_known_hosts_deleted)
+        val commitEditmsgDeletedText = stringResource(R.string.settings_commit_editmsg_deleted)
+        val noCommitEditmsgText = stringResource(R.string.settings_no_commit_editmsg)
+        val noRepoSelectedText = stringResource(R.string.settings_no_repository_selected)
+
         DeveloperOptionsCard(
             verboseLogging = settingsUiState.verboseLogging,
             onVerboseLoggingChange = { settingsViewModel.saveVerboseLogging(it) },
@@ -299,7 +304,7 @@ fun SettingsScreen(
             onResetOnboarding = { settingsViewModel.resetOnboarding() },
             onClearKnownHostsComplete = {
                 scope.launch {
-                    snackbarHostState.showSnackbar("Known hosts deleted")
+                    snackbarHostState.showSnackbar(knownHostsDeletedText)
                 }
             },
             onClearCommitEditMsgComplete = {
@@ -309,12 +314,12 @@ fun SettingsScreen(
                         val commitEditMsg = java.io.File(repoPath, ".git/COMMIT_EDITMSG")
                         if (commitEditMsg.exists()) {
                             commitEditMsg.delete()
-                            snackbarHostState.showSnackbar("COMMIT_EDITMSG deleted")
+                            snackbarHostState.showSnackbar(commitEditmsgDeletedText)
                         } else {
-                            snackbarHostState.showSnackbar("No COMMIT_EDITMSG file found")
+                            snackbarHostState.showSnackbar(noCommitEditmsgText)
                         }
                     } else {
-                        snackbarHostState.showSnackbar("No repository selected")
+                        snackbarHostState.showSnackbar(noRepoSelectedText)
                     }
                 }
             },
