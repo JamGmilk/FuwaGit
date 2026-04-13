@@ -17,7 +17,7 @@
 
 <div align="center">
 
-# 🗺️ Overview
+# Overview
 
 FuwaGit is a lightweight and powerful Git client for Android that brings full Git operations to your mobile device. Whether you're managing repositories, committing changes, or collaborating with others, FuwaGit provides a smooth and intuitive experience with secure credential management.
 
@@ -27,12 +27,21 @@ Fuwa (ふわ): light and airy~
 
 </div>
 
+# Screenshots
 
-# 📲 Download
+
+<p align="center">
+  <img src="screenshots/Screenshot_1.jpg" width="300" />
+  <img src="screenshots/Screenshot_2.jpg" width="300" />
+  <img src="screenshots/Screenshot_6.jpg" width="300" />
+</p>
+
+
+# Download
 
 Go to the [Releases](https://github.com/JamGmilk/FuwaGit/releases/latest) and download the latest APK.
 
-# 💻 Installation Instructions
+# Installation Instructions
 
 1. Clone the repository:
    ```bash
@@ -47,7 +56,7 @@ Go to the [Releases](https://github.com/JamGmilk/FuwaGit/releases/latest) and do
    app/build/outputs/apk/debug/app-debug.apk
    ```
 
-# ⚔️ Tech Stack
+# Tech Stack
 
 | Component | Technology |
 |:----------|:----------|
@@ -100,7 +109,7 @@ Go to the [Releases](https://github.com/JamGmilk/FuwaGit/releases/latest) and do
 - **Multi-language** - English and Simplified Chinese support
 
 
-# 📚 Dependencies
+# Dependencies
 
 - [Eclipse JGit](https://www.eclipse.org/jgit/) - Pure Java implementation of Git
 - [JSch](https://github.com/mwiede/jsch) - SSH2 protocol implementation
@@ -111,11 +120,27 @@ Go to the [Releases](https://github.com/JamGmilk/FuwaGit/releases/latest) and do
 - [Kotlinx Serialization](https://kotlinlang.org/docs/serialization.html) - JSON parsing
 
 
-# ⚖️ License
+# License
 
 ```xml
-Copyright 2024 JamGmilk
+Copyright (c) 2026 JamGmilk
 
-这里放 MIT 的
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
 ```
 </div>
