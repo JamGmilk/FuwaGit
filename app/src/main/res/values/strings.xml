@@ -430,6 +430,8 @@
     <string name="local_new_repo_setup">New Repository Setup</string>
     <string name="local_display_name_label">Display Name</string>
     <string name="local_display_name_placeholder">Friendly alias for FuwaGit</string>
+    <string name="local_remote_info">Remote Repository</string>
+    <string name="local_remote_url_header">Remote URL</string>
     <string name="local_remote_url_optional">Remote URL (Optional)</string>
     <string name="local_info_guide">Select a local folder to begin managing it with Git.</string>
     <string name="local_select_folder">Select Folder</string>

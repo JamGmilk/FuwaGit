@@ -1,5 +1,6 @@
 package jamgmilk.fuwagit.domain.model.repo
 
+import jamgmilk.fuwagit.core.util.PathUtils
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -12,5 +13,5 @@ data class RepoData(
     val isFavorite: Boolean = false
 ) {
     val displayName: String
-        get() = alias ?: path.substringAfterLast("/")
+        get() = alias ?: PathUtils.getFileName(path)
 }

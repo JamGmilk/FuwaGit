@@ -1,5 +1,8 @@
 package jamgmilk.fuwagit.domain.model.git
 
+import jamgmilk.fuwagit.core.util.UrlUtils
+import jamgmilk.fuwagit.ui.screen.credentials.CredentialType
+
 data class GitRemote(
     val name: String,
     val fetchUrl: String,
@@ -7,15 +10,9 @@ data class GitRemote(
 ) {
     val primaryUrl: String get() = pushUrl ?: fetchUrl
 
-    val credentialType: CredentialType get() = when {
-        primaryUrl.startsWith("git@") || primaryUrl.contains("://github.com") -> CredentialType.SSH
-        primaryUrl.startsWith("https://") || primaryUrl.startsWith("http://") -> CredentialType.HTTPS
-        else -> CredentialType.UNKNOWN
-    }
-
-    enum class CredentialType {
-        SSH,
-        HTTPS,
-        UNKNOWN
+    val credentialType: CredentialType? get() = when {
+        UrlUtils.isSshUrl(primaryUrl) -> CredentialType.SSH
+        UrlUtils.isHttpsUrl(primaryUrl) -> CredentialType.HTTPS
+        else -> null
     }
 }

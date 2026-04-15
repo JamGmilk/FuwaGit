@@ -76,6 +76,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import jamgmilk.fuwagit.R
+import jamgmilk.fuwagit.core.util.PathUtils
 import jamgmilk.fuwagit.ui.components.CleanPreviewDialog
 import jamgmilk.fuwagit.ui.components.CleanResultDialog
 import jamgmilk.fuwagit.ui.components.ConfigureRemoteDialog
@@ -241,7 +242,7 @@ fun MyReposScreen(
 
         if (isUrlLoaded) {
             ConfigureRemoteDialog(
-                repoName = item.alias.ifBlank { item.path.substringAfterLast("/") },
+                repoName = item.alias.ifBlank { PathUtils.getFileName(item.path) },
                 currentUrl = remoteUrl,
                 selectedCredentialUuid = savedCredentialId,
                 selectedCredentialType = savedCredentialType,
@@ -289,7 +290,7 @@ fun MyReposScreen(
         }
 
         RepoInfoDialog(
-            repoName = item.alias.ifBlank { item.path.substringAfterLast("/") },
+            repoName = item.alias.ifBlank { PathUtils.getFileName(item.path) },
             repoPath = item.path,
             isGitRepo = item.isGitRepo,
             repoInfo = repoInfo,
@@ -436,7 +437,7 @@ fun RepoItemCard(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Text(
-                        text = item.alias.ifBlank { item.path.substringAfterLast("/") },
+                        text = item.alias.ifBlank { PathUtils.getFileName(item.path) },
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
                         color = colors.onSurface,
@@ -675,7 +676,7 @@ private fun RepoHeader(
 
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = item.alias.ifBlank { item.path.substringAfterLast("/") },
+                text = item.alias.ifBlank { PathUtils.getFileName(item.path) },
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurface,
                 fontWeight = FontWeight.Bold,
@@ -933,7 +934,7 @@ private fun DeleteConfirmationDialog(
                                     modifier = Modifier.size(20.dp)
                                 )
                                 Text(
-                                    text = item.alias.ifBlank { item.path.substringAfterLast("/") },
+                                    text = item.alias.ifBlank { PathUtils.getFileName(item.path) },
                                     style = MaterialTheme.typography.bodyMedium,
                                     fontWeight = FontWeight.SemiBold,
                                     color = colors.onSurface

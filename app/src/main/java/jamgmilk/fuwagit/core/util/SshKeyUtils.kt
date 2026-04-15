@@ -242,46 +242,32 @@ fun detectSshKeyType(privateKey: String): String {
         StringReader(privateKey).use { reader ->
             PemReader(reader).use { pemReader ->
                 val pemObject = pemReader.readPemObject()
-                    ?: return fallbackDetectSshKeyType(privateKey)
+                    ?: return "Unknown"
                 when {
                     pemObject.type.contains("RSA PRIVATE KEY") -> "RSA"
                     pemObject.type.contains("OPENSSH PRIVATE KEY") -> "Ed25519"
                     pemObject.type == "PRIVATE KEY" -> {
-                        try {
-                            val info = PrivateKeyInfo.getInstance(pemObject.content)
-                            val algOid = info.privateKeyAlgorithm.algorithm
-                            when {
-                                algOid.equals(PKCSObjectIdentifiers.rsaEncryption) -> "RSA"
-                                algOid.equals(EdECObjectIdentifiers.id_Ed25519) -> "Ed25519"
-                                else -> "Unknown"
-                            }
-                        } catch (_: Exception) {
-                            fallbackDetectSshKeyType(privateKey)
+                        val info = PrivateKeyInfo.getInstance(pemObject.content)
+                        val algOid = info.privateKeyAlgorithm.algorithm
+                        when {
+                            algOid.equals(PKCSObjectIdentifiers.rsaEncryption) -> "RSA"
+                            algOid.equals(EdECObjectIdentifiers.id_Ed25519) -> "Ed25519"
+                            else -> "Unknown"
                         }
                     }
-                    else -> fallbackDetectSshKeyType(privateKey)
+                    else -> "Unknown"
                 }
             }
         }
     } catch (_: Exception) {
-        fallbackDetectSshKeyType(privateKey)
-    }
-}
-
-private fun fallbackDetectSshKeyType(privateKey: String): String {
-    return when {
-        privateKey.contains("BEGIN RSA PRIVATE KEY") -> "RSA"
-        privateKey.contains("BEGIN OPENSSH PRIVATE KEY") -> "Ed25519"
-        else -> "Unknown"
+        "Unknown"
     }
 }
 
 fun validatePrivateKey(privateKey: String): Pair<Boolean, String> {
     if (BuildConfig.DEBUG) Log.d(SSH_KEY_LOG_TAG, "Validating private key...")
     try {
-        val hasBeginMarker = privateKey.contains("-----BEGIN")
-        val hasEndMarker = privateKey.contains("-----END")
-        if (!hasBeginMarker || !hasEndMarker) {
+        if (!isValidPemFormat(privateKey)) {
             throw IllegalArgumentException("Invalid PEM format. Key must contain BEGIN and END markers")
         }
         val keyContent = privateKey
@@ -306,4 +292,9 @@ fun validatePrivateKey(privateKey: String): Pair<Boolean, String> {
     } catch (e: Exception) {
         throw IllegalArgumentException("Invalid private key: ${e.message}")
     }
+}
+
+fun isValidPemFormat(key: String): Boolean {
+    val trimmedKey = key.trim()
+    return trimmedKey.startsWith("-----BEGIN") && trimmedKey.contains("PRIVATE KEY-----")
 }

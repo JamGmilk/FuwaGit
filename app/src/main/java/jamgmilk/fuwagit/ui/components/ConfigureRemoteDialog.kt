@@ -37,6 +37,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import jamgmilk.fuwagit.R
+import jamgmilk.fuwagit.core.util.UrlUtils
 import jamgmilk.fuwagit.domain.model.credential.HttpsCredential
 import jamgmilk.fuwagit.domain.model.credential.SshKey
 import jamgmilk.fuwagit.ui.screen.credentials.CredentialSelectDialog
@@ -60,10 +61,8 @@ fun ConfigureRemoteDialog(
     var selectedSshUuid by remember { mutableStateOf(selectedCredentialUuid.takeIf { selectedCredentialType == CredentialType.SSH }) }
     var credentialError by remember { mutableStateOf<String?>(null) }
 
-    val isUrlHttps = url.trim().lowercase().startsWith("https://")
-    val isUrlSsh = url.trim().lowercase().startsWith("ssh://") ||
-                   url.trim().lowercase().startsWith("git@") ||
-                   url.trim().lowercase().contains("@") && url.trim().contains(":")
+    val isUrlHttps = UrlUtils.isHttpsUrl(url.trim())
+    val isUrlSsh = UrlUtils.isSshUrl(url.trim())
     val hasCredentialSelection = selectedHttpsUuid != null || selectedSshUuid != null
     val isCredentialMatch = when {
         !hasCredentialSelection -> true

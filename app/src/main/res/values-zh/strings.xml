@@ -421,6 +421,8 @@
     <string name="local_new_repo_setup">新仓库设置</string>
     <string name="local_display_name_label">显示名称</string>
     <string name="local_display_name_placeholder">FuwaGit 的友好别名</string>
+    <string name="local_remote_info">远程仓库</string>
+    <string name="local_remote_url_header">远程 URL</string>
     <string name="local_remote_url_optional">远程 URL（可选）</string>
     <string name="local_info_guide">选择一个本地文件夹开始使用 Git 管理它。</string>
     <string name="local_select_folder">选择文件夹</string>

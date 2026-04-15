@@ -2,6 +2,7 @@ package jamgmilk.fuwagit.domain.usecase.git
 
 import jamgmilk.fuwagit.core.result.AppException
 import jamgmilk.fuwagit.core.result.AppResult
+import jamgmilk.fuwagit.core.util.isValidPemFormat
 import jamgmilk.fuwagit.domain.repository.SshRepository
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -41,8 +42,7 @@ class TestSshConnectionUseCase @Inject constructor(
         if (privateKeyPem.isBlank()) {
             return AppException.Validation("Private key must not be blank")
         }
-        val trimmedKey = privateKeyPem.trim()
-        if (!trimmedKey.startsWith("-----BEGIN") || !trimmedKey.contains("PRIVATE KEY-----")) {
+        if (!isValidPemFormat(privateKeyPem)) {
             return AppException.Validation("Invalid private key format: missing PEM markers")
         }
         return null
