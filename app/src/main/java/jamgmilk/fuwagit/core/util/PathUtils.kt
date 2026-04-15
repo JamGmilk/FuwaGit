@@ -1,19 +1,24 @@
 package jamgmilk.fuwagit.core.util
 
 import android.os.Environment
-import java.nio.file.Paths
+import java.io.File
 
 object PathUtils {
+    private val externalStoragePath: String by lazy {
+        Environment.getExternalStorageDirectory().absolutePath
+    }
+
     fun getShortPath(path: String): String {
-        val externalStorageDirPrefix = Environment.getExternalStorageDirectory().absolutePath
-        return if (path.startsWith(externalStorageDirPrefix)) {
-            "/External${path.removePrefix(externalStorageDirPrefix)}"
+        return if (path.startsWith(externalStoragePath)) {
+            "/External${path.removePrefix(externalStoragePath)}"
         } else {
             path
         }
     }
 
+    fun getExternalStorageDir(): String = externalStoragePath
+
     fun getFileName(path: String): String {
-        return Paths.get(path).fileName.toString()
+        return File(path).name
     }
 }

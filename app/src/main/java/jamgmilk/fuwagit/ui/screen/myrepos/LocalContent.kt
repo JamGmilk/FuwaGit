@@ -5,7 +5,6 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -16,7 +15,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Label
@@ -26,13 +24,11 @@ import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Link
-import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
@@ -48,13 +44,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import jamgmilk.fuwagit.R
+import jamgmilk.fuwagit.core.util.PathUtils
 import jamgmilk.fuwagit.ui.components.FilePickerDialog
+import jamgmilk.fuwagit.ui.components.SectionCard
 import jamgmilk.fuwagit.ui.theme.AppShapes
 import kotlinx.coroutines.launch
 import java.io.File
@@ -95,7 +91,7 @@ internal fun LocalContent(
         }
 
         if (alias.isBlank()) {
-            alias = path.substringAfterLast(File.separator)
+            alias = File(path).name
         }
     }
 
@@ -115,52 +111,39 @@ internal fun LocalContent(
             enter = expandVertically() + fadeIn(),
             exit = shrinkVertically() + fadeOut()
         ) {
-            Surface(
-                shape = AppShapes.medium,
-                color = colorScheme.surfaceContainerHigh,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-
-                    // Header
-                    Text(
-                        text = if (isGitRepo) stringResource(R.string.local_repo_detected) else stringResource(R.string.local_new_repo_setup),
-                        style = MaterialTheme.typography.labelLarge,
-                        color = if (isGitRepo) colorScheme.primary else colorScheme.secondary
-                    )
-
-                    // Alias Input
+            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                SectionCard(title = if (isGitRepo) stringResource(R.string.local_repo_detected) else stringResource(R.string.local_new_repo_setup)) {
                     OutlinedTextField(
                         value = alias,
                         onValueChange = { alias = it },
                         label = { Text(stringResource(R.string.local_display_name_label)) },
                         placeholder = { Text(stringResource(R.string.local_display_name_placeholder)) },
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp),
+                        shape = AppShapes.extraSmall,
                         singleLine = true,
                         leadingIcon = { Icon(Icons.AutoMirrored.Filled.Label, null) }
                     )
+                }
 
-                    if (isGitRepo) {
-                        // Remote Info
-                        if (remotes.isNotEmpty()) {
-                            RemoteSelectorDropdown(
-                                remotes = remotes,
-                                selectedIndex = selectedRemoteIndex,
-                                onSelected = { index ->
-                                    selectedRemoteIndex = index
-                                    remoteUrl = remotes[index].second
-                                }
-                            )
-                        }
-                    } else {
-                        // Remote URL
+                if (isGitRepo && remotes.isNotEmpty()) {
+                    SectionCard(title = stringResource(R.string.local_remote_info)) {
+                        RemoteSelectorDropdown(
+                            remotes = remotes,
+                            selectedIndex = selectedRemoteIndex,
+                            onSelected = { index ->
+                                selectedRemoteIndex = index
+                                remoteUrl = remotes[index].second
+                            }
+                        )
+                    }
+                } else if (!isGitRepo) {
+                    SectionCard(title = stringResource(R.string.local_remote_url_header)) {
                         OutlinedTextField(
                             value = remoteUrl,
                             onValueChange = { remoteUrl = it },
                             label = { Text(stringResource(R.string.local_remote_url_optional)) },
                             modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(12.dp),
+                            shape = AppShapes.extraSmall,
                             singleLine = true,
                             leadingIcon = { Icon(Icons.Default.Link, null) }
                         )
@@ -183,7 +166,7 @@ internal fun LocalContent(
                 }
             },
             enabled = path.isNotBlank(),
-            modifier = Modifier.fillMaxWidth().height(56.dp),
+            modifier = Modifier.fillMaxWidth().height(50.dp),
             shape = AppShapes.medium,
             colors = ButtonDefaults.buttonColors(
                 containerColor = colorScheme.primary
@@ -273,209 +256,6 @@ private fun RemoteSelectorDropdown(
                             overflow = TextOverflow.Ellipsis
                         )
                     }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun RemoteUrlDisplay(
-    remoteName: String,
-    remoteUrl: String
-) {
-    val colors = MaterialTheme.colorScheme
-
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = colors.primary.copy(alpha = 0.1f)
-        )
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                Icons.Default.Link,
-                contentDescription = null,
-                tint = colors.primary,
-                modifier = Modifier.size(18.dp)
-            )
-            Spacer(Modifier.width(8.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = remoteName,
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    text = remoteUrl,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = colors.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun FolderSelectorCard(
-    path: String,
-    isGitRepo: Boolean,
-    onPickFolder: () -> Unit
-) {
-    val colors = MaterialTheme.colorScheme
-
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        color = when {
-            path.isBlank() -> colors.surfaceVariant.copy(alpha = 0.5f)
-            isGitRepo -> colors.primary.copy(alpha = 0.08f)
-            else -> colors.primaryContainer.copy(alpha = 0.08f)
-        }
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        when {
-                            path.isBlank() -> Icons.Default.FolderOpen
-                            isGitRepo -> Icons.Default.CheckCircle
-                            else -> Icons.Default.Info
-                        },
-                        contentDescription = null,
-                        tint = when {
-                            path.isBlank() -> colors.onSurfaceVariant
-                            isGitRepo -> colors.primary
-                            else -> colors.primaryContainer
-                        },
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Spacer(Modifier.width(8.dp))
-                    Text(
-                        text = when {
-                            path.isBlank() -> stringResource(R.string.local_no_folder_selected)
-                            isGitRepo -> stringResource(R.string.local_git_repo_detected)
-                            else -> stringResource(R.string.local_not_git_repo)
-                        },
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Medium,
-                        color = when {
-                            path.isBlank() -> colors.onSurfaceVariant
-                            isGitRepo -> colors.primary
-                            else -> colors.primaryContainer
-                        }
-                    )
-                }
-
-                if (path.isNotBlank()) {
-                    Spacer(Modifier.height(8.dp))
-                    Text(
-                        text = path,
-                        style = MaterialTheme.typography.bodySmall.copy(lineHeight = 16.sp),
-                        color = colors.onSurfaceVariant.copy(alpha = 0.8f),
-                        fontFamily = FontFamily.Monospace,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
-            }
-
-            IconButton(
-                onClick = onPickFolder,
-                modifier = Modifier
-                    .size(48.dp)
-                    .background(colors.primary.copy(alpha = 0.1f), CircleShape)
-            ) {
-                Icon(
-                    Icons.Default.FolderOpen,
-                    contentDescription = stringResource(R.string.local_pick_folder),
-                    tint = colors.primary,
-                    modifier = Modifier.size(24.dp)
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun RepositoryInfoCard(
-    path: String,
-    repoInfo: Map<String, String>
-) {
-    val colors = MaterialTheme.colorScheme
-    val repoName = path.substringAfterLast("/")
-
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = colors.primary.copy(alpha = 0.08f)
-        )
-    ) {
-        Column(
-            modifier = Modifier.padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    Icons.Default.Folder,
-                    contentDescription = null,
-                    tint = colors.primary,
-                    modifier = Modifier.size(16.dp)
-                )
-                Spacer(Modifier.width(8.dp))
-                Text(
-                    text = stringResource(R.string.local_repository_label_format, repoName),
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Medium,
-                    color = colors.primary
-                )
-            }
-
-            repoInfo["user.name"]?.let { userName ->
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        Icons.Default.Person,
-                        contentDescription = null,
-                        tint = colors.onSurfaceVariant,
-                        modifier = Modifier.size(14.dp)
-                    )
-                    Spacer(Modifier.width(8.dp))
-                    Text(
-                        text = stringResource(R.string.local_user_label_format, userName),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = colors.onSurfaceVariant
-                    )
-                }
-            }
-
-            repoInfo["HEAD"]?.let { head ->
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        Icons.Default.Info,
-                        contentDescription = null,
-                        tint = colors.onSurfaceVariant,
-                        modifier = Modifier.size(14.dp)
-                    )
-                    Spacer(Modifier.width(8.dp))
-                    Text(
-                        text = stringResource(R.string.local_head_label_format, head.take(12)),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = colors.onSurfaceVariant
-                    )
                 }
             }
         }

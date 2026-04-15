@@ -1,6 +1,5 @@
 package jamgmilk.fuwagit.ui.components
 
-import android.os.Environment
 import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -57,16 +56,15 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import jamgmilk.fuwagit.BuildConfig
 import jamgmilk.fuwagit.R
+import jamgmilk.fuwagit.core.util.PathUtils
 import jamgmilk.fuwagit.ui.theme.AppShapes
 import jamgmilk.fuwagit.ui.theme.DialogShapes
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.io.File
 
-private val externalStorageDirPrefix: String = Environment.getExternalStorageDirectory().absolutePath
-
 private val restrictedPaths: Set<String> by lazy {
-    val externalStorage = Environment.getExternalStorageDirectory().absolutePath
+    val externalStorage = PathUtils.getExternalStorageDir()
     setOf(
         externalStorage,
         "$externalStorage/Android",
@@ -84,6 +82,13 @@ private val restrictedPaths: Set<String> by lazy {
     )
 }
 
+private val hiddenNames = setOf(
+    "Android", "Pictures", "DCIM", "Download", "Downloads",
+    "Movies", "Music", "Notifications", "Alarms",
+    "Ringtones", "Podcasts", "Documents", "LOST.DIR",
+    "obb", "data"
+)
+
 private fun isPathRestrictedForSelection(path: String): Boolean {
     val normalizedPath = path.trimEnd(File.separatorChar)
     return restrictedPaths.any { restricted ->
@@ -92,14 +97,8 @@ private fun isPathRestrictedForSelection(path: String): Boolean {
 }
 
 private fun shouldHideDirectory(file: File): Boolean {
-    val externalStorage = Environment.getExternalStorageDirectory().absolutePath
+    val externalStorage = PathUtils.getExternalStorageDir()
     if (file.absolutePath == externalStorage) {
-        val hiddenNames = setOf(
-            "Android", "Pictures", "DCIM", "Download", "Downloads",
-            "Movies", "Music", "Notifications", "Alarms", 
-            "Ringtones", "Podcasts", "Documents", "LOST.DIR",
-            "obb", "data"
-        )
         return file.name in hiddenNames
     }
     return false
@@ -120,12 +119,13 @@ fun FilePickerDialog(
     onDismiss: () -> Unit,
     onSelect: (String) -> Unit
 ) {
+    val externalStorage = PathUtils.getExternalStorageDir()
     val safeInitialPath = if (initialPath != null && !isPathRestrictedForSelection(initialPath)) {
         initialPath
     } else {
-        Environment.getExternalStorageDirectory().absolutePath
+        externalStorage
     }
-    
+
     var currentPath by remember { mutableStateOf(safeInitialPath) }
     var files by remember { mutableStateOf<List<FileItem>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
@@ -154,7 +154,7 @@ fun FilePickerDialog(
                         if (file.isDirectory && shouldHideDirectory(file)) {
                             return@mapNotNull null
                         }
-                        
+
                         try {
                             FileItem(
                                 name = file.name,
@@ -167,7 +167,7 @@ fun FilePickerDialog(
                             null
                         }
                     }.sortedWith(compareBy({ !it.isDirectory }, { it.name.lowercase() }))
-                    
+
                     if (targetPath == path) {
                         files = items
                         isLoading = false
@@ -306,7 +306,7 @@ fun FilePickerDialog(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    val canGoBack = currentPath != (initialPath ?: externalStorageDirPrefix)
+                    val canGoBack = currentPath != (initialPath ?: externalStorage)
 
                     Box(
                         modifier = Modifier
@@ -318,7 +318,7 @@ fun FilePickerDialog(
                                     File(currentPath).parent?.let { loadFiles(it) }
                                 },
                                 onLongClick = {
-                                    loadFiles(initialPath ?: externalStorageDirPrefix)
+                                    loadFiles(initialPath ?: externalStorage)
                                 }
                             ),
                         contentAlignment = Alignment.Center

@@ -1,7 +1,6 @@
 package jamgmilk.fuwagit.ui.state
 
 import jamgmilk.fuwagit.data.local.prefs.RepoDataStore
-import jamgmilk.fuwagit.domain.usecase.repo.ValidateRepoUseCase
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -25,10 +24,15 @@ data class RepoInfo(
     val isValidGit: Boolean get() = repoPath != null && error == null && !isLoading
 }
 
+private sealed interface ValidationResult {
+    data class Success(val path: String, val name: String) : ValidationResult
+    data class Error(val message: String) : ValidationResult
+    object Cleared : ValidationResult
+}
+
 @Singleton
 class RepoStateManager @Inject constructor(
-    private val repoDataStore: RepoDataStore,
-    private val validateRepoUseCase: ValidateRepoUseCase
+    private val repoDataStore: RepoDataStore
 ) {
     private val _repoInfo = MutableStateFlow(RepoInfo())
     val repoInfo: StateFlow<RepoInfo> = _repoInfo.asStateFlow()
@@ -54,7 +58,7 @@ class RepoStateManager @Inject constructor(
 
     suspend fun clearRepo() {
         _repoInfo.value = RepoInfo()
-        validateRepoUseCase(null)
+        repoDataStore.setCurrentRepo(null)
     }
 
     suspend fun setRepoPath(path: String?) {
@@ -75,17 +79,38 @@ class RepoStateManager @Inject constructor(
             isLoading = true
         )
 
-        val result = validateRepoUseCase(path)
+        val result = validate(path)
 
         _repoInfo.value = when (result) {
-            is ValidateRepoUseCase.ValidationResult.Success -> RepoInfo(
+            is ValidationResult.Success -> RepoInfo(
                 repoPath = result.path,
                 repoName = result.name
             )
-            is ValidateRepoUseCase.ValidationResult.Error -> RepoInfo(
+            is ValidationResult.Error -> RepoInfo(
                 error = result.message
             )
-            ValidateRepoUseCase.ValidationResult.Cleared -> RepoInfo()
+            ValidationResult.Cleared -> RepoInfo()
+        }
+    }
+
+    private suspend fun validate(path: String): ValidationResult {
+        val file = File(path)
+        val name = file.name
+
+        return when {
+            !file.exists() -> {
+                repoDataStore.setCurrentRepo(null)
+                ValidationResult.Error("Path does not exist")
+            }
+            !File(file, ".git").exists() -> {
+                repoDataStore.setCurrentRepo(null)
+                ValidationResult.Error("Not a git repository")
+            }
+            else -> {
+                repoDataStore.setCurrentRepo(path)
+                repoDataStore.updateLastAccessed(path)
+                ValidationResult.Success(path, name)
+            }
         }
     }
 

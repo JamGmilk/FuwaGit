@@ -39,20 +39,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import jamgmilk.fuwagit.R
+import jamgmilk.fuwagit.core.util.UrlUtils
 import jamgmilk.fuwagit.ui.components.SubSettingsTemplate
 import jamgmilk.fuwagit.ui.navigation.AddRepoTab
 import jamgmilk.fuwagit.ui.screen.credentials.CredentialStoreViewModel
 import jamgmilk.fuwagit.ui.theme.AppShapes
-
-enum class UrlProtocol {
-    NONE, HTTPS, SSH
-}
-
-data class UrlValidationResult(
-    val isValid: Boolean,
-    val protocol: UrlProtocol,
-    val errorMessage: String? = null
-)
 
 @Composable
 fun AddRepositoryScreen(
@@ -68,7 +59,6 @@ fun AddRepositoryScreen(
     val context = LocalContext.current
     var currentTab by remember { mutableStateOf(selectedTab) }
 
-    // Pre-fetch strings for use in non-composable contexts
     val strRepositoryAdded = stringResource(R.string.myrepos_repository_added)
 
     SubSettingsTemplate(
@@ -188,42 +178,4 @@ private fun AddRepoTabChip(
             )
         }
     }
-}
-
-fun validateUrl(url: String): UrlValidationResult {
-    if (url.isBlank()) {
-        return UrlValidationResult(false, UrlProtocol.NONE)
-    }
-
-    return when {
-        url.startsWith("https://") || url.startsWith("http://") -> {
-            if (url.contains(" ") || !url.contains(".") || url.length < 10) {
-                UrlValidationResult(false, UrlProtocol.HTTPS, "Invalid HTTPS URL format")
-            } else {
-                UrlValidationResult(true, UrlProtocol.HTTPS)
-            }
-        }
-        url.startsWith("git@") -> {
-            val gitHostPattern = Regex("^git@[a-zA-Z0-9.-]+:[a-zA-Z0-9._/-]+$")
-            if (gitHostPattern.matches(url)) {
-                UrlValidationResult(true, UrlProtocol.SSH)
-            } else {
-                UrlValidationResult(false, UrlProtocol.SSH, "Invalid SSH format (expected: git@host:path)")
-            }
-        }
-        url.startsWith("ssh://") -> {
-            UrlValidationResult(true, UrlProtocol.SSH)
-        }
-        else -> {
-            UrlValidationResult(false, UrlProtocol.NONE, "URL must start with https://, http://, git@, or ssh://")
-        }
-    }
-}
-
-fun extractRepoName(url: String): String {
-    return url
-        .substringAfterLast("/")
-        .substringBefore(".git")
-        .substringBefore("?")
-        .ifBlank { "repository" }
 }

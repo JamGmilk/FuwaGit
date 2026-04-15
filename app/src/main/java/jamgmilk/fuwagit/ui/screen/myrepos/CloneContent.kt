@@ -71,6 +71,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import jamgmilk.fuwagit.R
+import jamgmilk.fuwagit.core.util.UrlUtils
 import jamgmilk.fuwagit.domain.model.credential.HttpsCredential
 import jamgmilk.fuwagit.domain.model.credential.SshKey
 import jamgmilk.fuwagit.domain.model.git.CloneOptions
@@ -103,7 +104,7 @@ internal fun CloneContent(
     var debouncedUrl by remember { mutableStateOf("") }
     var localPath by remember { mutableStateOf("") }
     var suggestedFolderName by remember { mutableStateOf("") }
-    var validationResult by remember { mutableStateOf(UrlValidationResult(false, UrlProtocol.NONE)) }
+    var validationResult by remember { mutableStateOf(UrlUtils.validateUrl("")) }
     var error by remember { mutableStateOf<String?>(null) }
     var isLoading by remember { mutableStateOf(false) }
 
@@ -135,9 +136,9 @@ internal fun CloneContent(
     }
 
     LaunchedEffect(debouncedUrl) {
-        validationResult = validateUrl(debouncedUrl)
+        validationResult = UrlUtils.validateUrl(debouncedUrl)
         suggestedFolderName = if (validationResult.isValid && debouncedUrl.isNotBlank()) {
-            extractRepoName(debouncedUrl)
+            UrlUtils.extractRepoName(debouncedUrl)
         } else {
             ""
         }
@@ -147,12 +148,12 @@ internal fun CloneContent(
         isDirectoryEmptyState = localPath.isBlank() || myReposViewModel.isDirectoryEmpty(localPath)
     }
 
-    val isHttps = validationResult.protocol == UrlProtocol.HTTPS
-    val isSsh = validationResult.protocol == UrlProtocol.SSH
+    val isHttps = validationResult.isHttps
+    val isSsh = validationResult.isSsh
     val showCredentialSection = isHttps || isSsh
 
     fun executeClone(httpsUuid: String?, sshUuid: String?) {
-        val repoName = extractRepoName(cloneUrl)
+        val repoName = UrlUtils.extractRepoName(cloneUrl)
         val targetPath = if (localPath.endsWith("/")) localPath else "$localPath/"
         val fullPath = "${targetPath}$repoName"
 

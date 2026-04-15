@@ -2,128 +2,72 @@ package jamgmilk.fuwagit.core.util
 
 object UrlUtils {
 
-    sealed class ValidationResult {
-        data class Valid(val type: UrlType) : ValidationResult()
-        data class Invalid(val reason: String) : ValidationResult()
-    }
+    data class UrlValidationResult(
+        val isValid: Boolean,
+        val isSsh: Boolean,
+        val isHttps: Boolean,
+        val errorMessage: String? = null
+    )
 
-    enum class UrlType {
-        SSH,
-        HTTPS,
-        FILE,
-        UNKNOWN
-    }
-
-    fun validateGitUrl(url: String): ValidationResult {
+    fun validateUrl(url: String): UrlValidationResult {
         if (url.isBlank()) {
-            return ValidationResult.Invalid("URL cannot be empty")
+            return UrlValidationResult(isValid = false, isSsh = false, isHttps = false)
         }
 
-        val trimmedUrl = url.trim()
-
-        if (trimmedUrl.contains(" ")) {
-            return ValidationResult.Invalid("URL cannot contain spaces")
-        }
-
-        if (trimmedUrl.startsWith("git@")) {
-            return validateSshUrl(trimmedUrl)
-        }
-
-        if (trimmedUrl.startsWith("https://") || trimmedUrl.startsWith("http://")) {
-            return validateHttpsUrl(trimmedUrl)
-        }
-
-        if (trimmedUrl.startsWith("file://")) {
-            return ValidationResult.Valid(UrlType.FILE)
-        }
-
-        if (trimmedUrl.endsWith(".git")) {
-            return ValidationResult.Valid(UrlType.HTTPS)
-        }
-
-        return ValidationResult.Invalid("Invalid Git URL format")
-    }
-
-    private fun validateSshUrl(url: String): ValidationResult {
-        if (!url.contains("@")) {
-            return ValidationResult.Invalid("SSH URL must contain @")
-        }
-        if (!url.contains(":")) {
-            return ValidationResult.Invalid("SSH URL must contain : after host")
-        }
-
-        val hostAndPath = url.substringAfter("@")
-        val host = hostAndPath.substringBefore(":")
-        val path = hostAndPath.substringAfter(":")
-
-        if (host.isBlank()) {
-            return ValidationResult.Invalid("SSH URL host is empty")
-        }
-        if (path.isBlank()) {
-            return ValidationResult.Invalid("SSH URL path is empty")
-        }
-        if (!host.contains(".")) {
-            return ValidationResult.Invalid("SSH URL host should be a valid hostname (e.g., github.com)")
-        }
-
-        return ValidationResult.Valid(UrlType.SSH)
-    }
-
-    private fun validateHttpsUrl(url: String): ValidationResult {
-        if (!url.contains("://")) {
-            return ValidationResult.Invalid("HTTPS URL must contain ://")
-        }
-
-        val hostAndPath = url.substringAfter("://")
-        if (hostAndPath.isBlank()) {
-            return ValidationResult.Invalid("HTTPS URL host is empty")
-        }
-
-        val host = hostAndPath.substringBefore("/").substringBefore("?")
-        if (host.isBlank()) {
-            return ValidationResult.Invalid("HTTPS URL host is empty")
-        }
-
-        if (!host.contains(".") && host != "localhost") {
-            return ValidationResult.Invalid("HTTPS URL host should be a valid hostname")
-        }
-
-        return ValidationResult.Valid(UrlType.HTTPS)
-    }
-
-    fun getUrlType(url: String): UrlType {
         return when {
-            url.startsWith("git@") -> UrlType.SSH
-            url.startsWith("https://") || url.startsWith("http://") -> UrlType.HTTPS
-            url.startsWith("file://") -> UrlType.FILE
-            url.endsWith(".git") -> UrlType.HTTPS
-            else -> UrlType.UNKNOWN
+            url.startsWith("https://") || url.startsWith("http://") -> {
+                if (url.contains(" ") || !url.contains(".") || url.length < 10) {
+                    UrlValidationResult(isValid = false, isSsh = false, isHttps = true, errorMessage = "Invalid HTTPS URL format")
+                } else {
+                    UrlValidationResult(isValid = true, isSsh = false, isHttps = true)
+                }
+            }
+            url.startsWith("git@") -> {
+                val gitHostPattern = Regex("^git@[a-zA-Z0-9.-]+:[a-zA-Z0-9._/-]+$")
+                if (gitHostPattern.matches(url)) {
+                    UrlValidationResult(isValid = true, isSsh = true, isHttps = false)
+                } else {
+                    UrlValidationResult(isValid = false, isSsh = true, isHttps = false, errorMessage = "Invalid SSH format (expected: git@host:path)")
+                }
+            }
+            url.startsWith("ssh://") -> {
+                UrlValidationResult(isValid = true, isSsh = true, isHttps = false)
+            }
+            else -> {
+                UrlValidationResult(isValid = false, isSsh = false, isHttps = false, errorMessage = "URL must start with https://, http://, git@, ssh://")
+            }
         }
     }
 
-    fun normalizeUrl(url: String): String {
-        var normalized = url.trim()
-        if (!normalized.endsWith(".git") && !normalized.contains("?")) {
-            normalized = "$normalized.git"
-        }
-        return normalized
+    fun isSshUrl(url: String): Boolean {
+        return url.startsWith("git@") || url.startsWith("ssh://")
+    }
+
+    fun isHttpsUrl(url: String): Boolean {
+        return url.startsWith("https://") || url.startsWith("http://")
     }
 
     fun extractHost(url: String): String? {
         return when {
-            url.startsWith("git@") -> url.substringAfter("@").substringBefore(":").substringBefore(".git")
+            url.startsWith("git@") -> url.substringAfter("@").substringBefore(":")
+            url.startsWith("ssh://") -> {
+                val afterProtocol = url.removePrefix("ssh://")
+                if (afterProtocol.contains("@")) {
+                    afterProtocol.substringAfter("@").substringBefore(":")
+                } else {
+                    afterProtocol.substringBefore(":")
+                }
+            }
             url.contains("://") -> url.substringAfter("://").substringBefore("/").substringBefore(":")
-            url.endsWith(".git") -> url.substringBefore("/").substringBefore(".git")
             else -> null
         }
     }
 
-    fun formatUrlForDisplay(url: String): String {
-        return when {
-            url.startsWith("git@") -> url
-            url.startsWith("https://") || url.startsWith("http://") -> url.substringBefore(".git").substringAfter("://")
-            url.endsWith(".git") -> url.removeSuffix(".git")
-            else -> url
-        }
+    fun extractRepoName(url: String): String {
+        return url
+            .substringAfterLast("/")
+            .substringBefore(".git")
+            .substringBefore("?")
+            .ifBlank { "repository" }
     }
 }
