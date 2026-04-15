@@ -312,7 +312,8 @@ class MyReposViewModel @Inject constructor(
         onResult: (AppResult<String>) -> Unit
     ) {
         viewModelScope.launch {
-            if (!credential.isUnlocked()) {
+            val needsCredential = httpsCredentialUuid != null || sshKeyUuid != null
+            if (needsCredential && !credential.isUnlocked()) {
                 _uiState.update {
                     it.copy(
                         pendingCredentialOperation = {

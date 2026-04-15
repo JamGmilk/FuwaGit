@@ -426,7 +426,6 @@ private fun SshTestCard(
                     val message = when (displayResult) {
                         is SshTestResult.Success -> displayResult.message
                         is SshTestResult.Failure -> displayResult.message
-                        else -> ""
                     }
 
                     Surface(

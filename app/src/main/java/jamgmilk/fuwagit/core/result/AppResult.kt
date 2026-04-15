@@ -5,7 +5,7 @@ sealed class AppResult<out T> {
     data class Error(val exception: AppException) : AppResult<Nothing>()
 
     val isSuccess: Boolean get() = this is Success
-    val isError: Boolean get() = this is Error
+    val isFailure: Boolean get() = this is Error
 
     val message: String? get() = (this as? Error)?.exception?.message
 

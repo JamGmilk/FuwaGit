@@ -15,7 +15,7 @@ class AppResultTest {
         val result: AppResult<Int> = AppResult.Success(42)
 
         assertTrue(result.isSuccess)
-        assertFalse(result.isError)
+        assertFalse(result.isFailure)
         assertEquals(42, result.getOrNull())
         assertNull(result.exceptionOrNull())
     }
@@ -53,7 +53,7 @@ class AppResultTest {
         val result: AppResult<Int> = AppResult.Error(exception)
 
         assertFalse(result.isSuccess)
-        assertTrue(result.isError)
+        assertTrue(result.isFailure)
         assertNull(result.getOrNull())
         assertEquals(exception, result.exceptionOrNull())
     }
@@ -86,7 +86,7 @@ class AppResultTest {
         val result: AppResult<Int> = AppResult.Error(AppException.InvalidPassword())
         val mapped = result.map { it * 2 }
 
-        assertTrue(mapped.isError)
+        assertTrue(mapped.isFailure)
         assertNull(mapped.getOrNull())
     }
 
@@ -104,7 +104,7 @@ class AppResultTest {
         val result: AppResult<Int> = AppResult.Error(AppException.InvalidPassword())
         val mapped = result.map { it * 2 }
 
-        assertTrue(mapped.isError)
+        assertTrue(mapped.isFailure)
     }
 
     // ==================== AppResult.onSuccess 测试 ====================
@@ -194,7 +194,7 @@ class AppResultTest {
             throw AppException.InvalidPassword()
         }
 
-        assertTrue(result.isError)
+        assertTrue(result.isFailure)
         assertTrue(result.exceptionOrNull() is AppException.InvalidPassword)
     }
 
@@ -204,7 +204,7 @@ class AppResultTest {
             throw RuntimeException("Something went wrong")
         }
 
-        assertTrue(result.isError)
+        assertTrue(result.isFailure)
         val exception = result.exceptionOrNull()
         assertTrue(exception is AppException.Unknown)
         assertEquals("Something went wrong", exception?.message)
@@ -224,7 +224,7 @@ class AppResultTest {
             throw AppException.DecryptionFailed("Custom error")
         }
 
-        assertTrue(result.isError)
+        assertTrue(result.isFailure)
         assertTrue(result.exceptionOrNull() is AppException.DecryptionFailed)
     }
 
@@ -245,7 +245,7 @@ class AppResultTest {
         val result: Result<Int> = Result.failure(cause)
         val appResult = result.toAppResult()
 
-        assertTrue(appResult.isError)
+        assertTrue(appResult.isFailure)
         assertEquals(cause, appResult.exceptionOrNull())
     }
 
@@ -255,7 +255,7 @@ class AppResultTest {
         val result: Result<Int> = Result.failure(cause)
         val appResult = result.toAppResult()
 
-        assertTrue(appResult.isError)
+        assertTrue(appResult.isFailure)
         assertTrue(appResult.exceptionOrNull() is AppException.Unknown)
     }
 
@@ -265,7 +265,7 @@ class AppResultTest {
         val result: Result<Int> = Result.failure(cause)
         val appResult = result.toAppResult()
 
-        assertTrue(appResult.isError)
+        assertTrue(appResult.isFailure)
         assertTrue(appResult.exceptionOrNull() is AppException.Unknown)
         assertEquals("Unknown state", appResult.exceptionOrNull()?.message)
     }

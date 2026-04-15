@@ -21,6 +21,16 @@ class SafePushUseCase @Inject constructor(
             return AppResult.Error(AppException.Validation("Repository path cannot be empty"))
         }
 
+        val remoteCheck = remoteRepository.getRemotes(repoPath)
+        if (remoteCheck.isFailure || remoteCheck.getOrNull().isNullOrEmpty()) {
+            return AppResult.Error(
+                AppException.GitOperationFailed(
+                    "push",
+                    "No remote configured. Add a remote with: git remote add origin <url>"
+                )
+            )
+        }
+
         val preCheckResult = mergeRepository.checkPrePushStatus(repoPath)
 
         return preCheckResult.fold(
