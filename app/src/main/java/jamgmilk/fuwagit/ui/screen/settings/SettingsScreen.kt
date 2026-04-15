@@ -2,6 +2,7 @@ package jamgmilk.fuwagit.ui.screen.settings
 
 import android.content.Intent
 import android.util.Log
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.os.LocaleListCompat
 import jamgmilk.fuwagit.BuildConfig
@@ -165,7 +166,7 @@ fun SettingsScreen(
         credentialsUiState.error?.let {
             val messageResId = ViewModelMessagesMapper.mapMessageToResource(it)
             val message = resources.getString(messageResId)
-            android.widget.Toast.makeText(context, message, android.widget.Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, message, android.widget.Toast.LENGTH_SHORT).show()
             credentialsViewModel.clearError()
         }
     }
