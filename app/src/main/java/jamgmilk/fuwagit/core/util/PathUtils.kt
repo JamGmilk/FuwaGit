@@ -18,7 +18,5 @@ object PathUtils {
 
     fun getExternalStorageDir(): String = externalStoragePath
 
-    fun getFileName(path: String): String {
-        return File(path).name
-    }
+    fun getFileName(path: String): String = File(path).name
 }

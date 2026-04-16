@@ -24,9 +24,7 @@ class CredentialStoreFacade @Inject constructor(
 
     fun getMasterPasswordHint(): String? = credentialRepository.getMasterPasswordHint()
 
-    fun lock() {
-        credentialRepository.lock()
-    }
+    fun lock() = credentialRepository.lock()
 
     // ========== 密码管理 ==========
 
