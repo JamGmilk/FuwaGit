@@ -17,6 +17,9 @@ object CrashLogManager {
     private const val MAX_LOG_FILES = 10
     private const val LOG_PREFIX = "crash_"
 
+    private val TIMESTAMP_FORMAT = SimpleDateFormat("yyyy_MM_dd_HH_mm_ss", Locale.US)
+    private val DISPLAY_FORMAT = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US)
+
     private var defaultHandler: Thread.UncaughtExceptionHandler? = null
     private var isInitialized = false
     private lateinit var logDir: File
@@ -32,7 +35,12 @@ object CrashLogManager {
 
         appVersion = try {
             val packageInfo = context.packageManager.getPackageInfo(context.packageName, 0)
-            "${packageInfo.versionName} (${packageInfo.longVersionCode})"
+            val versionCode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                packageInfo.longVersionCode.toString()
+            } else {
+                packageInfo.versionCode.toString()
+            }
+            "${packageInfo.versionName} ($versionCode)"
         } catch (e: Exception) {
             "Unknown"
         }
@@ -52,11 +60,11 @@ object CrashLogManager {
             return
         }
 
-        val timestamp = SimpleDateFormat("yyyy_MM_dd_HH_mm_ss", Locale.US).format(Date())
+        val timestamp = TIMESTAMP_FORMAT.format(Date())
         val logFile = File(logDir, "${LOG_PREFIX}${timestamp}.txt")
 
         try {
-            writeLog(logFile, thread ?: Thread.currentThread(), throwable)
+            writeCrashLog(logFile, thread, throwable)
             Log.i(TAG, "Crash log written to: ${logFile.absolutePath}")
         } catch (e: Exception) {
             Log.e(TAG, "Failed to write crash log", e)
@@ -65,44 +73,44 @@ object CrashLogManager {
         defaultHandler?.uncaughtException(thread ?: Thread.currentThread(), throwable)
     }
 
-    private fun writeLog(logFile: File, thread: Thread?, throwable: Throwable) {
-        PrintWriter(FileWriter(logFile)).use { writer ->
-            writer.println("=== FuwaGit Crash Log ===")
-            writer.println("Time: ${SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US).format(Date())}")
-            writer.println("App Version: ${getAppVersion()}")
-            writer.println("Android: ${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT})")
-            writer.println("Device: ${Build.MANUFACTURER}/${Build.MODEL}")
-            writer.println()
+    private fun PrintWriter.writeLogHeader(title: String) {
+        println("=== $title ===")
+        println("Time: ${DISPLAY_FORMAT.format(Date())}")
+        println("App Version: $appVersion")
+        println("Android: ${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT})")
+        println("Device: ${Build.MANUFACTURER}/${Build.MODEL}")
+        println()
+    }
 
+    private fun PrintWriter.writeCauseChain(throwable: Throwable) {
+        var cause = throwable.cause
+        var causeCount = 1
+        while (cause != null && causeCount <= 5) {
+            println("Caused by [$causeCount]: ${cause.javaClass.name}")
+            println("Message: ${cause.message}")
+            cause.printStackTrace(this)
+            println()
+            cause = cause.cause
+            causeCount++
+        }
+    }
+
+    private fun writeCrashLog(logFile: File, thread: Thread?, throwable: Throwable) {
+        PrintWriter(FileWriter(logFile)).use { writer ->
+            writer.writeLogHeader("FuwaGit Crash Log")
             writer.println("Thread: ${thread?.name ?: "Unknown"}")
             writer.println()
-
             writer.println("Exception: ${throwable.javaClass.name}")
             writer.println("Message: ${throwable.message}")
             writer.println()
-
             writer.println("Stack Trace:")
             throwable.printStackTrace(writer)
             writer.println()
-
-            var cause = throwable.cause
-            var causeCount = 1
-            while (cause != null && causeCount <= 5) {
-                writer.println("Caused by [$causeCount]: ${cause.javaClass.name}")
-                writer.println("Message: ${cause.message}")
-                cause.printStackTrace(writer)
-                writer.println()
-                cause = cause.cause
-                causeCount++
-            }
-
+            writer.writeCauseChain(throwable)
             writer.println("=== End of Crash Log ===")
         }
-
         cleanupOldLogs()
     }
-
-    private fun getAppVersion(): String = appVersion
 
     private fun cleanupOldLogs() {
         val logFiles = logDir.listFiles { file ->
@@ -124,22 +132,19 @@ object CrashLogManager {
     }
 
     fun getAllLogsContent(): String {
-        val logs = StringBuilder()
-        logs.append("=== FuwaGit Crash Logs Export ===\n")
-        logs.append("Exported at: ${SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US).format(Date())}\n")
-        logs.append("Total crash logs: ${getLogFiles().size}\n")
-        logs.append("================================\n\n")
-
-        getLogFiles().forEachIndexed { index, file ->
-            if (index > 0) {
-                logs.append("\n\n")
-                logs.append("========================================\n")
-                logs.append("========================================\n\n")
+        val logs = getLogFiles().mapIndexed { index, file ->
+            buildString {
+                if (index > 0) append("\n\n========================================\n========================================\n\n")
+                append(file.readText())
             }
-            logs.append(file.readText())
         }
-
-        return logs.toString()
+        return buildString {
+            append("=== FuwaGit Crash Logs Export ===\n")
+            append("Exported at: ${DISPLAY_FORMAT.format(Date())}\n")
+            append("Total crash logs: ${getLogFiles().size}\n")
+            append("================================\n\n")
+            append(logs.joinToString(""))
+        }
     }
 
     fun createShareIntent(context: Context): Intent {
@@ -152,23 +157,21 @@ object CrashLogManager {
     }
 
     fun logManualError(tag: String, message: String, throwable: Throwable? = null) {
-        val timestamp = SimpleDateFormat("yyyy_MM_dd_HH_mm_ss", Locale.US).format(Date())
+        val timestamp = TIMESTAMP_FORMAT.format(Date())
         val logFile = File(logDir, "${LOG_PREFIX}manual_${timestamp}.txt")
 
         try {
             PrintWriter(FileWriter(logFile)).use { writer ->
-                writer.println("=== FuwaGit Manual Error Log ===")
-                writer.println("Time: ${SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US).format(Date())}")
+                writer.writeLogHeader("FuwaGit Manual Error Log")
                 writer.println("Tag: $tag")
-                writer.println("App Version: ${getAppVersion()}")
-                writer.println("Android: ${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT})")
-                writer.println("Device: ${Build.MANUFACTURER}/${Build.MODEL}")
                 writer.println()
                 writer.println("Message: $message")
                 writer.println()
                 throwable?.let {
                     writer.println("Stack Trace:")
                     it.printStackTrace(writer)
+                    writer.println()
+                    writer.writeCauseChain(it)
                 }
                 writer.println("=== End of Manual Error Log ===")
             }

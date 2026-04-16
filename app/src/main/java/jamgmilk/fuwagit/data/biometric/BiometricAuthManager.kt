@@ -4,7 +4,6 @@ import android.util.Log
 import androidx.biometric.BiometricPrompt
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.FragmentActivity
-import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -23,14 +22,6 @@ class BiometricAuthManager @Inject constructor(
     enum class AuthAction {
         ENABLE,
         UNLOCK
-    }
-
-    fun authenticate(
-        activity: FragmentActivity,
-        action: AuthAction,
-        onResult: (AuthResult) -> Unit
-    ) {
-        authenticateWithCrypto(activity, action, null, onResult)
     }
 
     fun authenticateWithCrypto(
@@ -84,61 +75,5 @@ class BiometricAuthManager @Inject constructor(
         } else {
             biometricPrompt.authenticate(promptInfo)
         }
-    }
-}
-
-@AndroidEntryPoint
-class BiometricActivityResult : FragmentActivity() {
-
-    @Inject
-    lateinit var manager: BiometricAuthManager
-
-    override fun onCreate(savedInstanceState: android.os.Bundle?) {
-        super.onCreate(savedInstanceState)
-
-        val action = intent.getStringExtra(EXTRA_ACTION) ?: run {
-            finish()
-            return
-        }
-
-        val authAction = when (action) {
-            ACTION_ENABLE -> BiometricAuthManager.AuthAction.ENABLE
-            ACTION_UNLOCK -> BiometricAuthManager.AuthAction.UNLOCK
-            else -> {
-                finish()
-                return
-            }
-        }
-
-        manager.authenticate(this, authAction) { result ->
-            when (result) {
-                is BiometricAuthManager.AuthResult.Error -> {
-                    setResult(RESULT_ERROR, intent.apply {
-                        putExtra(EXTRA_ERROR_CODE, result.code)
-                        putExtra(EXTRA_ERROR_MESSAGE, result.message)
-                    })
-                }
-                is BiometricAuthManager.AuthResult.Cancelled -> {
-                    setResult(RESULT_CANCELED)
-                }
-                is BiometricAuthManager.AuthResult.SuccessWithCrypto -> {
-                    setResult(RESULT_SUCCESS)
-                }
-            }
-            finish()
-        }
-    }
-
-    companion object {
-        const val EXTRA_ACTION = "biometric_action"
-        const val EXTRA_ERROR_MESSAGE = "biometric_error_message"
-        const val EXTRA_ERROR_CODE = "biometric_error_code"
-
-        const val ACTION_ENABLE = "enable"
-        const val ACTION_UNLOCK = "unlock"
-
-        const val RESULT_SUCCESS = 1001
-        const val RESULT_ERROR = 1002
-        const val RESULT_CANCELED = 1003
     }
 }

@@ -27,7 +27,6 @@ data class RepoInfo(
 private sealed interface ValidationResult {
     data class Success(val path: String, val name: String) : ValidationResult
     data class Error(val message: String) : ValidationResult
-    object Cleared : ValidationResult
 }
 
 @Singleton
@@ -47,29 +46,26 @@ class RepoStateManager @Inject constructor(
         }
     }
 
-    private suspend fun initializeFromStorage() {
-        val savedPath = repoDataStore.getCurrentRepoPath()
-        if (savedPath != null) {
-            validateRepo(savedPath)
-        }
+    private fun initializeFromStorage() {
+        repoDataStore.getCurrentRepoPath()?.let { validateRepo(it) }
     }
 
     fun getRepoPath(): String? = _repoInfo.value.repoPath
 
-    suspend fun clearRepo() {
+    fun clearRepo() {
         _repoInfo.value = RepoInfo()
         repoDataStore.setCurrentRepo(null)
     }
 
-    suspend fun setRepoPath(path: String?) {
+    fun setRepoPath(path: String?) {
         if (path == null) {
             clearRepo()
-            return
+        } else {
+            validateRepo(path)
         }
-        validateRepo(path)
     }
 
-    suspend fun validateRepo(path: String) {
+    fun validateRepo(path: String) {
         val file = File(path)
         val name = file.name
 
@@ -79,25 +75,7 @@ class RepoStateManager @Inject constructor(
             isLoading = true
         )
 
-        val result = validate(path)
-
-        _repoInfo.value = when (result) {
-            is ValidationResult.Success -> RepoInfo(
-                repoPath = result.path,
-                repoName = result.name
-            )
-            is ValidationResult.Error -> RepoInfo(
-                error = result.message
-            )
-            ValidationResult.Cleared -> RepoInfo()
-        }
-    }
-
-    private suspend fun validate(path: String): ValidationResult {
-        val file = File(path)
-        val name = file.name
-
-        return when {
+        val result = when {
             !file.exists() -> {
                 repoDataStore.setCurrentRepo(null)
                 ValidationResult.Error("Path does not exist")
@@ -111,6 +89,16 @@ class RepoStateManager @Inject constructor(
                 repoDataStore.updateLastAccessed(path)
                 ValidationResult.Success(path, name)
             }
+        }
+
+        _repoInfo.value = when (result) {
+            is ValidationResult.Success -> RepoInfo(
+                repoPath = result.path,
+                repoName = result.name
+            )
+            is ValidationResult.Error -> RepoInfo(
+                error = result.message
+            )
         }
     }
 
