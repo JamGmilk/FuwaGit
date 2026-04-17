@@ -75,6 +75,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -111,9 +112,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import jamgmilk.fuwagit.R
 import jamgmilk.fuwagit.ui.components.FilePickerDialog
 import jamgmilk.fuwagit.ui.components.ScreenTemplate
-import jamgmilk.fuwagit.ui.screen.credentials.ChangeMasterPasswordDialog
 import jamgmilk.fuwagit.ui.screen.credentials.CredentialStoreViewModel
-import jamgmilk.fuwagit.ui.screen.credentials.SetupMasterPasswordDialog
 import jamgmilk.fuwagit.ui.screen.credentials.UnlockDialog
 import jamgmilk.fuwagit.domain.model.toResource
 import jamgmilk.fuwagit.util.CrashLogManager
@@ -128,6 +127,8 @@ fun SettingsScreen(
     modifier: Modifier = Modifier,
     onNavigateToPermissions: () -> Unit = {},
     onNavigateToCredentials: () -> Unit = {},
+    onNavigateToMasterPassword: () -> Unit = {},
+    onMasterPasswordSuccess: () -> Unit = {},
     settingsViewModel: SettingsViewModel = hiltViewModel(),
     credentialsViewModel: CredentialStoreViewModel = hiltViewModel()
 ) {
@@ -190,7 +191,21 @@ fun SettingsScreen(
         credentialsViewModel.initialize()
     }
 
-    // ✅ 使用 snapshotFlow 监听状态变化，避免不必要的重组
+    var previousMasterPasswordSet by remember { mutableStateOf(credentialsUiState.isMasterPasswordSet) }
+    val passwordSuccessMsg = stringResource(R.string.credentials_master_password_set_successfully)
+
+    LaunchedEffect(credentialsUiState.isMasterPasswordSet) {
+        if (!previousMasterPasswordSet && credentialsUiState.isMasterPasswordSet) {
+            scope.launch {
+                snackbarHostState.showSnackbar(
+                    message = passwordSuccessMsg,
+                    duration = SnackbarDuration.Short
+                )
+            }
+        }
+        previousMasterPasswordSet = credentialsUiState.isMasterPasswordSet
+    }
+
     LaunchedEffect(Unit) {
         snapshotFlow { 
             Pair(credentialsUiState.isDecryptionUnlocked, pendingBiometricEnable) 
@@ -241,9 +256,20 @@ fun SettingsScreen(
         )
 
         SecuritySettingsCard(
-            onCredentialsClick = onNavigateToCredentials,
+            onCredentialsClick = {
+                if (!credentialsUiState.isMasterPasswordSet) {
+                    scope.launch {
+                        snackbarHostState.showSnackbar(
+                            message = context.getString(R.string.settings_please_set_master_password_first),
+                            duration = SnackbarDuration.Short
+                        )
+                    }
+                } else {
+                    onNavigateToCredentials()
+                }
+            },
             onMasterPasswordClick = {
-                credentialsViewModel.showChangePasswordDialog()
+                onNavigateToMasterPassword()
             },
             biometricEnabled = credentialsUiState.isBiometricEnabled,
             isDecryptionUnlocked = credentialsUiState.isDecryptionUnlocked,
@@ -366,29 +392,6 @@ fun SettingsScreen(
             error = credentialsUiState.error,
             isLoading = credentialsUiState.isLoading
         )
-    }
-
-    if (credentialsUiState.showChangePasswordDialog) {
-        if (credentialsUiState.isMasterPasswordSet) {
-            ChangeMasterPasswordDialog(
-                onDismiss = { credentialsViewModel.dismissChangePasswordDialog() },
-                onConfirm = { oldPassword, newPassword, confirmPassword, hint ->
-                    credentialsViewModel.changeMasterPassword(oldPassword, newPassword, confirmPassword, hint)
-                },
-                passwordHint = credentialsUiState.passwordHint,
-                error = credentialsUiState.changePasswordError,
-                isLoading = credentialsUiState.isLoading
-            )
-        } else {
-            SetupMasterPasswordDialog(
-                onDismiss = { credentialsViewModel.dismissChangePasswordDialog() },
-                onConfirm = { password, confirmPassword, hint ->
-                    credentialsViewModel.setupMasterPassword(password, confirmPassword, hint)
-                },
-                error = credentialsUiState.changePasswordError,
-                isLoading = credentialsUiState.isLoading
-            )
-        }
     }
 }
 

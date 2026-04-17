@@ -21,7 +21,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Error
@@ -91,23 +93,30 @@ fun PermissionsScreen(
         onBack = onBack,
         modifier = modifier
     ) {
-        SystemPermissionsCard(
-            onRequestAllFilesAccess = {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                    context.startActivity(Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION).apply {
-                        data = "package:${context.packageName}".toUri()
-                    })
-                } else {
-                    requestPermissionLauncher.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            SystemPermissionsCard(
+                onRequestAllFilesAccess = {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                        context.startActivity(Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION).apply {
+                            data = "package:${context.packageName}".toUri()
+                        })
+                    } else {
+                        requestPermissionLauncher.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                    }
                 }
-            }
-        )
+            )
 
-        SshTestCard(
-            sshKeys = sshKeys,
-            onTestSshConnection = onTestSshConnection,
-            sshTestResult = sshTestResult
-        )
+            SshTestCard(
+                sshKeys = sshKeys,
+                onTestSshConnection = onTestSshConnection,
+                sshTestResult = sshTestResult
+            )
+        }
     }
 }
 

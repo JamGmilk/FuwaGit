@@ -49,6 +49,7 @@ import jamgmilk.fuwagit.ui.screen.branches.BranchesScreen
 import jamgmilk.fuwagit.ui.screen.branches.BranchesViewModel
 import jamgmilk.fuwagit.ui.screen.credentials.CredentialScreen
 import jamgmilk.fuwagit.ui.screen.credentials.CredentialStoreViewModel
+import jamgmilk.fuwagit.ui.screen.credentials.MasterPasswordScreen
 import jamgmilk.fuwagit.ui.screen.credentials.UnlockDialog
 import jamgmilk.fuwagit.ui.screen.filediff.FileDiffScreen
 import jamgmilk.fuwagit.ui.screen.filediff.FileDiffViewModel
@@ -124,6 +125,14 @@ fun AppNavHost(navController: NavHostController, startDestination: String = NavR
                     },
                     onNavigateToCredentials = {
                         navController.navigate(NavRoutes.CREDENTIALS)
+                    },
+                    onNavigateToMasterPassword = {
+                        navController.navigate(NavRoutes.MASTER_PASSWORD) {
+                            popUpTo(NavRoutes.MAIN) { saveState = true }
+                        }
+                    },
+                    onMasterPasswordSuccess = {
+                        navController.popBackStack()
                     },
                     onViewFileDiff = { filePath, diffType ->
                         val encodedPath = java.net.URLEncoder.encode(filePath, "UTF-8")
@@ -235,6 +244,13 @@ fun AppNavHost(navController: NavHostController, startDestination: String = NavR
                 )
             }
 
+            composable(NavRoutes.MASTER_PASSWORD) {
+                MasterPasswordScreen(
+                    onBack = { navController.popBackStack() },
+                    onSuccess = { navController.popBackStack() }
+                )
+            }
+
             composable(
                 route = "${NavRoutes.FILE_DIFF}?filePath={filePath}&diffType={diffType}&oldCommit={oldCommit}&newCommit={newCommit}",
                 arguments = listOf(
@@ -270,6 +286,8 @@ fun MainScreen(
     onNavigateToAddRepository: () -> Unit,
     onNavigateToPermissions: () -> Unit,
     onNavigateToCredentials: () -> Unit,
+    onNavigateToMasterPassword: () -> Unit,
+    onMasterPasswordSuccess: () -> Unit = {},
     onViewFileDiff: ((String, String) -> Unit)? = null,
     onViewCommitDiff: ((String, String, String) -> Unit)? = null
 ) {
@@ -364,7 +382,9 @@ fun MainScreen(
                     4 -> SettingsScreen(
                         modifier = Modifier.fillMaxSize(),
                         onNavigateToPermissions = onNavigateToPermissions,
-                        onNavigateToCredentials = onNavigateToCredentials
+                        onNavigateToCredentials = onNavigateToCredentials,
+                        onNavigateToMasterPassword = onNavigateToMasterPassword,
+                        onMasterPasswordSuccess = onMasterPasswordSuccess
                     )
                 }
             }

@@ -66,6 +66,7 @@
     <string name="settings_set_master_password_subtitle">Protect your credentials</string>
     <string name="settings_change_master_password">Change Master Password</string>
     <string name="settings_change_master_password_subtitle">Update your master password</string>
+    <string name="settings_please_set_master_password_first">Please set a master password first</string>
     <string name="settings_biometric_unlock">Biometric Unlock</string>
     <string name="settings_biometric_tap_to_unlock">Tap to unlock credentials first</string>
     <string name="settings_biometric_enabled">Enabled</string>
@@ -256,6 +257,7 @@
     <string name="credentials_at_least_6_characters">At least 6 characters</string>
     <string name="credentials_set_password">Set Password</string>
     <string name="credentials_setting">Setting…</string>
+    <string name="credentials_changing">Changing…</string>
     <string name="credentials_unlock_credentials">Unlock Credentials</string>
     <string name="credentials_unlock_description">Enter your master password to access sensitive credentials.</string>
     <string name="credentials_master_password_label">Master Password</string>
@@ -278,6 +280,8 @@
     <string name="credentials_change_password">Change Password</string>
     <string name="credentials_setup_master_password_full">Set Master Password</string>
     <string name="credentials_setup_full_description">Create a master password to protect your sensitive credentials. You\'ll need this password to view passwords and private keys.</string>
+    <string name="credentials_master_password_set_successfully">Master password has been set</string>
+    <string name="credentials_master_password_changed_successfully">Master password has been changed</string>
     <string name="credentials_generate_ssh_key">Generate SSH Key</string>
     <string name="credentials_key_name_label">Key Name</string>
     <string name="credentials_key_name_placeholder">My Key</string>

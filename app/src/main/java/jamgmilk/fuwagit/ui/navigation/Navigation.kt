@@ -19,6 +19,7 @@ object NavRoutes {
     const val ADD_REPOSITORY_WITH_TAB = "add_repository/{tab}"
     const val PERMISSIONS = "permissions"
     const val CREDENTIALS = "credentials"
+    const val MASTER_PASSWORD = "master_password"
     const val FILE_DIFF = "file_diff"
 }
 

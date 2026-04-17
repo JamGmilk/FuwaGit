@@ -256,6 +256,10 @@
     <string name="credentials_unlocking">正在解锁…</string>
     <string name="credentials_unlock">解锁</string>
     <string name="credentials_unlock_with_biometric">使用生物识别解锁</string>
+    <string name="credentials_changing">正在更改…</string>
+    <string name="credentials_change_password">更改密码</string>
+    <string name="credentials_master_password_set_successfully">主密码已设置</string>
+    <string name="credentials_master_password_changed_successfully">主密码已更改</string>
     <string name="credentials_add_https_credential">添加 HTTPS 凭据</string>
     <string name="credentials_host_label">主机</string>
     <string name="credentials_host_placeholder">github.com</string>
@@ -268,7 +272,6 @@
     <string name="credentials_current_password_label">当前密码</string>
     <string name="credentials_new_password_label">新密码</string>
     <string name="credentials_confirm_new_password_label">确认新密码</string>
-    <string name="credentials_change_password">更改密码</string>
     <string name="credentials_setup_master_password_full">设置主密码</string>
     <string name="credentials_setup_full_description">创建主密码以保护您的敏感凭据。您需要此密码来查看密码和私钥。</string>
     <string name="credentials_generate_ssh_key">生成 SSH 密钥</string>
