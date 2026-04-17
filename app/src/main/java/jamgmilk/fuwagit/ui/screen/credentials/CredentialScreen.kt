@@ -3,6 +3,8 @@ package jamgmilk.fuwagit.ui.screen.credentials
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
@@ -60,75 +62,67 @@ fun CredentialScreen(
         modifier = modifier,
         snackbarHostState = snackbarHostState
     ) {
-        if (!uiState.isMasterPasswordSet) {
-            SetupMasterPasswordContent(
-                onConfirm = { password, hint ->
-                    viewModel.setupMasterPassword(password, password, hint)
-                },
-                error = uiState.error,
-                isLoading = uiState.isLoading
-            )
-        } else {
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                SecuritySettingsSection(
-                    isDecryptionUnlocked = uiState.isDecryptionUnlocked,
-                    onExport = {
-                        if (!uiState.isDecryptionUnlocked) {
-                            viewModel.showUnlockDialog()
-                        } else {
-                            dialogState = CredentialDialogState.ExportCredentials
-                        }
-                    },
-                    onImport = {
-                        if (!uiState.isDecryptionUnlocked) {
-                            viewModel.showUnlockDialog()
-                        } else {
-                            dialogState = CredentialDialogState.ImportCredentials
-                        }
-                    },
-                    onLockToggle = {
-                        if (uiState.isDecryptionUnlocked) {
-                            viewModel.lock()
-                        } else {
-                            viewModel.showUnlockDialog()
-                        }
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            SecuritySettingsSection(
+                isDecryptionUnlocked = uiState.isDecryptionUnlocked,
+                onExport = {
+                    if (!uiState.isDecryptionUnlocked) {
+                        viewModel.showUnlockDialog()
+                    } else {
+                        dialogState = CredentialDialogState.ExportCredentials
                     }
-                )
+                },
+                onImport = {
+                    if (!uiState.isDecryptionUnlocked) {
+                        viewModel.showUnlockDialog()
+                    } else {
+                        dialogState = CredentialDialogState.ImportCredentials
+                    }
+                },
+                onLockToggle = {
+                    if (uiState.isDecryptionUnlocked) {
+                        viewModel.lock()
+                    } else {
+                        viewModel.showUnlockDialog()
+                    }
+                }
+            )
 
-                HttpsCredentialsSection(
-                    credentials = uiState.httpsCredentials,
-                    onAdd = {
-                        if (!uiState.isDecryptionUnlocked) {
-                            viewModel.showUnlockDialog()
-                        } else {
-                            dialogState = CredentialDialogState.AddHttps
-                        }
-                    },
-                    onInfo = { dialogState = CredentialDialogState.HttpsInfo(it) }
-                )
+            HttpsCredentialsSection(
+                credentials = uiState.httpsCredentials,
+                onAdd = {
+                    if (!uiState.isDecryptionUnlocked) {
+                        viewModel.showUnlockDialog()
+                    } else {
+                        dialogState = CredentialDialogState.AddHttps
+                    }
+                },
+                onInfo = { dialogState = CredentialDialogState.HttpsInfo(it) }
+            )
 
-                SshKeysSection(
-                    keys = uiState.sshKeys,
-                    onGenerate = {
-                        if (!uiState.isDecryptionUnlocked) {
-                            viewModel.showUnlockDialog()
-                        } else {
-                            dialogState = CredentialDialogState.GenerateSsh
-                        }
-                    },
-                    onImport = {
-                        if (!uiState.isDecryptionUnlocked) {
-                            viewModel.showUnlockDialog()
-                        } else {
-                            dialogState = CredentialDialogState.ImportSsh
-                        }
-                    },
-                    onInfo = { dialogState = CredentialDialogState.SshInfo(it) }
-                )
-            }
+            SshKeysSection(
+                keys = uiState.sshKeys,
+                onGenerate = {
+                    if (!uiState.isDecryptionUnlocked) {
+                        viewModel.showUnlockDialog()
+                    } else {
+                        dialogState = CredentialDialogState.GenerateSsh
+                    }
+                },
+                onImport = {
+                    if (!uiState.isDecryptionUnlocked) {
+                        viewModel.showUnlockDialog()
+                    } else {
+                        dialogState = CredentialDialogState.ImportSsh
+                    }
+                },
+                onInfo = { dialogState = CredentialDialogState.SshInfo(it) }
+            )
         }
     }
 
