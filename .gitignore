@@ -1,11 +1,15 @@
-/build
-/captures
-.gradle
-.kotlin
-/.qwen
+# --- Build & Generated Output ---
+build/
+.gradle/
+.kotlin/
+.externalNativeBuild/
+.cxx/
+captures/
+output.json
+*.log
+
+# --- System & Misc ---
+local.properties
 *.iml
 .DS_Store
-.externalNativeBuild
-.cxx
-/local.properties
-local.properties
+/.qwen

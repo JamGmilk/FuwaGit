@@ -6,6 +6,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import jamgmilk.fuwagit.core.result.AppResult
 import jamgmilk.fuwagit.data.jgit.GitConfigManager
 import jamgmilk.fuwagit.data.local.prefs.RepoDataStore
+import jamgmilk.fuwagit.domain.model.UiMessage
 import jamgmilk.fuwagit.domain.model.credential.HttpsCredential
 import jamgmilk.fuwagit.domain.model.credential.SshKey
 import jamgmilk.fuwagit.domain.model.git.CloneOptions
@@ -162,7 +163,7 @@ class MyReposViewModel @Inject constructor(
                 _uiState.update {
                     it.copy(
                         isCleanPreviewing = false,
-                        cleanMessage = if (cleanResult.files.isEmpty()) "No untracked files to clean" else null,
+                        cleanMessage = if (cleanResult.files.isEmpty()) UiMessage.Clean.NoUntrackedFiles else null,
                         untrackedFilesForClean = cleanResult.files
                     )
                 }
@@ -170,7 +171,7 @@ class MyReposViewModel @Inject constructor(
                 _uiState.update {
                     it.copy(
                         isCleanPreviewing = false,
-                        cleanMessage = "Failed to get untracked files: ${e.message}",
+                        cleanMessage = UiMessage.Clean.GetFilesFailed(e.message ?: "Unknown error"),
                         untrackedFilesForClean = emptyList()
                     )
                 }
@@ -194,7 +195,7 @@ class MyReposViewModel @Inject constructor(
                     _uiState.update {
                         it.copy(
                             isCleanPreviewing = false,
-                            cleanMessage = "No files to clean: all previously untracked files have been modified, staged, or already deleted",
+                            cleanMessage = UiMessage.Generic("No files to clean: all previously untracked files have been modified, staged, or already deleted"),
                             untrackedFilesForClean = emptyList()
                         )
                     }
@@ -214,7 +215,7 @@ class MyReposViewModel @Inject constructor(
                     _uiState.update {
                         it.copy(
                             isCleanPreviewing = false,
-                            cleanMessage = "Failed to clean: ${e.message}",
+                            cleanMessage = UiMessage.Clean.Failed(e.message ?: "Unknown error"),
                             untrackedFilesForClean = emptyList()
                         )
                     }
@@ -223,7 +224,7 @@ class MyReposViewModel @Inject constructor(
                 _uiState.update {
                     it.copy(
                         isCleanPreviewing = false,
-                        cleanMessage = "Failed to get file list: ${e.message}",
+                        cleanMessage = UiMessage.Clean.GetListFailed(e.message ?: "Unknown error"),
                         untrackedFilesForClean = emptyList()
                     )
                 }

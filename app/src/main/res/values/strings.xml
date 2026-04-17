@@ -650,6 +650,17 @@
     <string name="vm_clean_failed">Failed to clean: %1$s</string>
     <string name="vm_clean_get_files_failed">Failed to get untracked files: %1$s</string>
     <string name="vm_clean_get_list_failed">Failed to get file list: %1$s</string>
+    <string name="vm_checkout_success">Switched to branch \'%1$s\'</string>
+    <string name="vm_checkout_failed">Failed to switch branch</string>
+    <string name="vm_branch_created_success">Branch \'%1$s\' created successfully</string>
+    <string name="vm_branch_creation_failed">Failed to create branch</string>
+    <string name="vm_branch_renamed_success">Branch renamed to \'%1$s\'</string>
+    <string name="vm_branch_rename_failed">Failed to rename branch</string>
+    <string name="vm_tag_lightweight_created">Lightweight tag \'%1$s\' created</string>
+    <string name="vm_tag_annotated_created">Annotated tag \'%1$s\' created</string>
+    <string name="vm_tag_deleted">Tag \'%1$s\' deleted</string>
+    <string name="vm_tag_push_success">Tag \'%1$s\' pushed successfully</string>
+    <string name="vm_tag_failed">Failed to perform tag operation</string>
 
     <!-- ========== Onboarding ========== -->
     <string name="onboarding_welcome_title">Welcome to FuwaGit</string>

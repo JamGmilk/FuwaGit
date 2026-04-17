@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import jamgmilk.fuwagit.core.result.AppResult
+import jamgmilk.fuwagit.domain.model.UiMessage
 import jamgmilk.fuwagit.domain.model.credential.HttpsCredential
 import jamgmilk.fuwagit.domain.model.credential.SshKey
 import jamgmilk.fuwagit.domain.usecase.credential.CredentialStoreFacade
@@ -26,12 +27,12 @@ data class CredentialsStoreUiState(
     val isDecryptionUnlocked: Boolean = false,
     val showUnlockDialog: Boolean = false,
     val showChangePasswordDialog: Boolean = false,
-    val changePasswordError: String? = null,
+    val changePasswordError: UiMessage? = null,
     val passwordHint: String? = null,
     val httpsCredentials: List<HttpsCredential> = emptyList(),
     val sshKeys: List<SshKey> = emptyList(),
     val isLoading: Boolean = false,
-    val error: String? = null,
+    val error: UiMessage? = null,
     val exportedData: String? = null,
     val showExportDialog: Boolean = false,
     val showImportDialog: Boolean = false,
@@ -175,7 +176,7 @@ class CredentialStoreViewModel @Inject constructor(
                         _uiState.update { it.copy(isBiometricEnabled = true) }
                     }
                     is AppResult.Error -> {
-                        _uiState.update { it.copy(error = result.message) }
+                        _uiState.update { it.copy(error = UiMessage.Generic(result.message ?: "Biometric error")) }
                     }
                 }
             }
@@ -196,7 +197,7 @@ class CredentialStoreViewModel @Inject constructor(
                     loadCredentials()
                 }
                 is AppResult.Error -> {
-                    _uiState.update { it.copy(error = result.message) }
+                    _uiState.update { it.copy(error = UiMessage.Generic(result.message ?: "Biometric error")) }
                 }
             }
         }
@@ -250,11 +251,11 @@ class CredentialStoreViewModel @Inject constructor(
 
     fun changeMasterPassword(oldPassword: String, newPassword: String, confirmPassword: String, hint: String?) {
         if (newPassword != confirmPassword) {
-            _uiState.update { it.copy(changePasswordError = "Passwords do not match") }
+            _uiState.update { it.copy(changePasswordError = UiMessage.Credential.PasswordMismatch) }
             return
         }
         if (newPassword.length < 6) {
-            _uiState.update { it.copy(changePasswordError = "New password must be at least 6 characters") }
+            _uiState.update { it.copy(changePasswordError = UiMessage.Credential.PasswordMinChars()) }
             return
         }
 
@@ -277,7 +278,7 @@ class CredentialStoreViewModel @Inject constructor(
                     _uiState.update {
                         it.copy(
                             isLoading = false,
-                            changePasswordError = e.message ?: "Incorrect old password"
+                            changePasswordError = UiMessage.Credential.IncorrectOldPassword
                         )
                     }
                 }
@@ -301,7 +302,7 @@ class CredentialStoreViewModel @Inject constructor(
             _uiState.update { it.copy(isLoading = true, error = null) }
             block()
                 .onError { e ->
-                    _uiState.update { it.copy(error = e.message) }
+                    _uiState.update { it.copy(error = UiMessage.Generic(e.message ?: "Unknown error")) }
                 }
             _uiState.update { it.copy(isLoading = false) }
         }

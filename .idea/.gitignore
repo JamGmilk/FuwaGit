@@ -1,13 +1,26 @@
-/caches/
-/libraries/
-/modules/
-/shelf/
-/androidTestResultsUserPreferences.xml
-/assetWizardSettings.xml
-/workspace.xml
-/deploymentTargetSelector.xml
-/deviceManager.xml
-/studiobot.xml
+# --- User Preference & UI State ---
+workspace.xml
+shelf/
+caches/
+androidTestResultsUserPreferences.xml
+deploymentTargetSelector.xml
+deviceManager.xml
+studiobot.xml
+assetWizardSettings.xml
+navEditor.xml
+misc.xml
+
+# --- Additional IDE & Plugin State ---
+MarsCodeWorkspaceAppSettings.xml
+AndroidProjectSystem.xml
+appInsightsSettings.xml
+compiler.xml
+vcs.xml
+markdown.xml
+.name
+
+# --- Project Structure ---
+libraries/
+modules/
+modules.xml
 *.iml
-/modules.xml
-/navEditor.xml

@@ -59,10 +59,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import jamgmilk.fuwagit.R
 import jamgmilk.fuwagit.core.util.PathUtils
+import jamgmilk.fuwagit.domain.model.UiMessage
+import jamgmilk.fuwagit.domain.model.toResource
 import jamgmilk.fuwagit.domain.model.git.GitBranch
 import jamgmilk.fuwagit.domain.model.git.GitChangeType
 import jamgmilk.fuwagit.domain.model.git.GitFileStatus
-import jamgmilk.fuwagit.ui.util.ViewModelMessagesMapper
 
 @Composable
 internal fun ActionToolbar(
@@ -192,13 +193,13 @@ internal fun RepositoryStatusCard(
     currentBranch: GitBranch?,
     modifier: Modifier = Modifier,
     isLoading: Boolean = false,
-    error: String? = null
+    error: UiMessage? = null
 ) {
     val colors = MaterialTheme.colorScheme
 
     val statusMessage = when {
         isLoading -> stringResource(R.string.status_checking_repo)
-        !isRepo && error != null -> error
+        !isRepo && error != null -> stringResource(error.toResource())
         !isRepo -> stringResource(R.string.status_not_a_repo)
         isRepo -> stringResource(R.string.status_repo_active)
         else -> stringResource(R.string.status_select_repo)
@@ -256,15 +257,6 @@ internal fun RepositoryStatusCard(
                             color = colors.onSurfaceVariant,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
-                        )
-                    }
-                    if (!isRepo && !isLoading && error != null) {
-                        Spacer(Modifier.height(4.dp))
-                        val localizedError = stringResource(ViewModelMessagesMapper.mapMessageToResource(error))
-                        Text(
-                            text = localizedError,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = colors.error
                         )
                     }
                 }

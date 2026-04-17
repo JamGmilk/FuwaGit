@@ -115,7 +115,7 @@ import jamgmilk.fuwagit.ui.screen.credentials.ChangeMasterPasswordDialog
 import jamgmilk.fuwagit.ui.screen.credentials.CredentialStoreViewModel
 import jamgmilk.fuwagit.ui.screen.credentials.SetupMasterPasswordDialog
 import jamgmilk.fuwagit.ui.screen.credentials.UnlockDialog
-import jamgmilk.fuwagit.ui.util.ViewModelMessagesMapper
+import jamgmilk.fuwagit.domain.model.toResource
 import jamgmilk.fuwagit.util.CrashLogManager
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
@@ -163,9 +163,8 @@ fun SettingsScreen(
     }
 
     LaunchedEffect(credentialsUiState.error) {
-        credentialsUiState.error?.let {
-            val messageResId = ViewModelMessagesMapper.mapMessageToResource(it)
-            val message = resources.getString(messageResId)
+        credentialsUiState.error?.let { errorMessage ->
+            val message = resources.getString(errorMessage.toResource())
             Toast.makeText(context, message, android.widget.Toast.LENGTH_SHORT).show()
             credentialsViewModel.clearError()
         }
