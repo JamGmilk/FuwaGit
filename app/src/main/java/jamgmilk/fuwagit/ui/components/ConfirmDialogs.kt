@@ -61,12 +61,13 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import jamgmilk.fuwagit.R
+import jamgmilk.fuwagit.domain.model.UiMessage
+import jamgmilk.fuwagit.domain.model.toResource
 import jamgmilk.fuwagit.domain.model.git.ConflictResult
 import jamgmilk.fuwagit.domain.model.git.ConflictStatus
 import jamgmilk.fuwagit.domain.model.git.GitCommit
 import jamgmilk.fuwagit.domain.model.git.GitConflict
 import jamgmilk.fuwagit.domain.model.git.GitResetMode
-import jamgmilk.fuwagit.ui.util.ViewModelMessagesMapper
 
 enum class DangerousOperationType {
     DELETE_BRANCH,
@@ -78,9 +79,9 @@ enum class DangerousOperationType {
 }
 
 sealed class OperationResult {
-    data class Success(val message: String) : OperationResult()
-    data class Failure(val error: String, val suggestion: String = "") : OperationResult()
-    data class Conflict(val conflictingFiles: List<String>, val message: String) : OperationResult()
+    data class Success(val message: UiMessage) : OperationResult()
+    data class Failure(val error: UiMessage, val suggestion: UiMessage? = null) : OperationResult()
+    data class Conflict(val conflictingFiles: List<String>, val message: UiMessage) : OperationResult()
 }
 
 /**
@@ -447,22 +448,19 @@ fun OperationResultDialog(
             ) {
                 when (result) {
                     is OperationResult.Success -> {
-                        val messageResId = ViewModelMessagesMapper.mapMessageToResource(result.message)
                         Text(
-                            text = stringResource(messageResId),
+                            text = stringResource(result.message.toResource()),
                             style = MaterialTheme.typography.bodyMedium,
                             color = colors.onSurfaceVariant
                         )
                     }
                     is OperationResult.Failure -> {
-                        val errorResId = ViewModelMessagesMapper.mapMessageToResource(result.error)
                         Text(
-                            text = stringResource(R.string.dialog_error_format, stringResource(errorResId)),
+                            text = stringResource(R.string.dialog_error_format, stringResource(result.error.toResource())),
                             style = MaterialTheme.typography.bodyMedium,
                             color = colors.error
                         )
-                        if (result.suggestion.isNotBlank()) {
-                            val suggestionResId = ViewModelMessagesMapper.mapMessageToResource(result.suggestion)
+                        result.suggestion?.let { suggestion ->
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -470,7 +468,7 @@ fun OperationResultDialog(
                                     .padding(10.dp)
                             ) {
                                 Text(
-                                    text = stringResource(R.string.dialog_suggestion_format, stringResource(suggestionResId)),
+                                    text = stringResource(R.string.dialog_suggestion_format, stringResource(suggestion.toResource())),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = colors.onSurfaceVariant
                                 )
@@ -478,9 +476,8 @@ fun OperationResultDialog(
                         }
                     }
                     is OperationResult.Conflict -> {
-                        val messageResId = ViewModelMessagesMapper.mapMessageToResource(result.message)
                         Text(
-                            text = stringResource(messageResId),
+                            text = stringResource(result.message.toResource()),
                             style = MaterialTheme.typography.bodyMedium,
                             color = colors.onSurfaceVariant
                         )

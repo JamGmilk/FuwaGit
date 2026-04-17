@@ -2,6 +2,7 @@ package jamgmilk.fuwagit.ui.screen.myrepos
 
 import androidx.compose.runtime.Stable
 import jamgmilk.fuwagit.core.util.PathUtils
+import jamgmilk.fuwagit.domain.model.UiMessage
 import jamgmilk.fuwagit.domain.model.credential.HttpsCredential
 import jamgmilk.fuwagit.domain.model.credential.SshKey
 import jamgmilk.fuwagit.domain.model.repo.RepoData
@@ -41,7 +42,7 @@ data class RepoUiState(
     val savedRepos: List<RepoData> = emptyList(),
     val repoSizes: Map<String, Long> = emptyMap(),
     val isCleanPreviewing: Boolean = false,
-    val cleanMessage: String? = null,
+    val cleanMessage: UiMessage? = null,
     val httpsCredentials: List<HttpsCredential> = emptyList(),
     val sshKeys: List<SshKey> = emptyList(),
     val isCredentialUnlocked: Boolean = false,

@@ -3,6 +3,7 @@ package jamgmilk.fuwagit.ui.screen.branches
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import jamgmilk.fuwagit.domain.model.UiMessage
 import jamgmilk.fuwagit.domain.model.git.ConflictResult
 import jamgmilk.fuwagit.domain.model.git.GitBranch
 import jamgmilk.fuwagit.ui.components.DangerousOperationType
@@ -156,7 +157,7 @@ class BranchesViewModel @Inject constructor(
                 .onSuccess {
                     _uiState.update {
                         it.copy(
-                            operationResult = OperationResult.Success("Branch '$branchName' deleted successfully"),
+                            operationResult = OperationResult.Success(UiMessage.Branch.Deleted(branchName)),
                             pendingOperation = null,
                             pendingOperationTarget = null
                         )
@@ -166,21 +167,18 @@ class BranchesViewModel @Inject constructor(
                 .onError { e ->
                     val errorMsg = e.message ?: "Unknown error"
                     val causeMsg = e.cause?.message ?: errorMsg
-                    val fullMessage = "$errorMsg (Cause: $causeMsg)"
 
                     val (userMessage, suggestion) = when {
                         errorMsg.contains("not fully merged", ignoreCase = true) ||
                         causeMsg.contains("not fully merged", ignoreCase = true) -> {
-                            "The branch '$branchName' has not been fully merged into the current branch." to
-                                "Use force delete to remove it, or merge the branch first."
+                            UiMessage.Branch.NotFullyMerged to UiMessage.Branch.NotFullyMerged
                         }
                         errorMsg.contains("cannot delete current branch", ignoreCase = true) ||
                         causeMsg.contains("cannot delete current branch", ignoreCase = true) -> {
-                            "Cannot delete the branch '$branchName' because it is currently checked out." to
-                                "Switch to another branch first, then delete this branch."
+                            UiMessage.Branch.CannotDeleteCurrentBranch to UiMessage.Branch.CannotDeleteCurrentBranch
                         }
                         else -> {
-                            fullMessage to "Please try again or check the git logs for more details."
+                            UiMessage.Generic(errorMsg) to UiMessage.Generic("Please try again or check the git logs for more details.")
                         }
                     }
                     _uiState.update {
@@ -212,11 +210,10 @@ class BranchesViewModel @Inject constructor(
                             )
                         }
                     } else {
-                        // 合并成功
                         loadBranches()
                         _uiState.update {
                             it.copy(
-                                operationResult = OperationResult.Success(result.message),
+                                operationResult = OperationResult.Success(UiMessage.Merge.Success(branchName)),
                                 pendingOperation = null,
                                 pendingOperationTarget = null,
                                 conflictResult = null
@@ -227,12 +224,12 @@ class BranchesViewModel @Inject constructor(
                 .onError { e ->
                     val suggestion = when {
                         e.message?.contains("not fully merged") == true ->
-                            "The branch contains unmerged commits. This is expected for a merge operation."
-                        else -> "Please try again or check the git logs for more details."
+                            UiMessage.Merge.NotFullyMerged
+                        else -> UiMessage.Generic("Please try again or check the git logs for more details.")
                     }
                     _uiState.update {
                         it.copy(
-                            operationResult = OperationResult.Failure(e.message ?: "Unknown error", suggestion),
+                            operationResult = OperationResult.Failure(UiMessage.Merge.ConflictHint, suggestion),
                             pendingOperation = null,
                             pendingOperationTarget = null
                         )
@@ -249,7 +246,6 @@ class BranchesViewModel @Inject constructor(
             mergeUseCase.rebase(path, branchName)
                 .onSuccess { result ->
                     if (result.isConflicting) {
-                        // 有冲突，显示冲突解决 UI
                         _uiState.update {
                             it.copy(
                                 conflictResult = result,
@@ -259,11 +255,10 @@ class BranchesViewModel @Inject constructor(
                             )
                         }
                     } else {
-                        // Rebase 成功
                         loadBranches()
                         _uiState.update {
                             it.copy(
-                                operationResult = OperationResult.Success(result.message),
+                                operationResult = OperationResult.Success(UiMessage.Rebase.Success(branchName)),
                                 pendingOperation = null,
                                 pendingOperationTarget = null,
                                 conflictResult = null
@@ -274,12 +269,12 @@ class BranchesViewModel @Inject constructor(
                 .onError { e ->
                     val suggestion = when {
                         e.message?.contains("up to date") == true ->
-                            "The current branch is already up to date with the target branch."
-                        else -> "Run 'git rebase --abort' to cancel the rebase operation."
+                            UiMessage.Rebase.UpToDate
+                        else -> UiMessage.Rebase.AbortHint
                     }
                     _uiState.update {
                         it.copy(
-                            operationResult = OperationResult.Failure(e.message ?: "Unknown error", suggestion),
+                            operationResult = OperationResult.Failure(UiMessage.Rebase.ConflictHint, suggestion),
                             pendingOperation = null,
                             pendingOperationTarget = null
                         )
@@ -297,7 +292,7 @@ class BranchesViewModel @Inject constructor(
             branchUseCase.checkout(path, name)
                 .onSuccess {
                     _uiState.update {
-                        it.copy(operationResult = OperationResult.Success("Switched to branch '$name'"))
+                        it.copy(operationResult = OperationResult.Success(UiMessage.Checkout.CheckoutSuccess(name)))
                     }
                     loadBranches()
                 }
@@ -314,7 +309,7 @@ class BranchesViewModel @Inject constructor(
             branchUseCase.create(path, name)
                 .onSuccess {
                     _uiState.update {
-                        it.copy(operationResult = OperationResult.Success("Branch '$name' created successfully"))
+                        it.copy(operationResult = OperationResult.Success(UiMessage.Create.BranchCreated(name)))
                     }
                     loadBranches()
                 }
@@ -331,7 +326,7 @@ class BranchesViewModel @Inject constructor(
             branchUseCase.rename(path, oldName, newName)
                 .onSuccess {
                     _uiState.update {
-                        it.copy(operationResult = OperationResult.Success("Branch renamed to '$newName'"))
+                        it.copy(operationResult = OperationResult.Success(UiMessage.Rename.RenameSuccess(newName)))
                     }
                     loadBranches()
                 }
@@ -396,12 +391,11 @@ class BranchesViewModel @Inject constructor(
             mergeUseCase.getConflicts(path)
                 .onSuccess { result ->
                     if (result.allResolved || result.allStaged) {
-                        // 所有冲突已解决，可以继续
                         _uiState.update {
                             it.copy(
                                 isResolvingConflict = false,
                                 conflictResult = null,
-                                operationResult = OperationResult.Success("Conflicts resolved")
+                                operationResult = OperationResult.Success(UiMessage.Conflict.Resolved)
                             )
                         }
                         loadBranches()
@@ -425,9 +419,6 @@ class BranchesViewModel @Inject constructor(
         }
     }
 
-    /**
-     * 取消 Rebase 操作
-     */
     fun abortRebase() {
         val path = currentRepoPath ?: return
 
@@ -438,7 +429,7 @@ class BranchesViewModel @Inject constructor(
                         it.copy(
                             isResolvingConflict = false,
                             conflictResult = null,
-                            operationResult = OperationResult.Success(result)
+                            operationResult = OperationResult.Success(UiMessage.Generic(result))
                         )
                     }
                     loadBranches()
@@ -449,9 +440,6 @@ class BranchesViewModel @Inject constructor(
         }
     }
 
-    /**
-     * 继续 Rebase 操作（解决冲突后）
-     */
     fun continueRebase() {
         val path = currentRepoPath ?: return
 
@@ -462,7 +450,7 @@ class BranchesViewModel @Inject constructor(
                         it.copy(
                             isResolvingConflict = false,
                             conflictResult = null,
-                            operationResult = OperationResult.Success(result)
+                            operationResult = OperationResult.Success(UiMessage.Generic(result))
                         )
                     }
                     loadBranches()

@@ -72,6 +72,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import jamgmilk.fuwagit.R
 import jamgmilk.fuwagit.domain.model.git.GitBranch
+import jamgmilk.fuwagit.domain.model.toResource
 import jamgmilk.fuwagit.ui.components.ConflictResolutionDialog
 import jamgmilk.fuwagit.ui.components.DangerousOperationType
 import jamgmilk.fuwagit.ui.components.DialogWithIcon
@@ -388,9 +389,13 @@ fun BranchesScreen(
         )
     }
 
-    LaunchedEffect(operationResult) {
-        if (operationResult is OperationResult.Success) {
-            snackbarHostState.showSnackbar(operationResult.message)
+    val snackbarMessage = if (operationResult is OperationResult.Success) {
+        stringResource(operationResult.message.toResource())
+    } else null
+
+    LaunchedEffect(snackbarMessage) {
+        snackbarMessage?.let {
+            snackbarHostState.showSnackbar(it)
             branchesViewModel.clearOperationResult()
         }
     }

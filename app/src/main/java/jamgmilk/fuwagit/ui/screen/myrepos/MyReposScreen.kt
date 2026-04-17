@@ -85,7 +85,7 @@ import jamgmilk.fuwagit.ui.components.ScreenTemplate
 import jamgmilk.fuwagit.ui.screen.credentials.CredentialType
 import jamgmilk.fuwagit.ui.state.RepoInfo
 import jamgmilk.fuwagit.ui.theme.AppShapes
-import jamgmilk.fuwagit.ui.util.ViewModelMessagesMapper
+import jamgmilk.fuwagit.domain.model.toResource
 import kotlinx.coroutines.launch
 import java.text.DateFormat
 import java.util.Date
@@ -846,9 +846,7 @@ private fun CleanDialogs(
     val cleanMessage = uiState.cleanMessage
 
     if (untrackedFiles.isNotEmpty() || cleanMessage != null || isCleanPreviewing) {
-        val localizedMessage = if (cleanMessage != null) {
-            stringResource(ViewModelMessagesMapper.mapMessageToResource(cleanMessage))
-        } else null
+        val localizedMessage = cleanMessage?.let { stringResource(it.toResource()) }
         CleanPreviewDialog(
             untrackedFiles = untrackedFiles,
             message = if (isCleanPreviewing) stringResource(R.string.myrepos_scanning_files) else localizedMessage,

@@ -235,10 +235,9 @@ fun TagsDialogs(
     if (operationResult != null) {
         val operationType = when (operationResult) {
             is jamgmilk.fuwagit.ui.components.OperationResult.Success -> {
-                if (operationResult.message.contains("deleted", ignoreCase = true)) {
-                    DangerousOperationType.DELETE_TAG
-                } else {
-                    DangerousOperationType.PUSH_TAG
+                when (operationResult.message) {
+                    is jamgmilk.fuwagit.domain.model.UiMessage.Tag.Deleted -> DangerousOperationType.DELETE_TAG
+                    else -> DangerousOperationType.PUSH_TAG
                 }
             }
             is jamgmilk.fuwagit.ui.components.OperationResult.Failure -> DangerousOperationType.DELETE_TAG

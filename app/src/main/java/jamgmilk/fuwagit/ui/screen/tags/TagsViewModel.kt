@@ -4,6 +4,7 @@ import androidx.compose.runtime.Stable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import jamgmilk.fuwagit.domain.model.UiMessage
 import jamgmilk.fuwagit.domain.model.git.GitTag
 import jamgmilk.fuwagit.domain.usecase.git.TagUseCase
 import jamgmilk.fuwagit.ui.components.OperationResult
@@ -128,11 +129,11 @@ class TagsViewModel @Inject constructor(
 
         viewModelScope.launch {
             tagUseCase.createLightweight(path, tagName, commitHash)
-                .onSuccess { message ->
+                .onSuccess {
                     _uiState.update {
                         it.copy(
                             showCreateDialog = false,
-                            operationResult = OperationResult.Success(message)
+                            operationResult = OperationResult.Success(UiMessage.Tag.LightweightCreated(tagName))
                         )
                     }
                     loadTags()
@@ -140,7 +141,7 @@ class TagsViewModel @Inject constructor(
                 .onError { e ->
                     _uiState.update {
                         it.copy(
-                            operationResult = OperationResult.Failure(e.message ?: "Failed to create tag")
+                            operationResult = OperationResult.Failure(UiMessage.Tag.Failed(e.message ?: "Failed to create tag"))
                         )
                     }
                 }
@@ -155,11 +156,11 @@ class TagsViewModel @Inject constructor(
 
         viewModelScope.launch {
             tagUseCase.createAnnotated(path, tagName, message, commitHash)
-                .onSuccess { resultMessage ->
+                .onSuccess {
                     _uiState.update {
                         it.copy(
                             showCreateDialog = false,
-                            operationResult = OperationResult.Success(resultMessage)
+                            operationResult = OperationResult.Success(UiMessage.Tag.AnnotatedCreated(tagName))
                         )
                     }
                     loadTags()
@@ -167,7 +168,7 @@ class TagsViewModel @Inject constructor(
                 .onError { e ->
                     _uiState.update {
                         it.copy(
-                            operationResult = OperationResult.Failure(e.message ?: "Failed to create tag")
+                            operationResult = OperationResult.Failure(UiMessage.Tag.Failed(e.message ?: "Failed to create tag"))
                         )
                     }
                 }
@@ -187,7 +188,7 @@ class TagsViewModel @Inject constructor(
                         it.copy(
                             showDeleteDialog = false,
                             selectedTag = null,
-                            operationResult = OperationResult.Success("Tag '$tagName' deleted successfully")
+                            operationResult = OperationResult.Success(UiMessage.Tag.Deleted(tagName))
                         )
                     }
                     loadTags()
@@ -195,7 +196,7 @@ class TagsViewModel @Inject constructor(
                 .onError { e ->
                     _uiState.update {
                         it.copy(
-                            operationResult = OperationResult.Failure(e.message ?: "Failed to delete tag")
+                            operationResult = OperationResult.Failure(UiMessage.Tag.Failed(e.message ?: "Failed to delete tag"))
                         )
                     }
                 }
@@ -211,12 +212,12 @@ class TagsViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isPushing = true, showPushDialog = false) }
             tagUseCase.pushTag(path, tagName, remoteName)
-                .onSuccess { message ->
+                .onSuccess {
                     _uiState.update {
                         it.copy(
                             isPushing = false,
                             selectedTag = null,
-                            operationResult = OperationResult.Success(message)
+                            operationResult = OperationResult.Success(UiMessage.Tag.PushSuccess(tagName))
                         )
                     }
                     loadTags()
@@ -225,7 +226,7 @@ class TagsViewModel @Inject constructor(
                     _uiState.update {
                         it.copy(
                             isPushing = false,
-                            operationResult = OperationResult.Failure(e.message ?: "Failed to push tag")
+                            operationResult = OperationResult.Failure(UiMessage.Tag.Failed(e.message ?: "Failed to push tag"))
                         )
                     }
                 }
@@ -241,11 +242,11 @@ class TagsViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isPushing = true, showPushDialog = false) }
             tagUseCase.pushAllTags(path, remoteName)
-                .onSuccess { message ->
+                .onSuccess {
                     _uiState.update {
                         it.copy(
                             isPushing = false,
-                            operationResult = OperationResult.Success(message)
+                            operationResult = OperationResult.Success(UiMessage.Generic("All tags pushed successfully"))
                         )
                     }
                     loadTags()
@@ -254,7 +255,7 @@ class TagsViewModel @Inject constructor(
                     _uiState.update {
                         it.copy(
                             isPushing = false,
-                            operationResult = OperationResult.Failure(e.message ?: "Failed to push tags")
+                            operationResult = OperationResult.Failure(UiMessage.Tag.Failed(e.message ?: "Failed to push tags"))
                         )
                     }
                 }
@@ -269,10 +270,10 @@ class TagsViewModel @Inject constructor(
 
         viewModelScope.launch {
             tagUseCase.checkoutTag(path, tagName)
-                .onSuccess { message ->
+                .onSuccess {
                     _uiState.update {
                         it.copy(
-                            operationResult = OperationResult.Success(message)
+                            operationResult = OperationResult.Success(UiMessage.Checkout.CheckoutSuccess(tagName))
                         )
                     }
                     loadTags()
@@ -280,7 +281,7 @@ class TagsViewModel @Inject constructor(
                 .onError { e ->
                     _uiState.update {
                         it.copy(
-                            operationResult = OperationResult.Failure(e.message ?: "Failed to checkout tag")
+                            operationResult = OperationResult.Failure(UiMessage.Checkout.CheckoutFailed(e.message ?: "Failed to checkout tag"))
                         )
                     }
                 }
