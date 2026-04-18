@@ -9,10 +9,26 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import java.security.MessageDigest
 import java.util.concurrent.CompletableFuture
+import java.util.WeakHashMap
 
 object HostKeyAskHelper {
     private const val TAG = "HostKeyAskHelper"
     internal const val HOST_KEY_ASK_TIMEOUT_MS = 30000L
+
+    private val KEY_TYPE_TO_STRING = mapOf(
+        0 to "ssh-rsa",
+        1 to "ssh-dss",
+        19 to "ecdsa-sha2-nistp256",
+        20 to "ecdsa-sha2-nistp384",
+        21 to "ecdsa-sha2-nistp521",
+        3 to "ssh-ed25519"
+    )
+
+    private val KEY_STRING_TO_TYPE = KEY_TYPE_TO_STRING.entries.associate { it.value to it.key }
+
+    fun keyTypeToString(type: Int): String = KEY_TYPE_TO_STRING[type] ?: "ssh-rsa"
+
+    fun keyStringToType(typeStr: String): Int = KEY_STRING_TO_TYPE[typeStr.lowercase()] ?: 0
 
     data class HostKeyRequest(
         val host: String,
@@ -32,18 +48,28 @@ object HostKeyAskHelper {
     data class KeyTypeInfo(val typeString: String, val typeCode: Int)
 
     fun inferKeyTypeInfo(key: ByteArray): KeyTypeInfo {
-        return when {
-            key.size == 32 -> KeyTypeInfo("ssh-ed25519", 3)
-            key.size > 256 -> KeyTypeInfo("ssh-rsa", 0)
-            else -> KeyTypeInfo("ssh-rsa", 0)
-        }
+        if (key.size < 8) return KeyTypeInfo("ssh-rsa", 0)
+
+        val typeStr = extractString(key, 0) ?: return KeyTypeInfo("ssh-rsa", 0)
+        val typeCode = keyStringToType(typeStr)
+
+        return KeyTypeInfo(keyTypeToString(typeCode), typeCode)
+    }
+
+    private fun extractString(data: ByteArray, offset: Int): String? {
+        if (offset + 4 > data.size) return null
+        val length = ((data[offset].toInt() and 0xFF) shl 24) or
+                ((data[offset + 1].toInt() and 0xFF) shl 16) or
+                ((data[offset + 2].toInt() and 0xFF) shl 8) or
+                (data[offset + 3].toInt() and 0xFF)
+        if (offset + 4 + length > data.size) return null
+        return String(data, offset + 4, length, Charsets.UTF_8)
     }
 
     fun computeFingerprint(key: ByteArray): String {
         return try {
-            val md = MessageDigest.getInstance("SHA-256")
-            val hash = md.digest(key)
-            hash.joinToString(":") { "%02x".format(it) }
+            MessageDigest.getInstance("SHA-256").digest(key)
+                .joinToString(":") { "%02x".format(it) }
         } catch (e: Exception) {
             "unknown"
         }
@@ -54,9 +80,31 @@ object HostKeyAskHelper {
         private val skipHostKeyCheck: Boolean = false
     ) : HostKeyRepository {
         private val hostKeys = mutableListOf<HostKey>()
+        private val regexCache = java.util.concurrent.ConcurrentHashMap<String, Regex>()
+        private val decodedKeyCache = WeakHashMap<HostKey, ByteArray>()
 
         init {
             loadFromFile()
+        }
+
+        private fun getRegex(pattern: String): Regex {
+            return regexCache.getOrPut(pattern) {
+                val regex = pattern
+                    .replace(".", "\\.")
+                    .replace("*", ".*")
+                    .replace("?", ".")
+                Regex(regex)
+            }
+        }
+
+        private fun getDecodedKeyBytes(hostKey: HostKey): ByteArray? {
+            return decodedKeyCache.getOrPut(hostKey) {
+                try {
+                    Base64.decode(hostKey.key, Base64.NO_WRAP)
+                } catch (e: Exception) {
+                    null
+                }
+            }
         }
 
         private fun loadFromFile() {
@@ -84,15 +132,7 @@ object HostKeyAskHelper {
             val typeStr = parts[1]
             val keyBase64 = parts[2]
 
-            val keyType = when (typeStr.lowercase()) {
-                "ssh-rsa" -> 0
-                "ssh-dss" -> 1
-                "ecdsa-sha2-nistp256" -> 19
-                "ecdsa-sha2-nistp384" -> 20
-                "ecdsa-sha2-nistp521" -> 21
-                "ssh-ed25519" -> 3
-                else -> 0
-            }
+            val keyType = keyStringToType(typeStr)
 
             val keyBytes = try {
                 Base64.decode(keyBase64, Base64.NO_WRAP)
@@ -113,19 +153,14 @@ object HostKeyAskHelper {
             return hostKeys.filter { key ->
                 val hostMatches = key.host == host ||
                         hostWildcardMatch(host, key.host)
-                val typeMatches = type == null || key.type.toString() == type
+                val typeMatches = type == null || key.type == type
                 hostMatches && typeMatches
             }.toTypedArray()
         }
 
         private fun hostWildcardMatch(host: String, pattern: String): Boolean {
             if (!pattern.contains("*") && !pattern.contains("?")) return false
-
-            val regex = pattern
-                .replace(".", "\\.")
-                .replace("*", ".*")
-                .replace("?", ".")
-            return host.matches(Regex(regex))
+            return getRegex(pattern).matches(host)
         }
 
         override fun add(hostKey: HostKey?, ui: com.jcraft.jsch.UserInfo?) {
@@ -143,7 +178,7 @@ object HostKeyAskHelper {
         override fun remove(host: String?, type: String?) {
             if (host == null) return
             hostKeys.removeAll {
-                it.host == host && (type == null || it.type.toString() == type)
+                it.host == host && (type == null || it.type == type)
             }
         }
 
@@ -151,12 +186,8 @@ object HostKeyAskHelper {
             if (host == null || key == null) return
             hostKeys.removeAll {
                 it.host == host &&
-                        (type == null || it.type.toString() == type) &&
-                        try {
-                            Base64.decode(it.key, Base64.NO_WRAP).contentEquals(key)
-                        } catch (e: Exception) {
-                            false
-                        }
+                        (type == null || it.type == type) &&
+                        getDecodedKeyBytes(it)?.contentEquals(key) ?: false
             }
         }
 
@@ -217,11 +248,7 @@ object HostKeyAskHelper {
 
         private fun keyMatchesAny(key: ByteArray, existingKeys: Array<out HostKey>): Boolean {
             for (existing in existingKeys) {
-                val existingKeyBytes = try {
-                    Base64.decode(existing.key, Base64.NO_WRAP)
-                } catch (e: Exception) {
-                    continue
-                }
+                val existingKeyBytes = getDecodedKeyBytes(existing) ?: continue
                 if (existingKeyBytes.contentEquals(key)) {
                     return true
                 }

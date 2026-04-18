@@ -3,6 +3,7 @@ package jamgmilk.fuwagit.data.local.security
 import android.content.Context
 import android.util.Base64
 import dagger.hilt.android.qualifiers.ApplicationContext
+import jamgmilk.fuwagit.core.util.SecurityUtils
 import jamgmilk.fuwagit.data.local.credential.CredentialData
 import jamgmilk.fuwagit.data.local.credential.ExportData
 import jamgmilk.fuwagit.data.local.credential.HttpsCredential
@@ -135,7 +136,7 @@ class SecureCredentialStore @Inject constructor(
         cachedMasterKey?.let { key ->
             val keyBytes = key.encoded
             if (keyBytes != null) {
-                java.util.Arrays.fill(keyBytes, 0.toByte())
+                SecurityUtils.zeroBytes(keyBytes)
             }
         }
         cachedMasterKey = null

@@ -255,20 +255,19 @@ class JGitRemoteDataSource @Inject constructor(
                     val localRef = git.repository.exactRef("refs/heads/${git.repository.branch}")
                     val remoteRef = git.repository.exactRef("refs/remotes/$targetRemote/${git.repository.branch}")
                     if (localRef != null && remoteRef != null) {
-                        val revWalk = org.eclipse.jgit.revwalk.RevWalk(git.repository)
-                        val localCommit = revWalk.parseCommit(localRef.objectId)
-                        val remoteCommit = revWalk.parseCommit(remoteRef.objectId)
-                        val localAncestor = revWalk.isMergedInto(localCommit, remoteCommit)
-                        val remoteAncestor = revWalk.isMergedInto(remoteCommit, localCommit)
-                        revWalk.dispose()
-                        if (!localAncestor && !remoteAncestor) {
-                            throw Exception("Branch has diverged from remote '$targetRemote'. Fetch and merge the remote changes, or use force push to overwrite.")
+                        org.eclipse.jgit.revwalk.RevWalk(git.repository).use { revWalk ->
+                            val localCommit = revWalk.parseCommit(localRef.objectId)
+                            val remoteCommit = revWalk.parseCommit(remoteRef.objectId)
+                            val localAncestor = revWalk.isMergedInto(localCommit, remoteCommit)
+                            val remoteAncestor = revWalk.isMergedInto(remoteCommit, localCommit)
+                            if (!localAncestor && !remoteAncestor) {
+                                throw Exception("Branch has diverged from remote '$targetRemote'. Fetch and merge the remote changes, or use force push to overwrite.")
+                            }
                         }
                     } else if (localRef != null) {
                         // remote ref doesn't exist yet — this is a first push, allowed
-                        // If setUpstreamOnPush is enabled, we need to set upstream
                     } else {
-                        // localRef == null
+                        // localRef == null: local branch doesn't exist
                         val headRevision = try { git.repository.resolve("HEAD") } catch (_: Exception) { null }
                         if (headRevision == null) {
                             throw Exception("Repository has no commits. Make at least one commit before pushing.")
