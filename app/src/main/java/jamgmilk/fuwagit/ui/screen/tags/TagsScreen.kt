@@ -3,7 +3,7 @@ package jamgmilk.fuwagit.ui.screen.tags
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
-import android.widget.Toast
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -48,6 +48,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -144,7 +145,8 @@ fun TagsScreen(
 @Composable
 fun TagsContent(
     tagsViewModel: TagsViewModel,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onShowSnackbar: (String) -> Unit = {}
 ) {
     val uiState by tagsViewModel.uiState.collectAsStateWithLifecycle()
     val colors = MaterialTheme.colorScheme
@@ -157,7 +159,8 @@ fun TagsContent(
             tagsViewModel = tagsViewModel,
             uiState = uiState,
             modifier = modifier.fillMaxSize(),
-            onTagDetail = { tagForDetail = it }
+            onTagDetail = { tagForDetail = it },
+            onShowSnackbar = onShowSnackbar
         )
     }
 
@@ -165,7 +168,8 @@ fun TagsContent(
     if (tagForDetail != null) {
         TagDetailDialog(
             tag = tagForDetail!!,
-            onDismiss = { tagForDetail = null }
+            onDismiss = { tagForDetail = null },
+            onShowSnackbar = onShowSnackbar
         )
     }
 }
@@ -196,13 +200,13 @@ fun TagsDialogs(
                     scope.launch { snackbarHostState.showSnackbar(message) }
                 }
                 is TagUiEvent.CreateError -> {
-                    scope.launch { snackbarHostState.showSnackbar(event.message) }
+                    scope.launch { snackbarHostState.showSnackbar(event.message, duration = SnackbarDuration.Long) }
                 }
                 is TagUiEvent.DeleteSuccess -> {
                     scope.launch { snackbarHostState.showSnackbar(context.getString(R.string.vm_tag_deleted, event.tagName)) }
                 }
                 is TagUiEvent.DeleteError -> {
-                    scope.launch { snackbarHostState.showSnackbar(event.message) }
+                    scope.launch { snackbarHostState.showSnackbar(event.message, duration = SnackbarDuration.Long) }
                 }
                 is TagUiEvent.PushSuccess -> {
                     scope.launch { snackbarHostState.showSnackbar(context.getString(R.string.vm_tag_push_success, event.tagName)) }
@@ -211,13 +215,13 @@ fun TagsDialogs(
                     scope.launch { snackbarHostState.showSnackbar(event.message) }
                 }
                 is TagUiEvent.PushError -> {
-                    scope.launch { snackbarHostState.showSnackbar(event.message) }
+                    scope.launch { snackbarHostState.showSnackbar(event.message, duration = SnackbarDuration.Long) }
                 }
                 is TagUiEvent.CheckoutSuccess -> {
                     scope.launch { snackbarHostState.showSnackbar(context.getString(R.string.vm_checkout_success, event.tagName)) }
                 }
                 is TagUiEvent.CheckoutError -> {
-                    scope.launch { snackbarHostState.showSnackbar(event.message) }
+                    scope.launch { snackbarHostState.showSnackbar(event.message, duration = SnackbarDuration.Long) }
                 }
             }
         }
@@ -312,7 +316,8 @@ private fun TagsListContent(
     tagsViewModel: TagsViewModel,
     uiState: TagsUiState,
     modifier: Modifier = Modifier,
-    onTagDetail: (GitTag) -> Unit = {}
+    onTagDetail: (GitTag) -> Unit = {},
+    onShowSnackbar: (String) -> Unit = {}
 ) {
     val colors = MaterialTheme.colorScheme
 
@@ -351,7 +356,8 @@ private fun TagsListContent(
                         onPush = { tagsViewModel.showPushDialog(tag) },
                         onPushAll = { tagsViewModel.showPushDialog() },
                         onCheckout = { tagsViewModel.checkoutTag(tag.name) },
-                        onViewDetail = { onTagDetail(tag) }
+                        onViewDetail = { onTagDetail(tag) },
+                        onShowSnackbar = onShowSnackbar
                     )
                 }
             }
@@ -454,7 +460,8 @@ private fun TagItem(
     onPush: () -> Unit,
     onPushAll: () -> Unit,
     onCheckout: () -> Unit,
-    onViewDetail: () -> Unit
+    onViewDetail: () -> Unit,
+    onShowSnackbar: (String) -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
     val colors = MaterialTheme.colorScheme
@@ -613,7 +620,7 @@ private fun TagItem(
                         val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                         val clip = ClipData.newPlainText(strTagNameLabel, tag.name)
                         clipboard.setPrimaryClip(clip)
-                        Toast.makeText(context, strTagNameCopied, Toast.LENGTH_SHORT).show()
+                        onShowSnackbar(strTagNameCopied)
                         expanded = false
                     },
                     leadingIcon = {

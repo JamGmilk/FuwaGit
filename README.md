@@ -123,6 +123,8 @@ Go to the [Releases](https://github.com/JamGmilk/FuwaGit/releases/latest) and do
 # License
 
 ```xml
+MIT License
+
 Copyright (c) 2026 JamGmilk
 
 Permission is hereby granted, free of charge, to any person obtaining a copy

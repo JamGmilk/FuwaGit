@@ -1,6 +1,5 @@
 package jamgmilk.fuwagit.ui.screen.myrepos
 
-import android.widget.Toast
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -31,6 +30,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -46,6 +46,7 @@ import jamgmilk.fuwagit.ui.components.SubSettingsTemplate
 import jamgmilk.fuwagit.ui.navigation.AddRepoTab
 import jamgmilk.fuwagit.ui.screen.credentials.CredentialStoreViewModel
 import jamgmilk.fuwagit.ui.theme.AppShapes
+import kotlinx.coroutines.launch
 
 @Composable
 fun AddRepositoryScreen(
@@ -59,6 +60,7 @@ fun AddRepositoryScreen(
     snackbarHostState: SnackbarHostState = remember { SnackbarHostState() }
 ) {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     var currentTab by remember { mutableStateOf(selectedTab) }
 
     val strRepositoryAdded = stringResource(R.string.myrepos_repository_added)
@@ -101,7 +103,7 @@ fun AddRepositoryScreen(
                             myReposViewModel = myReposViewModel,
                             onAddRepository = { path, alias ->
                                 onAddRepository(path, alias)
-                                Toast.makeText(context, strRepositoryAdded, Toast.LENGTH_SHORT).show()
+                                scope.launch { snackbarHostState.showSnackbar(strRepositoryAdded) }
                             }
                         )
                     }

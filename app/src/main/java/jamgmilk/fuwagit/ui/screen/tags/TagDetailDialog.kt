@@ -3,7 +3,6 @@ package jamgmilk.fuwagit.ui.screen.tags
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
-import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -44,7 +43,8 @@ import java.util.Locale
 @Composable
 fun TagDetailDialog(
     tag: GitTag,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    onShowSnackbar: (String) -> Unit = {}
 ) {
     val colors = MaterialTheme.colorScheme
     val context = LocalContext.current
@@ -118,7 +118,7 @@ fun TagDetailDialog(
                     val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                     val clip = ClipData.newPlainText(strTagNameLabel, tag.name)
                     clipboard.setPrimaryClip(clip)
-                    Toast.makeText(context, strTagNameCopied, Toast.LENGTH_SHORT).show()
+                    onShowSnackbar(strTagNameCopied)
                 },
                 colors = ButtonDefaults.buttonColors(containerColor = colors.primary),
                 shape = RoundedCornerShape(12.dp)
