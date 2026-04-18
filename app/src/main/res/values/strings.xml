@@ -469,6 +469,18 @@
     <string name="credentials_failed_generate_ssh_key">Failed to generate SSH key pair</string>
     <string name="credentials_error_generating_ssh_key">Error generating SSH key: %1$s</string>
 
+    <!-- ========== Host Key Dialog ========== -->
+    <string name="hostkey_dialog_title">Unknown Host Key</string>
+    <string name="hostkey_dialog_message">The authenticity of this host cannot be verified. Do you trust this server?</string>
+    <string name="hostkey_dialog_host">Host</string>
+    <string name="hostkey_dialog_key_type">Key Type</string>
+    <string name="hostkey_dialog_fingerprint">Fingerprint (SHA256)</string>
+    <string name="hostkey_dialog_security_title">Security Notice</string>
+    <string name="hostkey_dialog_security_warning">Only accept if you trust this server. Accepting unknown host keys could allow man-in-the-middle attacks.</string>
+    <string name="hostkey_dialog_accept">Trust</string>
+    <string name="hostkey_dialog_rejected">Host key rejected</string>
+    <string name="hostkey_dialog_no_callback">Cannot verify host: credential vault is locked</string>
+
     <!-- ========== Permissions Screen ========== -->
     <string name="permissions_system_title">System Permissions</string>
     <string name="permissions_all_files_access">All Files Access</string>

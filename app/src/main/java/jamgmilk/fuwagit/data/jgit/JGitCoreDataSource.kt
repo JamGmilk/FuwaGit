@@ -3,17 +3,12 @@ package jamgmilk.fuwagit.data.jgit
 import android.content.Context
 import android.util.Log
 import jamgmilk.fuwagit.BuildConfig
-import com.jcraft.jsch.HostKey
-import com.jcraft.jsch.HostKeyRepository
-import com.jcraft.jsch.UserInfo
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.first
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.eclipse.jgit.api.Git
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder
-import java.io.BufferedReader
 import java.io.File
-import java.io.FileWriter
 import java.util.Arrays
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -27,17 +22,6 @@ class JGitCoreDataSource @Inject constructor(
 
     companion object {
         private const val TAG = "JGitCoreDataSource"
-        private const val KNOWN_HOSTS_FILE = "ssh_known_hosts"
-        private const val REPOSITORY_ID = "fuwa-git-known-hosts-v1"
-        private const val HOST_KEY_CHANGED = -1
-        private const val HOST_KEY_NOT_FOUND = 2
-        private const val HOST_KEY_OK = 0
-    }
-
-    private val knownHostsFile: File? get() = try {
-        File(context.filesDir, KNOWN_HOSTS_FILE)
-    } catch (e: Exception) {
-        null
     }
 
     override fun <T> withGit(repoPath: String, block: (Git) -> T): Result<T> {
@@ -271,8 +255,6 @@ class JGitCoreDataSource @Inject constructor(
         try {
             java.security.Security.addProvider(BouncyCastleProvider())
 
-            val khFile = knownHostsFile
-
             command.setTransportConfigCallback { transport ->
                 if (transport is org.eclipse.jgit.transport.SshTransport) {
                     transport.sshSessionFactory = object : org.eclipse.jgit.transport.ssh.jsch.JschConfigSessionFactory() {
@@ -280,8 +262,8 @@ class JGitCoreDataSource @Inject constructor(
                             val jsch = super.createDefaultJSch(fs)
                             try {
                                 jsch.removeAllIdentity()
-                                Log.i(TAG, "Configuring SSH: skipHostKeyCheck=$skipHostKeyCheck, khFile=${khFile?.absolutePath}")
-                                jsch.hostKeyRepository = FuwaHostKeyRepository(khFile, skipHostKeyCheck)
+                                Log.i(TAG, "Configuring SSH: skipHostKeyCheck=$skipHostKeyCheck")
+                                jsch.hostKeyRepository = HostKeyAskHelper.createRepository(context, skipHostKeyCheck)
 
                                 jsch.addIdentity(
                                     "fuwa-git-ssh-key",
@@ -310,213 +292,5 @@ class JGitCoreDataSource @Inject constructor(
 
     override fun clearSshCredentials() {
         // No-op: credentials are no longer cached, zeroed immediately after use
-    }
-
-    // ========== Known Hosts Management ==========
-
-    /**
-     * Custom HostKeyRepository implementing accept-new security policy.
-     *
-     * Behavior:
-     * - New host (no stored key) → auto-accept and persist to known_hosts file
-     * - Known host with matching key → allow connection (return OK)
-     * - Known host with CHANGED key → REJECT and throw JSchException (MITM protection!)
-     *
-     * This provides equivalent security to OpenSSH's `StrictHostKeyChecking=accept-new`.
-     */
-    private class FuwaHostKeyRepository(
-        private val khFile: File?,
-        private val skipHostKeyCheck: Boolean = false
-    ) : HostKeyRepository {
-
-        private val hostKeys = mutableListOf<HostKey>()
-
-        init {
-            loadFromFile()
-        }
-
-        private fun loadFromFile() {
-            val file = khFile ?: return
-            if (!file.exists()) {
-                Log.i(TAG, "loadFromFile: known_hosts file does not exist at ${file.absolutePath}")
-                return
-            }
-            hostKeys.clear()
-            try {
-                BufferedReader(file.reader()).use { reader ->
-                    var line: String?
-                    while (reader.readLine().also { line = it } != null) {
-                        line?.trim()?.takeIf { !it.startsWith("#") && it.isNotEmpty() }?.let { rawLine ->
-                            try {
-                                val parts = rawLine.split("\\s+".toRegex())
-                                if (parts.size >= 3) {
-                                    val host = parts[0]
-                                    val typeStr = parts[1]
-                                    val typeInt = when (typeStr.lowercase()) {
-                                        "ssh-rsa" -> 0
-                                        "ssh-dss" -> 1
-                                        "ecdsa-sha2-nistp256" -> 19
-                                        "ecdsa-sha2-nistp384" -> 20
-                                        "ecdsa-sha2-nistp521" -> 21
-                                        "ssh-ed25519" -> 3
-                                        else -> 0
-                                    }
-                                    val keyData = base64Decode(parts[2])
-                                    hostKeys.add(HostKey(host, typeInt, keyData))
-                                    Log.i(TAG, "loadFromFile: loaded host=$host, typeInt=$typeInt, keySize=${keyData.size}")
-                                }
-                            } catch (e: Exception) {
-                                Log.w(TAG, "Skipping invalid known_hosts entry: $rawLine, error: ${e.message}")
-                            }
-                        }
-                    }
-                }
-                Log.i(TAG, "loadFromFile: loaded ${hostKeys.size} host keys from ${file.absolutePath}")
-            } catch (e: Exception) {
-                Log.e(TAG, "Failed to load known_hosts from ${file.absolutePath}", e)
-            }
-        }
-
-        private fun saveToFile() {
-            val file = khFile ?: return
-            try {
-                FileWriter(file).use { writer ->
-                    for (hk in hostKeys) {
-                        Log.i(TAG, "saveToFile: saving host=${hk.host}, type=${hk.type}, key=${hk.key.take(32)}...")
-                        writer.write(hk.host)
-                        writer.write(" ")
-                        writer.write(hostKeyTypeToString(hk.type))
-                        writer.write(" ")
-                        writer.write(hk.key)
-                        writer.write("\n")
-                    }
-                }
-                Log.i(TAG, "saveToFile: saved ${hostKeys.size} host keys to ${file.absolutePath}")
-            } catch (e: Exception) {
-                Log.e(TAG, "Failed to save known_hosts to ${file.absolutePath}", e)
-            }
-        }
-
-        private fun hostKeyTypeToString(type: String): String {
-            return when (type) {
-                "0", "ssh-rsa" -> "ssh-rsa"
-                "1", "ssh-dss" -> "ssh-dss"
-                "19", "ecdsa-sha2-nistp256" -> "ecdsa-sha2-nistp256"
-                "20", "ecdsa-sha2-nistp384" -> "ecdsa-sha2-nistp384"
-                "21", "ecdsa-sha2-nistp521" -> "ecdsa-sha2-nistp521"
-                "3", "ssh-ed25519" -> "ssh-ed25519"
-                else -> type
-            }
-        }
-
-        private fun base64Decode(str: String): ByteArray {
-            return android.util.Base64.decode(str, android.util.Base64.NO_WRAP)
-        }
-
-        override fun getKnownHostsRepositoryID(): String {
-            return REPOSITORY_ID
-        }
-
-        override fun getHostKey(): Array<out HostKey> {
-            return hostKeys.toTypedArray()
-        }
-
-        override fun getHostKey(host: String?, type: String?): Array<out HostKey>? {
-            if (host == null) return null
-            return if (type != null) {
-                hostKeys.filter { it.host == host && it.type == type }.toTypedArray()
-            } else {
-                hostKeys.filter { it.host == host }.toTypedArray()
-            }
-        }
-
-        override fun remove(host: String?, type: String?) {
-            if (host == null) return
-            val iterator = hostKeys.iterator()
-            while (iterator.hasNext()) {
-                val hk = iterator.next()
-                if (hk.host == host && (type == null || hk.type == type)) {
-                    iterator.remove()
-                }
-            }
-            saveToFile()
-        }
-
-        override fun remove(host: String?, type: String?, key: ByteArray?) {
-            if (host == null || key == null) return
-            val iterator = hostKeys.iterator()
-            while (iterator.hasNext()) {
-                val hk = iterator.next()
-                val matchesHost = hk.host == host
-                val matchesType = type == null || hk.type == type
-                val matchesKey = try { base64Decode(hk.key).contentEquals(key) } catch (e: Exception) { false }
-                if (matchesHost && matchesType && matchesKey) {
-                    iterator.remove()
-                }
-            }
-            saveToFile()
-        }
-
-        override fun add(hostKey: HostKey?, ui: UserInfo?) {
-            if (hostKey == null) return
-
-            val existingIndex = hostKeys.indexOfFirst {
-                it.host == hostKey.host && it.type == hostKey.type
-            }
-
-            if (existingIndex >= 0) {
-                hostKeys[existingIndex] = hostKey
-            } else {
-                hostKeys.add(hostKey)
-            }
-            saveToFile()
-        }
-
-        override fun check(host: String?, key: ByteArray?): Int {
-            if (host == null || key == null) return HOST_KEY_NOT_FOUND
-
-            Log.i(TAG, "FuwaHostKeyRepository.check() called for host=$host, skipHostKeyCheck=$skipHostKeyCheck, keySize=${key.size}")
-
-            if (skipHostKeyCheck) {
-                Log.i(TAG, "SSH host key verification skipped for $host")
-                return HOST_KEY_OK
-            }
-
-            val existingKeys = getHostKey(host, null)
-
-            if (existingKeys.isNullOrEmpty()) {
-                Log.i(TAG, "New SSH host detected: $host — auto-accepting and saving key (accept-new policy)")
-                val keyType = when {
-                    key.size == 32 -> 3
-                    key.size > 256 -> 0
-                    else -> 0
-                }
-                val hostKey = HostKey(host, keyType, key)
-                hostKeys.add(hostKey)
-                saveToFile()
-                Log.i(TAG, "Saved new host key for $host to ${khFile?.absolutePath}")
-                return HOST_KEY_OK
-            }
-
-            for (existing in existingKeys) {
-                val existingKeyBytes = try { base64Decode(existing.key) } catch (e: Exception) { continue }
-                if (existingKeyBytes.contentEquals(key)) {
-                    Log.i(TAG, "Key matched for host '$host'")
-                    return HOST_KEY_OK
-                }
-            }
-
-            Log.i(TAG, "No matching key found for host '$host', but host is known — adding new key type (accept-new policy)")
-            val keyType = when {
-                key.size == 32 -> 3
-                key.size > 256 -> 0
-                else -> 0
-            }
-            val hostKey = HostKey(host, keyType, key)
-            hostKeys.add(hostKey)
-            saveToFile()
-            Log.i(TAG, "Added new key type for '$host' to known_hosts")
-            return HOST_KEY_OK
-        }
     }
 }

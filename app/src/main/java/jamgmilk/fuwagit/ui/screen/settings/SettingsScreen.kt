@@ -58,6 +58,7 @@ import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material.icons.filled.Terminal
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -1938,7 +1939,7 @@ private fun AppearanceSettingsCard(
         Column(modifier = Modifier.fillMaxWidth()) {
             SettingsSectionHeader(
                 title = stringResource(R.string.settings_appearance),
-                icon = Icons.Default.DarkMode,
+                icon = Icons.Default.Palette,
                 color = colors.primary
             )
 

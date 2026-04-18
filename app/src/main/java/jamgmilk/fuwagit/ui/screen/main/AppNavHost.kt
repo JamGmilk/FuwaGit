@@ -24,6 +24,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -44,6 +45,8 @@ import androidx.navigation.navArgument
 import androidx.fragment.app.FragmentActivity
 import jamgmilk.fuwagit.ui.navigation.AddRepoTab
 import jamgmilk.fuwagit.ui.navigation.NavRoutes
+import jamgmilk.fuwagit.data.jgit.HostKeyAskHelper
+import jamgmilk.fuwagit.ui.components.HostKeyAskDialog
 import jamgmilk.fuwagit.ui.navigation.rememberNavItems
 import jamgmilk.fuwagit.ui.screen.branches.BranchesScreen
 import jamgmilk.fuwagit.ui.screen.branches.BranchesViewModel
@@ -70,10 +73,34 @@ import kotlinx.coroutines.launch
 
 @Composable
 fun AppNavHost(navController: NavHostController, startDestination: String = NavRoutes.MAIN) {
+    val scope = rememberCoroutineScope()
+    var pendingRequest by remember { mutableStateOf<HostKeyAskHelper.HostKeyRequest?>(null) }
+
+    LaunchedEffect(Unit) {
+        HostKeyAskHelper.requests.collect { request ->
+            pendingRequest = request
+        }
+    }
 
     Surface(
         modifier = Modifier.fillMaxSize()
     ) {
+        pendingRequest?.let { request ->
+            HostKeyAskDialog(
+                host = request.host,
+                keyType = request.keyType,
+                fingerprint = request.fingerprint,
+                onAccept = {
+                    request.future.complete(true)
+                    pendingRequest = null
+                },
+                onReject = {
+                    request.future.complete(false)
+                    pendingRequest = null
+                }
+            )
+        }
+
         NavHost(
             navController = navController,
             startDestination = startDestination,

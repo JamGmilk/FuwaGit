@@ -108,6 +108,10 @@ sealed class AppException : Exception() {
 
     data class NetworkError(override val message: String) : AppException()
 
+    data class HostKeyAsk(val host: String, val keyType: String, val fingerprint: String) : AppException() {
+        override val message: String = "Host key verification required for $host"
+    }
+
     data class Unknown(override val message: String) : AppException()
 }
 

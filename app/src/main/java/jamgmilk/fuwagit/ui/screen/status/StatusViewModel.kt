@@ -70,7 +70,7 @@ data class StatusUiState(
     val httpsCredentials: List<HttpsCredential> = emptyList(),
     val sshKeys: List<SshKey> = emptyList(),
     val isCredentialUnlocked: Boolean = false,
-    val pendingCredentialOperation: suspend () -> Unit = {}
+    val pendingCredentialOperation: (suspend () -> Unit)? = null
 )
 
 @HiltViewModel
@@ -574,12 +574,10 @@ class StatusViewModel @Inject constructor(
     fun onCredentialUnlocked() {
         viewModelScope.launch {
             val pendingOp = _uiState.value.pendingCredentialOperation
-            if (pendingOp != {}) {
-                pendingOp()
-            }
+            pendingOp?.invoke()
             _uiState.update {
                 it.copy(
-                    pendingCredentialOperation = {},
+                    pendingCredentialOperation = null,
                     isCredentialUnlocked = credential.isUnlocked()
                 )
             }

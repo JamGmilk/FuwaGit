@@ -13,4 +13,5 @@ val AppShapes = Shapes(
 )
 
 val DialogShapes = RoundedCornerShape(24.dp)
+val ButtonShapes = RoundedCornerShape(12.dp)
 
