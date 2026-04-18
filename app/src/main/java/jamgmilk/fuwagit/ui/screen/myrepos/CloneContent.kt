@@ -97,7 +97,6 @@ internal fun CloneContent(
     val scope = rememberCoroutineScope()
     val credentialsUiState by credentialsViewModel.uiState.collectAsStateWithLifecycle()
 
-    val strCloneSuccess = stringResource(R.string.clone_clone_success)
     val strAuthFailed = stringResource(R.string.clone_auth_failed)
 
     var cloneUrl by remember { mutableStateOf("") }
@@ -179,7 +178,7 @@ internal fun CloneContent(
                 scope.launch {
                     val credentialId = if (isHttps) selectedHttpsUuid else selectedSshUuid
                     myReposViewModel.addRepo(fullPath, null, credentialId)
-                    snackbarHostState.showSnackbar(strCloneSuccess)
+                    snackbarHostState.showSnackbar(context.getString(R.string.clone_clone_success))
                 }
                 onCloneComplete(fullPath)
             }.onError { e ->

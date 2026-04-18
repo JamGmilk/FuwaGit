@@ -4,18 +4,31 @@ import androidx.compose.runtime.Stable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
-import jamgmilk.fuwagit.domain.model.UiMessage
 import jamgmilk.fuwagit.domain.model.git.GitTag
 import jamgmilk.fuwagit.domain.usecase.git.TagUseCase
-import jamgmilk.fuwagit.ui.components.OperationResult
 import jamgmilk.fuwagit.ui.state.RepoStateManager
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+
+sealed class TagUiEvent {
+    data class CreateSuccess(val tagName: String, val isAnnotated: Boolean) : TagUiEvent()
+    data class CreateError(val message: String) : TagUiEvent()
+    data class DeleteSuccess(val tagName: String) : TagUiEvent()
+    data class DeleteError(val message: String) : TagUiEvent()
+    data class PushSuccess(val tagName: String) : TagUiEvent()
+    data class PushAllSuccess(val message: String) : TagUiEvent()
+    data class PushError(val message: String) : TagUiEvent()
+    data class CheckoutSuccess(val tagName: String) : TagUiEvent()
+    data class CheckoutError(val message: String) : TagUiEvent()
+}
 
 /**
  * Tags 页面 UI 状态
@@ -32,7 +45,6 @@ data class TagsUiState(
     val showDeleteDialog: Boolean = false,
     val showPushDialog: Boolean = false,
     val selectedTag: GitTag? = null,
-    val operationResult: OperationResult? = null,
     val isPushing: Boolean = false,
     val filterType: TagFilterType = TagFilterType.All
 )
@@ -66,6 +78,9 @@ class TagsViewModel @Inject constructor(
 
     private val _uiState = MutableStateFlow(TagsUiState())
     val uiState: StateFlow<TagsUiState> = _uiState.asStateFlow()
+
+    private val _events = MutableSharedFlow<TagUiEvent>()
+    val events: SharedFlow<TagUiEvent> = _events.asSharedFlow()
 
     private var currentRepoPath: String? = null
 
@@ -131,19 +146,13 @@ class TagsViewModel @Inject constructor(
             tagUseCase.createLightweight(path, tagName, commitHash)
                 .onSuccess {
                     _uiState.update {
-                        it.copy(
-                            showCreateDialog = false,
-                            operationResult = OperationResult.Success(UiMessage.Tag.LightweightCreated(tagName))
-                        )
+                        it.copy(showCreateDialog = false)
                     }
+                    _events.emit(TagUiEvent.CreateSuccess(tagName, isAnnotated = false))
                     loadTags()
                 }
                 .onError { e ->
-                    _uiState.update {
-                        it.copy(
-                            operationResult = OperationResult.Failure(UiMessage.Tag.Failed(e.message ?: "Failed to create tag"))
-                        )
-                    }
+                    _events.emit(TagUiEvent.CreateError(e.message ?: "Failed to create tag"))
                 }
         }
     }
@@ -158,19 +167,13 @@ class TagsViewModel @Inject constructor(
             tagUseCase.createAnnotated(path, tagName, message, commitHash)
                 .onSuccess {
                     _uiState.update {
-                        it.copy(
-                            showCreateDialog = false,
-                            operationResult = OperationResult.Success(UiMessage.Tag.AnnotatedCreated(tagName))
-                        )
+                        it.copy(showCreateDialog = false)
                     }
+                    _events.emit(TagUiEvent.CreateSuccess(tagName, isAnnotated = true))
                     loadTags()
                 }
                 .onError { e ->
-                    _uiState.update {
-                        it.copy(
-                            operationResult = OperationResult.Failure(UiMessage.Tag.Failed(e.message ?: "Failed to create tag"))
-                        )
-                    }
+                    _events.emit(TagUiEvent.CreateError(e.message ?: "Failed to create tag"))
                 }
         }
     }
@@ -187,18 +190,14 @@ class TagsViewModel @Inject constructor(
                     _uiState.update {
                         it.copy(
                             showDeleteDialog = false,
-                            selectedTag = null,
-                            operationResult = OperationResult.Success(UiMessage.Tag.Deleted(tagName))
+                            selectedTag = null
                         )
                     }
+                    _events.emit(TagUiEvent.DeleteSuccess(tagName))
                     loadTags()
                 }
                 .onError { e ->
-                    _uiState.update {
-                        it.copy(
-                            operationResult = OperationResult.Failure(UiMessage.Tag.Failed(e.message ?: "Failed to delete tag"))
-                        )
-                    }
+                    _events.emit(TagUiEvent.DeleteError(e.message ?: "Failed to delete tag"))
                 }
         }
     }
@@ -216,19 +215,17 @@ class TagsViewModel @Inject constructor(
                     _uiState.update {
                         it.copy(
                             isPushing = false,
-                            selectedTag = null,
-                            operationResult = OperationResult.Success(UiMessage.Tag.PushSuccess(tagName))
+                            selectedTag = null
                         )
                     }
+                    _events.emit(TagUiEvent.PushSuccess(tagName))
                     loadTags()
                 }
                 .onError { e ->
                     _uiState.update {
-                        it.copy(
-                            isPushing = false,
-                            operationResult = OperationResult.Failure(UiMessage.Tag.Failed(e.message ?: "Failed to push tag"))
-                        )
+                        it.copy(isPushing = false)
                     }
+                    _events.emit(TagUiEvent.PushError(e.message ?: "Failed to push tag"))
                 }
         }
     }
@@ -244,20 +241,16 @@ class TagsViewModel @Inject constructor(
             tagUseCase.pushAllTags(path, remoteName)
                 .onSuccess {
                     _uiState.update {
-                        it.copy(
-                            isPushing = false,
-                            operationResult = OperationResult.Success(UiMessage.Generic("All tags pushed successfully"))
-                        )
+                        it.copy(isPushing = false)
                     }
+                    _events.emit(TagUiEvent.PushAllSuccess("All tags pushed successfully"))
                     loadTags()
                 }
                 .onError { e ->
                     _uiState.update {
-                        it.copy(
-                            isPushing = false,
-                            operationResult = OperationResult.Failure(UiMessage.Tag.Failed(e.message ?: "Failed to push tags"))
-                        )
+                        it.copy(isPushing = false)
                     }
+                    _events.emit(TagUiEvent.PushError(e.message ?: "Failed to push tags"))
                 }
         }
     }
@@ -271,19 +264,11 @@ class TagsViewModel @Inject constructor(
         viewModelScope.launch {
             tagUseCase.checkoutTag(path, tagName)
                 .onSuccess {
-                    _uiState.update {
-                        it.copy(
-                            operationResult = OperationResult.Success(UiMessage.Checkout.CheckoutSuccess(tagName))
-                        )
-                    }
+                    _events.emit(TagUiEvent.CheckoutSuccess(tagName))
                     loadTags()
                 }
                 .onError { e ->
-                    _uiState.update {
-                        it.copy(
-                            operationResult = OperationResult.Failure(UiMessage.Checkout.CheckoutFailed(e.message ?: "Failed to checkout tag"))
-                        )
-                    }
+                    _events.emit(TagUiEvent.CheckoutError(e.message ?: "Failed to checkout tag"))
                 }
         }
     }
@@ -366,7 +351,7 @@ class TagsViewModel @Inject constructor(
      * 清除操作结果
      */
     fun clearOperationResult() {
-        _uiState.update { it.copy(operationResult = null) }
+        // No-op, kept for API compatibility
     }
 
     /**

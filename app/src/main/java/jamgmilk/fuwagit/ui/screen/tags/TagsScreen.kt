@@ -47,6 +47,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -54,6 +55,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -68,9 +70,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import jamgmilk.fuwagit.R
 import jamgmilk.fuwagit.domain.model.git.GitTag
 import jamgmilk.fuwagit.ui.components.DangerousOperationType
-import jamgmilk.fuwagit.ui.components.OperationResultDialog
 import jamgmilk.fuwagit.ui.components.ScreenTemplate
 import jamgmilk.fuwagit.ui.theme.AppShapes
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -173,11 +175,53 @@ fun TagsContent(
  */
 @Composable
 fun TagsDialogs(
-    tagsViewModel: TagsViewModel
+    tagsViewModel: TagsViewModel,
+    snackbarHostState: SnackbarHostState = remember { SnackbarHostState() }
 ) {
     val uiState by tagsViewModel.uiState.collectAsStateWithLifecycle()
     var showCreateDialog by remember { mutableStateOf(false) }
     var createTagType by remember { mutableStateOf(CreateTagType.Annotated) }
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+
+    LaunchedEffect(Unit) {
+        tagsViewModel.events.collect { event ->
+            when (event) {
+                is TagUiEvent.CreateSuccess -> {
+                    val message = if (event.isAnnotated) {
+                        context.getString(R.string.vm_tag_annotated_created, event.tagName)
+                    } else {
+                        context.getString(R.string.vm_tag_lightweight_created, event.tagName)
+                    }
+                    scope.launch { snackbarHostState.showSnackbar(message) }
+                }
+                is TagUiEvent.CreateError -> {
+                    scope.launch { snackbarHostState.showSnackbar(event.message) }
+                }
+                is TagUiEvent.DeleteSuccess -> {
+                    scope.launch { snackbarHostState.showSnackbar(context.getString(R.string.vm_tag_deleted, event.tagName)) }
+                }
+                is TagUiEvent.DeleteError -> {
+                    scope.launch { snackbarHostState.showSnackbar(event.message) }
+                }
+                is TagUiEvent.PushSuccess -> {
+                    scope.launch { snackbarHostState.showSnackbar(context.getString(R.string.vm_tag_push_success, event.tagName)) }
+                }
+                is TagUiEvent.PushAllSuccess -> {
+                    scope.launch { snackbarHostState.showSnackbar(event.message) }
+                }
+                is TagUiEvent.PushError -> {
+                    scope.launch { snackbarHostState.showSnackbar(event.message) }
+                }
+                is TagUiEvent.CheckoutSuccess -> {
+                    scope.launch { snackbarHostState.showSnackbar(context.getString(R.string.vm_checkout_success, event.tagName)) }
+                }
+                is TagUiEvent.CheckoutError -> {
+                    scope.launch { snackbarHostState.showSnackbar(event.message) }
+                }
+            }
+        }
+    }
 
     // 监听 ViewModel 的创建对话框状态
     LaunchedEffect(uiState.showCreateDialog) {
@@ -227,26 +271,6 @@ fun TagsDialogs(
             onPushAll = {
                 tagsViewModel.pushAllTags()
             }
-        )
-    }
-
-    // 操作结果反馈对话框
-    val operationResult = uiState.operationResult
-    if (operationResult != null) {
-        val operationType = when (operationResult) {
-            is jamgmilk.fuwagit.ui.components.OperationResult.Success -> {
-                when (operationResult.message) {
-                    is jamgmilk.fuwagit.domain.model.UiMessage.Tag.Deleted -> DangerousOperationType.DELETE_TAG
-                    else -> DangerousOperationType.PUSH_TAG
-                }
-            }
-            is jamgmilk.fuwagit.ui.components.OperationResult.Failure -> DangerousOperationType.DELETE_TAG
-            else -> DangerousOperationType.PUSH_TAG
-        }
-        OperationResultDialog(
-            result = operationResult,
-            operationType = operationType,
-            onDismiss = { tagsViewModel.clearOperationResult() }
         )
     }
 }

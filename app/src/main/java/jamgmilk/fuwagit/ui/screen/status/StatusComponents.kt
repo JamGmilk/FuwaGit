@@ -59,8 +59,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import jamgmilk.fuwagit.R
 import jamgmilk.fuwagit.core.util.PathUtils
-import jamgmilk.fuwagit.domain.model.UiMessage
-import jamgmilk.fuwagit.domain.model.toResource
 import jamgmilk.fuwagit.domain.model.git.GitBranch
 import jamgmilk.fuwagit.domain.model.git.GitChangeType
 import jamgmilk.fuwagit.domain.model.git.GitFileStatus
@@ -193,13 +191,13 @@ internal fun RepositoryStatusCard(
     currentBranch: GitBranch?,
     modifier: Modifier = Modifier,
     isLoading: Boolean = false,
-    error: UiMessage? = null
+    error: String? = null
 ) {
     val colors = MaterialTheme.colorScheme
 
     val statusMessage = when {
         isLoading -> stringResource(R.string.status_checking_repo)
-        !isRepo && error != null -> stringResource(error.toResource())
+        !isRepo && error != null -> error
         !isRepo -> stringResource(R.string.status_not_a_repo)
         isRepo -> stringResource(R.string.status_repo_active)
         else -> stringResource(R.string.status_select_repo)
