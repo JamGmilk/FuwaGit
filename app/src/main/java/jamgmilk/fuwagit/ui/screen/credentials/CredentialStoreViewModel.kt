@@ -1,5 +1,6 @@
 package jamgmilk.fuwagit.ui.screen.credentials
 
+import androidx.compose.runtime.Stable
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -19,8 +20,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
-
-import androidx.compose.runtime.Stable
 
 sealed class CredentialStoreEvent {
     data object CredentialAdded : CredentialStoreEvent()

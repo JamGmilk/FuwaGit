@@ -126,6 +126,8 @@ dependencies {
     implementation(libs.hilt.android)
     implementation(libs.hilt.navigation.compose)
     implementation(libs.androidx.uiautomator)
+    implementation(libs.androidx.compose.ui.graphics)
+    implementation(libs.androidx.foundation.layout)
     ksp(libs.hilt.compiler)
 
     // Test Dependencies

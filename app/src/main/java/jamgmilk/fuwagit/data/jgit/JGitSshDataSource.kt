@@ -1,8 +1,10 @@
 package jamgmilk.fuwagit.data.jgit
 
+import android.content.Context
 import android.util.Log
 import jamgmilk.fuwagit.BuildConfig
 import jamgmilk.fuwagit.core.result.AppException
+import dagger.hilt.android.qualifiers.ApplicationContext
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.bouncycastle.util.io.pem.PemReader
 import java.io.StringReader
@@ -11,7 +13,9 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class JGitSshDataSource @Inject constructor() : SshDataSource {
+class JGitSshDataSource @Inject constructor(
+    @ApplicationContext private val context: Context
+) : SshDataSource {
 
     private val sshTimeout = 15000
 
@@ -69,10 +73,11 @@ class JGitSshDataSource @Inject constructor() : SshDataSource {
         }
 
         val session = jsch.getSession(username, hostname, 22)
-        session.setConfig("StrictHostKeyChecking", "no")
         session.setConfig("PreferredAuthentications", "publickey")
         session.setConfig("MaxAuthTries", "3")
         session.timeout = sshTimeout
+
+        jsch.hostKeyRepository = HostKeyAskHelper.createRepository(context)
 
         var serverBanner = ""
 
