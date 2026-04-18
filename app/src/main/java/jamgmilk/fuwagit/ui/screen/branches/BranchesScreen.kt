@@ -50,6 +50,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -319,25 +320,25 @@ fun BranchesScreen(
                     } else {
                         event.reason
                     }
-                    scope.launch { snackbarHostState.showSnackbar(message) }
+                    scope.launch { snackbarHostState.showSnackbar(message, duration = SnackbarDuration.Long) }
                 }
                 is BranchUiEvent.MergeSuccess -> {
                     scope.launch { snackbarHostState.showSnackbar(context.getString(R.string.vm_merge_success, event.branchName)) }
                 }
                 is BranchUiEvent.MergeConflict -> {
-                    scope.launch { snackbarHostState.showSnackbar(event.hint) }
+                    scope.launch { snackbarHostState.showSnackbar(event.hint, duration = SnackbarDuration.Long) }
                 }
                 is BranchUiEvent.MergeError -> {
-                    scope.launch { snackbarHostState.showSnackbar(event.suggestion) }
+                    scope.launch { snackbarHostState.showSnackbar(event.suggestion, duration = SnackbarDuration.Long) }
                 }
                 is BranchUiEvent.RebaseSuccess -> {
                     scope.launch { snackbarHostState.showSnackbar(context.getString(R.string.vm_rebase_success, event.branchName)) }
                 }
                 is BranchUiEvent.RebaseConflict -> {
-                    scope.launch { snackbarHostState.showSnackbar(event.hint) }
+                    scope.launch { snackbarHostState.showSnackbar(event.hint, duration = SnackbarDuration.Long) }
                 }
                 is BranchUiEvent.RebaseError -> {
-                    scope.launch { snackbarHostState.showSnackbar(event.suggestion) }
+                    scope.launch { snackbarHostState.showSnackbar(event.suggestion, duration = SnackbarDuration.Long) }
                 }
                 is BranchUiEvent.CheckoutSuccess -> {
                     scope.launch { snackbarHostState.showSnackbar(context.getString(R.string.vm_checkout_success, event.branchName)) }
@@ -358,7 +359,7 @@ fun BranchesScreen(
                     scope.launch { snackbarHostState.showSnackbar(event.message) }
                 }
                 is BranchUiEvent.Error -> {
-                    scope.launch { snackbarHostState.showSnackbar(event.message) }
+                    scope.launch { snackbarHostState.showSnackbar(event.message, duration = SnackbarDuration.Long) }
                 }
             }
         }

@@ -18,6 +18,7 @@ import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarDuration
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
@@ -84,19 +85,19 @@ fun StatusScreen(
                     scope.launch { snackbarHostState.showSnackbar(event.message) }
                 }
                 is StatusEvent.PushError -> {
-                    scope.launch { snackbarHostState.showSnackbar(context.getString(R.string.status_push_failed, event.message)) }
+                    scope.launch { snackbarHostState.showSnackbar(context.getString(R.string.status_push_failed, event.message), duration = SnackbarDuration.Long) }
                 }
                 is StatusEvent.PullSuccess -> {
                     scope.launch { snackbarHostState.showSnackbar(event.message) }
                 }
                 is StatusEvent.PullError -> {
-                    scope.launch { snackbarHostState.showSnackbar(context.getString(R.string.status_pull_failed, event.message)) }
+                    scope.launch { snackbarHostState.showSnackbar(context.getString(R.string.status_pull_failed, event.message), duration = SnackbarDuration.Long) }
                 }
                 is StatusEvent.FetchSuccess -> {
                     scope.launch { snackbarHostState.showSnackbar(event.message) }
                 }
                 is StatusEvent.FetchError -> {
-                    scope.launch { snackbarHostState.showSnackbar(context.getString(R.string.status_fetch_failed, event.message)) }
+                    scope.launch { snackbarHostState.showSnackbar(context.getString(R.string.status_fetch_failed, event.message), duration = SnackbarDuration.Long) }
                 }
                 is StatusEvent.CredentialUnlockRequired -> {
                     scope.launch { snackbarHostState.showSnackbar(context.getString(R.string.status_credential_unlock_required)) }
@@ -106,13 +107,13 @@ fun StatusScreen(
                 }
                 is StatusEvent.DiscardChangesError -> {
                     val message = "${event.reason}\n${event.suggestion}"
-                    scope.launch { snackbarHostState.showSnackbar(message) }
+                    scope.launch { snackbarHostState.showSnackbar(message, duration = SnackbarDuration.Long) }
                 }
                 is StatusEvent.ConflictResolved -> {
                     scope.launch { snackbarHostState.showSnackbar(event.message) }
                 }
                 is StatusEvent.ConflictError -> {
-                    scope.launch { snackbarHostState.showSnackbar(event.message) }
+                    scope.launch { snackbarHostState.showSnackbar(event.message, duration = SnackbarDuration.Long) }
                 }
                 is StatusEvent.AbortRebaseSuccess -> {
                     scope.launch { snackbarHostState.showSnackbar(event.message) }

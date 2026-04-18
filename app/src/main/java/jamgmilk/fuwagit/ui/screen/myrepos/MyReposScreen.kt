@@ -3,7 +3,6 @@ package jamgmilk.fuwagit.ui.screen.myrepos
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
-import android.widget.Toast
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -217,6 +216,11 @@ fun MyReposScreen(
                     pendingItemForDialog.value = item
                     itemForSheet.value = null
                     showRepoInfoDialog.value = true
+                }
+            },
+            onShowSnackbar = { path ->
+                scope.launch {
+                    snackbarHostState.showSnackbar(context.getString(R.string.myrepos_path_copied))
                 }
             }
         )
@@ -544,7 +548,8 @@ fun RepoOptionsSheet(
     onRemove: () -> Unit,
     onConfigureRemote: () -> Unit,
     onClean: () -> Unit,
-    onShowInfo: () -> Unit
+    onShowInfo: () -> Unit,
+    onShowSnackbar: (String) -> Unit
 ) {
     val colors = MaterialTheme.colorScheme
     val clipboardManager = LocalContext.current.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
@@ -565,6 +570,7 @@ fun RepoOptionsSheet(
                 item = item,
                 onCopyPath = {
                     clipboardManager.setPrimaryClip(ClipData.newPlainText(null, item.path))
+                    onShowSnackbar(item.path)
                 }
             )
 
@@ -640,7 +646,6 @@ private fun RepoHeader(
     onCopyPath: () -> Unit
 ) {
     val context = LocalContext.current
-    val strPathCopied = stringResource(R.string.myrepos_path_copied)
 
     Row(
         modifier = Modifier
@@ -696,10 +701,7 @@ private fun RepoHeader(
                     .clip(RoundedCornerShape(4.dp))
                     .combinedClickable(
                         onClick = {},
-                        onLongClick = {
-                            onCopyPath()
-                            Toast.makeText(context, strPathCopied, Toast.LENGTH_SHORT).show()
-                        }
+                        onLongClick = onCopyPath
                     )
             )
         }

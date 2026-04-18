@@ -2,7 +2,6 @@ package jamgmilk.fuwagit.ui.screen.settings
 
 import android.content.Intent
 import android.util.Log
-import android.widget.Toast
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.os.LocaleListCompat
 import jamgmilk.fuwagit.BuildConfig
@@ -164,7 +163,7 @@ fun SettingsScreen(
 
     LaunchedEffect(credentialsUiState.error) {
         credentialsUiState.error?.let { errorMessage ->
-            Toast.makeText(context, errorMessage, android.widget.Toast.LENGTH_SHORT).show()
+            snackbarHostState.showSnackbar(errorMessage, duration = SnackbarDuration.Long)
             credentialsViewModel.clearError()
         }
     }
