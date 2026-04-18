@@ -3,13 +3,13 @@ package jamgmilk.fuwagit.data.jgit
 import android.content.Context
 import android.util.Log
 import jamgmilk.fuwagit.BuildConfig
+import jamgmilk.fuwagit.core.util.SecurityUtils
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.first
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.eclipse.jgit.api.Git
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder
 import java.io.File
-import java.util.Arrays
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -159,7 +159,7 @@ class JGitCoreDataSource @Inject constructor(
             )
         }
 
-        if (File(gitDir, "PATCH_HEADER").exists() || File(gitDir, " sequencer").exists()) {
+        if (File(gitDir, "PATCH_HEADER").exists() || File(gitDir, "sequencer").exists()) {
             return RepositoryLockStatus(
                 isLocked = true,
                 lockType = LockType.PATCH_APPLY_IN_PROGRESS,
@@ -274,8 +274,8 @@ class JGitCoreDataSource @Inject constructor(
                             } catch (e: Exception) {
                                 Log.e(TAG, "Failed to configure SSH identity or known hosts", e)
                             } finally {
-                                Arrays.fill(privateKeyBytes, 0.toByte())
-                                passphraseBytes?.let { Arrays.fill(it, 0.toByte()) }
+                                SecurityUtils.zeroBytes(privateKeyBytes)
+                                SecurityUtils.zeroBytesIfNotNull(passphraseBytes)
                             }
                             return jsch
                         }
@@ -284,8 +284,8 @@ class JGitCoreDataSource @Inject constructor(
             }
             Log.i(TAG, "SSH transport configured for command")
         } catch (e: Exception) {
-            Arrays.fill(privateKeyBytes, 0.toByte())
-            passphraseBytes?.let { Arrays.fill(it, 0.toByte()) }
+            SecurityUtils.zeroBytes(privateKeyBytes)
+            SecurityUtils.zeroBytesIfNotNull(passphraseBytes)
             Log.e(TAG, "Failed to configure SSH", e)
         }
     }

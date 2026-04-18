@@ -43,7 +43,11 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import androidx.fragment.app.FragmentActivity
+import android.content.res.Configuration
+import java.net.URLEncoder
+import java.nio.charset.StandardCharsets
 import jamgmilk.fuwagit.ui.navigation.AddRepoTab
+import jamgmilk.fuwagit.ui.navigation.DiffType
 import jamgmilk.fuwagit.ui.navigation.NavRoutes
 import jamgmilk.fuwagit.data.jgit.HostKeyAskHelper
 import jamgmilk.fuwagit.ui.components.HostKeyAskDialog
@@ -65,15 +69,35 @@ import jamgmilk.fuwagit.ui.screen.onboarding.OnboardingScreen
 import jamgmilk.fuwagit.ui.screen.permissions.PermissionsScreen
 import jamgmilk.fuwagit.ui.screen.permissions.SshTestResult
 import jamgmilk.fuwagit.ui.screen.settings.SettingsScreen
-import jamgmilk.fuwagit.ui.screen.settings.SettingsViewModel
 import jamgmilk.fuwagit.ui.screen.status.StatusScreen
 import jamgmilk.fuwagit.ui.screen.status.StatusViewModel
 import jamgmilk.fuwagit.ui.screen.tags.TagsViewModel
 import kotlinx.coroutines.launch
 
+private object TransitionDefaults {
+    val Enter = slideInHorizontally(
+        animationSpec = tween(durationMillis = 250, easing = FastOutSlowInEasing),
+        initialOffsetX = { it }
+    ) + fadeIn(animationSpec = tween(durationMillis = 250, easing = FastOutSlowInEasing))
+
+    val Exit = slideOutHorizontally(
+        animationSpec = tween(durationMillis = 200, easing = FastOutSlowInEasing),
+        targetOffsetX = { -it / 3 }
+    ) + fadeOut(animationSpec = tween(durationMillis = 150, easing = FastOutSlowInEasing))
+
+    val PopEnter = slideInHorizontally(
+        animationSpec = tween(durationMillis = 250, easing = FastOutSlowInEasing),
+        initialOffsetX = { -it / 3 }
+    ) + fadeIn(animationSpec = tween(durationMillis = 250, easing = FastOutSlowInEasing))
+
+    val PopExit = slideOutHorizontally(
+        animationSpec = tween(durationMillis = 200, easing = FastOutSlowInEasing),
+        targetOffsetX = { it }
+    ) + fadeOut(animationSpec = tween(durationMillis = 150, easing = FastOutSlowInEasing))
+}
+
 @Composable
 fun AppNavHost(navController: NavHostController, startDestination: String = NavRoutes.MAIN) {
-    val scope = rememberCoroutineScope()
     var pendingRequest by remember { mutableStateOf<HostKeyAskHelper.HostKeyRequest?>(null) }
 
     LaunchedEffect(Unit) {
@@ -104,30 +128,10 @@ fun AppNavHost(navController: NavHostController, startDestination: String = NavR
         NavHost(
             navController = navController,
             startDestination = startDestination,
-            enterTransition = {
-                slideInHorizontally(
-                    animationSpec = tween(durationMillis = 250, easing = FastOutSlowInEasing),
-                    initialOffsetX = { it }
-                ) + fadeIn(animationSpec = tween(durationMillis = 250, easing = FastOutSlowInEasing))
-            },
-            exitTransition = {
-                slideOutHorizontally(
-                    animationSpec = tween(durationMillis = 200, easing = FastOutSlowInEasing),
-                    targetOffsetX = { -it / 3 }
-                ) + fadeOut(animationSpec = tween(durationMillis = 150, easing = FastOutSlowInEasing))
-            },
-            popEnterTransition = {
-                slideInHorizontally(
-                    animationSpec = tween(durationMillis = 250, easing = FastOutSlowInEasing),
-                    initialOffsetX = { -it / 3 }
-                ) + fadeIn(animationSpec = tween(durationMillis = 250, easing = FastOutSlowInEasing))
-            },
-            popExitTransition = {
-                slideOutHorizontally(
-                    animationSpec = tween(durationMillis = 200, easing = FastOutSlowInEasing),
-                    targetOffsetX = { it }
-                ) + fadeOut(animationSpec = tween(durationMillis = 150, easing = FastOutSlowInEasing))
-            }
+            enterTransition = { TransitionDefaults.Enter },
+            exitTransition = { TransitionDefaults.Exit },
+            popEnterTransition = { TransitionDefaults.PopEnter },
+            popExitTransition = { TransitionDefaults.PopExit }
         ) {
             composable(NavRoutes.ONBOARDING) {
                 OnboardingScreen(
@@ -145,7 +149,7 @@ fun AppNavHost(navController: NavHostController, startDestination: String = NavR
             composable(NavRoutes.MAIN) {
                 MainScreen(
                     onNavigateToAddRepository = {
-                        navController.navigate(NavRoutes.ADD_REPOSITORY)
+                        navController.navigate("add_repository/Clone")
                     },
                     onNavigateToPermissions = {
                         navController.navigate(NavRoutes.PERMISSIONS)
@@ -162,37 +166,14 @@ fun AppNavHost(navController: NavHostController, startDestination: String = NavR
                         navController.popBackStack()
                     },
                     onViewFileDiff = { filePath, diffType ->
-                        val encodedPath = java.net.URLEncoder.encode(filePath, "UTF-8")
-                        navController.navigate("${NavRoutes.FILE_DIFF}?filePath=$encodedPath&diffType=$diffType")
+                        val encodedPath = URLEncoder.encode(filePath, StandardCharsets.UTF_8.name())
+                        navController.navigate("${NavRoutes.FILE_DIFF}?filePath=$encodedPath&diffType=${diffType.name}")
                     },
                     onViewCommitDiff = { filePath, oldCommit, newCommit ->
-                        val encodedPath = java.net.URLEncoder.encode(filePath, "UTF-8")
-                        val encodedOld = java.net.URLEncoder.encode(oldCommit, "UTF-8")
-                        val encodedNew = java.net.URLEncoder.encode(newCommit, "UTF-8")
-                        navController.navigate("${NavRoutes.FILE_DIFF}?filePath=$encodedPath&diffType=COMMIT&oldCommit=$encodedOld&newCommit=$encodedNew")
-                    }
-                )
-            }
-
-            composable(
-                route = NavRoutes.ADD_REPOSITORY,
-                arguments = listOf()
-            ) {
-                val myReposViewModel: MyReposViewModel = hiltViewModel()
-                val scope = rememberCoroutineScope()
-                AddRepositoryScreen(
-                    onBack = { navController.popBackStack() },
-                    onCloneComplete = { path ->
-                        scope.launch {
-                            myReposViewModel.setCurrentRepo(path)
-                        }
-                        navController.popBackStack()
-                    },
-                    onAddRepository = { path, alias ->
-                        scope.launch {
-                            myReposViewModel.addRepo(path, alias)
-                        }
-                        navController.popBackStack()
+                        val encodedPath = URLEncoder.encode(filePath, StandardCharsets.UTF_8.name())
+                        val encodedOld = URLEncoder.encode(oldCommit, StandardCharsets.UTF_8.name())
+                        val encodedNew = URLEncoder.encode(newCommit, StandardCharsets.UTF_8.name())
+                        navController.navigate("${NavRoutes.FILE_DIFF}?filePath=$encodedPath&diffType=${DiffType.COMMIT.name}&oldCommit=$encodedOld&newCommit=$encodedNew")
                     }
                 )
             }
@@ -200,7 +181,10 @@ fun AppNavHost(navController: NavHostController, startDestination: String = NavR
             composable(
                 route = NavRoutes.ADD_REPOSITORY_WITH_TAB,
                 arguments = listOf(
-                    navArgument("tab") { type = NavType.StringType }
+                    navArgument("tab") {
+                        type = NavType.StringType
+                        defaultValue = "Clone"
+                    }
                 )
             ) { backStackEntry ->
                 val tabName = backStackEntry.arguments?.getString("tab") ?: "Clone"
@@ -228,9 +212,7 @@ fun AppNavHost(navController: NavHostController, startDestination: String = NavR
             composable(NavRoutes.PERMISSIONS) {
                 val context = LocalContext.current
                 val activity = context as? FragmentActivity
-                val settingsViewModel: SettingsViewModel = hiltViewModel()
                 val credentialStoreViewModel: CredentialStoreViewModel = hiltViewModel()
-                val settingsUiState by settingsViewModel.uiState.collectAsStateWithLifecycle()
                 val credentialUiState by credentialStoreViewModel.uiState.collectAsStateWithLifecycle()
                 var sshTestResult by remember { mutableStateOf<SshTestResult>(SshTestResult.Idle) }
 
@@ -315,7 +297,7 @@ fun MainScreen(
     onNavigateToCredentials: () -> Unit,
     onNavigateToMasterPassword: () -> Unit,
     onMasterPasswordSuccess: () -> Unit = {},
-    onViewFileDiff: ((String, String) -> Unit)? = null,
+    onViewFileDiff: ((String, DiffType) -> Unit)? = null,
     onViewCommitDiff: ((String, String, String) -> Unit)? = null
 ) {
     val statusViewModel: StatusViewModel = hiltViewModel()
@@ -326,7 +308,7 @@ fun MainScreen(
 
     val navItems = rememberNavItems()
     val configuration = androidx.compose.ui.platform.LocalConfiguration.current
-    val isLandscape = configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
+    val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
     val scope = rememberCoroutineScope()
 
     val pagerState = rememberPagerState(pageCount = { navItems.size })
@@ -379,7 +361,7 @@ fun MainScreen(
                         statusViewModel = statusViewModel,
                         modifier = Modifier.fillMaxSize(),
                         onViewDiff = { filePath, isStaged ->
-                            val diffType = if (isStaged) "STAGED" else "WORKING_TREE"
+                            val diffType = if (isStaged) DiffType.STAGED else DiffType.WORKING_TREE
                             onViewFileDiff?.invoke(filePath, diffType)
                         }
                     )

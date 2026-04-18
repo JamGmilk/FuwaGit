@@ -28,6 +28,12 @@ enum class AddRepoTab {
     Local
 }
 
+enum class DiffType {
+    WORKING_TREE,
+    STAGED,
+    COMMIT
+}
+
 data class NavItem(
     val route: String,
     val titleRes: Int,

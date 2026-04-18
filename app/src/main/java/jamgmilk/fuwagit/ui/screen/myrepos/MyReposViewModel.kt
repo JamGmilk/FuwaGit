@@ -39,20 +39,21 @@ class MyReposViewModel @Inject constructor(
 
     val currentRepoInfo: StateFlow<RepoInfo> = currentRepoManager.repoInfo
 
-    private fun calculateFolderSize(path: String): Long {
+    private fun calculateFolderSize(path: String, maxDepth: Int = 50): Long {
         return try {
             val file = File(path)
             if (!file.exists()) return 0L
             if (!file.isDirectory) return file.length()
 
             var size = 0L
-            val queue = ArrayDeque<File>()
-            queue.add(file)
+            val queue = ArrayDeque<Pair<File, Int>>()
+            queue.add(file to 0)
             while (queue.isNotEmpty()) {
-                val current = queue.removeFirst()
+                val (current, depth) = queue.removeFirst()
+                if (depth >= maxDepth) continue
                 current.listFiles()?.forEach { child ->
                     if (child.isDirectory) {
-                        queue.add(child)
+                        queue.add(child to depth + 1)
                     } else {
                         size += child.length()
                     }
@@ -104,12 +105,8 @@ class MyReposViewModel @Inject constructor(
 
     fun loadSavedRepos() {
         viewModelScope.launch {
-            val repos = repoDataStore.getAllRepos()
-            val currentPath = currentRepoManager.getRepoPath()
             val currentSizes = _uiState.value.repoSizes
-            val items = buildRepoItems(repos, currentPath, currentSizes)
-            _uiState.update { it.copy(savedRepos = repos, repoItems = items) }
-            items.filterNot { currentSizes.containsKey(it.path) }.forEach { calculateSizeAsync(it.path) }
+            _uiState.value.repoItems.filterNot { currentSizes.containsKey(it.path) }.forEach { calculateSizeAsync(it.path) }
         }
     }
 
