@@ -61,8 +61,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import jamgmilk.fuwagit.R
-import jamgmilk.fuwagit.domain.model.UiMessage
-import jamgmilk.fuwagit.domain.model.toResource
 import jamgmilk.fuwagit.domain.model.git.ConflictResult
 import jamgmilk.fuwagit.domain.model.git.ConflictStatus
 import jamgmilk.fuwagit.domain.model.git.GitCommit
@@ -76,12 +74,6 @@ enum class DangerousOperationType {
     REBASE,
     DELETE_TAG,
     PUSH_TAG
-}
-
-sealed class OperationResult {
-    data class Success(val message: UiMessage) : OperationResult()
-    data class Failure(val error: UiMessage, val suggestion: UiMessage? = null) : OperationResult()
-    data class Conflict(val conflictingFiles: List<String>, val message: UiMessage) : OperationResult()
 }
 
 /**
@@ -399,130 +391,6 @@ fun ResetConfirmDialog(
         dismissButton = {
             TextButton(onClick = onDismiss) {
                 Text(stringResource(R.string.action_cancel))
-            }
-        },
-        shape = RoundedCornerShape(24.dp)
-    )
-}
-
-@Composable
-fun OperationResultDialog(
-    result: OperationResult,
-    operationType: DangerousOperationType,
-    onDismiss: () -> Unit
-) {
-    val colors = MaterialTheme.colorScheme
-    val (icon, iconColor, title) = when (result) {
-        is OperationResult.Success -> Triple(Icons.Default.CheckCircle, colors.primary, stringResource(R.string.dialog_operation_successful))
-        is OperationResult.Failure -> Triple(Icons.Default.Warning, colors.error, stringResource(R.string.dialog_operation_failed))
-        is OperationResult.Conflict -> Triple(Icons.Default.Warning, colors.tertiary, stringResource(R.string.dialog_merge_conflicts))
-    }
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        icon = {
-            Box(
-                modifier = Modifier
-                    .size(56.dp)
-                    .background(iconColor.copy(alpha = 0.15f), CircleShape),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = iconColor,
-                    modifier = Modifier.size(28.dp)
-                )
-            }
-        },
-        title = {
-            Text(
-                text = title,
-                fontWeight = FontWeight.Bold,
-                style = MaterialTheme.typography.titleLarge
-            )
-        },
-        text = {
-            Column(
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                when (result) {
-                    is OperationResult.Success -> {
-                        Text(
-                            text = stringResource(result.message.toResource()),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = colors.onSurfaceVariant
-                        )
-                    }
-                    is OperationResult.Failure -> {
-                        Text(
-                            text = stringResource(R.string.dialog_error_format, stringResource(result.error.toResource())),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = colors.error
-                        )
-                        result.suggestion?.let { suggestion ->
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .background(colors.surfaceVariant.copy(alpha = 0.5f), RoundedCornerShape(8.dp))
-                                    .padding(10.dp)
-                            ) {
-                                Text(
-                                    text = stringResource(R.string.dialog_suggestion_format, stringResource(suggestion.toResource())),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = colors.onSurfaceVariant
-                                )
-                            }
-                        }
-                    }
-                    is OperationResult.Conflict -> {
-                        Text(
-                            text = stringResource(result.message.toResource()),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = colors.onSurfaceVariant
-                        )
-                        Text(
-                            text = stringResource(R.string.dialog_conflict_files_message),
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = colors.error
-                        )
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .background(colors.errorContainer.copy(alpha = 0.1f), RoundedCornerShape(8.dp))
-                                .padding(10.dp)
-                        ) {
-                            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                result.conflictingFiles.forEach { file ->
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Icon(
-                                            Icons.Default.Clear,
-                                            contentDescription = null,
-                                            tint = colors.error,
-                                            modifier = Modifier.size(14.dp)
-                                        )
-                                        Spacer(Modifier.width(6.dp))
-                                        Text(
-                                            text = file,
-                                            style = MaterialTheme.typography.bodySmall,
-                                            fontFamily = FontFamily.Monospace,
-                                            color = colors.error
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        confirmButton = {
-            Button(
-                onClick = onDismiss,
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Text(stringResource(R.string.action_ok))
             }
         },
         shape = RoundedCornerShape(24.dp)

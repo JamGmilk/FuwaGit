@@ -4,7 +4,6 @@ import androidx.compose.runtime.Stable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
-import jamgmilk.fuwagit.domain.model.UiMessage
 import jamgmilk.fuwagit.domain.model.credential.CloneCredential
 import jamgmilk.fuwagit.domain.model.credential.HttpsCredential
 import jamgmilk.fuwagit.domain.model.credential.SshKey
@@ -16,7 +15,6 @@ import jamgmilk.fuwagit.domain.usecase.git.GitStatusFacade
 import jamgmilk.fuwagit.domain.usecase.git.GitSyncFacade
 import jamgmilk.fuwagit.domain.usecase.git.MergeUseCase
 import jamgmilk.fuwagit.ui.components.DangerousOperationType
-import jamgmilk.fuwagit.ui.components.OperationResult
 import jamgmilk.fuwagit.ui.state.RepoStateManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -42,13 +40,19 @@ sealed class StatusEvent {
     data class FetchSuccess(val message: String) : StatusEvent()
     data class FetchError(val message: String) : StatusEvent()
     data object CredentialUnlockRequired : StatusEvent()
+    data class DiscardChangesSuccess(val fileName: String) : StatusEvent()
+    data class DiscardChangesError(val reason: String, val suggestion: String) : StatusEvent()
+    data class ConflictResolved(val message: String) : StatusEvent()
+    data class ConflictError(val message: String) : StatusEvent()
+    data class AbortRebaseSuccess(val message: String) : StatusEvent()
+    data class ContinueRebaseSuccess(val message: String) : StatusEvent()
 }
 
 @Stable
 data class StatusUiState(
     val isLoading: Boolean = false,
     val isCheckingRepo: Boolean = true,
-    val error: UiMessage? = null,
+    val error: String? = null,
     val repoPath: String? = null,
     val repoName: String? = null,
     val isGitRepo: Boolean = false,
@@ -57,19 +61,14 @@ data class StatusUiState(
     val branches: List<GitBranch> = emptyList(),
     val workspaceFiles: List<GitFileStatus> = emptyList(),
     val terminalOutput: List<String> = emptyList(),
-    // 危险操作相关状态
     val pendingOperation: DangerousOperationType? = null,
     val pendingOperationTarget: String? = null,
-    val operationResult: OperationResult? = null,
-    // 冲突解决相关状态
     val conflictResult: ConflictResult? = null,
     val isResolvingConflict: Boolean = false,
-    // 凭证相关状态
     val selectedCredentialUuid: String? = null,
     val selectedSshKeyUuid: String? = null,
     val httpsCredentials: List<HttpsCredential> = emptyList(),
     val sshKeys: List<SshKey> = emptyList(),
-    // 解锁状态
     val isCredentialUnlocked: Boolean = false,
     val pendingCredentialOperation: suspend () -> Unit = {}
 )
@@ -139,7 +138,7 @@ class StatusViewModel @Inject constructor(
                 }
                 .onError { e ->
                     appendTerminalLog("git init", "Error: ${e.message}")
-                    _uiState.update { it.copy(isLoading = false, error = UiMessage.Generic(e.message ?: "Unknown error")) }
+                    _uiState.update { it.copy(isLoading = false, error = e.message ?: "Unknown error") }
                 }
         }
     }
@@ -189,7 +188,7 @@ class StatusViewModel @Inject constructor(
                     }
                 }
                 .onError { e ->
-                    _uiState.update { it.copy(error = UiMessage.Generic(e.message ?: "Unknown error"), isLoading = false) }
+                    _uiState.update { it.copy(error = e.message, isLoading = false) }
                 }
 
             branchesResult
@@ -279,24 +278,24 @@ class StatusViewModel @Inject constructor(
                 .onSuccess {
                     _uiState.update {
                         it.copy(
-                            operationResult = OperationResult.Success(UiMessage.Discard.ChangesDiscarded(filePath)),
                             pendingOperation = null,
                             pendingOperationTarget = null
                         )
                     }
+                    _events.emit(StatusEvent.DiscardChangesSuccess(filePath))
                     refreshWorkspace()
                 }
                 .onError { e ->
                     _uiState.update {
                         it.copy(
-                            operationResult = OperationResult.Failure(
-                                UiMessage.Generic(e.message ?: "Unknown error"),
-                                UiMessage.Discard.NotStagedOrLocked
-                            ),
                             pendingOperation = null,
                             pendingOperationTarget = null
                         )
                     }
+                    _events.emit(StatusEvent.DiscardChangesError(
+                        e.message ?: "Unknown error",
+                        "Make sure the file is not staged or locked by another process."
+                    ))
                 }
         }
     }
@@ -473,10 +472,9 @@ class StatusViewModel @Inject constructor(
         _uiState.update { it.copy(terminalOutput = it.terminalOutput + line) }
     }
 
-    fun clearOperationResult() {
+    fun clearPendingOperation() {
         _uiState.update {
             it.copy(
-                operationResult = null,
                 pendingOperation = null,
                 pendingOperationTarget = null
             )
@@ -499,7 +497,7 @@ class StatusViewModel @Inject constructor(
         viewModelScope.launch {
             mergeUseCase.resolveConflict(path, filePath)
                 .onSuccess { checkConflictStatus() }
-                .onError { e -> _uiState.update { it.copy(error = UiMessage.Generic(e.message ?: "Unknown error")) } }
+                .onError { e -> _events.emit(StatusEvent.ConflictError(e.message ?: "Failed to resolve conflict")) }
         }
     }
 
@@ -513,12 +511,12 @@ class StatusViewModel @Inject constructor(
                     } else {
                         refreshWorkspace()
                         _uiState.update {
-                            it.copy(isResolvingConflict = false, conflictResult = null,
-                                operationResult = OperationResult.Success(UiMessage.Conflict.Resolved))
+                            it.copy(isResolvingConflict = false, conflictResult = null)
                         }
+                        _events.emit(StatusEvent.ConflictResolved("Conflicts resolved"))
                     }
                 }
-                .onError { e -> _uiState.update { it.copy(error = UiMessage.Generic(e.message ?: "Unknown error")) } }
+                .onError { e -> _events.emit(StatusEvent.ConflictError(e.message ?: "Failed to check conflict status")) }
         }
     }
 
@@ -530,12 +528,12 @@ class StatusViewModel @Inject constructor(
                     if (result.allResolved || result.allStaged) {
                         refreshWorkspace()
                         _uiState.update {
-                            it.copy(isResolvingConflict = false, conflictResult = null,
-                                operationResult = OperationResult.Success(UiMessage.Conflict.Resolved))
+                            it.copy(isResolvingConflict = false, conflictResult = null)
                         }
+                        _events.emit(StatusEvent.ConflictResolved("Conflicts resolved"))
                     }
                 }
-                .onError { e -> _uiState.update { it.copy(error = UiMessage.Generic(e.message ?: "Unknown error")) } }
+                .onError { e -> _events.emit(StatusEvent.ConflictError(e.message ?: "Failed to finish conflict resolution")) }
         }
     }
 
@@ -549,12 +547,12 @@ class StatusViewModel @Inject constructor(
             mergeUseCase.abortRebase(path)
                 .onSuccess { result ->
                     _uiState.update {
-                        it.copy(isResolvingConflict = false, conflictResult = null,
-                            operationResult = OperationResult.Success(UiMessage.Generic(result)))
+                        it.copy(isResolvingConflict = false, conflictResult = null)
                     }
+                    _events.emit(StatusEvent.AbortRebaseSuccess(result))
                     refreshWorkspace()
                 }
-                .onError { e -> _uiState.update { it.copy(error = UiMessage.Generic(e.message ?: "Unknown error")) } }
+                .onError { e -> _events.emit(StatusEvent.ConflictError(e.message ?: "Failed to abort rebase")) }
         }
     }
 
@@ -564,12 +562,12 @@ class StatusViewModel @Inject constructor(
             mergeUseCase.continueRebase(path)
                 .onSuccess { result ->
                     _uiState.update {
-                        it.copy(isResolvingConflict = false, conflictResult = null,
-                            operationResult = OperationResult.Success(UiMessage.Generic(result)))
+                        it.copy(isResolvingConflict = false, conflictResult = null)
                     }
+                    _events.emit(StatusEvent.ContinueRebaseSuccess(result))
                     refreshWorkspace()
                 }
-                .onError { e -> _uiState.update { it.copy(error = UiMessage.Generic(e.message ?: "Unknown error")) } }
+                .onError { e -> _events.emit(StatusEvent.ConflictError(e.message ?: "Failed to continue rebase")) }
         }
     }
 

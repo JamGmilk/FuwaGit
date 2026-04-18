@@ -1,19 +1,30 @@
 package jamgmilk.fuwagit.ui.screen.credentials
 
+import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import jamgmilk.fuwagit.core.result.AppResult
-import jamgmilk.fuwagit.domain.model.UiMessage
 import jamgmilk.fuwagit.domain.usecase.credential.CredentialStoreFacade
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
-import androidx.fragment.app.FragmentActivity
+
 import androidx.compose.runtime.Stable
+
+sealed class MasterPasswordEvent {
+    data object SetupSuccess : MasterPasswordEvent()
+    data object ChangeSuccess : MasterPasswordEvent()
+    data class Error(val message: String) : MasterPasswordEvent()
+    data object BiometricEnabled : MasterPasswordEvent()
+    data class BiometricError(val message: String) : MasterPasswordEvent()
+}
 
 @Stable
 data class MasterPasswordUiState(
@@ -21,7 +32,7 @@ data class MasterPasswordUiState(
     val passwordHint: String? = null,
     val isBiometricEnabled: Boolean = false,
     val isLoading: Boolean = false,
-    val error: UiMessage? = null,
+    val error: String? = null,
     val isComplete: Boolean = false
 )
 
@@ -32,6 +43,9 @@ class MasterPasswordViewModel @Inject constructor(
 
     private val _uiState = MutableStateFlow(MasterPasswordUiState())
     val uiState: StateFlow<MasterPasswordUiState> = _uiState.asStateFlow()
+
+    private val _events = MutableSharedFlow<MasterPasswordEvent>()
+    val events: SharedFlow<MasterPasswordEvent> = _events.asSharedFlow()
 
     init {
         initialize()
@@ -49,11 +63,11 @@ class MasterPasswordViewModel @Inject constructor(
 
     fun setupMasterPassword(password: String, confirmPassword: String, hint: String?) {
         if (password != confirmPassword) {
-            _uiState.update { it.copy(error = UiMessage.Credential.PasswordMismatch) }
+            _uiState.update { it.copy(error = "Passwords do not match") }
             return
         }
         if (password.length < 6) {
-            _uiState.update { it.copy(error = UiMessage.Credential.PasswordMinChars()) }
+            _uiState.update { it.copy(error = "Password must be at least 6 characters") }
             return
         }
 
@@ -69,25 +83,27 @@ class MasterPasswordViewModel @Inject constructor(
                             isComplete = true
                         )
                     }
+                    _events.emit(MasterPasswordEvent.SetupSuccess)
                 }
                 .onError { e ->
                     _uiState.update {
                         it.copy(
                             isLoading = false,
-                            error = UiMessage.Generic(e.message ?: "Setup failed")
+                            error = e.message ?: "Setup failed"
                         )
                     }
+                    _events.emit(MasterPasswordEvent.Error(e.message ?: "Setup failed"))
                 }
         }
     }
 
     fun changeMasterPassword(oldPassword: String, newPassword: String, confirmPassword: String, hint: String?) {
         if (newPassword != confirmPassword) {
-            _uiState.update { it.copy(error = UiMessage.Credential.PasswordMismatch) }
+            _uiState.update { it.copy(error = "Passwords do not match") }
             return
         }
         if (newPassword.length < 6) {
-            _uiState.update { it.copy(error = UiMessage.Credential.PasswordMinChars()) }
+            _uiState.update { it.copy(error = "Password must be at least 6 characters") }
             return
         }
 
@@ -103,14 +119,16 @@ class MasterPasswordViewModel @Inject constructor(
                             isComplete = true
                         )
                     }
+                    _events.emit(MasterPasswordEvent.ChangeSuccess)
                 }
-                .onError { e ->
+                .onError {
                     _uiState.update {
                         it.copy(
                             isLoading = false,
-                            error = UiMessage.Credential.IncorrectOldPassword
+                            error = "Incorrect old password"
                         )
                     }
+                    _events.emit(MasterPasswordEvent.Error("Incorrect old password"))
                 }
         }
     }
@@ -125,9 +143,11 @@ class MasterPasswordViewModel @Inject constructor(
                 when (result) {
                     is AppResult.Success -> {
                         _uiState.update { it.copy(isBiometricEnabled = true) }
+                        viewModelScope.launch { _events.emit(MasterPasswordEvent.BiometricEnabled) }
                     }
                     is AppResult.Error -> {
-                        _uiState.update { it.copy(error = UiMessage.Generic(result.message ?: "Biometric error")) }
+                        _uiState.update { it.copy(error = result.message ?: "Biometric error") }
+                        viewModelScope.launch { _events.emit(MasterPasswordEvent.BiometricError(result.message ?: "Biometric error")) }
                     }
                 }
             }

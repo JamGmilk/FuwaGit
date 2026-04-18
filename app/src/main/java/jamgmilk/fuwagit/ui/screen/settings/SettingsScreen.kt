@@ -114,7 +114,6 @@ import jamgmilk.fuwagit.ui.components.FilePickerDialog
 import jamgmilk.fuwagit.ui.components.ScreenTemplate
 import jamgmilk.fuwagit.ui.screen.credentials.CredentialStoreViewModel
 import jamgmilk.fuwagit.ui.screen.credentials.UnlockDialog
-import jamgmilk.fuwagit.domain.model.toResource
 import jamgmilk.fuwagit.util.CrashLogManager
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
@@ -165,8 +164,7 @@ fun SettingsScreen(
 
     LaunchedEffect(credentialsUiState.error) {
         credentialsUiState.error?.let { errorMessage ->
-            val message = resources.getString(errorMessage.toResource())
-            Toast.makeText(context, message, android.widget.Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, errorMessage, android.widget.Toast.LENGTH_SHORT).show()
             credentialsViewModel.clearError()
         }
     }
@@ -192,14 +190,12 @@ fun SettingsScreen(
     }
 
     var previousMasterPasswordSet by remember { mutableStateOf(credentialsUiState.isMasterPasswordSet) }
-    val passwordSuccessMsg = stringResource(R.string.credentials_master_password_set_successfully)
 
     LaunchedEffect(credentialsUiState.isMasterPasswordSet) {
         if (!previousMasterPasswordSet && credentialsUiState.isMasterPasswordSet) {
             scope.launch {
                 snackbarHostState.showSnackbar(
-                    message = passwordSuccessMsg,
-                    duration = SnackbarDuration.Short
+                    message = context.getString(R.string.credentials_master_password_set_successfully)
                 )
             }
         }
@@ -260,8 +256,7 @@ fun SettingsScreen(
                 if (!credentialsUiState.isMasterPasswordSet) {
                     scope.launch {
                         snackbarHostState.showSnackbar(
-                            message = context.getString(R.string.settings_please_set_master_password_first),
-                            duration = SnackbarDuration.Short
+                            message = context.getString(R.string.settings_please_set_master_password_first)
                         )
                     }
                 } else {
@@ -318,11 +313,6 @@ fun SettingsScreen(
         //     modifier = Modifier.fillMaxWidth()
         // )
 
-        val knownHostsDeletedText = stringResource(R.string.settings_clear_known_hosts_deleted)
-        val commitEditmsgDeletedText = stringResource(R.string.settings_commit_editmsg_deleted)
-        val noCommitEditmsgText = stringResource(R.string.settings_no_commit_editmsg)
-        val noRepoSelectedText = stringResource(R.string.settings_no_repository_selected)
-
         DeveloperOptionsCard(
             verboseLogging = settingsUiState.verboseLogging,
             onVerboseLoggingChange = { settingsViewModel.saveVerboseLogging(it) },
@@ -330,7 +320,7 @@ fun SettingsScreen(
             onResetOnboarding = { settingsViewModel.resetOnboarding() },
             onClearKnownHostsComplete = {
                 scope.launch {
-                    snackbarHostState.showSnackbar(knownHostsDeletedText)
+                    snackbarHostState.showSnackbar(context.getString(R.string.settings_clear_known_hosts_deleted))
                 }
             },
             onClearCommitEditMsgComplete = {
@@ -340,12 +330,12 @@ fun SettingsScreen(
                         val commitEditMsg = java.io.File(repoPath, ".git/COMMIT_EDITMSG")
                         if (commitEditMsg.exists()) {
                             commitEditMsg.delete()
-                            snackbarHostState.showSnackbar(commitEditmsgDeletedText)
+                            snackbarHostState.showSnackbar(context.getString(R.string.settings_commit_editmsg_deleted))
                         } else {
-                            snackbarHostState.showSnackbar(noCommitEditmsgText)
+                            snackbarHostState.showSnackbar(context.getString(R.string.settings_no_commit_editmsg))
                         }
                     } else {
-                        snackbarHostState.showSnackbar(noRepoSelectedText)
+                        snackbarHostState.showSnackbar(context.getString(R.string.settings_no_repository_selected))
                     }
                 }
             },

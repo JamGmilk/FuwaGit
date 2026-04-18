@@ -72,12 +72,9 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import jamgmilk.fuwagit.R
 import jamgmilk.fuwagit.domain.model.git.GitBranch
-import jamgmilk.fuwagit.domain.model.toResource
 import jamgmilk.fuwagit.ui.components.ConflictResolutionDialog
 import jamgmilk.fuwagit.ui.components.DangerousOperationType
 import jamgmilk.fuwagit.ui.components.DialogWithIcon
-import jamgmilk.fuwagit.ui.components.OperationResult
-import jamgmilk.fuwagit.ui.components.OperationResultDialog
 import jamgmilk.fuwagit.ui.components.ScreenTemplate
 import jamgmilk.fuwagit.ui.components.TipInDialog
 import jamgmilk.fuwagit.ui.components.TwoStepConfirmDialog
@@ -306,8 +303,69 @@ fun BranchesScreen(
         )
     }
 
-    // TwoStepConfirmDialog
+    // Event handling for snackbar
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+
+    LaunchedEffect(Unit) {
+        branchesViewModel.events.collect { event ->
+            when (event) {
+                is BranchUiEvent.DeleteSuccess -> {
+                    scope.launch { snackbarHostState.showSnackbar(context.getString(R.string.vm_branch_deleted_success, event.branchName)) }
+                }
+                is BranchUiEvent.DeleteError -> {
+                    val message = if (event.suggestion != null) {
+                        "${event.reason}\n${event.suggestion}"
+                    } else {
+                        event.reason
+                    }
+                    scope.launch { snackbarHostState.showSnackbar(message) }
+                }
+                is BranchUiEvent.MergeSuccess -> {
+                    scope.launch { snackbarHostState.showSnackbar(context.getString(R.string.vm_merge_success, event.branchName)) }
+                }
+                is BranchUiEvent.MergeConflict -> {
+                    scope.launch { snackbarHostState.showSnackbar(event.hint) }
+                }
+                is BranchUiEvent.MergeError -> {
+                    scope.launch { snackbarHostState.showSnackbar(event.suggestion) }
+                }
+                is BranchUiEvent.RebaseSuccess -> {
+                    scope.launch { snackbarHostState.showSnackbar(context.getString(R.string.vm_rebase_success, event.branchName)) }
+                }
+                is BranchUiEvent.RebaseConflict -> {
+                    scope.launch { snackbarHostState.showSnackbar(event.hint) }
+                }
+                is BranchUiEvent.RebaseError -> {
+                    scope.launch { snackbarHostState.showSnackbar(event.suggestion) }
+                }
+                is BranchUiEvent.CheckoutSuccess -> {
+                    scope.launch { snackbarHostState.showSnackbar(context.getString(R.string.vm_checkout_success, event.branchName)) }
+                }
+                is BranchUiEvent.CreateBranchSuccess -> {
+                    scope.launch { snackbarHostState.showSnackbar(context.getString(R.string.vm_branch_created_success, event.branchName)) }
+                }
+                is BranchUiEvent.RenameSuccess -> {
+                    scope.launch { snackbarHostState.showSnackbar(context.getString(R.string.vm_branch_renamed_success, event.newName)) }
+                }
+                is BranchUiEvent.ConflictResolved -> {
+                    scope.launch { snackbarHostState.showSnackbar(event.message) }
+                }
+                is BranchUiEvent.AbortRebaseSuccess -> {
+                    scope.launch { snackbarHostState.showSnackbar(event.message) }
+                }
+                is BranchUiEvent.ContinueRebaseSuccess -> {
+                    scope.launch { snackbarHostState.showSnackbar(event.message) }
+                }
+                is BranchUiEvent.Error -> {
+                    scope.launch { snackbarHostState.showSnackbar(event.message) }
+                }
+            }
+        }
+    }
+
     val pendingOperation = uiState.pendingOperation
+    val conflictResult = uiState.conflictResult
     val pendingTarget = uiState.pendingOperationTarget
     if (pendingOperation != null && pendingTarget != null) {
         when (pendingOperation) {
@@ -349,7 +407,6 @@ fun BranchesScreen(
     }
 
     // ConflictResolutionDialog
-    val conflictResult = uiState.conflictResult
     if (conflictResult != null && uiState.isResolvingConflict) {
         val isRebase = conflictResult.operationType == "REBASE"
         val allResolved = conflictResult.allResolved
@@ -376,28 +433,6 @@ fun BranchesScreen(
             },
             onDismiss = { branchesViewModel.cancelConflictResolution() }
         )
-    }
-
-    // OperationResultDialog
-    val operationResult = uiState.operationResult
-    if (operationResult != null && operationResult !is OperationResult.Success) {
-        val operationType = pendingOperation ?: DangerousOperationType.DELETE_BRANCH
-        OperationResultDialog(
-            result = operationResult,
-            operationType = operationType,
-            onDismiss = { branchesViewModel.clearOperationResult() }
-        )
-    }
-
-    val snackbarMessage = if (operationResult is OperationResult.Success) {
-        stringResource(operationResult.message.toResource())
-    } else null
-
-    LaunchedEffect(snackbarMessage) {
-        snackbarMessage?.let {
-            snackbarHostState.showSnackbar(it)
-            branchesViewModel.clearOperationResult()
-        }
     }
 }
 
@@ -725,7 +760,7 @@ private fun BranchItem(
                         onClick = {
                             val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                             clipboard.setPrimaryClip(ClipData.newPlainText(strings.branchNameClipboard, branch.name))
-                            scope.launch { snackbarHostState.showSnackbar(strings.nameCopied) }
+                            scope.launch { snackbarHostState.showSnackbar(context.getString(R.string.branches_name_copied)) }
                             showMenu = false
                         },
                         leadingIcon = {
@@ -754,7 +789,7 @@ private fun BranchItem(
                             text = { Text(stringResource(R.string.branches_merge_into_current)) },
                             onClick = {
                                 onMerge?.invoke() ?: run {
-                                    scope.launch { snackbarHostState.showSnackbar(strings.mergeOnlyLocal) }
+                                    scope.launch { snackbarHostState.showSnackbar(context.getString(R.string.branches_merge_only_local)) }
                                 }
                                 showMenu = false
                             },
@@ -767,7 +802,7 @@ private fun BranchItem(
                             text = { Text(stringResource(R.string.branches_rebase_onto_current)) },
                             onClick = {
                                 onRebase?.invoke() ?: run {
-                                    scope.launch { snackbarHostState.showSnackbar(strings.rebaseOnlyLocal) }
+                                    scope.launch { snackbarHostState.showSnackbar(context.getString(R.string.branches_rebase_only_local)) }
                                 }
                                 showMenu = false
                             },
@@ -780,7 +815,7 @@ private fun BranchItem(
                             text = { Text(stringResource(R.string.branches_rename)) },
                             onClick = {
                                 onRename?.invoke() ?: run {
-                                    scope.launch { snackbarHostState.showSnackbar(strings.renameOnlyLocal) }
+                                    scope.launch { snackbarHostState.showSnackbar(context.getString(R.string.branches_rename_only_local)) }
                                 }
                                 showMenu = false
                             },
@@ -793,7 +828,7 @@ private fun BranchItem(
                             text = { Text(stringResource(R.string.branches_delete_branch)) },
                             onClick = {
                                 onDelete?.invoke() ?: run {
-                                    scope.launch { snackbarHostState.showSnackbar(strings.deleteOnlyLocal) }
+                                    scope.launch { snackbarHostState.showSnackbar(context.getString(R.string.branches_delete_only_local)) }
                                 }
                                 showMenu = false
                             },

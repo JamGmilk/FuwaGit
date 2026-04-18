@@ -62,8 +62,6 @@ import androidx.fragment.app.FragmentActivity
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import jamgmilk.fuwagit.R
-import jamgmilk.fuwagit.domain.model.UiMessage
-import jamgmilk.fuwagit.domain.model.toResource
 import jamgmilk.fuwagit.ui.components.SubSettingsTemplate
 
 enum class MasterPasswordMode {
@@ -130,7 +128,7 @@ private fun MasterPasswordContent(
     mode: MasterPasswordMode,
     passwordHint: String?,
     isBiometricEnabled: Boolean,
-    error: UiMessage?,
+    error: String?,
     isLoading: Boolean,
     onSetup: (password: String, confirmPassword: String, hint: String?) -> Unit,
     onChange: (oldPassword: String, newPassword: String, confirmPassword: String, hint: String?) -> Unit,
@@ -165,6 +163,8 @@ private fun MasterPasswordContent(
     } else {
         oldPassword.isNotBlank() && password.length >= 6 && password == confirmPassword
     }
+
+    val isIncorrectOldPassword = error == "Incorrect old password"
 
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -221,7 +221,7 @@ private fun MasterPasswordContent(
                     value = oldPassword,
                     onValueChange = {
                         oldPassword = it
-                        if (error == UiMessage.Credential.IncorrectOldPassword) {
+                        if (isIncorrectOldPassword) {
                             onClearError()
                         }
                     },
@@ -240,9 +240,9 @@ private fun MasterPasswordContent(
                         imeAction = ImeAction.Next
                     ),
                     singleLine = true,
-                    isError = error == UiMessage.Credential.IncorrectOldPassword,
-                    supportingText = if (error == UiMessage.Credential.IncorrectOldPassword) {
-                        { Text(stringResource(error.toResource())) }
+                    isError = isIncorrectOldPassword,
+                    supportingText = if (isIncorrectOldPassword) {
+                        { Text(stringResource(R.string.credentials_incorrect_password)) }
                     } else null,
                     shape = RoundedCornerShape(12.dp),
                     modifier = Modifier.fillMaxWidth(),
@@ -354,9 +354,9 @@ private fun MasterPasswordContent(
             )
 
             error?.let { errorMsg ->
-                if (errorMsg != UiMessage.Credential.IncorrectOldPassword) {
+                if (!isIncorrectOldPassword) {
                     Text(
-                        text = stringResource(errorMsg.toResource()),
+                        text = errorMsg,
                         color = colors.error,
                         style = MaterialTheme.typography.bodySmall
                     )

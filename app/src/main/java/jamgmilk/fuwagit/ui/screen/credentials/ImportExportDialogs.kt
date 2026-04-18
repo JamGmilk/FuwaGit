@@ -60,11 +60,11 @@ fun ExportCredentialsDialog(
     onDismiss: () -> Unit
 ) {
     val colors = MaterialTheme.colorScheme
+    val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val clipboardManager = LocalContext.current.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+    val clipboardManager = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var isLoading by remember { mutableStateOf(false) }
-    val copiedMessage = stringResource(R.string.credentials_copied_to_clipboard)
 
     LaunchedEffect(Unit) {
         isLoading = true
@@ -99,7 +99,7 @@ fun ExportCredentialsDialog(
                     Surface(shape = RoundedCornerShape(12.dp), color = colors.surfaceVariant.copy(alpha = 0.5f), modifier = Modifier.fillMaxWidth()) {
                         Row(modifier = Modifier.fillMaxWidth().padding(12.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                             Text(text = "${exportedData.take(50)}...", style = MaterialTheme.typography.bodySmall, fontFamily = FontFamily.Monospace, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
-                            IconButton(onClick = { clipboardManager.setPrimaryClip(ClipData.newPlainText(null, exportedData)); scope.launch { snackbarHostState.showSnackbar(copiedMessage) } }) {
+                            IconButton(onClick = { clipboardManager.setPrimaryClip(ClipData.newPlainText(null, exportedData)); scope.launch { snackbarHostState.showSnackbar(context.getString(R.string.credentials_copied_to_clipboard)) } }) {
                                 Icon(Icons.Default.ContentCopy, contentDescription = stringResource(R.string.action_copy), tint = colors.onSurfaceVariant)
                             }
                         }

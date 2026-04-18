@@ -5,20 +5,31 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import jamgmilk.fuwagit.core.result.AppResult
-import jamgmilk.fuwagit.domain.model.UiMessage
 import jamgmilk.fuwagit.domain.model.credential.HttpsCredential
 import jamgmilk.fuwagit.domain.model.credential.SshKey
 import jamgmilk.fuwagit.domain.usecase.credential.CredentialStoreFacade
 import jamgmilk.fuwagit.domain.usecase.git.TestSshConnectionUseCase
 import jamgmilk.fuwagit.ui.screen.permissions.SshTestResult
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 import androidx.compose.runtime.Stable
+
+sealed class CredentialStoreEvent {
+    data object CredentialAdded : CredentialStoreEvent()
+    data object CredentialDeleted : CredentialStoreEvent()
+    data object CredentialExported : CredentialStoreEvent()
+    data object CredentialImported : CredentialStoreEvent()
+    data object BiometricEnabled : CredentialStoreEvent()
+    data class Error(val message: String) : CredentialStoreEvent()
+}
 
 @Stable
 data class CredentialsStoreUiState(
@@ -27,12 +38,12 @@ data class CredentialsStoreUiState(
     val isDecryptionUnlocked: Boolean = false,
     val showUnlockDialog: Boolean = false,
     val showChangePasswordDialog: Boolean = false,
-    val changePasswordError: UiMessage? = null,
+    val changePasswordError: String? = null,
     val passwordHint: String? = null,
     val httpsCredentials: List<HttpsCredential> = emptyList(),
     val sshKeys: List<SshKey> = emptyList(),
     val isLoading: Boolean = false,
-    val error: UiMessage? = null,
+    val error: String? = null,
     val exportedData: String? = null,
     val showExportDialog: Boolean = false,
     val showImportDialog: Boolean = false,
@@ -47,6 +58,9 @@ class CredentialStoreViewModel @Inject constructor(
 
     private val _uiState = MutableStateFlow(CredentialsStoreUiState())
     val uiState: StateFlow<CredentialsStoreUiState> = _uiState.asStateFlow()
+
+    private val _events = MutableSharedFlow<CredentialStoreEvent>()
+    val events: SharedFlow<CredentialStoreEvent> = _events.asSharedFlow()
 
     init {
         initialize()
@@ -114,28 +128,40 @@ class CredentialStoreViewModel @Inject constructor(
     fun addHttpsCredential(host: String, username: String, password: String) {
         executeWithLoading {
             credentialFacade.addHttpsCredential(host, username, password)
-                .onSuccess { loadCredentials() }
+                .onSuccess {
+                    _events.emit(CredentialStoreEvent.CredentialAdded)
+                    loadCredentials()
+                }
         }
     }
 
     fun deleteHttpsCredential(uuid: String) {
         executeWithLoading {
             credentialFacade.deleteHttpsCredential(uuid)
-                .onSuccess { loadCredentials() }
+                .onSuccess {
+                    _events.emit(CredentialStoreEvent.CredentialDeleted)
+                    loadCredentials()
+                }
         }
     }
 
     fun addSshKey(name: String, type: String, publicKey: String, privateKey: String, passphrase: String?, fingerprint: String) {
         executeWithLoading {
             credentialFacade.addSshKey(name, type, publicKey, privateKey, passphrase, fingerprint)
-                .onSuccess { loadCredentials() }
+                .onSuccess {
+                    _events.emit(CredentialStoreEvent.CredentialAdded)
+                    loadCredentials()
+                }
         }
     }
 
     fun deleteSshKey(uuid: String) {
         executeWithLoading {
             credentialFacade.deleteSshKey(uuid)
-                .onSuccess { loadCredentials() }
+                .onSuccess {
+                    _events.emit(CredentialStoreEvent.CredentialDeleted)
+                    loadCredentials()
+                }
         }
     }
 
@@ -149,6 +175,7 @@ class CredentialStoreViewModel @Inject constructor(
                             showExportDialog = true
                         )
                     }
+                    _events.emit(CredentialStoreEvent.CredentialExported)
                 }
         }
     }
@@ -163,6 +190,7 @@ class CredentialStoreViewModel @Inject constructor(
                             importSuccess = true
                         )
                     }
+                    _events.emit(CredentialStoreEvent.CredentialImported)
                     loadCredentials()
                 }
         }
@@ -174,9 +202,11 @@ class CredentialStoreViewModel @Inject constructor(
                 when (result) {
                     is AppResult.Success -> {
                         _uiState.update { it.copy(isBiometricEnabled = true) }
+                        viewModelScope.launch { _events.emit(CredentialStoreEvent.BiometricEnabled) }
                     }
                     is AppResult.Error -> {
-                        _uiState.update { it.copy(error = UiMessage.Generic(result.message ?: "Biometric error")) }
+                        _uiState.update { it.copy(error = result.message ?: "Biometric error") }
+                        viewModelScope.launch { _events.emit(CredentialStoreEvent.Error(result.message ?: "Biometric error")) }
                     }
                 }
             }
@@ -197,7 +227,8 @@ class CredentialStoreViewModel @Inject constructor(
                     loadCredentials()
                 }
                 is AppResult.Error -> {
-                    _uiState.update { it.copy(error = UiMessage.Generic(result.message ?: "Biometric error")) }
+                    _uiState.update { it.copy(error = result.message ?: "Biometric error") }
+                    viewModelScope.launch { _events.emit(CredentialStoreEvent.Error(result.message ?: "Biometric error")) }
                 }
             }
         }
@@ -251,11 +282,11 @@ class CredentialStoreViewModel @Inject constructor(
 
     fun changeMasterPassword(oldPassword: String, newPassword: String, confirmPassword: String, hint: String?) {
         if (newPassword != confirmPassword) {
-            _uiState.update { it.copy(changePasswordError = UiMessage.Credential.PasswordMismatch) }
+            _uiState.update { it.copy(changePasswordError = "Passwords do not match") }
             return
         }
         if (newPassword.length < 6) {
-            _uiState.update { it.copy(changePasswordError = UiMessage.Credential.PasswordMinChars()) }
+            _uiState.update { it.copy(changePasswordError = "Password must be at least 6 characters") }
             return
         }
 
@@ -274,11 +305,11 @@ class CredentialStoreViewModel @Inject constructor(
                         )
                     }
                 }
-                .onError { e ->
+                .onError {
                     _uiState.update {
                         it.copy(
                             isLoading = false,
-                            changePasswordError = UiMessage.Credential.IncorrectOldPassword
+                            changePasswordError = "Incorrect old password"
                         )
                     }
                 }
@@ -302,7 +333,7 @@ class CredentialStoreViewModel @Inject constructor(
             _uiState.update { it.copy(isLoading = true, error = null) }
             block()
                 .onError { e ->
-                    _uiState.update { it.copy(error = UiMessage.Generic(e.message ?: "Unknown error")) }
+                    _uiState.update { it.copy(error = e.message ?: "Unknown error") }
                 }
             _uiState.update { it.copy(isLoading = false) }
         }

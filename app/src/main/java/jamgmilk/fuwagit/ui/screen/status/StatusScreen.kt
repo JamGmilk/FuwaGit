@@ -25,9 +25,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -35,9 +37,9 @@ import jamgmilk.fuwagit.R
 import jamgmilk.fuwagit.domain.model.git.GitChangeType
 import jamgmilk.fuwagit.domain.model.git.GitFileStatus
 import jamgmilk.fuwagit.ui.components.DangerousOperationType
-import jamgmilk.fuwagit.ui.components.OperationResultDialog
 import jamgmilk.fuwagit.ui.components.ScreenTemplate
 import jamgmilk.fuwagit.ui.components.TwoStepConfirmDialog
+import kotlinx.coroutines.launch
 
 data class StatusStats(
     val totalChanges: Int,
@@ -65,11 +67,9 @@ fun StatusScreen(
     val terminalLogs = uiState.terminalOutput
     val currentBranch = uiState.currentBranch
     val colors = MaterialTheme.colorScheme
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
-    val pushFailedText = stringResource(R.string.status_push_failed, "")
-    val pullFailedText = stringResource(R.string.status_pull_failed, "")
-    val fetchFailedText = stringResource(R.string.status_fetch_failed, "")
-    val credentialUnlockText = stringResource(R.string.status_credential_unlock_required)
 
     LaunchedEffect(uiState.repoPath) {
         if (uiState.repoPath != null) {
@@ -81,25 +81,44 @@ fun StatusScreen(
         statusViewModel.events.collect { event ->
             when (event) {
                 is StatusEvent.PushSuccess -> {
-                    snackbarHostState.showSnackbar(event.message)
+                    scope.launch { snackbarHostState.showSnackbar(event.message) }
                 }
                 is StatusEvent.PushError -> {
-                    snackbarHostState.showSnackbar(pushFailedText.replace("%1\$s", event.message))
+                    scope.launch { snackbarHostState.showSnackbar(context.getString(R.string.status_push_failed, event.message)) }
                 }
                 is StatusEvent.PullSuccess -> {
-                    snackbarHostState.showSnackbar(event.message)
+                    scope.launch { snackbarHostState.showSnackbar(event.message) }
                 }
                 is StatusEvent.PullError -> {
-                    snackbarHostState.showSnackbar(pullFailedText.replace("%1\$s", event.message))
+                    scope.launch { snackbarHostState.showSnackbar(context.getString(R.string.status_pull_failed, event.message)) }
                 }
                 is StatusEvent.FetchSuccess -> {
-                    snackbarHostState.showSnackbar(event.message)
+                    scope.launch { snackbarHostState.showSnackbar(event.message) }
                 }
                 is StatusEvent.FetchError -> {
-                    snackbarHostState.showSnackbar(fetchFailedText.replace("%1\$s", event.message))
+                    scope.launch { snackbarHostState.showSnackbar(context.getString(R.string.status_fetch_failed, event.message)) }
                 }
                 is StatusEvent.CredentialUnlockRequired -> {
-                    snackbarHostState.showSnackbar(credentialUnlockText)
+                    scope.launch { snackbarHostState.showSnackbar(context.getString(R.string.status_credential_unlock_required)) }
+                }
+                is StatusEvent.DiscardChangesSuccess -> {
+                    scope.launch { snackbarHostState.showSnackbar(context.getString(R.string.vm_changes_discarded, event.fileName)) }
+                }
+                is StatusEvent.DiscardChangesError -> {
+                    val message = "${event.reason}\n${event.suggestion}"
+                    scope.launch { snackbarHostState.showSnackbar(message) }
+                }
+                is StatusEvent.ConflictResolved -> {
+                    scope.launch { snackbarHostState.showSnackbar(event.message) }
+                }
+                is StatusEvent.ConflictError -> {
+                    scope.launch { snackbarHostState.showSnackbar(event.message) }
+                }
+                is StatusEvent.AbortRebaseSuccess -> {
+                    scope.launch { snackbarHostState.showSnackbar(event.message) }
+                }
+                is StatusEvent.ContinueRebaseSuccess -> {
+                    scope.launch { snackbarHostState.showSnackbar(event.message) }
                 }
             }
         }
@@ -317,17 +336,6 @@ fun StatusScreen(
                 }
             },
             onDismiss = { statusViewModel.cancelConflictResolution() }
-        )
-    }
-
-    // Operation result feedback dialog
-    val operationResult = uiState.operationResult
-    if (operationResult != null) {
-        val operationType = pendingOperation ?: DangerousOperationType.DISCARD_CHANGES
-        OperationResultDialog(
-            result = operationResult,
-            operationType = operationType,
-            onDismiss = { statusViewModel.clearOperationResult() }
         )
     }
 }

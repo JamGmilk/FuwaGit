@@ -53,14 +53,12 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import jamgmilk.fuwagit.R
-import jamgmilk.fuwagit.domain.model.UiMessage
-import jamgmilk.fuwagit.domain.model.toResource
 
 @Composable
 fun SetupPasswordDialog(
     onDismiss: () -> Unit,
     onConfirm: (password: String, hint: String?) -> Unit,
-    error: UiMessage? = null,
+    error: String? = null,
     isLoading: Boolean = false
 ) {
     var password by remember { mutableStateOf("") }
@@ -142,7 +140,7 @@ fun SetupPasswordDialog(
 
                 error?.let { errorMsg ->
                     Text(
-                        text = stringResource(errorMsg.toResource()),
+                        text = errorMsg,
                         color = MaterialTheme.colorScheme.error,
                         style = MaterialTheme.typography.bodySmall
                     )
@@ -172,7 +170,7 @@ fun UnlockDialog(
     biometricEnabled: Boolean = false,
     onUnlockWithBiometric: () -> Unit = {},
     passwordHint: String? = null,
-    error: UiMessage? = null,
+    error: String? = null,
     isLoading: Boolean = false
 ) {
     var password by remember { mutableStateOf("") }
@@ -252,7 +250,7 @@ fun UnlockDialog(
 
                 error?.let { errorMsg ->
                     Text(
-                        text = stringResource(errorMsg.toResource()),
+                        text = errorMsg,
                         color = MaterialTheme.colorScheme.error,
                         style = MaterialTheme.typography.bodySmall
                     )
@@ -280,7 +278,7 @@ fun ChangeMasterPasswordDialog(
     onDismiss: () -> Unit,
     onConfirm: (oldPassword: String, newPassword: String, confirmPassword: String, hint: String?) -> Unit,
     passwordHint: String? = null,
-    error: UiMessage? = null,
+    error: String? = null,
     isLoading: Boolean = false
 ) {
     val colors = MaterialTheme.colorScheme
@@ -354,7 +352,7 @@ fun ChangeMasterPasswordDialog(
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Next),
                     singleLine = true,
                     isError = error != null,
-                    supportingText = error?.let { { Text(stringResource(it.toResource()), color = colors.error) } },
+                    supportingText = error?.let { { Text(it, color = colors.error) } },
                     shape = RoundedCornerShape(12.dp),
                     modifier = Modifier.fillMaxWidth(),
                     colors = OutlinedTextFieldDefaults.colors(
@@ -475,7 +473,7 @@ fun ChangeMasterPasswordDialog(
 fun SetupMasterPasswordDialog(
     onDismiss: () -> Unit,
     onConfirm: (password: String, confirmPassword: String, hint: String?) -> Unit,
-    error: UiMessage? = null,
+    error: String? = null,
     isLoading: Boolean = false
 ) {
     val colors = MaterialTheme.colorScheme
@@ -574,7 +572,7 @@ fun SetupMasterPasswordDialog(
                 )
 
                 error?.let { errorMsg ->
-                    Text(text = stringResource(errorMsg.toResource()), color = colors.error, style = MaterialTheme.typography.bodySmall)
+                    Text(text = errorMsg, color = colors.error, style = MaterialTheme.typography.bodySmall)
                 }
             }
         },
@@ -606,7 +604,7 @@ fun SetupMasterPasswordDialog(
 @Composable
 fun SetupMasterPasswordContent(
     onConfirm: (password: String, hint: String?) -> Unit,
-    error: UiMessage? = null,
+    error: String? = null,
     isLoading: Boolean = false
 ) {
     val colors = MaterialTheme.colorScheme
@@ -698,7 +696,7 @@ fun SetupMasterPasswordContent(
 
         error?.let { errorMsg ->
             Spacer(Modifier.height(12.dp))
-            Text(text = stringResource(errorMsg.toResource()), color = colors.error, style = MaterialTheme.typography.bodySmall)
+            Text(text = errorMsg, color = colors.error, style = MaterialTheme.typography.bodySmall)
         }
 
         Spacer(Modifier.height(24.dp))
