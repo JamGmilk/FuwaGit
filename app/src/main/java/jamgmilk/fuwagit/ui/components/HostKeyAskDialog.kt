@@ -125,6 +125,12 @@ fun HostKeyAskDialog(
                     )
                 }
             }
+
+            Text(
+                text = stringResource(R.string.hostkey_dialog_timeout, remainingSeconds),
+                style = MaterialTheme.typography.labelSmall,
+                color = colors.onSurfaceVariant.copy(alpha = 0.7f)
+            )
         }
     }
 }

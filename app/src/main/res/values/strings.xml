@@ -480,6 +480,7 @@
     <string name="hostkey_dialog_accept">Trust</string>
     <string name="hostkey_dialog_rejected">Host key rejected</string>
     <string name="hostkey_dialog_no_callback">Cannot verify host: credential vault is locked</string>
+    <string name="hostkey_dialog_timeout">Auto-reject in %ds</string>
 
     <!-- ========== Permissions Screen ========== -->
     <string name="permissions_system_title">System Permissions</string>
