@@ -27,6 +27,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -98,29 +99,31 @@ private object TransitionDefaults {
 
 @Composable
 fun AppNavHost(navController: NavHostController, startDestination: String = NavRoutes.MAIN) {
-    var pendingRequest by remember { mutableStateOf<HostKeyAskHelper.HostKeyRequest?>(null) }
+    val pendingRequests = remember { mutableStateListOf<HostKeyAskHelper.HostKeyRequest>() }
 
     LaunchedEffect(Unit) {
         HostKeyAskHelper.requests.collect { request ->
-            pendingRequest = request
+            pendingRequests.add(request)
         }
     }
+
+    val currentRequest = pendingRequests.firstOrNull()
 
     Surface(
         modifier = Modifier.fillMaxSize()
     ) {
-        pendingRequest?.let { request ->
+        currentRequest?.let { request ->
             HostKeyAskDialog(
                 host = request.host,
                 keyType = request.keyType,
                 fingerprint = request.fingerprint,
                 onAccept = {
                     request.future.complete(true)
-                    pendingRequest = null
+                    pendingRequests.removeAt(0)
                 },
                 onReject = {
                     request.future.complete(false)
-                    pendingRequest = null
+                    pendingRequests.removeAt(0)
                 }
             )
         }

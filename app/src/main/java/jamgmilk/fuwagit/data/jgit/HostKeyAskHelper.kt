@@ -8,6 +8,8 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import java.security.MessageDigest
+import java.util.Collections
+import java.util.WeakHashMap
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.CopyOnWriteArrayList
@@ -26,8 +28,6 @@ object HostKeyAskHelper {
     )
 
     private val KEY_STRING_TO_TYPE = KEY_TYPE_TO_STRING.entries.associate { it.value to it.key }
-
-    fun keyTypeToString(type: Int): String = KEY_TYPE_TO_STRING[type] ?: "ssh-rsa"
 
     fun keyStringToType(typeStr: String): Int = KEY_STRING_TO_TYPE[typeStr.lowercase()] ?: 0
 
@@ -74,8 +74,13 @@ object HostKeyAskHelper {
 
     fun computeFingerprint(key: ByteArray): String {
         return try {
-            MessageDigest.getInstance("SHA-256").digest(key)
-                .joinToString(":") { "%02x".format(it) }
+            val digest = MessageDigest.getInstance("SHA-256").digest(key)
+            val sb = StringBuilder(digest.size * 3 - 1)
+            digest.forEachIndexed { i, b ->
+                if (i > 0) sb.append(':')
+                sb.append("%02x".format(b))
+            }
+            sb.toString()
         } catch (e: Exception) {
             Log.e(TAG, "Failed to compute fingerprint", e)
             "unknown"
@@ -91,7 +96,8 @@ class FuwaHostKeyRepositoryImpl(
 ) : HostKeyRepository {
     private val hostKeys = CopyOnWriteArrayList<HostKey>()
     private val regexCache = ConcurrentHashMap<String, Regex>()
-    private val decodedKeyCache = ConcurrentHashMap<HostKey, ByteArray>()
+    private val decodedKeyCache: MutableMap<HostKey, ByteArray> =
+        Collections.synchronizedMap(WeakHashMap())
 
     init {
         loadFromFile()
@@ -99,20 +105,21 @@ class FuwaHostKeyRepositoryImpl(
 
     private fun getRegex(pattern: String): Regex {
         return regexCache.getOrPut(pattern) {
-            val regex = pattern
-                .replace(".", "\\.")
-                .replace("*", ".*")
-                .replace("?", ".")
-            Regex(regex)
+            val escaped = Regex.fromLiteral(pattern)
+                .replace("\\*", ".*")
+                .replace("\\?", ".")
+            Regex(escaped)
         }
     }
 
     private fun getDecodedKeyBytes(hostKey: HostKey): ByteArray? {
-        return decodedKeyCache.getOrPut(hostKey) {
-            try {
-                Base64.decode(hostKey.key, Base64.NO_WRAP)
-            } catch (e: Exception) {
-                null
+        return synchronized(decodedKeyCache) {
+            decodedKeyCache[hostKey] ?: run {
+                try {
+                    Base64.decode(hostKey.key, Base64.NO_WRAP).also { decodedKeyCache[hostKey] = it }
+                } catch (e: Exception) {
+                    null
+                }
             }
         }
     }
@@ -121,11 +128,8 @@ class FuwaHostKeyRepositoryImpl(
         if (khFile == null || !khFile.exists()) return
 
         try {
-            khFile.bufferedReader().use { reader ->
-                var line: String?
-                while (reader.readLine().also { line = it } != null) {
-                    parseKnownHostsLine(line)?.let { hostKeys.add(it) }
-                }
+            khFile.forEachLine { line ->
+                parseKnownHostsLine(line)?.let { hostKeys.add(it) }
             }
         } catch (e: Exception) {
             Log.e(TAG, "Failed to load known_hosts: ${e.message}")
@@ -135,7 +139,7 @@ class FuwaHostKeyRepositoryImpl(
     private fun parseKnownHostsLine(line: String?): HostKey? {
         if (line.isNullOrBlank() || line.startsWith("#")) return null
 
-        val parts = line.trim().split("\\s+".toRegex())
+        val parts = line.trim().split(WHITESPACE_REGEX)
         if (parts.size < 3) return null
 
         val hostPattern = parts[0]
@@ -175,14 +179,8 @@ class FuwaHostKeyRepositoryImpl(
 
     override fun add(hostKey: HostKey?, ui: com.jcraft.jsch.UserInfo?) {
         if (hostKey == null) return
-        val existingIndex = hostKeys.indexOfFirst {
-            it.host == hostKey.host && it.type == hostKey.type
-        }
-        if (existingIndex >= 0) {
-            hostKeys[existingIndex] = hostKey
-        } else {
-            hostKeys.add(hostKey)
-        }
+        hostKeys.removeAll { it.host == hostKey.host && it.type == hostKey.type }
+        hostKeys.add(hostKey)
         saveToFile()
     }
 
@@ -293,5 +291,6 @@ class FuwaHostKeyRepositoryImpl(
         private const val HOST_KEY_CHANGED = -1
         private const val HOST_KEY_NOT_FOUND = 2
         private const val HOST_KEY_OK = 0
+        private val WHITESPACE_REGEX = "\\s+".toRegex()
     }
 }
