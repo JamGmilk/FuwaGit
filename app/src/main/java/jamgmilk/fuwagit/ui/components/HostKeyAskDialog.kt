@@ -16,6 +16,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -39,13 +40,14 @@ fun HostKeyAskDialog(
     val colors = MaterialTheme.colorScheme
     val timeoutSeconds = (HostKeyAskHelper.HOST_KEY_ASK_TIMEOUT_MS / 1000).toInt()
     var remainingSeconds by remember { mutableIntStateOf(timeoutSeconds) }
+    var userResponded by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         while (remainingSeconds > 0) {
             delay(1000)
             remainingSeconds--
         }
-        onReject()
+        if (!userResponded) onReject()
     }
 
     DialogWithIcon(
@@ -54,7 +56,10 @@ fun HostKeyAskDialog(
         title = stringResource(R.string.hostkey_dialog_title),
         confirmButton = {
             Button(
-                onClick = onAccept,
+                onClick = {
+                    userResponded = true
+                    onAccept()
+                },
                 shape = ButtonShapes
             ) {
                 Text(stringResource(R.string.hostkey_dialog_accept))
@@ -62,7 +67,10 @@ fun HostKeyAskDialog(
         },
         dismissButton = {
             TextButton(
-                onClick = onReject,
+                onClick = {
+                    userResponded = true
+                    onReject()
+                },
                 shape = ButtonShapes
             ) {
                 Text(stringResource(R.string.action_cancel))
