@@ -9,7 +9,8 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import java.security.MessageDigest
 import java.util.concurrent.CompletableFuture
-import java.util.WeakHashMap
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.CopyOnWriteArrayList
 
 object HostKeyAskHelper {
     private const val TAG = "HostKeyAskHelper"
@@ -37,12 +38,16 @@ object HostKeyAskHelper {
         val future: CompletableFuture<Boolean>
     )
 
-    private val _requests = MutableSharedFlow<HostKeyRequest>(extraBufferCapacity = 1)
+    private val _requests = MutableSharedFlow<HostKeyRequest>(extraBufferCapacity = 8)
     val requests: SharedFlow<HostKeyRequest> = _requests.asSharedFlow()
 
     fun createRepository(context: android.content.Context, skipHostKeyCheck: Boolean = false): HostKeyRepository {
         val khFile = java.io.File(context.filesDir, "ssh_known_hosts")
-        return FuwaHostKeyRepositoryImpl(khFile, skipHostKeyCheck)
+        return FuwaHostKeyRepositoryImpl(khFile, skipHostKeyCheck, ::emitRequest)
+    }
+
+    internal fun emitRequest(request: HostKeyRequest) {
+        _requests.tryEmit(request)
     }
 
     data class KeyTypeInfo(val typeString: String, val typeCode: Int)
@@ -52,8 +57,9 @@ object HostKeyAskHelper {
 
         val typeStr = extractString(key, 0) ?: return KeyTypeInfo("ssh-rsa", 0)
         val typeCode = keyStringToType(typeStr)
+        val canonicalStr = KEY_TYPE_TO_STRING[typeCode] ?: "ssh-rsa"
 
-        return KeyTypeInfo(keyTypeToString(typeCode), typeCode)
+        return KeyTypeInfo(canonicalStr, typeCode)
     }
 
     private fun extractString(data: ByteArray, offset: Int): String? {
@@ -71,214 +77,221 @@ object HostKeyAskHelper {
             MessageDigest.getInstance("SHA-256").digest(key)
                 .joinToString(":") { "%02x".format(it) }
         } catch (e: Exception) {
+            Log.e(TAG, "Failed to compute fingerprint", e)
             "unknown"
         }
     }
 
-    class FuwaHostKeyRepositoryImpl(
-        private val khFile: java.io.File?,
-        private val skipHostKeyCheck: Boolean = false
-    ) : HostKeyRepository {
-        private val hostKeys = mutableListOf<HostKey>()
-        private val regexCache = java.util.concurrent.ConcurrentHashMap<String, Regex>()
-        private val decodedKeyCache = WeakHashMap<HostKey, ByteArray>()
+}
 
-        init {
-            loadFromFile()
+class FuwaHostKeyRepositoryImpl(
+    private val khFile: java.io.File?,
+    private val skipHostKeyCheck: Boolean = false,
+    private val requestEmitter: (HostKeyAskHelper.HostKeyRequest) -> Unit
+) : HostKeyRepository {
+    private val hostKeys = CopyOnWriteArrayList<HostKey>()
+    private val regexCache = ConcurrentHashMap<String, Regex>()
+    private val decodedKeyCache = ConcurrentHashMap<HostKey, ByteArray>()
+
+    init {
+        loadFromFile()
+    }
+
+    private fun getRegex(pattern: String): Regex {
+        return regexCache.getOrPut(pattern) {
+            val regex = pattern
+                .replace(".", "\\.")
+                .replace("*", ".*")
+                .replace("?", ".")
+            Regex(regex)
         }
+    }
 
-        private fun getRegex(pattern: String): Regex {
-            return regexCache.getOrPut(pattern) {
-                val regex = pattern
-                    .replace(".", "\\.")
-                    .replace("*", ".*")
-                    .replace("?", ".")
-                Regex(regex)
-            }
-        }
-
-        private fun getDecodedKeyBytes(hostKey: HostKey): ByteArray? {
-            return decodedKeyCache.getOrPut(hostKey) {
-                try {
-                    Base64.decode(hostKey.key, Base64.NO_WRAP)
-                } catch (e: Exception) {
-                    null
-                }
-            }
-        }
-
-        private fun loadFromFile() {
-            if (khFile == null || !khFile.exists()) return
-
+    private fun getDecodedKeyBytes(hostKey: HostKey): ByteArray? {
+        return decodedKeyCache.getOrPut(hostKey) {
             try {
-                khFile.bufferedReader().use { reader ->
-                    var line: String?
-                    while (reader.readLine().also { line = it } != null) {
-                        parseKnownHostsLine(line)?.let { hostKeys.add(it) }
-                    }
+                Base64.decode(hostKey.key, Base64.NO_WRAP)
+            } catch (e: Exception) {
+                null
+            }
+        }
+    }
+
+    private fun loadFromFile() {
+        if (khFile == null || !khFile.exists()) return
+
+        try {
+            khFile.bufferedReader().use { reader ->
+                var line: String?
+                while (reader.readLine().also { line = it } != null) {
+                    parseKnownHostsLine(line)?.let { hostKeys.add(it) }
                 }
-            } catch (e: Exception) {
-                Log.e(TAG, "Failed to load known_hosts: ${e.message}")
             }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to load known_hosts: ${e.message}")
+        }
+    }
+
+    private fun parseKnownHostsLine(line: String?): HostKey? {
+        if (line.isNullOrBlank() || line.startsWith("#")) return null
+
+        val parts = line.trim().split("\\s+".toRegex())
+        if (parts.size < 3) return null
+
+        val hostPattern = parts[0]
+        val typeStr = parts[1]
+        val keyBase64 = parts[2]
+
+        val keyType = HostKeyAskHelper.keyStringToType(typeStr)
+
+        val keyBytes = try {
+            Base64.decode(keyBase64, Base64.NO_WRAP)
+        } catch (e: Exception) {
+            return null
         }
 
-        private fun parseKnownHostsLine(line: String?): HostKey? {
-            if (line.isNullOrBlank() || line.startsWith("#")) return null
+        return HostKey(hostPattern, keyType, keyBytes)
+    }
 
-            val parts = line.trim().split("\\s+".toRegex())
-            if (parts.size < 3) return null
+    override fun getKnownHostsRepositoryID(): String = "fuwa-git-known-hosts"
 
-            val hostPattern = parts[0]
-            val typeStr = parts[1]
-            val keyBase64 = parts[2]
+    override fun getHostKey(): Array<out HostKey> = hostKeys.toTypedArray()
 
-            val keyType = keyStringToType(typeStr)
+    override fun getHostKey(host: String?, type: String?): Array<out HostKey>? {
+        if (host == null) return null
 
-            val keyBytes = try {
-                Base64.decode(keyBase64, Base64.NO_WRAP)
-            } catch (e: Exception) {
-                return null
-            }
+        return hostKeys.filter { key ->
+            val hostMatches = key.host == host ||
+                    hostWildcardMatch(host, key.host)
+            val typeMatches = type == null || key.type == type
+            hostMatches && typeMatches
+        }.toTypedArray()
+    }
 
-            return HostKey(hostPattern, keyType, keyBytes)
+    private fun hostWildcardMatch(host: String, pattern: String): Boolean {
+        if (!pattern.contains("*") && !pattern.contains("?")) return false
+        return getRegex(pattern).matches(host)
+    }
+
+    override fun add(hostKey: HostKey?, ui: com.jcraft.jsch.UserInfo?) {
+        if (hostKey == null) return
+        val existingIndex = hostKeys.indexOfFirst {
+            it.host == hostKey.host && it.type == hostKey.type
+        }
+        if (existingIndex >= 0) {
+            hostKeys[existingIndex] = hostKey
+        } else {
+            hostKeys.add(hostKey)
+        }
+        saveToFile()
+    }
+
+    override fun remove(host: String?, type: String?) {
+        if (host == null) return
+        hostKeys.removeAll {
+            it.host == host && (type == null || it.type == type)
+        }
+        saveToFile()
+    }
+
+    override fun remove(host: String?, type: String?, key: ByteArray?) {
+        if (host == null || key == null) return
+        hostKeys.removeAll {
+            it.host == host &&
+                    (type == null || it.type == type) &&
+                    getDecodedKeyBytes(it)?.contentEquals(key) ?: false
+        }
+        saveToFile()
+    }
+
+    override fun check(host: String?, key: ByteArray?): Int {
+        if (host == null || key == null) return HOST_KEY_NOT_FOUND
+
+        Log.i(TAG, "check() called for host=$host, skipHostKeyCheck=$skipHostKeyCheck, keySize=${key.size}")
+
+        if (skipHostKeyCheck) {
+            Log.i(TAG, "SSH host key verification skipped for $host")
+            return HOST_KEY_OK
         }
 
-        override fun getKnownHostsRepositoryID(): String = "fuwa-git-known-hosts"
-
-        override fun getHostKey(): Array<out HostKey> = hostKeys.toTypedArray()
-
-        override fun getHostKey(host: String?, type: String?): Array<out HostKey>? {
-            if (host == null) return null
-
-            return hostKeys.filter { key ->
-                val hostMatches = key.host == host ||
-                        hostWildcardMatch(host, key.host)
-                val typeMatches = type == null || key.type == type
-                hostMatches && typeMatches
-            }.toTypedArray()
+        val existingKeys = getHostKey(host, null)
+        if (existingKeys.isNullOrEmpty()) {
+            return handleUnknownHost(host, key)
         }
 
-        private fun hostWildcardMatch(host: String, pattern: String): Boolean {
-            if (!pattern.contains("*") && !pattern.contains("?")) return false
-            return getRegex(pattern).matches(host)
+        return if (keyMatchesAny(key, existingKeys)) {
+            Log.i(TAG, "Key matched for host '$host'")
+            HOST_KEY_OK
+        } else {
+            Log.w(TAG, "SECURITY: Host '$host' has a CHANGED key — possible MITM attack! Rejecting.")
+            HOST_KEY_CHANGED
         }
+    }
 
-        override fun add(hostKey: HostKey?, ui: com.jcraft.jsch.UserInfo?) {
-            if (hostKey == null) return
-            val existingIndex = hostKeys.indexOfFirst {
-                it.host == hostKey.host && it.type == hostKey.type
-            }
-            if (existingIndex >= 0) {
-                hostKeys[existingIndex] = hostKey
-            } else {
-                hostKeys.add(hostKey)
-            }
-        }
+    private fun handleUnknownHost(host: String, key: ByteArray): Int {
+        val keyTypeInfo = HostKeyAskHelper.inferKeyTypeInfo(key)
+        val fingerprint = HostKeyAskHelper.computeFingerprint(key)
 
-        override fun remove(host: String?, type: String?) {
-            if (host == null) return
-            hostKeys.removeAll {
-                it.host == host && (type == null || it.type == type)
-            }
-        }
+        Log.d(TAG, "Emitting host key ask request for $host")
+        val future = CompletableFuture<Boolean>()
+        requestEmitter(HostKeyAskHelper.HostKeyRequest(host, keyTypeInfo.typeString, fingerprint, future))
 
-        override fun remove(host: String?, type: String?, key: ByteArray?) {
-            if (host == null || key == null) return
-            hostKeys.removeAll {
-                it.host == host &&
-                        (type == null || it.type == type) &&
-                        getDecodedKeyBytes(it)?.contentEquals(key) ?: false
-            }
-        }
+        try {
+            val accepted = future.get(HostKeyAskHelper.HOST_KEY_ASK_TIMEOUT_MS, java.util.concurrent.TimeUnit.MILLISECONDS)
+            Log.d(TAG, "User responded: accepted=$accepted for $host")
 
-        override fun check(host: String?, key: ByteArray?): Int {
-            if (host == null || key == null) return HOST_KEY_NOT_FOUND
-
-            Log.i(TAG, "check() called for host=$host, skipHostKeyCheck=$skipHostKeyCheck, keySize=${key.size}")
-
-            if (skipHostKeyCheck) {
-                Log.i(TAG, "SSH host key verification skipped for $host")
+            if (accepted) {
+                Log.i(TAG, "User accepted new host key for $host")
+                hostKeys.add(HostKey(host, keyTypeInfo.typeCode, key))
+                saveToFile()
                 return HOST_KEY_OK
-            }
-
-            val existingKeys = getHostKey(host, null)
-            if (existingKeys.isNullOrEmpty()) {
-                return handleUnknownHost(host, key)
-            }
-
-            return if (keyMatchesAny(key, existingKeys)) {
-                Log.i(TAG, "Key matched for host '$host'")
-                HOST_KEY_OK
             } else {
-                Log.w(TAG, "SECURITY: Host '$host' has a CHANGED key — possible MITM attack! Rejecting.")
-                HOST_KEY_CHANGED
-            }
-        }
-
-        private fun handleUnknownHost(host: String, key: ByteArray): Int {
-            val keyTypeInfo = inferKeyTypeInfo(key)
-            val fingerprint = computeFingerprint(key)
-
-            Log.d(TAG, "Emitting host key ask request for $host")
-            val future = CompletableFuture<Boolean>()
-            _requests.tryEmit(HostKeyRequest(host, keyTypeInfo.typeString, fingerprint, future))
-
-            try {
-                val accepted = future.get(HOST_KEY_ASK_TIMEOUT_MS, java.util.concurrent.TimeUnit.MILLISECONDS)
-                Log.d(TAG, "User responded: accepted=$accepted for $host")
-
-                if (accepted) {
-                    Log.i(TAG, "User accepted new host key for $host")
-                    hostKeys.add(HostKey(host, keyTypeInfo.typeCode, key))
-                    saveToFile()
-                    return HOST_KEY_OK
-                } else {
-                    Log.i(TAG, "User rejected new host key for $host")
-                    return HOST_KEY_NOT_FOUND
-                }
-            } catch (e: java.util.concurrent.TimeoutException) {
-                Log.w(TAG, "Host key ask timed out for $host")
-                future.complete(false)
-                return HOST_KEY_NOT_FOUND
-            } catch (e: Exception) {
-                Log.e(TAG, "Host key ask error: ${e.message}")
+                Log.i(TAG, "User rejected new host key for $host")
                 return HOST_KEY_NOT_FOUND
             }
+        } catch (e: java.util.concurrent.TimeoutException) {
+            Log.w(TAG, "Host key ask timed out for $host")
+            future.complete(false)
+            return HOST_KEY_NOT_FOUND
+        } catch (e: Exception) {
+            Log.e(TAG, "Host key ask error: ${e.message}")
+            return HOST_KEY_NOT_FOUND
         }
+    }
 
-        private fun keyMatchesAny(key: ByteArray, existingKeys: Array<out HostKey>): Boolean {
-            for (existing in existingKeys) {
-                val existingKeyBytes = getDecodedKeyBytes(existing) ?: continue
-                if (existingKeyBytes.contentEquals(key)) {
-                    return true
-                }
-            }
-            return false
-        }
-
-        private fun saveToFile() {
-            if (khFile == null) return
-
-            try {
-                khFile.bufferedWriter().use { writer ->
-                    for (key in hostKeys) {
-                        writer.write("${key.host} ${key.type} ${key.key}\n")
-                    }
-                }
-            } catch (e: Exception) {
-                Log.e(TAG, "Failed to save known_hosts: ${e.message}")
+    private fun keyMatchesAny(key: ByteArray, existingKeys: Array<out HostKey>): Boolean {
+        for (existing in existingKeys) {
+            val existingKeyBytes = getDecodedKeyBytes(existing) ?: continue
+            if (existingKeyBytes.contentEquals(key)) {
+                return true
             }
         }
+        return false
+    }
 
-        fun addHostKeyDirectly(host: String, keyType: Int, key: ByteArray) {
-            hostKeys.add(HostKey(host, keyType, key))
-            saveToFile()
-        }
+    private fun saveToFile() {
+        if (khFile == null) return
 
-        companion object {
-            private const val HOST_KEY_CHANGED = -1
-            private const val HOST_KEY_NOT_FOUND = 2
-            private const val HOST_KEY_OK = 0
+        try {
+            khFile.bufferedWriter().use { writer ->
+                for (key in hostKeys) {
+                    writer.write("${key.host} ${key.type} ${key.key}\n")
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to save known_hosts: ${e.message}")
         }
+    }
+
+    fun addHostKeyDirectly(host: String, keyType: Int, key: ByteArray) {
+        hostKeys.add(HostKey(host, keyType, key))
+        saveToFile()
+    }
+
+    companion object {
+        private const val TAG = "FuwaHostKeyRepository"
+        private const val HOST_KEY_CHANGED = -1
+        private const val HOST_KEY_NOT_FOUND = 2
+        private const val HOST_KEY_OK = 0
     }
 }
