@@ -146,11 +146,10 @@ class JGitDiffDataSource @Inject constructor(
         }
 
     private fun getTreeForCommit(repository: Repository, commitHash: String): RevTree {
-        val revWalk = RevWalk(repository)
-        val commit = revWalk.parseCommit(repository.resolve(commitHash))
-        val tree = commit.tree
-        revWalk.dispose()
-        return tree
+        return RevWalk(repository).use { revWalk ->
+            val commit = revWalk.parseCommit(repository.resolve(commitHash))
+            commit.tree
+        }
     }
 
     private fun getTreeForIndex(repository: Repository): RevTree {
@@ -162,10 +161,9 @@ class JGitDiffDataSource @Inject constructor(
             inserter.flush()
             inserter.close()
 
-            val revWalk = RevWalk(repository)
-            val tree = revWalk.parseTree(treeId)
-            revWalk.dispose()
-            tree
+            RevWalk(repository).use { revWalk ->
+                revWalk.parseTree(treeId)
+            }
         } catch (e: Exception) {
             getTreeForCommit(repository, "HEAD")
         }

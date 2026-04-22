@@ -448,11 +448,14 @@ fun ChangeMasterPasswordDialog(
             Button(
                 onClick = { onConfirm(oldPassword, newPassword, confirmPassword, hint.ifBlank { null }) },
                 enabled = !isLoading && isFormValid,
-                colors = ButtonDefaults.buttonColors(containerColor = colors.primary),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = colors.primary,
+                    contentColor = colors.onPrimary
+                ),
                 shape = RoundedCornerShape(12.dp)
             ) {
                 if (isLoading) {
-                    CircularProgressIndicator(modifier = Modifier.size(18.dp), color = Color.White, strokeWidth = 2.dp)
+                    CircularProgressIndicator(modifier = Modifier.size(18.dp), color = colors.onPrimary, strokeWidth = 2.dp)
                 } else {
                     Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(18.dp))
                 }

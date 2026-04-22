@@ -94,106 +94,6 @@ class GitModelsTest {
     }
 
     @Test
-    fun `GitCommit relativeTime returns just now for recent time`() {
-        val now = System.currentTimeMillis()
-        val commit = GitCommit(
-            hash = "abc",
-            shortHash = "abc",
-            authorName = "A",
-            authorEmail = "a@b.com",
-            message = "msg",
-            timestamp = now - 30_000
-        )
-        assertEquals("just now", commit.relativeTime)
-    }
-
-    @Test
-    fun `GitCommit relativeTime returns minutes`() {
-        val now = System.currentTimeMillis()
-        val commit = GitCommit(
-            hash = "abc",
-            shortHash = "abc",
-            authorName = "A",
-            authorEmail = "a@b.com",
-            message = "msg",
-            timestamp = now - 5 * 60_000
-        )
-        assertEquals("5m ago", commit.relativeTime)
-    }
-
-    @Test
-    fun `GitCommit relativeTime returns hours`() {
-        val now = System.currentTimeMillis()
-        val commit = GitCommit(
-            hash = "abc",
-            shortHash = "abc",
-            authorName = "A",
-            authorEmail = "a@b.com",
-            message = "msg",
-            timestamp = now - 3 * 60 * 60_000
-        )
-        assertEquals("3h ago", commit.relativeTime)
-    }
-
-    @Test
-    fun `GitCommit relativeTime returns days`() {
-        val now = System.currentTimeMillis()
-        val commit = GitCommit(
-            hash = "abc",
-            shortHash = "abc",
-            authorName = "A",
-            authorEmail = "a@b.com",
-            message = "msg",
-            timestamp = now - 5 * 24 * 60 * 60_000
-        )
-        assertEquals("5d ago", commit.relativeTime)
-    }
-
-    @Test
-    fun `GitCommit relativeTime returns weeks`() {
-        val now = System.currentTimeMillis()
-        val commit = GitCommit(
-            hash = "abc",
-            shortHash = "abc",
-            authorName = "A",
-            authorEmail = "a@b.com",
-            message = "msg",
-            timestamp = now - 3 * 7 * 24 * 60 * 60_000
-        )
-        assertEquals("3w ago", commit.relativeTime)
-    }
-
-    @Test
-    fun `GitCommit relativeTime returns months`() {
-        val now = System.currentTimeMillis()
-        val commit = GitCommit(
-            hash = "abc",
-            shortHash = "abc",
-            authorName = "A",
-            authorEmail = "a@b.com",
-            message = "msg",
-            timestamp = now - 8L * 30 * 24 * 60 * 60 * 1000
-        )
-        val result = commit.relativeTime
-        assertTrue("Expected months format but got: $result", result.endsWith("mo ago"))
-    }
-
-    @Test
-    fun `GitCommit relativeTime returns years`() {
-        val now = System.currentTimeMillis()
-        val commit = GitCommit(
-            hash = "abc",
-            shortHash = "abc",
-            authorName = "A",
-            authorEmail = "a@b.com",
-            message = "msg",
-            timestamp = now - 5L * 365 * 24 * 60 * 60 * 1000
-        )
-        val result = commit.relativeTime
-        assertTrue("Expected years format but got: $result", result.endsWith("y ago"))
-    }
-
-    @Test
     fun `GitCommit formattedTimestamp formats correctly`() {
         val commit = GitCommit(
             hash = "abc",
@@ -338,16 +238,7 @@ class GitModelsTest {
 
     @Test
     fun `GitCommitDetail totalChanges calculates correctly`() {
-        val commit = GitCommit(
-            hash = "abc",
-            shortHash = "abc",
-            authorName = "A",
-            authorEmail = "a@b.com",
-            message = "msg",
-            timestamp = 0L
-        )
         val detail = GitCommitDetail(
-            commit = commit,
             totalAdditions = 100,
             totalDeletions = 50
         )

@@ -13,6 +13,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -53,7 +54,7 @@ fun CredentialScreen(
     var showDeleteConfirm by remember { mutableStateOf<Pair<String, Boolean>?>(null) }
 
     SubSettingsTemplate(
-        title = "Credentials",
+        title = stringResource(R.string.credentials_screen_title),
         onBack = onBack,
         modifier = modifier,
         snackbarHostState = snackbarHostState

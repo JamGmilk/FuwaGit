@@ -24,32 +24,11 @@ data class GitCommit(
 
     val shortMessage: String get() = message.lineSequence().firstOrNull()?.take(72) ?: ""
 
-    val relativeTime: String get() {
-        val now = System.currentTimeMillis()
-        val diff = now - timestamp
-        val seconds = diff / 1000
-        val minutes = seconds / 60
-        val hours = minutes / 60
-        val days = hours / 24
-        val weeks = days / 7
-        val months = days / 30
-        val years = days / 365
-
-        return when {
-            seconds < 60 -> "just now"
-            minutes < 60 -> "${minutes}m ago"
-            hours < 24 -> "${hours}h ago"
-            days < 7 -> "${days}d ago"
-            weeks < 4 -> "${weeks}w ago"
-            months < 12 -> "${months}mo ago"
-            else -> "${years}y ago"
+    val formattedTimestamp: String
+        get() {
+            val sdf = DATE_FORMAT.get()
+            return sdf.format(java.util.Date(timestamp))
         }
-    }
-
-    val formattedTimestamp: String get() {
-        val sdf = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm", java.util.Locale.getDefault())
-        return sdf.format(java.util.Date(timestamp))
-    }
 
     val authorDisplayName: String get() {
         val name = authorName.trim()
@@ -64,6 +43,12 @@ data class GitCommit(
     val parentCount: Int get() = parentHashes.size
 
     val primaryParentHash: String? get() = parentHashes.firstOrNull()
+
+    private companion object {
+        private val DATE_FORMAT = ThreadLocal.withInitial {
+            java.text.SimpleDateFormat("yyyy-MM-dd HH:mm", java.util.Locale.getDefault())
+        }
+    }
 }
 
 /**
@@ -89,7 +74,6 @@ data class GitCommitFileChange(
  * Commit details with file change list
  */
 data class GitCommitDetail(
-    val commit: GitCommit,
     val fileChanges: List<GitCommitFileChange> = emptyList(),
     val totalAdditions: Int = 0,
     val totalDeletions: Int = 0,

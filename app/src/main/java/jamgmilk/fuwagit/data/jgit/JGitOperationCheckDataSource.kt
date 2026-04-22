@@ -120,46 +120,43 @@ class JGitOperationCheckDataSource @Inject constructor(
     }
 
     private fun calculateAheadBehind(git: Git, branchName: String): Pair<Int, Int> {
-        val revWalk = RevWalk(git.repository)
         return try {
-            val ref = git.repository.exactRef("refs/heads/$branchName")
-            val remoteRef = git.repository.exactRef("refs/remotes/origin/$branchName")
+            RevWalk(git.repository).use { revWalk ->
+                val ref = git.repository.exactRef("refs/heads/$branchName")
+                val remoteRef = git.repository.exactRef("refs/remotes/origin/$branchName")
 
-            if (ref == null || remoteRef == null) {
-                return Pair(0, 0)
-            }
+                if (ref == null || remoteRef == null) {
+                    return Pair(0, 0)
+                }
 
-            val localCommit = revWalk.parseCommit(ref.target?.objectId ?: ref.objectId)
-            val remoteCommit = revWalk.parseCommit(remoteRef.target?.objectId ?: remoteRef.objectId)
+                val localCommit = revWalk.parseCommit(ref.target?.objectId ?: ref.objectId)
+                val remoteCommit = revWalk.parseCommit(remoteRef.target?.objectId ?: remoteRef.objectId)
 
-            val localAncestor = revWalk.isMergedInto(localCommit, remoteCommit)
-            val remoteAncestor = revWalk.isMergedInto(remoteCommit, localCommit)
+                val localAncestor = revWalk.isMergedInto(localCommit, remoteCommit)
+                val remoteAncestor = revWalk.isMergedInto(remoteCommit, localCommit)
 
-            when {
-                localAncestor && !remoteAncestor -> {
-                    RevWalk(git.repository).use { revWalk2 ->
+                when {
+                    localAncestor && !remoteAncestor -> {
                         var count = 0
-                        revWalk2.markStart(revWalk2.parseCommit(ref.target?.objectId ?: ref.objectId))
-                        revWalk2.markUninteresting(revWalk2.parseCommit(remoteRef.target?.objectId ?: remoteRef.objectId))
-                        for (commit in revWalk2) count++
+                        revWalk.reset()
+                        revWalk.markStart(revWalk.parseCommit(ref.target?.objectId ?: ref.objectId))
+                        revWalk.markUninteresting(revWalk.parseCommit(remoteRef.target?.objectId ?: remoteRef.objectId))
+                        for (commit in revWalk) count++
                         Pair(count, 0)
                     }
-                }
-                remoteAncestor && !localAncestor -> {
-                    RevWalk(git.repository).use { revWalk2 ->
+                    remoteAncestor && !localAncestor -> {
                         var count = 0
-                        revWalk2.markStart(revWalk2.parseCommit(remoteRef.target?.objectId ?: remoteRef.objectId))
-                        revWalk2.markUninteresting(revWalk2.parseCommit(ref.target?.objectId ?: ref.objectId))
-                        for (commit in revWalk2) count++
+                        revWalk.reset()
+                        revWalk.markStart(revWalk.parseCommit(remoteRef.target?.objectId ?: remoteRef.objectId))
+                        revWalk.markUninteresting(revWalk.parseCommit(ref.target?.objectId ?: ref.objectId))
+                        for (commit in revWalk) count++
                         Pair(0, count)
                     }
+                    else -> Pair(0, 0)
                 }
-                else -> Pair(0, 0)
             }
         } catch (e: Exception) {
             Pair(0, 0)
-        } finally {
-            revWalk.dispose()
         }
     }
 }

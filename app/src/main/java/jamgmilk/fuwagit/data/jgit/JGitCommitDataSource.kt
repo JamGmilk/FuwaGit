@@ -16,10 +16,10 @@ class JGitCommitDataSource @Inject constructor(
     private val core: GitCoreDataSource
 ) : GitCommitDataSource {
 
-    override fun getLog(repoPath: String, maxCount: Int): Result<List<GitCommit>> =
+    override fun getLog(repoPath: String, maxCount: Int, skip: Int): Result<List<GitCommit>> =
         core.withGit(repoPath) { git ->
             git.repository.resolve("HEAD") ?: return@withGit emptyList()
-            git.log().setMaxCount(maxCount).call().map { revCommit ->
+            git.log().setMaxCount(maxCount).setSkip(skip).call().map { revCommit ->
                 val author = revCommit.authorIdent
                 GitCommit(
                     hash = revCommit.id.name(),
@@ -39,13 +39,11 @@ class JGitCommitDataSource @Inject constructor(
             val objectId = repository.resolve(commitHash)
                 ?: throw Exception("Commit not found: $commitHash")
 
-            val revCommit = repository.parseCommit(objectId)
             val fileChanges = mutableListOf<GitCommitFileChange>()
             var totalAdditions = 0
             var totalDeletions = 0
 
-            val revWalk = org.eclipse.jgit.revwalk.RevWalk(repository)
-            try {
+            org.eclipse.jgit.revwalk.RevWalk(repository).use { revWalk ->
                 val commit = revWalk.parseCommit(objectId)
                 val tree = commit.tree
                 val parentCommit = if (commit.parentCount > 0) {
@@ -56,8 +54,7 @@ class JGitCommitDataSource @Inject constructor(
                 val parentTree = parentCommit?.tree
 
                 if (parentTree != null) {
-                    val outputStream = java.io.ByteArrayOutputStream()
-                    org.eclipse.jgit.diff.DiffFormatter(outputStream).use { diffFormatter ->
+                    org.eclipse.jgit.diff.DiffFormatter(org.eclipse.jgit.util.io.NullOutputStream.INSTANCE).use { diffFormatter ->
                         diffFormatter.setRepository(repository)
                         val diffEntries = diffFormatter.scan(parentTree.id, tree.id)
                         for (diffEntry in diffEntries) {
@@ -72,27 +69,10 @@ class JGitCommitDataSource @Inject constructor(
 
                             var additions = 0
                             var deletions = 0
-                            when (changeType) {
-                                GitChangeType.Added -> {
-                                    val newLoader = repository.open(diffEntry.newId.toObjectId())
-                                    additions = String(newLoader.bytes).lines().size
-                                }
-                                GitChangeType.Removed -> {
-                                    val oldLoader = repository.open(diffEntry.oldId.toObjectId())
-                                    deletions = String(oldLoader.bytes).lines().size
-                                }
-                                GitChangeType.Modified -> {
-                                    val newLoader = repository.open(diffEntry.newId.toObjectId())
-                                    val oldLoader = repository.open(diffEntry.oldId.toObjectId())
-                                    val newLines = String(newLoader.bytes).lines().size
-                                    val oldLines = String(oldLoader.bytes).lines().size
-                                    additions = maxOf(0, newLines - oldLines)
-                                    deletions = maxOf(0, oldLines - newLines)
-                                }
-                                GitChangeType.Renamed -> {
-                                }
-                                else -> {
-                                }
+                            val fileHeader = diffFormatter.toFileHeader(diffEntry)
+                            for (edit in fileHeader.toEditList()) {
+                                additions += edit.lengthB - edit.beginB
+                                deletions += edit.lengthA - edit.beginA
                             }
 
                             fileChanges.add(
@@ -116,7 +96,7 @@ class JGitCommitDataSource @Inject constructor(
                             val path = walk.pathString
                             val objectId = walk.getObjectId(0)
                             val loader = repository.open(objectId)
-                            val lineCount = String(loader.bytes).lines().size
+                            val lineCount = countLines(loader)
                             totalAdditions += lineCount
 
                             fileChanges.add(
@@ -131,28 +111,14 @@ class JGitCommitDataSource @Inject constructor(
                         }
                     }
                 }
-            } finally {
-                revWalk.dispose()
+
+                GitCommitDetail(
+                    fileChanges = fileChanges,
+                    totalAdditions = totalAdditions,
+                    totalDeletions = totalDeletions,
+                    totalFiles = fileChanges.size
+                )
             }
-
-            val author = revCommit.authorIdent
-            val commit = GitCommit(
-                hash = revCommit.id.name(),
-                shortHash = revCommit.id.abbreviate(7).name(),
-                message = revCommit.fullMessage,
-                authorName = author.name,
-                authorEmail = author.emailAddress,
-                timestamp = author.`when`.time,
-                parentHashes = revCommit.parents.map { it.name() }
-            )
-
-            GitCommitDetail(
-                commit = commit,
-                fileChanges = fileChanges,
-                totalAdditions = totalAdditions,
-                totalDeletions = totalDeletions,
-                totalFiles = fileChanges.size
-            )
         }
 
     override suspend fun commit(repoPath: String, message: String): Result<String> {
@@ -173,46 +139,18 @@ class JGitCommitDataSource @Inject constructor(
         return try {
             val config = core.gitConfigDataStore.configFlow.first()
             core.withGit(repoPath) { git ->
-                val storedConfig = git.repository.config
-                
-                // 保存原始配置值
-                val originalName = storedConfig.getString("user", null, "name")
-                val originalEmail = storedConfig.getString("user", null, "email")
-                
-                // 临时设置用户配置
-                if (config.userName.isNotBlank() || config.userEmail.isNotBlank()) {
-                    if (config.userName.isNotBlank()) {
-                        storedConfig.setString("user", null, "name", config.userName)
-                    }
-                    if (config.userEmail.isNotBlank()) {
-                        storedConfig.setString("user", null, "email", config.userEmail)
-                    }
-                    storedConfig.save()
+                val authorName = config.userName.takeIf { it.isNotBlank() }
+                val authorEmail = config.userEmail.takeIf { it.isNotBlank() }
+
+                val commitBuilder = git.commit()
+                    .setMessage(message)
+                    .setAllowEmpty(false)
+
+                if (authorName != null && authorEmail != null) {
+                    commitBuilder.setAuthor(authorName, authorEmail)
                 }
 
-                val commitHash = try {
-                    git.commit()
-                        .setMessage(message)
-                        .setAllowEmpty(false)
-                        .call()
-                        .id.name()
-                } finally {
-                    // 恢复原始配置
-                    if (originalName != null) {
-                        storedConfig.setString("user", null, "name", originalName)
-                    } else {
-                        storedConfig.unset("user", null, "name")
-                    }
-                    
-                    if (originalEmail != null) {
-                        storedConfig.setString("user", null, "email", originalEmail)
-                    } else {
-                        storedConfig.unset("user", null, "email")
-                    }
-                    storedConfig.save()
-                }
-                
-                commitHash
+                commitBuilder.call().id.name()
             }
         } catch (e: LockFailedException) {
             Result.failure(Exception("Cannot commit: repository lock failed."))
@@ -248,6 +186,18 @@ class JGitCommitDataSource @Inject constructor(
             Result.failure(Exception("Git error: ${e.message}"))
         } catch (e: Exception) {
             Result.failure(Exception("Reset failed: ${e.message}"))
+        }
+    }
+
+    private fun countLines(loader: org.eclipse.jgit.lib.ObjectLoader): Int {
+        loader.openStream().use { stream ->
+            var count = 0
+            while (true) {
+                val byte = stream.read()
+                if (byte == -1) break
+                if (byte == 10) count++
+            }
+            return count
         }
     }
 }
