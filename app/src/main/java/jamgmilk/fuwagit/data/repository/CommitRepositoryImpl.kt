@@ -15,9 +15,9 @@ class CommitRepositoryImpl @Inject constructor(
     private val commitDataSource: GitCommitDataSource
 ) : CommitRepository {
 
-    override suspend fun getCommitHistory(repoPath: String, maxCount: Int): AppResult<List<GitCommit>> =
+    override suspend fun getCommitHistory(repoPath: String, maxCount: Int, skip: Int): AppResult<List<GitCommit>> =
         withContext(Dispatchers.IO) {
-            commitDataSource.getLog(repoPath, maxCount).toAppResult()
+            commitDataSource.getLog(repoPath, maxCount, skip).toAppResult()
         }
 
     override suspend fun getCommitFileChanges(repoPath: String, commitHash: String): AppResult<GitCommitDetail> =

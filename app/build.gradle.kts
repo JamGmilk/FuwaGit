@@ -17,18 +17,14 @@ val localProperties = Properties().apply {
 
 android {
     namespace = "jamgmilk.fuwagit"
-    compileSdk {
-        version = release(36) {
-            minorApiLevel = 1
-        }
-    }
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "jamgmilk.fuwagit"
         minSdk = 26
-        targetSdk = 36
-        versionCode = 90
-        versionName = "0.9.0"
+        targetSdk = 37
+        versionCode = 91
+        versionName = "0.9.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

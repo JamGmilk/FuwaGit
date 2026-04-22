@@ -8,7 +8,7 @@ import jamgmilk.fuwagit.domain.model.git.GitResetMode
  * Interface for Git commit and history operations.
  */
 interface GitCommitDataSource {
-    fun getLog(repoPath: String, maxCount: Int): Result<List<GitCommit>>
+    fun getLog(repoPath: String, maxCount: Int, skip: Int = 0): Result<List<GitCommit>>
 
     fun getCommitFileChanges(repoPath: String, commitHash: String): Result<GitCommitDetail>
 

@@ -24,6 +24,7 @@
     <string name="action_add">添加</string>
     <string name="action_initialize">初始化</string>
     <string name="action_apply">应用</string>
+    <string name="action_retry">重试</string>
     <string name="action_expand">展开</string>
     <string name="action_collapse">收起</string>
     <string name="action_mark_as_resolved">标记为已解决</string>
@@ -66,6 +67,7 @@
     <string name="settings_set_master_password_subtitle">保护您的凭据</string>
     <string name="settings_change_master_password">更改主密码</string>
     <string name="settings_change_master_password_subtitle">更新您的主密码</string>
+    <string name="settings_please_set_master_password_first">请先设置主密码</string>
     <string name="settings_biometric_unlock">生物识别解锁</string>
     <string name="settings_biometric_tap_to_unlock">请先点击解锁凭据</string>
     <string name="settings_biometric_enabled">已启用</string>
@@ -185,6 +187,10 @@
     <string name="status_action_fetch">Fetch</string>
     <string name="status_action_stage_all">暂存全部</string>
     <string name="status_action_unstage">取消暂存</string>
+    <string name="status_push_failed">Push 失败：%1$s</string>
+    <string name="status_pull_failed">Pull 失败：%1$s</string>
+    <string name="status_fetch_failed">Fetch 失败：%1$s</string>
+    <string name="status_credential_unlock_required">请先在设置中解锁凭据保险库</string>
 
     <!-- ========== Branches Screen ========== -->
     <string name="branches_refresh_description">刷新</string>
@@ -239,6 +245,7 @@
 
     <!-- ========== Credentials Screen ========== -->
     <string name="credentials_setup_master_password">设置主密码</string>
+    <string name="credentials_screen_title">凭据</string>
     <string name="credentials_setup_description">创建主密码以保护您的敏感凭据。</string>
     <string name="credentials_password_label">密码</string>
     <string name="credentials_password_placeholder">至少 6 个字符</string>
@@ -377,6 +384,7 @@
     <string name="myrepos_clean_untracked_title">清理未跟踪的文件</string>
     <string name="myrepos_clean_untracked_description">从工作目录中移除未跟踪的文件。此操作无法撤销。点击\'预览\'查看将被删除的文件。</string>
     <string name="myrepos_repository_added">仓库已添加</string>
+    <string name="myrepos_repository_added_success">仓库添加成功</string>
     <string name="myrepos_repo_info_title">仓库信息</string>
     <string name="myrepos_not_git_repo_warning">此目录不是 Git 仓库</string>
     <string name="myrepos_scanning_files">正在扫描未跟踪的文件…</string>
@@ -456,6 +464,22 @@
     <string name="ssh_test_result_success">连接成功</string>
     <string name="ssh_test_result_failure">连接失败</string>
 
+    <!-- ========== Host Key Dialog ========== -->
+    <string name="hostkey_dialog_title">未知主机密钥</string>
+    <string name="hostkey_dialog_message">无法验证此主机的真实性。您是否信任此服务器？</string>
+    <string name="hostkey_dialog_host">主机</string>
+    <string name="hostkey_dialog_key_type">密钥类型</string>
+    <string name="hostkey_dialog_fingerprint">指纹 (SHA256)</string>
+    <string name="hostkey_dialog_security_title">安全提醒</string>
+    <string name="hostkey_dialog_security_warning">只有在信任此服务器时才接受。接受未知主机密钥可能导致中间人攻击。</string>
+    <string name="hostkey_dialog_accept">信任</string>
+    <string name="hostkey_dialog_rejected">主机密钥被拒绝</string>
+    <string name="hostkey_dialog_no_callback">无法验证主机：凭据保险库已锁定</string>
+    <string name="hostkey_dialog_timeout">%d秒后自动拒绝</string>
+
+    <string name="credentials_failed_generate_ssh_key">生成 SSH 密钥对失败</string>
+    <string name="credentials_error_generating_ssh_key">生成 SSH 密钥错误：%1$s</string>
+
     <!-- ========== Permissions Screen ========== -->
     <string name="permissions_system_title">系统权限</string>
     <string name="permissions_all_files_access">访问所有文件</string>
@@ -467,6 +491,7 @@
 
     <!-- ========== History Screen ========== -->
     <string name="history_commits_count_format">%1$d 个提交</string>
+    <string name="history_error_title">加载历史失败</string>
     <string name="history_no_commits">暂无提交</string>
     <string name="history_first_commit_message">进行第一次提交以查看历史</string>
     <string name="history_merge_badge">Merge</string>
@@ -477,6 +502,8 @@
     <string name="history_changed_files">变更文件</string>
     <string name="history_no_file_changes">没有文件变更</string>
     <string name="history_reset_to_commit">重置到此提交</string>
+    <string name="history_detail_load_error">加载详情失败</string>
+    <string name="history_reset_completed">重置到提交完成</string>
     <string name="history_time_just_now">刚刚</string>
     <string name="history_time_minutes_ago">%1$d 分钟前</string>
     <string name="history_time_hours_ago">%1$d 小时前</string>
@@ -641,6 +668,17 @@
     <string name="vm_clean_failed">清理失败：%1$s</string>
     <string name="vm_clean_get_files_failed">获取未跟踪文件失败：%1$s</string>
     <string name="vm_clean_get_list_failed">获取文件列表失败：%1$s</string>
+    <string name="vm_checkout_success">已切换到分支\'%1$s\'</string>
+    <string name="vm_checkout_failed">切换分支失败</string>
+    <string name="vm_branch_created_success">分支\'%1$s\'已成功创建</string>
+    <string name="vm_branch_creation_failed">创建分支失败</string>
+    <string name="vm_branch_renamed_success">分支已重命名为\'%1$s\'</string>
+    <string name="vm_branch_rename_failed">重命名分支失败</string>
+    <string name="vm_tag_lightweight_created">轻量级标签\'%1$s\'已创建</string>
+    <string name="vm_tag_annotated_created">附注标签\'%1$s\'已创建</string>
+    <string name="vm_tag_deleted">标签\'%1$s\'已删除</string>
+    <string name="vm_tag_push_success">标签\'%1$s\'已成功推送</string>
+    <string name="vm_tag_failed">执行标签操作失败</string>
 
     <!-- ========== Onboarding ========== -->
     <string name="onboarding_welcome_title">欢迎使用 FuwaGit</string>

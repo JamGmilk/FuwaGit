@@ -24,6 +24,7 @@
     <string name="action_add">Add</string>
     <string name="action_initialize">Initialize</string>
     <string name="action_apply">Apply</string>
+    <string name="action_retry">Retry</string>
     <string name="action_expand">Expand</string>
     <string name="action_collapse">Collapse</string>
     <string name="action_mark_as_resolved">Mark as Resolved</string>
@@ -246,6 +247,7 @@
     <string name="branches_rebase_confirm">REBASE</string>
 
     <!-- ========== Credentials Screen ========== -->
+    <string name="credentials_screen_title">Credentials</string>
     <string name="credentials_setup_master_password">Set Master Password</string>
     <string name="credentials_setup_description">Create a master password to protect your sensitive credentials.</string>
     <string name="credentials_password_label">Password</string>
@@ -493,6 +495,7 @@
 
     <!-- ========== History Screen ========== -->
     <string name="history_commits_count_format">%1$d commits</string>
+    <string name="history_error_title">Failed to load history</string>
     <string name="history_no_commits">No commits yet</string>
     <string name="history_first_commit_message">Make your first commit to see history</string>
     <string name="history_merge_badge">MERGE</string>
@@ -502,6 +505,7 @@
     <string name="history_deletions_label">Deletions</string>
     <string name="history_changed_files">Changed Files</string>
     <string name="history_no_file_changes">No file changes</string>
+    <string name="history_detail_load_error">Failed to load details</string>
     <string name="history_reset_to_commit">Reset to this commit</string>
     <string name="history_reset_completed">Reset to commit completed</string>
     <string name="history_time_just_now">just now</string>

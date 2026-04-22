@@ -4,6 +4,7 @@ import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import jamgmilk.fuwagit.core.result.AppException
 import jamgmilk.fuwagit.core.result.AppResult
 import jamgmilk.fuwagit.domain.usecase.credential.CredentialStoreFacade
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -97,7 +98,14 @@ class MasterPasswordViewModel @Inject constructor(
         }
     }
 
-    fun changeMasterPassword(oldPassword: String, newPassword: String, confirmPassword: String, hint: String?) {
+    fun changeMasterPassword(
+        activity: FragmentActivity?,
+        oldPassword: String,
+        newPassword: String,
+        confirmPassword: String,
+        hint: String?,
+        biometricEnabled: Boolean
+    ) {
         if (newPassword != confirmPassword) {
             _uiState.update { it.copy(error = "Passwords do not match") }
             return
@@ -109,26 +117,83 @@ class MasterPasswordViewModel @Inject constructor(
 
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
+            val wasBiometricEnabled = _uiState.value.isBiometricEnabled
 
             credentialFacade.changeMasterPassword(oldPassword, newPassword, hint)
                 .onSuccess {
-                    _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            passwordHint = hint,
-                            isComplete = true
-                        )
+                    when {
+                        wasBiometricEnabled && !biometricEnabled -> {
+                            credentialFacade.disableBiometric()
+                            finishPasswordChange(hint = hint, biometricEnabled = false)
+                        }
+
+                        !wasBiometricEnabled && biometricEnabled -> {
+                            credentialFacade.unlockWithPassword(newPassword)
+                                .onSuccess {
+                                    if (activity == null) {
+                                        val message = AppException.MasterKeyNotUnlocked().message
+                                        _uiState.update {
+                                            it.copy(
+                                                isLoading = false,
+                                                error = message
+                                            )
+                                        }
+                                        _events.emit(MasterPasswordEvent.Error(message))
+                                        return@onSuccess
+                                    }
+
+                                    credentialFacade.enableBiometric(activity) { result ->
+                                        when (result) {
+                                            is AppResult.Success -> {
+                                                viewModelScope.launch {
+                                                    finishPasswordChange(hint = hint, biometricEnabled = true)
+                                                }
+                                            }
+
+                                            is AppResult.Error -> {
+                                                viewModelScope.launch {
+                                                    val message = result.message ?: "Biometric error"
+                                                    _uiState.update {
+                                                        it.copy(
+                                                            isLoading = false,
+                                                            error = message
+                                                        )
+                                                    }
+                                                    _events.emit(MasterPasswordEvent.Error(message))
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                                .onError { e ->
+                                    val message = e.message ?: AppException.MasterKeyNotUnlocked().message
+                                    _uiState.update {
+                                        it.copy(
+                                            isLoading = false,
+                                            error = message
+                                        )
+                                    }
+                                    _events.emit(MasterPasswordEvent.Error(message))
+                                }
+                        }
+
+                        else -> {
+                            finishPasswordChange(
+                                hint = hint,
+                                biometricEnabled = wasBiometricEnabled
+                            )
+                        }
                     }
-                    _events.emit(MasterPasswordEvent.ChangeSuccess)
                 }
-                .onError {
+                .onError { e ->
+                    val message = changePasswordErrorMessage(e)
                     _uiState.update {
                         it.copy(
                             isLoading = false,
-                            error = "Incorrect old password"
+                            error = message
                         )
                     }
-                    _events.emit(MasterPasswordEvent.Error("Incorrect old password"))
+                    _events.emit(MasterPasswordEvent.Error(message))
                 }
         }
     }
@@ -158,6 +223,25 @@ class MasterPasswordViewModel @Inject constructor(
         viewModelScope.launch {
             credentialFacade.disableBiometric()
             _uiState.update { it.copy(isBiometricEnabled = false) }
+        }
+    }
+
+    private suspend fun finishPasswordChange(hint: String?, biometricEnabled: Boolean) {
+        _uiState.update {
+            it.copy(
+                isLoading = false,
+                passwordHint = hint,
+                isBiometricEnabled = biometricEnabled,
+                isComplete = true
+            )
+        }
+        _events.emit(MasterPasswordEvent.ChangeSuccess)
+    }
+
+    private fun changePasswordErrorMessage(exception: AppException): String {
+        return when (exception) {
+            is AppException.InvalidPassword -> "Incorrect old password"
+            else -> exception.message ?: "Change password failed"
         }
     }
 }
