@@ -44,6 +44,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -105,8 +106,15 @@ fun MasterPasswordScreen(
                 onSetup = { password, confirmPassword, hint ->
                     viewModel.setupMasterPassword(password, confirmPassword, hint)
                 },
-                onChange = { oldPassword, newPassword, confirmPassword, hint ->
-                    viewModel.changeMasterPassword(oldPassword, newPassword, confirmPassword, hint)
+                onChange = { activity, oldPassword, newPassword, confirmPassword, hint, biometricEnabled ->
+                    viewModel.changeMasterPassword(
+                        activity = activity,
+                        oldPassword = oldPassword,
+                        newPassword = newPassword,
+                        confirmPassword = confirmPassword,
+                        hint = hint,
+                        biometricEnabled = biometricEnabled
+                    )
                 },
                 onEnableBiometric = { activity ->
                     viewModel.enableBiometric(activity)
@@ -131,7 +139,14 @@ private fun MasterPasswordContent(
     error: String?,
     isLoading: Boolean,
     onSetup: (password: String, confirmPassword: String, hint: String?) -> Unit,
-    onChange: (oldPassword: String, newPassword: String, confirmPassword: String, hint: String?) -> Unit,
+    onChange: (
+        activity: FragmentActivity?,
+        oldPassword: String,
+        newPassword: String,
+        confirmPassword: String,
+        hint: String?,
+        biometricEnabled: Boolean
+    ) -> Unit,
     onEnableBiometric: (FragmentActivity) -> Unit,
     onDisableBiometric: () -> Unit,
     onClearError: () -> Unit,
@@ -148,6 +163,9 @@ private fun MasterPasswordContent(
     var showOldPassword by remember { mutableStateOf(false) }
     var showPassword by remember { mutableStateOf(false) }
     var showConfirmPassword by remember { mutableStateOf(false) }
+    var biometricEnabledSelection by rememberSaveable(mode, isBiometricEnabled) {
+        mutableStateOf(isBiometricEnabled)
+    }
 
     val passwordMatchError = if (confirmPassword.isNotEmpty() && password != confirmPassword) {
         stringResource(R.string.credentials_passwords_do_not_match)
@@ -367,9 +385,18 @@ private fun MasterPasswordContent(
         Spacer(Modifier.height(16.dp))
 
         BiometricUnlockCard(
-            isBiometricEnabled = isBiometricEnabled,
-            onEnableBiometric = { activity?.let { onEnableBiometric(it) } },
-            onDisableBiometric = onDisableBiometric
+            isBiometricEnabled = if (isSetupMode) isBiometricEnabled else biometricEnabledSelection,
+            onCheckedChange = { enabled ->
+                if (isSetupMode) {
+                    if (enabled) {
+                        activity?.let { onEnableBiometric(it) }
+                    } else {
+                        onDisableBiometric()
+                    }
+                } else {
+                    biometricEnabledSelection = enabled
+                }
+            }
         )
 
         Spacer(Modifier.height(24.dp))
@@ -379,7 +406,14 @@ private fun MasterPasswordContent(
                 if (isSetupMode) {
                     onSetup(password, confirmPassword, hint.ifBlank { null })
                 } else {
-                    onChange(oldPassword, password, confirmPassword, hint.ifBlank { null })
+                    onChange(
+                        activity,
+                        oldPassword,
+                        password,
+                        confirmPassword,
+                        hint.ifBlank { null },
+                        biometricEnabledSelection
+                    )
                 }
             },
             enabled = !isLoading && isFormValid,
@@ -388,16 +422,14 @@ private fun MasterPasswordContent(
                 .height(50.dp),
             shape = RoundedCornerShape(12.dp),
             colors = ButtonDefaults.buttonColors(
-                containerColor = when (mode) {
-                    MasterPasswordMode.SETUP -> colors.primary
-                    MasterPasswordMode.CHANGE -> colors.tertiary
-                }
+                containerColor = colors.primary,
+                contentColor = colors.onPrimary
             )
         ) {
             if (isLoading) {
                 CircularProgressIndicator(
                     modifier = Modifier.size(20.dp),
-                    color = Color.White,
+                    color = colors.onPrimary,
                     strokeWidth = 2.dp
                 )
                 Spacer(Modifier.width(8.dp))
@@ -423,8 +455,7 @@ private fun MasterPasswordContent(
 @Composable
 private fun BiometricUnlockCard(
     isBiometricEnabled: Boolean,
-    onEnableBiometric: () -> Unit,
-    onDisableBiometric: () -> Unit
+    onCheckedChange: (Boolean) -> Unit
 ) {
     val colors = MaterialTheme.colorScheme
 
@@ -471,7 +502,7 @@ private fun BiometricUnlockCard(
             }
             Switch(
                 checked = isBiometricEnabled,
-                onCheckedChange = { if (it) onEnableBiometric() else onDisableBiometric() },
+                onCheckedChange = onCheckedChange,
                 colors = SwitchDefaults.colors(checkedTrackColor = colors.primary)
             )
         }

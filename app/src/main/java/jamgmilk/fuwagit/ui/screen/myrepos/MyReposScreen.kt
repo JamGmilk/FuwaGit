@@ -84,10 +84,8 @@ import jamgmilk.fuwagit.ui.components.ScreenTemplate
 import jamgmilk.fuwagit.ui.screen.credentials.CredentialType
 import jamgmilk.fuwagit.ui.state.RepoInfo
 import jamgmilk.fuwagit.ui.theme.AppShapes
+import jamgmilk.fuwagit.ui.util.formatRelativeTime
 import kotlinx.coroutines.launch
-import java.text.DateFormat
-import java.util.Date
-import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -385,9 +383,8 @@ fun RepoItemCard(
 ) {
     val colors = MaterialTheme.colorScheme
 
-    val dateFormat = remember { DateFormat.getDateInstance(DateFormat.MEDIUM, Locale.getDefault()).format(Date()) }
     val lastModifiedText = if (item.lastModified > 0) {
-        dateFormat.format(Date(item.lastModified))
+        formatRelativeTime(item.lastModified)
     } else {
         stringResource(R.string.myrepos_unknown_date)
     }

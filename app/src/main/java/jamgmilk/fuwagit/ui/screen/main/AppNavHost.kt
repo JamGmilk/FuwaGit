@@ -61,6 +61,7 @@ import jamgmilk.fuwagit.ui.screen.credentials.MasterPasswordScreen
 import jamgmilk.fuwagit.ui.screen.credentials.UnlockDialog
 import jamgmilk.fuwagit.ui.screen.filediff.FileDiffScreen
 import jamgmilk.fuwagit.ui.screen.filediff.FileDiffViewModel
+import jamgmilk.fuwagit.ui.screen.history.DiffViewRequest
 import jamgmilk.fuwagit.ui.screen.history.HistoryScreen
 import jamgmilk.fuwagit.ui.screen.history.HistoryViewModel
 import jamgmilk.fuwagit.ui.screen.myrepos.AddRepositoryScreen
@@ -172,10 +173,10 @@ fun AppNavHost(navController: NavHostController, startDestination: String = NavR
                         val encodedPath = URLEncoder.encode(filePath, StandardCharsets.UTF_8.name())
                         navController.navigate("${NavRoutes.FILE_DIFF}?filePath=$encodedPath&diffType=${diffType.name}")
                     },
-                    onViewCommitDiff = { filePath, oldCommit, newCommit ->
-                        val encodedPath = URLEncoder.encode(filePath, StandardCharsets.UTF_8.name())
-                        val encodedOld = URLEncoder.encode(oldCommit, StandardCharsets.UTF_8.name())
-                        val encodedNew = URLEncoder.encode(newCommit, StandardCharsets.UTF_8.name())
+                    onViewCommitDiff = { request ->
+                        val encodedPath = URLEncoder.encode(request.filePath, StandardCharsets.UTF_8.name())
+                        val encodedOld = URLEncoder.encode(request.oldCommitHash, StandardCharsets.UTF_8.name())
+                        val encodedNew = URLEncoder.encode(request.newCommitHash, StandardCharsets.UTF_8.name())
                         navController.navigate("${NavRoutes.FILE_DIFF}?filePath=$encodedPath&diffType=${DiffType.COMMIT.name}&oldCommit=$encodedOld&newCommit=$encodedNew")
                     }
                 )
@@ -301,7 +302,7 @@ fun MainScreen(
     onNavigateToMasterPassword: () -> Unit,
     onMasterPasswordSuccess: () -> Unit = {},
     onViewFileDiff: ((String, DiffType) -> Unit)? = null,
-    onViewCommitDiff: ((String, String, String) -> Unit)? = null
+    onViewCommitDiff: ((DiffViewRequest) -> Unit)? = null
 ) {
     val statusViewModel: StatusViewModel = hiltViewModel()
     val historyViewModel: HistoryViewModel = hiltViewModel()
@@ -371,9 +372,7 @@ fun MainScreen(
                     1 -> HistoryScreen(
                         historyViewModel = historyViewModel,
                         modifier = Modifier.fillMaxSize(),
-                        onViewCommitDiff = { filePath, oldCommit, newCommit ->
-                            onViewCommitDiff?.invoke(filePath, oldCommit, newCommit)
-                        }
+                        onViewCommitDiff = onViewCommitDiff
                     )
                     2 -> BranchesScreen(
                         branchesViewModel = branchesViewModel,

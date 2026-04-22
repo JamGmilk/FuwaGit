@@ -9,10 +9,10 @@ import javax.inject.Inject
 class GetCommitHistoryUseCase @Inject constructor(
     private val repository: CommitRepository
 ) {
-    suspend operator fun invoke(repoPath: String, maxCount: Int = 100): AppResult<List<GitCommit>> {
+    suspend operator fun invoke(repoPath: String, maxCount: Int = 50, skip: Int = 0): AppResult<List<GitCommit>> {
         if (repoPath.isBlank()) {
             return AppResult.Error(AppException.Validation("Repository path cannot be empty"))
         }
-        return repository.getCommitHistory(repoPath, maxCount)
+        return repository.getCommitHistory(repoPath, maxCount, skip)
     }
 }
