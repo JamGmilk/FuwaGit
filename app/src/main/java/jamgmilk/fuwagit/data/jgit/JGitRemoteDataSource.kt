@@ -53,7 +53,7 @@ class JGitRemoteDataSource @Inject constructor(
                 cloneCommand.setBare(true)
             }
 
-            core.configureCredentials(cloneCommand, credentials, skipHostKeyCheck = true)
+            core.configureCredentials(cloneCommand, credentials)
             if (options.branch != null) {
                 cloneCommand.setBranch(options.branch)
             }
@@ -65,8 +65,6 @@ class JGitRemoteDataSource @Inject constructor(
         } catch (e: Exception) {
             Log.e("JGitRemoteDataSource", "Failed to clone repository", e)
             Result.failure(e)
-        } finally {
-            core.clearSshCredentials()
         }
     }
 
@@ -74,8 +72,7 @@ class JGitRemoteDataSource @Inject constructor(
      * Pulls changes from the remote repository.
      */
     override fun pull(repoPath: String, credentials: CloneCredential?): Result<PullResult> {
-        return try {
-            core.withGit(repoPath) { git ->
+        return core.withGit(repoPath) { git ->
                 val status = git.status().call()
                 val gitDir = git.repository.directory
 
@@ -193,9 +190,6 @@ class JGitRemoteDataSource @Inject constructor(
                     detailMessage = detailMessage
                 )
             }
-        } finally {
-            core.clearSshCredentials()
-        }
     }
 
     /**
@@ -206,8 +200,7 @@ class JGitRemoteDataSource @Inject constructor(
         credentials: CloneCredential?,
         options: GitPushOptions
     ): Result<String> {
-        return try {
-            val result = core.withGit(repoPath) { git ->
+        return core.withGit(repoPath) { git ->
                 val status = git.status().call()
 
                 if (status.hasUncommittedChanges()) {
@@ -265,9 +258,8 @@ class JGitRemoteDataSource @Inject constructor(
                             }
                         }
                     } else if (localRef != null) {
-                        // remote ref doesn't exist yet — this is a first push, allowed
+                        // localRef exists, remoteRef doesn't - normal for new branch
                     } else {
-                        // localRef == null: local branch doesn't exist
                         val headRevision = try { git.repository.resolve("HEAD") } catch (_: Exception) { null }
                         if (headRevision == null) {
                             throw Exception("Repository has no commits. Make at least one commit before pushing.")
@@ -275,74 +267,56 @@ class JGitRemoteDataSource @Inject constructor(
                     }
                 }
 
-                val pushCommand = git.push().setRemote(options.remote)
+                    val pushCommand = git.push().setRemote(options.remote)
 
-                // Set branch to push
-                when {
-                    options.pushAllBranches -> pushCommand.setPushAll()
-                    options.branch != null -> pushCommand.add(options.branch)
-                    options.pushCurrentBranch -> pushCommand.add(git.repository.branch)
-                }
-
-                // Set tag push
-                if (options.pushTags) pushCommand.setPushTags()
-
-                if (options.forceWithLease || options.forcePush) {
-                    pushCommand.setForce(true)
-                }
-
-                core.configureCredentials(pushCommand, credentials)
-                pushCommand.call()
-
-                if (options.setUpstreamOnPush) {
-                    val currentBranch = git.repository.branch
-                    val remoteRef = git.repository.exactRef("refs/remotes/$targetRemote/$currentBranch")
-                    if (remoteRef == null) {
-                        git.repository.config.setString("branch", currentBranch, "remote", targetRemote)
-                        git.repository.config.setString("branch", currentBranch, "merge", "refs/heads/$currentBranch")
-                        git.repository.config.save()
+                    when {
+                        options.pushAllBranches -> pushCommand.setPushAll()
+                        options.branch != null -> pushCommand.add(options.branch)
+                        options.pushCurrentBranch -> pushCommand.add(git.repository.branch)
                     }
-                }
 
-                val forceIndicator = when {
-                    options.forceWithLease -> " (force-with-lease)"
-                    options.forcePush -> " (force)"
-                    else -> ""
-                }
-                "Push completed$forceIndicator"
+                    if (options.pushTags) pushCommand.setPushTags()
+
+                    if (options.forceWithLease || options.forcePush) {
+                        pushCommand.setForce(true)
+                    }
+
+                    core.configureCredentials(pushCommand, credentials)
+                    pushCommand.call()
+
+                    if (options.setUpstreamOnPush) {
+                        val currentBranch = git.repository.branch
+                        val remoteRef = git.repository.exactRef("refs/remotes/$targetRemote/$currentBranch")
+                        if (remoteRef == null) {
+                            git.repository.config.setString("branch", currentBranch, "remote", targetRemote)
+                            git.repository.config.setString("branch", currentBranch, "merge", "refs/heads/$currentBranch")
+                            git.repository.config.save()
+                        }
+                    }
+
+                    val forceIndicator = when {
+                        options.forceWithLease -> " (force-with-lease)"
+                        options.forcePush -> " (force)"
+                        else -> ""
+                    }
+                    "Push completed$forceIndicator"
             }
-            result
-        } catch (e: org.eclipse.jgit.api.errors.TransportException) {
-            // Handle force-with-lease failure (remote has new commits)
-            if (options.forceWithLease && e.message?.contains("rejected") == true) {
-                Result.failure(Exception("Push rejected: remote branch has new commits. Fetch and merge first, or use force push to override."))
-            } else {
-                Result.failure(Exception("Push failed: ${e.message}"))
-            }
-        } catch (e: Exception) {
-            Result.failure(Exception("Push failed: ${e.message}"))
-        } finally {
-            core.clearSshCredentials()
-        }
     }
 
     /**
      * Fetches changes from the remote repository.
      */
-    override fun fetch(repoPath: String, credentials: CloneCredential?): Result<String> =
-        core.withGit(repoPath) { git ->
-            try {
-                if (git.repository.config.getSubsections("remote").isEmpty()) {
-                    throw Exception("No remote configured. Add a remote before fetching.")
-                }
-                val fetchCommand = git.fetch().setRemoveDeletedRefs(true)
-                core.configureCredentials(fetchCommand, credentials)
-                fetchCommand.call()
-                "Fetch completed"
-            } finally {
-                core.clearSshCredentials()
+    override fun fetch(repoPath: String, credentials: CloneCredential?): Result<String> {
+        return core.withGit(repoPath) { git ->
+            if (git.repository.config.getSubsections("remote").isEmpty()) {
+                throw Exception("No remote configured. Add a remote before fetching.")
             }
+            val fetchCommand = git.fetch().setRemoveDeletedRefs(true)
+            core.configureCredentials(fetchCommand, credentials)
+            fetchCommand.call()
+            "Fetch completed"
         }
+    }
 
     /**
      * Configures a remote repository.

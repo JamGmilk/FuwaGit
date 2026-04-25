@@ -122,40 +122,42 @@ class JGitCommitDataSource @Inject constructor(
         }
 
     override suspend fun commit(repoPath: String, message: String): Result<String> {
-        val statusResult = core.withGit(repoPath) { git ->
+        val config = core.gitConfigDataStore.configFlow.first()
+
+        return core.withGit(repoPath) { git ->
             val status = git.status().call()
-            status.added.isNotEmpty() || status.changed.isNotEmpty() || status.removed.isNotEmpty()
-        }
+            val hasStagedChanges = status.added.isNotEmpty() ||
+                                   status.changed.isNotEmpty() ||
+                                   status.removed.isNotEmpty()
 
-        if (statusResult.isFailure) {
-            return Result.failure(statusResult.exceptionOrNull() ?: Exception("Failed to check status"))
-        }
-        val hasStagedChanges = statusResult.getOrNull() == true
-
-        if (!hasStagedChanges) {
-            return Result.failure(Exception("Nothing to commit"))
-        }
-
-        return try {
-            val config = core.gitConfigDataStore.configFlow.first()
-            core.withGit(repoPath) { git ->
-                val authorName = config.userName.takeIf { it.isNotBlank() }
-                val authorEmail = config.userEmail.takeIf { it.isNotBlank() }
-
-                val commitBuilder = git.commit()
-                    .setMessage(message)
-                    .setAllowEmpty(false)
-
-                if (authorName != null && authorEmail != null) {
-                    commitBuilder.setAuthor(authorName, authorEmail)
-                }
-
-                commitBuilder.call().id.name()
+            if (!hasStagedChanges) {
+                throw Exception("Nothing to commit")
             }
-        } catch (e: LockFailedException) {
-            Result.failure(Exception("Cannot commit: repository lock failed."))
-        } catch (e: JGitInternalException) {
-            Result.failure(Exception("Git error: ${e.message}"))
+
+            val authorName = config.userName.takeIf { it.isNotBlank() }
+            val authorEmail = config.userEmail.takeIf { it.isNotBlank() }
+
+            val commitBuilder = git.commit()
+                .setMessage(message)
+                .setAllowEmpty(false)
+
+            if (authorName != null && authorEmail != null) {
+                commitBuilder.setAuthor(authorName, authorEmail)
+            }
+
+            commitBuilder.call().id.name()
+        }.let { result ->
+            if (result.isFailure) {
+                val exception = result.exceptionOrNull()
+                when {
+                    exception is LockFailedException -> Result.failure(Exception("Cannot commit: repository lock failed."))
+                    exception is JGitInternalException -> Result.failure(Exception("Git error: ${exception.message}"))
+                    exception is Exception -> Result.failure(exception)
+                    else -> result
+                }
+            } else {
+                result
+            }
         }
     }
 
@@ -180,7 +182,7 @@ class JGitCommitDataSource @Inject constructor(
                     GitResetMode.HARD -> "Reset to $commitHash (hard): All changes discarded"
                 }
             }
-        } catch (e: LockFailedException) {
+        } catch (_: LockFailedException) {
             Result.failure(Exception("Cannot reset: repository lock failed."))
         } catch (e: JGitInternalException) {
             Result.failure(Exception("Git error: ${e.message}"))
@@ -190,12 +192,14 @@ class JGitCommitDataSource @Inject constructor(
     }
 
     private fun countLines(loader: org.eclipse.jgit.lib.ObjectLoader): Int {
-        loader.openStream().use { stream ->
+        loader.openStream().buffered().use { stream ->
             var count = 0
-            while (true) {
-                val byte = stream.read()
-                if (byte == -1) break
-                if (byte == 10) count++
+            val buffer = ByteArray(8192)
+            var bytesRead: Int
+            while (stream.read(buffer).also { bytesRead = it } != -1) {
+                for (i in 0 until bytesRead) {
+                    if (buffer[i] == 10.toByte()) count++
+                }
             }
             return count
         }

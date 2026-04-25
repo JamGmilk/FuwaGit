@@ -124,25 +124,31 @@ class JGitStatusDataSource @Inject constructor(
         } else {
             git.reset().setRef("HEAD").addPath(filePath).call()
         }
-        Result.success(Unit)
+        Unit
     }
 
     /**
      * Discards changes to a specific file.
-     * Checks if the file has changes before attempting discard to avoid unnecessary operations.
+     * Handles both modified files (checkout) and untracked files (clean).
      */
     override fun discardChanges(repoPath: String, filePath: String): Result<Unit> = core.withGit(repoPath) { git ->
         val status = git.status().call()
         val isModified = status.changed.contains(filePath) ||
                          status.modified.contains(filePath) ||
                          status.removed.contains(filePath)
+        val isUntracked = status.untracked.contains(filePath)
 
-        if (!isModified) {
+        if (!isModified && !isUntracked) {
             return@withGit
         }
 
         try {
-            git.checkout().addPath(filePath).call()
+            if (isUntracked) {
+                git.clean().setPaths(setOf(filePath)).call()
+            }
+            if (isModified) {
+                git.checkout().addPath(filePath).call()
+            }
         } catch (e: Exception) {
             throw Exception("Failed to discard changes: ${e.message}. Make sure the file is not locked by another process.")
         }

@@ -26,8 +26,6 @@ interface GitCoreDataSource {
         credentials: CloneCredential?,
         skipHostKeyCheck: Boolean = false
     )
-
-    fun clearSshCredentials()
 }
 
 data class RepositoryLockStatus(
@@ -44,8 +42,6 @@ enum class LockType {
     CHERRY_PICK_IN_PROGRESS,
     REVERT_IN_PROGRESS,
     BISECT_IN_PROGRESS,
-    STASH_APPLY_IN_PROGRESS,
-    COMMIT_IN_PROGRESS,
     PATCH_APPLY_IN_PROGRESS,
     REBASE_SEQUENCE_IN_PROGRESS
 }

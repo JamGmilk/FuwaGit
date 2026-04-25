@@ -10,6 +10,7 @@ import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.eclipse.jgit.api.Git
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder
 import java.io.File
+import java.security.Security
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -151,14 +152,6 @@ class JGitCoreDataSource @Inject constructor(
             )
         }
 
-        if (File(gitDir, "COMMIT_EDITMSG").exists()) {
-            return RepositoryLockStatus(
-                isLocked = true,
-                lockType = LockType.COMMIT_IN_PROGRESS,
-                message = "A commit message is being edited. Complete or cancel the commit first."
-            )
-        }
-
         if (File(gitDir, "PATCH_HEADER").exists() || File(gitDir, "sequencer").exists()) {
             return RepositoryLockStatus(
                 isLocked = true,
@@ -174,17 +167,6 @@ class JGitCoreDataSource @Inject constructor(
                 lockType = LockType.REBASE_SEQUENCE_IN_PROGRESS,
                 message = "A rebase sequence is in progress (e.g., exec, label, reset). Complete or abort the rebase first."
             )
-        }
-
-        if (File(gitDir, "refs/stash").exists() && File(gitDir, "refs/stash").readText().isNotBlank()) {
-            val hasApplying = File(gitDir, "applying").exists()
-            if (hasApplying) {
-                return RepositoryLockStatus(
-                    isLocked = true,
-                    lockType = LockType.STASH_APPLY_IN_PROGRESS,
-                    message = "A stash apply is in progress. Complete or abort it first."
-                )
-            }
         }
 
         return RepositoryLockStatus(
@@ -253,7 +235,9 @@ class JGitCoreDataSource @Inject constructor(
         skipHostKeyCheck: Boolean
     ) {
         try {
-            java.security.Security.addProvider(BouncyCastleProvider())
+            if (Security.getProvider(BouncyCastleProvider.PROVIDER_NAME) == null) {
+                Security.addProvider(BouncyCastleProvider())
+            }
 
             command.setTransportConfigCallback { transport ->
                 if (transport is org.eclipse.jgit.transport.SshTransport) {
@@ -275,7 +259,7 @@ class JGitCoreDataSource @Inject constructor(
                                 Log.e(TAG, "Failed to configure SSH identity or known hosts", e)
                             } finally {
                                 SecurityUtils.zeroBytes(privateKeyBytes)
-                                SecurityUtils.zeroBytesIfNotNull(passphraseBytes)
+                                SecurityUtils.zeroBytes(passphraseBytes)
                             }
                             return jsch
                         }
@@ -285,12 +269,8 @@ class JGitCoreDataSource @Inject constructor(
             Log.i(TAG, "SSH transport configured for command")
         } catch (e: Exception) {
             SecurityUtils.zeroBytes(privateKeyBytes)
-            SecurityUtils.zeroBytesIfNotNull(passphraseBytes)
+            SecurityUtils.zeroBytes(passphraseBytes)
             Log.e(TAG, "Failed to configure SSH", e)
         }
-    }
-
-    override fun clearSshCredentials() {
-        // No-op: credentials are no longer cached, zeroed immediately after use
     }
 }
