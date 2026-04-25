@@ -33,6 +33,8 @@ interface SettingsRepository {
 
     suspend fun saveLanguage(language: String)
 
+    suspend fun saveDynamicColor(enabled: Boolean)
+
     suspend fun saveAutoLockTimeout(timeout: String)
 
     suspend fun setFirstRunCompleted()

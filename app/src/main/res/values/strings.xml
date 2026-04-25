@@ -58,6 +58,8 @@
     <string name="settings_language_system">Follow System</string>
     <string name="settings_language_zh_cn">简体中文</string>
     <string name="settings_language_en">English</string>
+    <string name="settings_dynamic_color">Dynamic Color</string>
+    <string name="settings_dynamic_color_subtitle">Apply Material You colors from wallpaper</string>
 
     <!-- Security -->
     <string name="settings_security">Security</string>

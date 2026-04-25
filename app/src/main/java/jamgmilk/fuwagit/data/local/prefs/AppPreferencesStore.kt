@@ -26,6 +26,7 @@ object PreferencesKeys {
     val VERBOSE_LOGGING = booleanPreferencesKey("developer.verboseLogging")
     val DARK_MODE = stringPreferencesKey("appearance.darkMode")
     val LANGUAGE = stringPreferencesKey("appearance.language")
+    val DYNAMIC_COLOR = booleanPreferencesKey("appearance.dynamicColor")
     val AUTO_LOCK_TIMEOUT = stringPreferencesKey("security.autoLockTimeout")
     val IS_FIRST_RUN = booleanPreferencesKey("app.isFirstRun")
 }
@@ -44,6 +45,7 @@ class AppPreferencesStore @Inject constructor(
             verboseLogging = prefs[PreferencesKeys.VERBOSE_LOGGING] ?: false,
             darkMode = prefs[PreferencesKeys.DARK_MODE] ?: "system",
             language = prefs[PreferencesKeys.LANGUAGE] ?: "system",
+            dynamicColor = prefs[PreferencesKeys.DYNAMIC_COLOR] ?: true,
             autoLockTimeout = prefs[PreferencesKeys.AUTO_LOCK_TIMEOUT] ?: "300",
             isFirstRun = prefs[PreferencesKeys.IS_FIRST_RUN] ?: true
         )
@@ -98,6 +100,12 @@ class AppPreferencesStore @Inject constructor(
     suspend fun setLanguage(language: String) {
         context.dataStore.edit { prefs ->
             prefs[PreferencesKeys.LANGUAGE] = language
+        }
+    }
+
+    suspend fun setDynamicColor(enabled: Boolean) {
+        context.dataStore.edit { prefs ->
+            prefs[PreferencesKeys.DYNAMIC_COLOR] = enabled
         }
     }
 

@@ -43,7 +43,10 @@ class MainActivity : AppCompatActivity() {
             val windowInsetsController = WindowCompat.getInsetsController(window, window.decorView)
             windowInsetsController.isAppearanceLightStatusBars = !isDarkTheme
 
-            MizuiroTheme(darkTheme = isDarkTheme) {
+            MizuiroTheme(
+                darkTheme = isDarkTheme,
+                dynamicColor = settingsUiState.dynamicColor
+            ) {
                 val navController = rememberNavController()
                 AppNavHost(
                     navController = navController,

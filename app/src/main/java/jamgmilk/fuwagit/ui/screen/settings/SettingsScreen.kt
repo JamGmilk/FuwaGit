@@ -1,6 +1,7 @@
 package jamgmilk.fuwagit.ui.screen.settings
 
 import android.content.Intent
+import android.os.Build
 import android.util.Log
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.os.LocaleListCompat
@@ -33,6 +34,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.AccountTree
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Backup
 import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.Build
@@ -298,8 +300,10 @@ fun SettingsScreen(
         AppearanceSettingsCard(
             darkMode = settingsUiState.darkMode,
             language = settingsUiState.language,
+            dynamicColor = settingsUiState.dynamicColor,
             onDarkModeChange = { mode -> settingsViewModel.saveDarkMode(mode) },
             onLanguageChange = { lang -> settingsViewModel.saveLanguage(lang) },
+            onDynamicColorChange = { settingsViewModel.saveDynamicColor(it) },
             modifier = Modifier.fillMaxWidth()
         )
 
@@ -1910,8 +1914,10 @@ private fun SettingsLinkItem(
 private fun AppearanceSettingsCard(
     darkMode: String,
     language: String,
+    dynamicColor: Boolean,
     onDarkModeChange: (String) -> Unit,
     onLanguageChange: (String) -> Unit,
+    onDynamicColorChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val colors = MaterialTheme.colorScheme
@@ -1992,6 +1998,18 @@ private fun AppearanceSettingsCard(
             }
 
             HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                SettingsSwitchItem(
+                    title = stringResource(R.string.settings_dynamic_color),
+                    subtitle = stringResource(R.string.settings_dynamic_color_subtitle),
+                    icon = Icons.Default.AutoAwesome,
+                    checked = dynamicColor,
+                    onCheckedChange = onDynamicColorChange
+                )
+
+                HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+            }
 
             ExpandableSettingsItem(
                 title = stringResource(R.string.settings_language),
