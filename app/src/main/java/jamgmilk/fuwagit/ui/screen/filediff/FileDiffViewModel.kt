@@ -16,9 +16,6 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-/**
- * File Diff UI 状态
- */
 @Stable
 data class FileDiffUiState(
     val isLoading: Boolean = false,
@@ -29,9 +26,6 @@ data class FileDiffUiState(
     val diffType: DiffType = DiffType.WORKING_TREE
 )
 
-/**
- * Diff 类型
- */
 enum class DiffType {
     WORKING_TREE,  // 工作区 vs HEAD
     STAGED,        // 暂存区 vs HEAD
@@ -51,13 +45,14 @@ class FileDiffViewModel @Inject constructor(
     private var currentRepoPath: String? = null
 
     init {
-        // 从 SavedStateHandle 获取参数
         val filePath = savedStateHandle.get<String>("filePath")
         val diffTypeString = savedStateHandle.get<String>("diffType") ?: "WORKING_TREE"
-        val oldCommit = savedStateHandle.get<String>("oldCommit")
-        val newCommit = savedStateHandle.get<String>("newCommit")
 
-        val diffType = DiffType.valueOf(diffTypeString)
+        val diffType = try {
+            DiffType.valueOf(diffTypeString)
+        } catch (_: IllegalArgumentException) {
+            DiffType.WORKING_TREE
+        }
 
         _uiState.update {
             it.copy(
@@ -72,9 +67,9 @@ class FileDiffViewModel @Inject constructor(
                 _uiState.update { it.copy(repoPath = info.repoPath) }
                 val filePath = _uiState.value.filePath
                 val diffType = _uiState.value.diffType
-                val oldCommit = savedStateHandle.get<String>("oldCommit")
-                val newCommit = savedStateHandle.get<String>("newCommit")
                 if (info.isValidGit && filePath != null && info.repoPath != null) {
+                    val oldCommit = savedStateHandle.get<String>("oldCommit")
+                    val newCommit = savedStateHandle.get<String>("newCommit")
                     loadDiff(info.repoPath, filePath, diffType, oldCommit, newCommit)
                 }
             }

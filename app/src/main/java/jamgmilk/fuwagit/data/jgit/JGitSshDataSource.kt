@@ -54,21 +54,23 @@ class JGitSshDataSource @Inject constructor(
         }
     }
 
-    private suspend fun testSshConnectionDirect(
+    private fun testSshConnectionDirect(
         username: String,
         hostname: String,
         privateKeyPem: String,
         passphrase: String?
     ): Result<String> {
-        val privateKeyBytes = privateKeyPem.replace("\r\n", "\n").trim().toByteArray(Charsets.UTF_8)
-        val passphraseBytes = passphrase?.toByteArray(Charsets.UTF_8)
+        val privateKeyBytes = SecureByteArray(privateKeyPem.replace("\r\n", "\n").trim().toByteArray(Charsets.UTF_8))
+        val passphraseBytes = passphrase?.let { SecureByteArray(it.toByteArray(Charsets.UTF_8)) }
 
         val jsch = com.jcraft.jsch.JSch()
         try {
-            jsch.addIdentity("fuwa-test-ssh-key", privateKeyBytes, null, passphraseBytes)
+            jsch.addIdentity("fuwa-test-ssh-key", privateKeyBytes.get(), null, passphraseBytes?.get())
             debugLog("JSch identity added")
         } catch (e: Exception) {
             debugLog("JSch addIdentity failed: ${e.message}")
+            privateKeyBytes.secureZero()
+            passphraseBytes?.secureZero()
             return Result.failure(AppException.GitOperationFailed("SSH Test", "Invalid private key: ${e.message}"))
         }
 
@@ -114,6 +116,8 @@ class JGitSshDataSource @Inject constructor(
             debugLog("Channel exit code: $exitCode")
 
             cleanupConnection(channel, session)
+            privateKeyBytes.secureZero()
+            passphraseBytes?.secureZero()
             if (serverBanner.isNotBlank()) {
                 return Result.success(serverBanner)
             } else {
@@ -122,22 +126,32 @@ class JGitSshDataSource @Inject constructor(
         } catch (e: com.jcraft.jsch.JSchException) {
             debugLog("SSH connection failed: ${e.message}")
             cleanupConnection(channel, session)
+            privateKeyBytes.secureZero()
+            passphraseBytes?.secureZero()
             return Result.failure(parseJSchException(e, hostname))
         } catch (e: java.net.SocketTimeoutException) {
             debugLog("SSH socket timeout: ${e.message}")
             cleanupConnection(channel, session)
+            privateKeyBytes.secureZero()
+            passphraseBytes?.secureZero()
             return Result.failure(AppException.GitOperationFailed("SSH Test", "Connection timed out to $hostname - server is not responding on port 22"))
         } catch (e: java.net.ConnectException) {
             debugLog("SSH connection refused: ${e.message}")
             cleanupConnection(channel, session)
+            privateKeyBytes.secureZero()
+            passphraseBytes?.secureZero()
             return Result.failure(AppException.GitOperationFailed("SSH Test", "Connection refused by $hostname - SSH service may not be running on port 22"))
         } catch (e: java.net.UnknownHostException) {
             debugLog("SSH unknown host: ${e.message}")
             cleanupConnection(channel, session)
+            privateKeyBytes.secureZero()
+            passphraseBytes?.secureZero()
             return Result.failure(AppException.GitOperationFailed("SSH Test", "Unknown host: $hostname - check hostname spelling"))
         } catch (e: java.io.IOException) {
             debugLog("SSH IO error: ${e.message}")
             cleanupConnection(channel, session)
+            privateKeyBytes.secureZero()
+            passphraseBytes?.secureZero()
             val msg = e.message ?: "Connection failed"
             val exception = when {
                 msg.contains("Connection reset") ->
@@ -151,6 +165,8 @@ class JGitSshDataSource @Inject constructor(
         } catch (e: Exception) {
             Log.e("JGitSshDataSource", "SSH test unexpected error: ${e.message}", e)
             cleanupConnection(channel, session)
+            privateKeyBytes.secureZero()
+            passphraseBytes?.secureZero()
             return Result.failure(AppException.GitOperationFailed("SSH Test", "Unexpected error: ${e.message ?: "Unknown error"}"))
         }
     }
@@ -160,16 +176,25 @@ class JGitSshDataSource @Inject constructor(
         try { session?.disconnect() } catch (_: Exception) { }
     }
 
+    private class SecureByteArray(private val bytes: ByteArray) {
+        fun get(): ByteArray = bytes
+        fun secureZero() {
+            java.util.Arrays.fill(bytes, 0.toByte())
+        }
+    }
+
     private fun getServerBanner(session: com.jcraft.jsch.Session): String? {
-        val methods = listOf("getServerBanner", "getBanner", "getLastMessage")
-        for (methodName in methods) {
+        val jschSessionClass = session.javaClass
+        for (methodName in listOf("getServerBanner", "getBanner", "getLastMessage")) {
             try {
-                val method = session.javaClass.getMethod(methodName)
+                val method = jschSessionClass.getMethod(methodName)
                 val result = method.invoke(session) as? String
                 if (!result.isNullOrBlank()) {
                     debugLog("Server banner via $methodName: $result")
                     return result
                 }
+            } catch (_: NoSuchMethodException) {
+            } catch (_: SecurityException) {
             } catch (e: Exception) {
                 debugLog("Failed to get server banner via $methodName: ${e.message}")
             }

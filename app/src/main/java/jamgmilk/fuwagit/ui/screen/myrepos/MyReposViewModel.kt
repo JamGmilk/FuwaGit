@@ -313,9 +313,14 @@ class MyReposViewModel @Inject constructor(
             if (needsCredential && !credential.isUnlocked()) {
                 _uiState.update {
                     it.copy(
-                        pendingCredentialOperation = {
-                            executeClone(uri, localPath, branch, httpsCredentialUuid, sshKeyUuid, cloneOptions, onResult)
-                        }
+                        pendingCloneOperation = PendingCloneOperation(
+                            uri = uri,
+                            localPath = localPath,
+                            branch = branch,
+                            httpsCredentialUuid = httpsCredentialUuid,
+                            sshKeyUuid = sshKeyUuid,
+                            cloneOptions = cloneOptions
+                        )
                     )
                 }
                 return@launch
@@ -352,9 +357,18 @@ class MyReposViewModel @Inject constructor(
 
     fun onCredentialUnlocked() {
         viewModelScope.launch {
-            val pendingOp = _uiState.value.pendingCredentialOperation
-            pendingOp?.let { it() }
-            _uiState.update { it.copy(pendingCredentialOperation = null, isCredentialUnlocked = true) }
+            val pendingOp = _uiState.value.pendingCloneOperation
+            pendingOp?.let { op ->
+                executeClone(
+                    op.uri,
+                    op.localPath,
+                    op.branch,
+                    op.httpsCredentialUuid,
+                    op.sshKeyUuid,
+                    op.cloneOptions
+                ) { }
+            }
+            _uiState.update { it.copy(pendingCloneOperation = null, isCredentialUnlocked = true) }
         }
     }
 }

@@ -32,6 +32,8 @@ import java.util.Date
 import java.util.Locale
 import javax.inject.Inject
 
+private const val MAX_TERMINAL_LINES = 100
+
 sealed class StatusEvent {
     data class PushSuccess(val message: String) : StatusEvent()
     data class PushError(val message: String) : StatusEvent()
@@ -46,6 +48,13 @@ sealed class StatusEvent {
     data class ConflictError(val message: String) : StatusEvent()
     data class AbortRebaseSuccess(val message: String) : StatusEvent()
     data class ContinueRebaseSuccess(val message: String) : StatusEvent()
+}
+
+sealed class PendingGitOperation {
+    abstract val repoPath: String
+    data class Pull(override val repoPath: String) : PendingGitOperation()
+    data class Push(override val repoPath: String) : PendingGitOperation()
+    data class Fetch(override val repoPath: String) : PendingGitOperation()
 }
 
 @Stable
@@ -63,14 +72,14 @@ data class StatusUiState(
     val terminalOutput: List<String> = emptyList(),
     val pendingOperation: DangerousOperationType? = null,
     val pendingOperationTarget: String? = null,
+    val pendingGitOperation: PendingGitOperation? = null,
     val conflictResult: ConflictResult? = null,
     val isResolvingConflict: Boolean = false,
     val selectedCredentialUuid: String? = null,
     val selectedSshKeyUuid: String? = null,
     val httpsCredentials: List<HttpsCredential> = emptyList(),
     val sshKeys: List<SshKey> = emptyList(),
-    val isCredentialUnlocked: Boolean = false,
-    val pendingCredentialOperation: (suspend () -> Unit)? = null
+    val isCredentialUnlocked: Boolean = false
 )
 
 @HiltViewModel
@@ -256,8 +265,6 @@ class StatusViewModel @Inject constructor(
         }
     }
 
-    // ============ 危险操作：请求确认 ============
-
     fun requestDiscardChanges(filePath: String) {
         _uiState.update {
             it.copy(
@@ -266,8 +273,6 @@ class StatusViewModel @Inject constructor(
             )
         }
     }
-
-    // ============ 危险操作：执行 ============
 
     fun confirmDiscardChanges() {
         val path = currentRepoPath ?: return
@@ -322,9 +327,7 @@ class StatusViewModel @Inject constructor(
         viewModelScope.launch {
             if (!credential.isUnlocked()) {
                 _uiState.update {
-                    it.copy(
-                        pendingCredentialOperation = { executePull(path) }
-                    )
+                    it.copy(pendingGitOperation = PendingGitOperation.Pull(path))
                 }
                 _events.emit(StatusEvent.CredentialUnlockRequired)
                 return@launch
@@ -367,9 +370,7 @@ class StatusViewModel @Inject constructor(
         viewModelScope.launch {
             if (!credential.isUnlocked()) {
                 _uiState.update {
-                    it.copy(
-                        pendingCredentialOperation = { executePush(path) }
-                    )
+                    it.copy(pendingGitOperation = PendingGitOperation.Push(path))
                 }
                 _events.emit(StatusEvent.CredentialUnlockRequired)
                 return@launch
@@ -399,9 +400,7 @@ class StatusViewModel @Inject constructor(
         viewModelScope.launch {
             if (!credential.isUnlocked()) {
                 _uiState.update {
-                    it.copy(
-                        pendingCredentialOperation = { executeFetch(path) }
-                    )
+                    it.copy(pendingGitOperation = PendingGitOperation.Fetch(path))
                 }
                 _events.emit(StatusEvent.CredentialUnlockRequired)
                 return@launch
@@ -426,8 +425,6 @@ class StatusViewModel @Inject constructor(
             }
     }
 
-    // ============ 凭证管理 ============
-
     fun loadCredentials() {
         viewModelScope.launch {
             refreshCredentials()
@@ -451,12 +448,11 @@ class StatusViewModel @Inject constructor(
 
     private suspend fun loadSelectedCredentials(remoteUrl: String? = null): CloneCredential? {
         var state = _uiState.value
-        // 如果当前列表为空，尝试同步刷新一下
         if (state.httpsCredentials.isEmpty() && state.sshKeys.isEmpty()) {
             refreshCredentials()
             state = _uiState.value
         }
-        
+
         return credential.resolveCredentials(
             state.selectedCredentialUuid,
             state.selectedSshKeyUuid,
@@ -466,38 +462,17 @@ class StatusViewModel @Inject constructor(
         )
     }
 
-    private fun appendTerminalLog(command: String, result: String) {
-        val time = SimpleDateFormat("HH:mm:ss", Locale.US).format(Date())
-        val line = "[$time] > $command\n$result"
-        _uiState.update { it.copy(terminalOutput = it.terminalOutput + line) }
-    }
-
-    fun clearPendingOperation() {
-        _uiState.update {
-            it.copy(
-                pendingOperation = null,
-                pendingOperationTarget = null
-            )
-        }
-    }
-
-    fun cancelPendingOperation() {
-        _uiState.update {
-            it.copy(
-                pendingOperation = null,
-                pendingOperationTarget = null
-            )
-        }
-    }
-
-    // ============ 冲突处理方法 ============
-
     fun markConflictResolved(filePath: String) {
         val path = currentRepoPath ?: return
         viewModelScope.launch {
             mergeUseCase.resolveConflict(path, filePath)
-                .onSuccess { checkConflictStatus() }
-                .onError { e -> _events.emit(StatusEvent.ConflictError(e.message ?: "Failed to resolve conflict")) }
+                .onSuccess {
+                    refreshWorkspace()
+                    checkConflictStatus()
+                }
+                .onError { e ->
+                    _uiState.update { it.copy(error = e.message) }
+                }
         }
     }
 
@@ -571,13 +546,42 @@ class StatusViewModel @Inject constructor(
         }
     }
 
+    fun cancelPendingOperation() {
+        _uiState.update {
+            it.copy(
+                pendingOperation = null,
+                pendingOperationTarget = null
+            )
+        }
+    }
+
+    fun appendTerminalLog(command: String, result: String) {
+        val time = SimpleDateFormat("HH:mm:ss", Locale.US).format(Date())
+        val line = "[$time] > $command\n$result"
+        _uiState.update { state ->
+            val newOutput = (state.terminalOutput + line).let { output ->
+                if (output.size > MAX_TERMINAL_LINES) {
+                    output.takeLast(MAX_TERMINAL_LINES)
+                } else {
+                    output
+                }
+            }
+            state.copy(terminalOutput = newOutput)
+        }
+    }
+
     fun onCredentialUnlocked() {
         viewModelScope.launch {
-            val pendingOp = _uiState.value.pendingCredentialOperation
-            pendingOp?.invoke()
+            val pendingOp = _uiState.value.pendingGitOperation
+            when (pendingOp) {
+                is PendingGitOperation.Pull -> executePull(pendingOp.repoPath)
+                is PendingGitOperation.Push -> executePush(pendingOp.repoPath)
+                is PendingGitOperation.Fetch -> executeFetch(pendingOp.repoPath)
+                null -> { }
+            }
             _uiState.update {
                 it.copy(
-                    pendingCredentialOperation = null,
+                    pendingGitOperation = null,
                     isCredentialUnlocked = credential.isUnlocked()
                 )
             }

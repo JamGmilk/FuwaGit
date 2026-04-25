@@ -46,30 +46,21 @@ data class TagsUiState(
     val showPushDialog: Boolean = false,
     val selectedTag: GitTag? = null,
     val isPushing: Boolean = false,
-    val filterType: TagFilterType = TagFilterType.All
+    val filterType: TagFilterType = TagFilterType.All,
+    val pendingTagBranch: String? = null
 )
 
-/**
- * 标签过滤类型
- */
 enum class TagFilterType {
     All,
     Lightweight,
     Annotated
 }
 
-/**
- * 创建标签的类型
- */
 enum class CreateTagType {
     Lightweight,
     Annotated
 }
 
-/**
- * Tags ViewModel
- * 管理标签的创建、列出、删除和推送操作
- */
 @HiltViewModel
 class TagsViewModel @Inject constructor(
     private val currentRepoManager: RepoStateManager,
@@ -100,9 +91,6 @@ class TagsViewModel @Inject constructor(
         }
     }
 
-    /**
-     * 加载所有标签
-     */
     fun loadTags() {
         val path = currentRepoPath
         if (path == null) {
@@ -136,9 +124,6 @@ class TagsViewModel @Inject constructor(
         }
     }
 
-    /**
-     * 创建轻量标签
-     */
     fun createLightweightTag(tagName: String, commitHash: String? = null) {
         val path = currentRepoPath ?: return
 
@@ -157,9 +142,6 @@ class TagsViewModel @Inject constructor(
         }
     }
 
-    /**
-     * 创建附注标签
-     */
     fun createAnnotatedTag(tagName: String, message: String, commitHash: String? = null) {
         val path = currentRepoPath ?: return
 
@@ -178,9 +160,6 @@ class TagsViewModel @Inject constructor(
         }
     }
 
-    /**
-     * 删除标签
-     */
     fun deleteTag(tagName: String) {
         val path = currentRepoPath ?: return
 
@@ -202,9 +181,6 @@ class TagsViewModel @Inject constructor(
         }
     }
 
-    /**
-     * 推送单个标签
-     */
     fun pushTag(tagName: String, remoteName: String = "origin") {
         val path = currentRepoPath ?: return
 
@@ -230,9 +206,6 @@ class TagsViewModel @Inject constructor(
         }
     }
 
-    /**
-     * 推送所有标签
-     */
     fun pushAllTags(remoteName: String = "origin") {
         val path = currentRepoPath ?: return
 
@@ -255,9 +228,6 @@ class TagsViewModel @Inject constructor(
         }
     }
 
-    /**
-     * 检出标签（进入 detached HEAD 状态）
-     */
     fun checkoutTag(tagName: String) {
         val path = currentRepoPath ?: return
 
@@ -273,9 +243,6 @@ class TagsViewModel @Inject constructor(
         }
     }
 
-    /**
-     * 更新搜索查询
-     */
     fun updateSearchQuery(query: String) {
         _uiState.update {
             it.copy(
@@ -285,9 +252,6 @@ class TagsViewModel @Inject constructor(
         }
     }
 
-    /**
-     * 更新过滤类型
-     */
     fun updateFilterType(filterType: TagFilterType) {
         _uiState.update {
             it.copy(
@@ -297,66 +261,38 @@ class TagsViewModel @Inject constructor(
         }
     }
 
-    /**
-     * 显示创建对话框
-     */
-    fun showCreateDialog() {
-        _uiState.update { it.copy(showCreateDialog = true) }
+    fun showCreateDialog(branchName: String? = null) {
+        _uiState.update { it.copy(showCreateDialog = true, pendingTagBranch = branchName) }
     }
 
-    /**
-     * 隐藏创建对话框
-     */
     fun hideCreateDialog() {
         _uiState.update { it.copy(showCreateDialog = false) }
     }
 
-    /**
-     * 显示删除确认对话框
-     */
     fun showDeleteDialog(tag: GitTag) {
         _uiState.update {
             it.copy(showDeleteDialog = true, selectedTag = tag)
         }
     }
 
-    /**
-     * 隐藏删除对话框
-     */
     fun hideDeleteDialog() {
         _uiState.update {
             it.copy(showDeleteDialog = false, selectedTag = null)
         }
     }
 
-    /**
-     * 显示推送对话框
-     */
     fun showPushDialog(tag: GitTag? = null) {
         _uiState.update {
             it.copy(showPushDialog = true, selectedTag = tag)
         }
     }
 
-    /**
-     * 隐藏推送对话框
-     */
     fun hidePushDialog() {
         _uiState.update {
             it.copy(showPushDialog = false, selectedTag = null)
         }
     }
 
-    /**
-     * 清除操作结果
-     */
-    fun clearOperationResult() {
-        // No-op, kept for API compatibility
-    }
-
-    /**
-     * 应用过滤条件
-     */
     private fun applyFilter(
         tags: List<GitTag>,
         filterType: TagFilterType,

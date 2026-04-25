@@ -4,6 +4,7 @@ import androidx.compose.runtime.Stable
 import jamgmilk.fuwagit.core.util.PathUtils
 import jamgmilk.fuwagit.domain.model.credential.HttpsCredential
 import jamgmilk.fuwagit.domain.model.credential.SshKey
+import jamgmilk.fuwagit.domain.model.git.CloneOptions
 import jamgmilk.fuwagit.domain.model.repo.RepoData
 import java.util.Locale
 
@@ -45,6 +46,15 @@ data class RepoUiState(
     val httpsCredentials: List<HttpsCredential> = emptyList(),
     val sshKeys: List<SshKey> = emptyList(),
     val isCredentialUnlocked: Boolean = false,
-    val pendingCredentialOperation: (suspend () -> Unit)? = null,
+    val pendingCloneOperation: PendingCloneOperation? = null,
     val snackbarMessage: String? = null
+)
+
+data class PendingCloneOperation(
+    val uri: String,
+    val localPath: String,
+    val branch: String? = null,
+    val httpsCredentialUuid: String? = null,
+    val sshKeyUuid: String? = null,
+    val cloneOptions: CloneOptions = CloneOptions()
 )

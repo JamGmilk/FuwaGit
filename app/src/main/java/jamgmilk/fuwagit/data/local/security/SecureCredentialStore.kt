@@ -3,7 +3,6 @@ package jamgmilk.fuwagit.data.local.security
 import android.content.Context
 import android.util.Base64
 import dagger.hilt.android.qualifiers.ApplicationContext
-import jamgmilk.fuwagit.core.util.SecurityUtils
 import jamgmilk.fuwagit.data.local.credential.CredentialData
 import jamgmilk.fuwagit.data.local.credential.ExportData
 import jamgmilk.fuwagit.data.local.credential.HttpsCredential
@@ -15,10 +14,21 @@ import kotlinx.serialization.json.Json
 import java.io.File
 import java.nio.charset.StandardCharsets
 import javax.crypto.Cipher
+import javax.crypto.KeyGenerator
+import javax.crypto.Mac
 import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
 import javax.inject.Inject
 import javax.inject.Singleton
+
+private class SecureSecretKey(private val keyBytes: ByteArray, private val algorithm: String) : SecretKey {
+    override fun getAlgorithm(): String = algorithm
+    override fun getFormat(): String = "RAW"
+    override fun getEncoded(): ByteArray = keyBytes
+    fun secureZero() {
+        java.util.Arrays.fill(keyBytes, 0.toByte())
+    }
+}
 
 @Singleton
 class SecureCredentialStore @Inject constructor(
@@ -29,6 +39,9 @@ class SecureCredentialStore @Inject constructor(
     companion object {
         private const val DATA_FILE = "credential_data.json"
         private const val ENCRYPTED_MARKER = "ENC:AES_GCM:"
+        private const val HMAC_ALGORITHM = "HmacSHA256"
+        private const val HMAC_KEY_ALIAS = "fuwagit_credential_hmac_key"
+        private const val HMAC_KEY_SIZE = 32
         private const val GCM_TAG_LENGTH = 128
         private const val GCM_IV_LENGTH = 12
     }
@@ -47,6 +60,47 @@ class SecureCredentialStore @Inject constructor(
     private var lastUnlockTime: Long = 0
     private var isBiometricSession: Boolean = false
     private val sessionLock = Any()
+    private val fileLock = Any()
+
+    private val hmacKey: SecretKey by lazy {
+        getOrCreateHmacKey()
+    }
+
+    private fun getOrCreateHmacKey(): SecretKey {
+        val keyStore = java.security.KeyStore.getInstance("AndroidKeyStore").apply { load(null) }
+        return if (keyStore.containsAlias(HMAC_KEY_ALIAS)) {
+            keyStore.getKey(HMAC_KEY_ALIAS, null) as SecretKey
+        } else {
+            val keyGenerator = KeyGenerator.getInstance(
+                android.security.keystore.KeyProperties.KEY_ALGORITHM_HMAC_SHA256,
+                "AndroidKeyStore"
+            )
+            val spec = android.security.keystore.KeyGenParameterSpec.Builder(
+                HMAC_KEY_ALIAS,
+                android.security.keystore.KeyProperties.PURPOSE_SIGN or android.security.keystore.KeyProperties.PURPOSE_VERIFY
+            )
+                .setKeySize(HMAC_KEY_SIZE * 8)
+                .build()
+            keyGenerator.init(spec)
+            keyGenerator.generateKey()
+        }
+    }
+
+    private fun computeHmac(data: String): String {
+        val mac = Mac.getInstance(HMAC_ALGORITHM)
+        mac.init(hmacKey)
+        val hmacBytes = mac.doFinal(data.toByteArray(StandardCharsets.UTF_8))
+        return Base64.encodeToString(hmacBytes, Base64.NO_WRAP)
+    }
+
+    private fun verifyHmac(data: String, expectedHmac: String): Boolean {
+        return try {
+            val computed = computeHmac(data)
+            computed == expectedHmac
+        } catch (_: Exception) {
+            false
+        }
+    }
 
     /**
      * Gets the session timeout in milliseconds from user preferences.
@@ -72,37 +126,52 @@ class SecureCredentialStore @Inject constructor(
     }
 
     fun loadCredentialData(): CredentialData {
-        return try {
-            if (!dataFile.exists()) {
-                CredentialData()
-            } else {
-                val content = dataFile.readText()
-                if (content.isBlank()) {
+        synchronized(fileLock) {
+            return try {
+                if (!dataFile.exists()) {
                     CredentialData()
                 } else {
-                    json.decodeFromString(content)
+                    val content = dataFile.readText()
+                    if (content.isBlank()) {
+                        CredentialData()
+                    } else {
+                        val lines = content.lines()
+                        if (lines.size >= 2 && lines[0].length == 44) {
+                            val hmac = lines[0]
+                            val jsonContent = lines.drop(1).joinToString("\n")
+                            if (verifyHmac(jsonContent, hmac)) {
+                                json.decodeFromString(jsonContent)
+                            } else {
+                                CredentialData()
+                            }
+                        } else {
+                            json.decodeFromString(content)
+                        }
+                    }
                 }
+            } catch (_: Exception) {
+                CredentialData()
             }
-        } catch (e: Exception) {
-            CredentialData()
         }
     }
 
     fun saveCredentialData(data: CredentialData) {
-        val updatedData = data.copy(updatedAt = System.currentTimeMillis())
-        val jsonString = json.encodeToString(updatedData)
+        synchronized(fileLock) {
+            val updatedData = data.copy(updatedAt = System.currentTimeMillis())
+            val jsonString = json.encodeToString(updatedData)
+            val hmac = computeHmac(jsonString)
 
-        // Atomic write using a temporary file
-        val tempFile = File(context.filesDir, "$DATA_FILE.tmp")
-        try {
-            tempFile.writeText(jsonString)
-            if (!tempFile.renameTo(dataFile)) {
-                tempFile.copyTo(dataFile, overwrite = true)
+            val tempFile = File(context.filesDir, "$DATA_FILE.tmp")
+            try {
+                tempFile.writeText("$hmac\n$jsonString")
+                if (!tempFile.renameTo(dataFile)) {
+                    tempFile.copyTo(dataFile, overwrite = true)
+                    tempFile.delete()
+                }
+            } catch (e: Exception) {
                 tempFile.delete()
+                throw e
             }
-        } catch (e: Exception) {
-            tempFile.delete()
-            throw e
         }
     }
 
@@ -117,7 +186,8 @@ class SecureCredentialStore @Inject constructor(
     fun cacheMasterKey(key: SecretKey) {
         synchronized(sessionLock) {
             secureClearCachedKey()
-            cachedMasterKey = key
+            val secureKey = SecureSecretKey(key.encoded, key.algorithm)
+            cachedMasterKey = secureKey
             lastUnlockTime = System.currentTimeMillis()
             isBiometricSession = false
         }
@@ -126,19 +196,15 @@ class SecureCredentialStore @Inject constructor(
     fun cacheMasterKeyFromBiometric(key: SecretKey) {
         synchronized(sessionLock) {
             secureClearCachedKey()
-            cachedMasterKey = key
+            val secureKey = SecureSecretKey(key.encoded, key.algorithm)
+            cachedMasterKey = secureKey
             lastUnlockTime = System.currentTimeMillis()
             isBiometricSession = true
         }
     }
 
     private fun secureClearCachedKey() {
-        cachedMasterKey?.let { key ->
-            val keyBytes = key.encoded
-            if (keyBytes != null) {
-                SecurityUtils.zeroBytes(keyBytes)
-            }
-        }
+        (cachedMasterKey as? SecureSecretKey)?.secureZero()
         cachedMasterKey = null
     }
 
@@ -460,7 +526,7 @@ class SecureCredentialStore @Inject constructor(
             }
         } catch (e: SecurityException) {
             throw e
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             null
         }
     }

@@ -7,7 +7,6 @@ import jamgmilk.fuwagit.domain.model.git.ConflictResult
 import jamgmilk.fuwagit.domain.model.git.GitBranch
 import jamgmilk.fuwagit.ui.components.DangerousOperationType
 import jamgmilk.fuwagit.domain.usecase.git.BranchUseCase
-import jamgmilk.fuwagit.domain.usecase.git.GitSyncFacade
 import jamgmilk.fuwagit.domain.usecase.git.MergeUseCase
 import jamgmilk.fuwagit.ui.state.RepoStateManager
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -58,8 +57,7 @@ data class BranchesUiState(
 class BranchesViewModel @Inject constructor(
     private val currentRepoManager: RepoStateManager,
     private val branchUseCase: BranchUseCase,
-    private val mergeUseCase: MergeUseCase,
-    private val gitSync: GitSyncFacade
+    private val mergeUseCase: MergeUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(BranchesUiState())
@@ -69,6 +67,15 @@ class BranchesViewModel @Inject constructor(
     val events: SharedFlow<BranchUiEvent> = _events.asSharedFlow()
 
     private var currentRepoPath: String? = null
+
+    fun cancelPendingOperation() {
+        _uiState.update {
+            it.copy(
+                pendingOperation = null,
+                pendingOperationTarget = null
+            )
+        }
+    }
 
     init {
         viewModelScope.launch {
@@ -136,8 +143,6 @@ class BranchesViewModel @Inject constructor(
         }
     }
 
-    // ============ 危险操作：请求确认 ============
-
     fun requestDeleteBranch(name: String) {
         _uiState.update {
             it.copy(
@@ -164,8 +169,6 @@ class BranchesViewModel @Inject constructor(
             )
         }
     }
-
-    // ============ 危险操作：执行 ============
 
     fun confirmDeleteBranch(force: Boolean = false) {
         val path = currentRepoPath ?: return
@@ -369,9 +372,6 @@ class BranchesViewModel @Inject constructor(
         }
     }
 
-    /**
-     * 标记冲突文件为已解决
-     */
     fun markConflictResolved(filePath: String) {
         val path = currentRepoPath ?: return
 
@@ -458,24 +458,6 @@ class BranchesViewModel @Inject constructor(
                 .onError { e ->
                     _events.emit(BranchUiEvent.Error(e.message ?: "Failed to continue rebase"))
                 }
-        }
-    }
-
-    fun clearPendingOperation() {
-        _uiState.update {
-            it.copy(
-                pendingOperation = null,
-                pendingOperationTarget = null
-            )
-        }
-    }
-
-    fun cancelPendingOperation() {
-        _uiState.update {
-            it.copy(
-                pendingOperation = null,
-                pendingOperationTarget = null
-            )
         }
     }
 }

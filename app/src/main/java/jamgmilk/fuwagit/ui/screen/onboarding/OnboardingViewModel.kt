@@ -116,15 +116,24 @@ class OnboardingViewModel @Inject constructor(
         viewModelScope.launch {
             setupMasterPasswordUseCase(state.password, state.confirmPassword, state.passwordHint.ifBlank { null })
                 .onSuccess {
-                    _uiState.update { it.copy(isSettingPassword = false) }
                     if (state.enableBiometric && activity != null) {
                         enableBiometricUseCase(activity) { result ->
                             when (result) {
-                                is AppResult.Success -> nextStep()
-                                is AppResult.Error -> nextStep()
+                                is AppResult.Success -> {
+                                    nextStep()
+                                }
+                                is AppResult.Error -> {
+                                    _uiState.update {
+                                        it.copy(
+                                            isSettingPassword = false,
+                                            passwordError = result.message ?: "Biometric setup failed"
+                                        )
+                                    }
+                                }
                             }
                         }
                     } else {
+                        _uiState.update { it.copy(isSettingPassword = false) }
                         nextStep()
                     }
                 }

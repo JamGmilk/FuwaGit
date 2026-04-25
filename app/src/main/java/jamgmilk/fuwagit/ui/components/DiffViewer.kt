@@ -9,15 +9,18 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontFamily
@@ -33,97 +36,143 @@ import jamgmilk.fuwagit.domain.model.git.DiffLine
 import jamgmilk.fuwagit.domain.model.git.DiffLineType
 import jamgmilk.fuwagit.domain.model.git.FileDiff
 import jamgmilk.fuwagit.domain.model.git.InlineDiff
+import jamgmilk.fuwagit.ui.theme.diffAddedBackgroundDark
+import jamgmilk.fuwagit.ui.theme.diffAddedBackgroundLight
+import jamgmilk.fuwagit.ui.theme.diffAddedHighlightDark
+import jamgmilk.fuwagit.ui.theme.diffAddedHighlightLight
+import jamgmilk.fuwagit.ui.theme.diffAddedInlineBackgroundDark
+import jamgmilk.fuwagit.ui.theme.diffAddedInlineBackgroundLight
+import jamgmilk.fuwagit.ui.theme.diffAddedTextDark
+import jamgmilk.fuwagit.ui.theme.diffAddedTextLight
+import jamgmilk.fuwagit.ui.theme.diffDeletedBackgroundDark
+import jamgmilk.fuwagit.ui.theme.diffDeletedBackgroundLight
+import jamgmilk.fuwagit.ui.theme.diffDeletedHighlightDark
+import jamgmilk.fuwagit.ui.theme.diffDeletedHighlightLight
+import jamgmilk.fuwagit.ui.theme.diffDeletedInlineBackgroundDark
+import jamgmilk.fuwagit.ui.theme.diffDeletedInlineBackgroundLight
+import jamgmilk.fuwagit.ui.theme.diffDeletedTextDark
+import jamgmilk.fuwagit.ui.theme.diffDeletedTextLight
 import jamgmilk.fuwagit.ui.util.CodeSyntaxHighlighter
 
-/**
- * Diff 查看器组件 - 显示单个文件的差异
- *
- * @param fileDiff 文件差异对象
- * @param modifier 修饰符
- */
+private val isDarkTheme: Boolean
+    @Composable
+    get() = MaterialTheme.colorScheme.surface.luminance() < 0.5f
+
+private fun Color.luminance(): Float {
+    val r = red
+    val g = green
+    val b = blue
+    return 0.299f * r + 0.587f * g + 0.114f * b
+}
+
+private object DiffColors {
+    val addedBackground: Color
+        @Composable get() = if (isDarkTheme) diffAddedBackgroundDark else diffAddedBackgroundLight
+    val addedText: Color
+        @Composable get() = if (isDarkTheme) diffAddedTextDark else diffAddedTextLight
+    val deletedBackground: Color
+        @Composable get() = if (isDarkTheme) diffDeletedBackgroundDark else diffDeletedBackgroundLight
+    val deletedText: Color
+        @Composable get() = if (isDarkTheme) diffDeletedTextDark else diffDeletedTextLight
+    val addedHighlight: Color
+        @Composable get() = if (isDarkTheme) diffAddedHighlightDark else diffAddedHighlightLight
+    val deletedHighlight: Color
+        @Composable get() = if (isDarkTheme) diffDeletedHighlightDark else diffDeletedHighlightLight
+    val addedInlineBackground: Color
+        @Composable get() = if (isDarkTheme) diffAddedInlineBackgroundDark else diffAddedInlineBackgroundLight
+    val deletedInlineBackground: Color
+        @Composable get() = if (isDarkTheme) diffDeletedInlineBackgroundDark else diffDeletedInlineBackgroundLight
+}
+
 @Composable
 fun DiffViewer(
     fileDiff: FileDiff,
     modifier: Modifier = Modifier
 ) {
-    Column(modifier = modifier) {
-        // 文件头信息
-        DiffFileHeader(fileDiff = fileDiff)
+    val additionsText = stringResource(R.string.diff_additions_prefix, fileDiff.additions)
+    val deletionsText = stringResource(R.string.diff_deletions_prefix, fileDiff.deletions)
+    val fileHeaderDesc = "$additionsText $deletionsText ${fileDiff.changeType.name}"
 
-        // 二进制文件提示
-        if (fileDiff.isBinary) {
-            BinaryFileIndicator()
-        } else {
-            if (fileDiff.hunks.isEmpty()) {
-                NoChangesIndicator()
-            } else {
-                LazyColumn(
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    fileDiff.hunks.forEachIndexed { hunkIndex, hunk ->
-                        item(key = "hunk_header_$hunkIndex") {
-                            HunkHeader(hunk = hunk)
-                        }
+    if (fileDiff.isBinary) {
+        BinaryFileIndicator(modifier = modifier.semantics { contentDescription = fileDiff.path })
+        return
+    }
 
-                        items(
-                            items = hunk.lines,
-                            key = { line -> "hunk_${hunkIndex}_line_${hunk.lines.indexOf(line)}" }
-                        ) { line ->
-                            DiffLineItem(line = line)
-                        }
-                    }
-                }
+    if (fileDiff.hunks.isEmpty()) {
+        NoChangesIndicator(modifier = modifier)
+        return
+    }
+
+    LazyColumn(
+        modifier = modifier
+            .semantics { contentDescription = fileHeaderDesc }
+    ) {
+        item(key = "file_header_${fileDiff.path}") {
+            DiffFileHeader(fileDiff = fileDiff)
+        }
+
+        fileDiff.hunks.forEachIndexed { hunkIndex, hunk ->
+            item(key = "hunk_header_$hunkIndex") {
+                HunkHeader(hunk = hunk)
+            }
+
+            itemsIndexed(
+                items = hunk.lines,
+                key = { _, line -> "hunk_${hunkIndex}_line_${line.oldLineNumber}_${line.newLineNumber}" }
+            ) { _, line ->
+                DiffLineItem(line = line)
             }
         }
     }
 }
 
-/**
- * 文件头显示
- */
 @Composable
 private fun DiffFileHeader(fileDiff: FileDiff) {
     val colors = MaterialTheme.colorScheme
+    val additionsText = stringResource(R.string.diff_additions_prefix, fileDiff.additions)
+    val deletionsText = stringResource(R.string.diff_deletions_prefix, fileDiff.deletions)
+    val changeTypeText = stringResource(R.string.diff_change_type_format, fileDiff.changeType.name)
+    val semanticsDesc = "${fileDiff.path}, $additionsText, $deletionsText, $changeTypeText"
 
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .background(colors.surfaceContainerHigh)
             .padding(12.dp)
+            .semantics { contentDescription = semanticsDesc }
     ) {
-        // 文件路径
         Text(
             text = fileDiff.path,
             style = MaterialTheme.typography.bodyMedium,
             fontWeight = FontWeight.Bold,
             color = colors.onSurface,
             maxLines = 2,
-            overflow = TextOverflow.Ellipsis
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.semantics { heading() }
         )
 
-        // 变更统计
         Row(
             modifier = Modifier.padding(top = 4.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             if (fileDiff.additions > 0) {
                 Text(
-                    text = stringResource(R.string.diff_additions_prefix, fileDiff.additions),
-                    color = Color(0xFF22863A),
+                    text = additionsText,
+                    color = DiffColors.addedText,
                     fontSize = 12.sp,
                     fontFamily = FontFamily.Monospace
                 )
             }
             if (fileDiff.deletions > 0) {
                 Text(
-                    text = stringResource(R.string.diff_deletions_prefix, fileDiff.deletions),
-                    color = Color(0xFFB31D28),
+                    text = deletionsText,
+                    color = DiffColors.deletedText,
                     fontSize = 12.sp,
                     fontFamily = FontFamily.Monospace
                 )
             }
             Text(
-                text = stringResource(R.string.diff_change_type_format, fileDiff.changeType.name),
+                text = changeTypeText,
                 color = colors.onSurfaceVariant,
                 fontSize = 12.sp
             )
@@ -131,9 +180,6 @@ private fun DiffFileHeader(fileDiff: FileDiff) {
     }
 }
 
-/**
- * Hunk 头显示
- */
 @Composable
 private fun HunkHeader(hunk: DiffHunk) {
     val colors = MaterialTheme.colorScheme
@@ -143,6 +189,7 @@ private fun HunkHeader(hunk: DiffHunk) {
             .fillMaxWidth()
             .background(colors.surfaceContainerLow)
             .padding(vertical = 4.dp)
+            .semantics { contentDescription = hunk.header }
     ) {
         Text(
             text = hunk.header,
@@ -154,22 +201,19 @@ private fun HunkHeader(hunk: DiffHunk) {
     }
 }
 
-/**
- * 单行 Diff 显示（支持行内差异高亮和语法高亮）
- */
 @Composable
 private fun DiffLineItem(line: DiffLine) {
     val colors = MaterialTheme.colorScheme
 
     val (backgroundColor, textColor, lineIndicator) = when (line.lineType) {
         DiffLineType.Added -> Triple(
-            Color(0xFFCCFFD0).copy(alpha = 0.4f),
-            Color(0xFF22863A),
+            DiffColors.addedBackground.copy(alpha = 0.4f),
+            DiffColors.addedText,
             "+"
         )
         DiffLineType.Deleted -> Triple(
-            Color(0xFFFFEDEF).copy(alpha = 0.4f),
-            Color(0xFFB31D28),
+            DiffColors.deletedBackground.copy(alpha = 0.4f),
+            DiffColors.deletedText,
             "-"
         )
         DiffLineType.Context -> Triple(
@@ -184,12 +228,20 @@ private fun DiffLineItem(line: DiffLine) {
         )
     }
 
+    val lineDesc = buildString {
+        append(lineIndicator)
+        append(" ")
+        append(line.oldLineNumber ?: "")
+        append(" -> ")
+        append(line.newLineNumber ?: "")
+    }
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .background(backgroundColor)
+            .semantics { contentDescription = lineDesc }
     ) {
-        // 旧行号
         Box(
             modifier = Modifier
                 .width(50.dp)
@@ -205,7 +257,6 @@ private fun DiffLineItem(line: DiffLine) {
             )
         }
 
-        // 新行号
         Box(
             modifier = Modifier
                 .width(50.dp)
@@ -221,7 +272,6 @@ private fun DiffLineItem(line: DiffLine) {
             )
         }
 
-        // 行指示符 (+/-/ )
         Text(
             text = lineIndicator,
             color = textColor,
@@ -233,7 +283,6 @@ private fun DiffLineItem(line: DiffLine) {
                 .padding(start = 4.dp)
         )
 
-        // 行内容（支持行内差异高亮和语法高亮）
         Row(
             modifier = Modifier
                 .weight(1f)
@@ -242,14 +291,12 @@ private fun DiffLineItem(line: DiffLine) {
                 .padding(horizontal = 4.dp)
         ) {
             if (line.inlineDiff != null && line.inlineDiff.hasInlineDiff) {
-                // 有行内差异，高亮显示变化的部分
                 InlineDiffContent(
                     inlineDiff = line.inlineDiff,
                     lineType = line.lineType,
                     baseTextColor = textColor
                 )
             } else {
-                // 无行内差异，使用语法高亮
                 val highlightedText = if (line.lineType == DiffLineType.Context) {
                     CodeSyntaxHighlighter.highlightSimple(line.content)
                 } else {
@@ -259,67 +306,55 @@ private fun DiffLineItem(line: DiffLine) {
                         }
                     }
                 }
-                
+
                 Text(
                     text = highlightedText,
-                    fontSize = 13.sp,
-                    maxLines = 1,
-                    overflow = TextOverflow.Visible
+                    fontSize = 13.sp
                 )
             }
         }
     }
 }
 
-/**
- * 行内差异内容显示
- * 高亮显示行中新增和删除的字符
- */
 @Composable
 private fun InlineDiffContent(
     inlineDiff: InlineDiff,
     lineType: DiffLineType,
     baseTextColor: Color
 ) {
-    val addedHighlightColor = Color(0xFF94D1A4) // 更亮的绿色用于行内新增
-    val deletedHighlightColor = Color(0xFFFFB3B3) // 更亮的红色用于行内删除
-
     val annotatedText = buildAnnotatedString {
         for (segment in inlineDiff.segments) {
             val style = if (segment.isAdded) {
-                // 行内新增：深色背景 + 亮色前景
                 when (lineType) {
                     DiffLineType.Added -> SpanStyle(
-                        background = addedHighlightColor.copy(alpha = 0.6f),
-                        color = Color(0xFF004D00),
+                        background = DiffColors.addedHighlight.copy(alpha = 0.6f),
+                        color = DiffColors.addedText,
                         fontWeight = FontWeight.Bold,
                         fontFamily = FontFamily.Monospace
                     )
                     DiffLineType.Deleted -> SpanStyle(
-                        background = deletedHighlightColor.copy(alpha = 0.4f),
+                        background = DiffColors.deletedHighlight.copy(alpha = 0.4f),
                         color = baseTextColor,
                         textDecoration = TextDecoration.LineThrough,
                         fontFamily = FontFamily.Monospace
                     )
                     else -> SpanStyle(
-                        background = addedHighlightColor.copy(alpha = 0.3f),
+                        background = DiffColors.addedHighlight.copy(alpha = 0.3f),
                         color = baseTextColor,
                         fontFamily = FontFamily.Monospace
                     )
                 }
             } else {
-                // 未变更部分：使用语法高亮或默认样式
                 when (lineType) {
                     DiffLineType.Added -> SpanStyle(
-                        color = Color(0xFF22863A),
+                        color = DiffColors.addedText,
                         fontFamily = FontFamily.Monospace
                     )
                     DiffLineType.Deleted -> SpanStyle(
-                        color = Color(0xFFB31D28),
+                        color = DiffColors.deletedText,
                         fontFamily = FontFamily.Monospace
                     )
                     DiffLineType.Context -> {
-                        // 上下文行使用语法高亮
                         SpanStyle(
                             color = baseTextColor,
                             fontFamily = FontFamily.Monospace
@@ -340,50 +375,46 @@ private fun InlineDiffContent(
 
     Text(
         text = annotatedText,
-        fontSize = 13.sp,
-        maxLines = 1,
-        overflow = TextOverflow.Visible
+        fontSize = 13.sp
     )
 }
 
-/**
- * 二进制文件指示器
- */
 @Composable
-private fun BinaryFileIndicator() {
+private fun BinaryFileIndicator(modifier: Modifier = Modifier) {
     val colors = MaterialTheme.colorScheme
+    val binaryFileDesc = stringResource(R.string.diff_binary_file)
 
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .background(colors.surfaceContainerLow)
-            .padding(24.dp),
+            .padding(24.dp)
+            .semantics { contentDescription = binaryFileDesc },
         contentAlignment = Alignment.Center
     ) {
         Text(
-            text = stringResource(R.string.diff_binary_file),
+            text = binaryFileDesc,
             color = colors.onSurfaceVariant,
             style = MaterialTheme.typography.bodyMedium
         )
     }
 }
 
-/**
- * 无变更指示器
- */
 @Composable
-private fun NoChangesIndicator() {
+private fun NoChangesIndicator(modifier: Modifier = Modifier) {
     val colors = MaterialTheme.colorScheme
+    val noChangesDesc = stringResource(R.string.diff_no_changes)
 
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .background(colors.surfaceContainerLow)
-            .padding(24.dp),
+            .padding(24.dp)
+            .semantics { contentDescription = noChangesDesc },
         contentAlignment = Alignment.Center
     ) {
         Text(
-            text = stringResource(R.string.diff_no_changes),
+            text = noChangesDesc,
             color = colors.onSurfaceVariant,
             style = MaterialTheme.typography.bodyMedium
         )
