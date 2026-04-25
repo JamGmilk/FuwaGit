@@ -5,29 +5,85 @@
 # For more details, see
 #   http://developer.android.com/guide/developing/tools/proguard.html
 
-# If your project uses WebView with JS, uncomment the following
-# and specify the fully qualified class name to the JavaScript interface
-# class:
-#-keepclassmembers class fqcn.of.javascript.interface.for.webview {
-#   public *;
-#}
+# Preserve line number information for debugging stack traces.
+-keepattributes SourceFile,LineNumberTable
+-renamesourcefileattribute SourceFile
 
-# Uncomment this to preserve the line number information for
-# debugging stack traces.
-#-keepattributes SourceFile,LineNumberTable
+# Kotlin
+-keep class kotlin.Metadata { *; }
+-keep class kotlin.reflect.** { *; }
+-dontwarn kotlin.reflect.**
 
-# If you keep the line number information, uncomment this to
-# hide the original source file name.
-#-renamesourcefileattribute SourceFile
+# Kotlin Coroutines
+-keepnames class kotlinx.coroutines.internal.MainDispatcherFactory {}
+-keepnames class kotlinx.coroutines.CoroutineExceptionHandler {}
+-keepclassmembers class kotlinx.coroutines.** {
+    volatile <fields>;
+}
+-keepclassmembers class kotlinx.coroutines.flow.** {
+    volatile <fields>;
+}
 
+# Kotlin Serialization
+-keepattributes *Annotation*, InnerClasses
+-dontnote kotlinx.serialization.AnnotationsKt
+-keepclassmembers class kotlinx.serialization.json.** {
+    *** Companion;
+}
+-keep @kotlinx.serialization.Serializable class * { *; }
+-keepclassmembers class * {
+    @kotlinx.serialization.* <fields>;
+}
+
+# Hilt / Dagger
+-keep class dagger.hilt.** { *; }
+-keep class javax.inject.** { *; }
+-keep class * extends dagger.hilt.android.lifecycle.HiltViewModel { *; }
+-keepclassmembers class * {
+    @javax.inject.Inject <init>(...);
+    @dagger.hilt.android.lifecycle.HiltViewModel <init>(...);
+}
+
+# Compose
 -keepclassmembers class * extends androidx.compose.ui.node.ModifierNodeElement {
     <fields>;
     <init>(...);
 }
--keep @kotlinx.serialization.Serializable class * { *; }
+
+# Eclipse JGit - Complete package coverage
 -keep class org.eclipse.jgit.api.** { *; }
 -keep class org.eclipse.jgit.lib.** { *; }
 -keep class org.eclipse.jgit.transport.** { *; }
+-keep class org.eclipse.jgit.errors.** { *; }
+-keep class org.eclipse.jgit.revwalk.** { *; }
+-keep class org.eclipse.jgit.treewalk.** { *; }
+-keep class org.eclipse.jgit.diff.** { *; }
+-keep class org.eclipse.jgit.merge.** { *; }
+-keep class org.eclipse.jgit.storage.** { *; }
+-keep class org.eclipse.jgit.util.** { *; }
+-keep class org.eclipse.jgit.submodule.** { *; }
+-keep class org.eclipse.jgit.ignore.** { *; }
+-keep class org.eclipse.jgit.internal.** { *; }
+-keep class org.eclipse.jgit.pgm.** { *; }
+
+# JGit SSH JSCH
+-keep class org.eclipse.jgit.transport.ssh.jsch.** { *; }
+
+# Apache MINA SSHD (used by JGit SSH)
+-keep class org.apache.sshd.** { *; }
+-dontwarn org.apache.sshd.**
+
+# BouncyCastle
+-keep class org.bouncycastle.** { *; }
+-dontwarn org.bouncycastle.**
+
+# JSch (for SSH)
+-keep class com.jcraft.jsch.** { *; }
+-dontwarn com.jcraft.jsch.**
+
+# Keep model classes
+-keep class jamgmilk.fuwagit.domain.model.** { *; }
+-keep class jamgmilk.fuwagit.data.local.credential.** { *; }
 
 # Keep missing classes for R8
 -keep class com.google.errorprone.annotations.** { *; }
@@ -41,4 +97,3 @@
 -dontwarn javax.management.**
 -dontwarn org.ietf.jgss.**
 -dontwarn org.slf4j.impl.StaticLoggerBinder
-
