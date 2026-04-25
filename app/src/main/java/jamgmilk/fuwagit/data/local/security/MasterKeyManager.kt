@@ -1,6 +1,7 @@
 package jamgmilk.fuwagit.data.local.security
 
 import android.content.Context
+import android.content.SharedPreferences
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import android.util.Base64
@@ -8,8 +9,6 @@ import android.util.Log
 import androidx.biometric.BiometricPrompt
 import androidx.core.content.edit
 import androidx.fragment.app.FragmentActivity
-import androidx.security.crypto.EncryptedSharedPreferences
-import androidx.security.crypto.MasterKey
 import dagger.hilt.android.qualifiers.ApplicationContext
 import jamgmilk.fuwagit.BuildConfig
 import jamgmilk.fuwagit.data.biometric.BiometricAuthManager
@@ -26,6 +25,16 @@ import javax.crypto.spec.PBEKeySpec
 import javax.crypto.spec.SecretKeySpec
 import javax.inject.Inject
 import javax.inject.Singleton
+
+private class SecureDerivedKey(private val spec: PBEKeySpec, private val keyBytes: ByteArray) : SecretKey {
+    override fun getAlgorithm(): String = "AES"
+    override fun getFormat(): String = "RAW"
+    override fun getEncoded(): ByteArray = keyBytes
+    fun secureZero() {
+        spec.clearPassword()
+        java.util.Arrays.fill(keyBytes, 0.toByte())
+    }
+}
 
 @Singleton
 class MasterKeyManager @Inject constructor(
@@ -53,18 +62,8 @@ class MasterKeyManager @Inject constructor(
         KeyStore.getInstance("AndroidKeyStore").apply { load(null) }
     }
 
-    private val prefs: android.content.SharedPreferences by lazy {
-        val masterKey = MasterKey.Builder(context)
-            .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
-            .build()
-
-        EncryptedSharedPreferences.create(
-            context,
-            PREFS_NAME,
-            masterKey,
-            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
-            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
-        )
+    private val prefs: SharedPreferences by lazy {
+        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
     }
 
     fun isMasterPasswordSet(): Boolean {
@@ -79,7 +78,7 @@ class MasterKeyManager @Inject constructor(
         return withContext(Dispatchers.IO) {
             runCatching {
                 val salt = SecureRandom().generateSeed(32)
-                val derivedKey = deriveKey(password, salt)
+                val derivedKey = deriveKeySecurely(password, salt)
                 val masterKey = generateRandomKey()
                 val encryptedMasterKey = encryptWithKey(masterKey.encoded, derivedKey)
 
@@ -90,9 +89,24 @@ class MasterKeyManager @Inject constructor(
                         Base64.encodeToString(salt, Base64.NO_WRAP))
                 }
 
-                SecretKeySpec(masterKey.encoded, "AES")
+                val result = SecretKeySpec(masterKey.encoded, "AES")
+                derivedKey.secureZero()
+                masterKey.encoded?.let { java.util.Arrays.fill(it, 0.toByte()) }
+                result
             }
         }
+    }
+
+    private fun deriveKeySecurely(password: String, salt: ByteArray): SecureDerivedKey {
+        val spec = PBEKeySpec(
+            password.toCharArray(),
+            salt,
+            PBKDF2_ITERATIONS,
+            KEY_LENGTH
+        )
+        val factory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256")
+        val keyBytes = factory.generateSecret(spec).encoded
+        return SecureDerivedKey(spec, keyBytes)
     }
 
     suspend fun unlockWithPassword(password: String): Result<SecretKey> {
@@ -106,8 +120,9 @@ class MasterKeyManager @Inject constructor(
                 val salt = Base64.decode(saltBase64, Base64.NO_WRAP)
                 val encryptedMasterKey = Base64.decode(encryptedMasterBase64, Base64.NO_WRAP)
 
-                val derivedKey = deriveKey(password, salt)
+                val derivedKey = deriveKeySecurely(password, salt)
                 val masterKeyBytes = decryptWithKey(encryptedMasterKey, derivedKey)
+                derivedKey.secureZero()
 
                 Result.success(SecretKeySpec(masterKeyBytes, "AES"))
             } catch (e: Exception) {
@@ -125,7 +140,7 @@ class MasterKeyManager @Inject constructor(
                 val masterKey = unlockWithPassword(oldPassword).getOrThrow()
 
                 val newSalt = SecureRandom().generateSeed(32)
-                val newDerivedKey = deriveKey(newPassword, newSalt)
+                val newDerivedKey = deriveKeySecurely(newPassword, newSalt)
                 val encryptedMasterKey = encryptWithKey(masterKey.encoded, newDerivedKey)
 
                 prefs.edit {
@@ -134,6 +149,9 @@ class MasterKeyManager @Inject constructor(
                     putString(KEY_SALT,
                         Base64.encodeToString(newSalt, Base64.NO_WRAP))
                 }
+
+                newDerivedKey.secureZero()
+                masterKey.encoded?.let { java.util.Arrays.fill(it, 0.toByte()) }
 
                 if (isBiometricEnabled()) {
                     disableBiometric()
@@ -279,6 +297,7 @@ class MasterKeyManager @Inject constructor(
     fun disableBiometric() {
         prefs.edit {
             remove(KEY_BIOMETRIC_ENCRYPTED_MASTER)
+            remove(KEY_BIOMETRIC_IV)
             putBoolean(KEY_BIOMETRIC_ENABLED, false)
             apply()
         }
@@ -299,24 +318,9 @@ class MasterKeyManager @Inject constructor(
         return prefs.getString(KEY_PASSWORD_HINT, null)
     }
 
-    private fun deriveKey(password: String, salt: ByteArray): SecretKey {
-        val spec = PBEKeySpec(
-            password.toCharArray(),
-            salt,
-            PBKDF2_ITERATIONS,
-            KEY_LENGTH
-        )
-        return try {
-            val factory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256")
-            SecretKeySpec(factory.generateSecret(spec).encoded, "AES")
-        } finally {
-            spec.clearPassword()
-        }
-    }
-
     private fun generateRandomKey(): SecretKey {
         val keyGenerator = KeyGenerator.getInstance("AES")
-        keyGenerator.init(KEY_LENGTH)
+        keyGenerator.init(KEY_LENGTH, SecureRandom())
         return keyGenerator.generateKey()
     }
 
