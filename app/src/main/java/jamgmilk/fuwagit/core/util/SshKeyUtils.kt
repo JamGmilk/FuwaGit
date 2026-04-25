@@ -245,7 +245,7 @@ fun detectSshKeyType(privateKey: String): String {
                     ?: return "Unknown"
                 when {
                     pemObject.type.contains("RSA PRIVATE KEY") -> "RSA"
-                    pemObject.type.contains("OPENSSH PRIVATE KEY") -> "Ed25519"
+                    pemObject.type.contains("OPENSSH PRIVATE KEY") -> detectOpenSshKeyType(pemObject.content)
                     pemObject.type == "PRIVATE KEY" -> {
                         val info = PrivateKeyInfo.getInstance(pemObject.content)
                         val algOid = info.privateKeyAlgorithm.algorithm
@@ -262,6 +262,66 @@ fun detectSshKeyType(privateKey: String): String {
     } catch (_: Exception) {
         "Unknown"
     }
+}
+
+private fun detectOpenSshKeyType(keyContent: ByteArray): String {
+    return try {
+        val inputStream = java.io.ByteArrayInputStream(keyContent)
+        val dis = java.io.DataInputStream(inputStream)
+
+        val authMagic = ByteArray(15)
+        dis.readFully(authMagic)
+        if (String(authMagic) != "openssh-key-v1") {
+            return "Unknown"
+        }
+
+        dis.readByte()
+
+        val cipherName = readString(dis)
+        val cipherNameLower = cipherName.lowercase()
+        if (cipherNameLower != "none" && cipherNameLower.isNotEmpty()) {
+            return "Unknown"
+        }
+
+        val kdfName = readString(dis)
+        val kdfOptions = readString(dis)
+
+        dis.readInt()
+
+        val publicKeyBlob = readString(dis)
+        if (publicKeyBlob.isEmpty()) {
+            return "Unknown"
+        }
+
+        val pubKeyInput = java.io.ByteArrayInputStream(publicKeyBlob.toByteArray())
+        val pubKeyDis = java.io.DataInputStream(pubKeyInput)
+
+        val keyTypeLength = pubKeyDis.readInt()
+        val keyTypeBytes = ByteArray(keyTypeLength)
+        pubKeyDis.readFully(keyTypeBytes)
+        val keyType = String(keyTypeBytes)
+
+        when {
+            keyType.equals("ssh-rsa", ignoreCase = true) -> "RSA"
+            keyType.equals("ssh-ed25519", ignoreCase = true) -> "Ed25519"
+            keyType.equals("ecdsa-sha2-nistp256", ignoreCase = true) -> "ECDSA256"
+            keyType.equals("ecdsa-sha2-nistp384", ignoreCase = true) -> "ECDSA384"
+            keyType.equals("ecdsa-sha2-nistp521", ignoreCase = true) -> "ECDSA521"
+            else -> "Unknown"
+        }
+    } catch (_: Exception) {
+        "Unknown"
+    }
+}
+
+private fun readString(dis: java.io.DataInputStream): String {
+    val length = dis.readInt()
+    if (length <= 0 || length > 262144) {
+        return ""
+    }
+    val bytes = ByteArray(length)
+    dis.readFully(bytes)
+    return String(bytes)
 }
 
 fun validatePrivateKey(privateKey: String): Pair<Boolean, String> {

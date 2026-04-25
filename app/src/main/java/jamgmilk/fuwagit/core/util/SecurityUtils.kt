@@ -6,8 +6,4 @@ object SecurityUtils {
     fun zeroBytes(bytes: ByteArray?) {
         bytes?.let { Arrays.fill(it, 0.toByte()) }
     }
-
-    fun zeroBytesIfNotNull(bytes: ByteArray?) {
-        bytes?.let { Arrays.fill(it, 0.toByte()) }
-    }
 }
