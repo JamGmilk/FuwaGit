@@ -21,6 +21,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.launch
+import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 
 import androidx.compose.runtime.Stable
@@ -28,6 +29,7 @@ import androidx.compose.runtime.Stable
 private class LruCache<K, V>(private val maxSize: Int) {
     private val delegate = LinkedHashMap<K, V>(maxSize, 0.75f, true)
 
+    @Synchronized
     fun put(key: K, value: V): Map<K, V> {
         delegate[key] = value
         while (delegate.size > maxSize) {
@@ -37,11 +39,13 @@ private class LruCache<K, V>(private val maxSize: Int) {
         return delegate.toMap()
     }
 
+    @Synchronized
     fun remove(key: K): Map<K, V> {
         delegate.remove(key)
         return delegate.toMap()
     }
 
+    @Synchronized
     fun clear(): Map<K, V> {
         delegate.clear()
         return emptyMap()
@@ -83,7 +87,8 @@ data class HistoryUiState(
     val pagination: PaginationState = PaginationState(),
     val resetDialog: ResetDialogState = ResetDialogState(),
     val details: CommitDetailsState = CommitDetailsState(),
-    val error: String? = null
+    val error: String? = null,
+    val filterBranch: String? = null
 )
 
 @HiltViewModel
@@ -102,7 +107,7 @@ class HistoryViewModel @Inject constructor(
 
     private var loadHistoryJob: Job? = null
     private var loadMoreJob: Job? = null
-    private val detailJobs = mutableMapOf<String, Job>()
+    private val detailJobs = ConcurrentHashMap<String, Job>()
     private val detailLruCache = LruCache<String, GitCommitDetail>(MAX_CACHED_DETAILS)
 
     companion object {
@@ -185,6 +190,11 @@ class HistoryViewModel @Inject constructor(
             }
         }
         loadHistoryJob = job
+    }
+
+    fun filterByBranch(branchName: String?) {
+        _uiState.update { it.copy(filterBranch = branchName) }
+        loadCommitHistory()
     }
 
     private fun computeLanes(commits: List<GitCommit>): Map<String, Int> {

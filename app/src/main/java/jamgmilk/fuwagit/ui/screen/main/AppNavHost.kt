@@ -34,6 +34,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -44,6 +45,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import androidx.fragment.app.FragmentActivity
+import android.content.Context
 import android.content.res.Configuration
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
@@ -56,6 +58,7 @@ import jamgmilk.fuwagit.ui.navigation.rememberNavItems
 import jamgmilk.fuwagit.ui.screen.branches.BranchesScreen
 import jamgmilk.fuwagit.ui.screen.branches.BranchesViewModel
 import jamgmilk.fuwagit.ui.screen.credentials.CredentialScreen
+import jamgmilk.fuwagit.ui.screen.credentials.CredentialStoreEvent
 import jamgmilk.fuwagit.ui.screen.credentials.CredentialStoreViewModel
 import jamgmilk.fuwagit.ui.screen.credentials.MasterPasswordScreen
 import jamgmilk.fuwagit.ui.screen.credentials.UnlockDialog
@@ -98,9 +101,18 @@ private object TransitionDefaults {
     ) + fadeOut(animationSpec = tween(durationMillis = 150, easing = FastOutSlowInEasing))
 }
 
+private fun Context?.requireActivity(): FragmentActivity {
+    return (this as? FragmentActivity) ?: throw IllegalStateException("FragmentActivity is required")
+}
+
 @Composable
 fun AppNavHost(navController: NavHostController, startDestination: String = NavRoutes.MAIN) {
+    val context = LocalContext.current
+    val activity = context.requireActivity()
     val pendingRequests = remember { mutableStateListOf<HostKeyAskHelper.HostKeyRequest>() }
+    val credentialStoreViewModel: CredentialStoreViewModel = hiltViewModel(
+        viewModelStoreOwner = activity
+    )
 
     LaunchedEffect(Unit) {
         HostKeyAskHelper.requests.collect { request ->
@@ -145,15 +157,16 @@ fun AppNavHost(navController: NavHostController, startDestination: String = NavR
                         }
                     },
                     onAddRepository = { tab ->
-                        navController.navigate("add_repository/${tab.name}")
+                        navController.navigate("${NavRoutes.ADD_REPOSITORY}/${tab.name}")
                     }
                 )
             }
 
             composable(NavRoutes.MAIN) {
                 MainScreen(
+                    credentialStoreViewModel = credentialStoreViewModel,
                     onNavigateToAddRepository = {
-                        navController.navigate("add_repository/Clone")
+                        navController.navigate("${NavRoutes.ADD_REPOSITORY}/${AddRepoTab.Clone.name}")
                     },
                     onNavigateToPermissions = {
                         navController.navigate(NavRoutes.PERMISSIONS)
@@ -191,8 +204,8 @@ fun AppNavHost(navController: NavHostController, startDestination: String = NavR
                     }
                 )
             ) { backStackEntry ->
-                val tabName = backStackEntry.arguments?.getString("tab") ?: "Clone"
-                val selectedTab = try { AddRepoTab.valueOf(tabName) } catch (e: Exception) { AddRepoTab.Clone }
+                val tabName = backStackEntry.arguments?.getString("tab") ?: AddRepoTab.Clone.name
+                val selectedTab = try { AddRepoTab.valueOf(tabName) } catch (_: Exception) { AddRepoTab.Clone }
                 val myReposViewModel: MyReposViewModel = hiltViewModel()
                 val scope = rememberCoroutineScope()
                 AddRepositoryScreen(
@@ -214,9 +227,7 @@ fun AppNavHost(navController: NavHostController, startDestination: String = NavR
             }
 
             composable(NavRoutes.PERMISSIONS) {
-                val context = LocalContext.current
-                val activity = context as? FragmentActivity
-                val credentialStoreViewModel: CredentialStoreViewModel = hiltViewModel()
+                val activity = LocalContext.current.requireActivity()
                 val credentialUiState by credentialStoreViewModel.uiState.collectAsStateWithLifecycle()
                 var sshTestResult by remember { mutableStateOf<SshTestResult>(SshTestResult.Idle) }
 
@@ -243,14 +254,17 @@ fun AppNavHost(navController: NavHostController, startDestination: String = NavR
                         },
                         biometricEnabled = credentialUiState.isBiometricEnabled,
                         onUnlockWithBiometric = {
-                            activity?.let { credentialStoreViewModel.unlockWithBiometric(it) }
+                            credentialStoreViewModel.unlockWithBiometric(activity)
                         }
                     )
                 }
             }
 
             composable(NavRoutes.CREDENTIALS) {
-                val credentialsViewModel: CredentialStoreViewModel = hiltViewModel()
+                val activity = LocalContext.current.requireActivity()
+                val credentialsViewModel: CredentialStoreViewModel = hiltViewModel(
+                    viewModelStoreOwner = activity
+                )
                 CredentialScreen(
                     viewModel = credentialsViewModel,
                     onBack = { navController.popBackStack() }
@@ -265,7 +279,7 @@ fun AppNavHost(navController: NavHostController, startDestination: String = NavR
             }
 
             composable(
-                route = "${NavRoutes.FILE_DIFF}?filePath={filePath}&diffType={diffType}&oldCommit={oldCommit}&newCommit={newCommit}",
+                route = NavRoutes.FILE_DIFF_ROUTE,
                 arguments = listOf(
                     navArgument("filePath") { type = NavType.StringType },
                     navArgument("diffType") {
@@ -283,7 +297,7 @@ fun AppNavHost(navController: NavHostController, startDestination: String = NavR
                         defaultValue = null
                     }
                 )
-            ) { backStackEntry ->
+            ) {
                 val fileDiffViewModel: FileDiffViewModel = hiltViewModel()
                 FileDiffScreen(
                     fileDiffViewModel = fileDiffViewModel,
@@ -294,8 +308,17 @@ fun AppNavHost(navController: NavHostController, startDestination: String = NavR
     }
 }
 
+private enum class MainPage {
+    Status,
+    History,
+    Branches,
+    MyRepos,
+    Settings
+}
+
 @Composable
 fun MainScreen(
+    credentialStoreViewModel: CredentialStoreViewModel,
     onNavigateToAddRepository: () -> Unit,
     onNavigateToPermissions: () -> Unit,
     onNavigateToCredentials: () -> Unit,
@@ -311,8 +334,7 @@ fun MainScreen(
     val myReposViewModel: MyReposViewModel = hiltViewModel()
 
     val navItems = rememberNavItems()
-    val configuration = androidx.compose.ui.platform.LocalConfiguration.current
-    val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+    val isLandscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
     val scope = rememberCoroutineScope()
 
     val pagerState = rememberPagerState(pageCount = { navItems.size })
@@ -322,6 +344,15 @@ fun MainScreen(
         { index ->
             scope.launch {
                 pagerState.animateScrollToPage(index)
+            }
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        credentialStoreViewModel.events.collect { event ->
+            when (event) {
+                is CredentialStoreEvent.UnlockSuccess -> statusViewModel.onCredentialUnlocked()
+                else -> { }
             }
         }
     }
@@ -360,8 +391,8 @@ fun MainScreen(
                         if (isLandscape) Modifier.navigationBarsPadding() else Modifier
                     )
             ) { page ->
-                when (page) {
-                    0 -> StatusScreen(
+                when (MainPage.entries.getOrNull(page)) {
+                    MainPage.Status -> StatusScreen(
                         statusViewModel = statusViewModel,
                         modifier = Modifier.fillMaxSize(),
                         onViewDiff = { filePath, isStaged ->
@@ -369,34 +400,36 @@ fun MainScreen(
                             onViewFileDiff?.invoke(filePath, diffType)
                         }
                     )
-                    1 -> HistoryScreen(
+                    MainPage.History -> HistoryScreen(
                         historyViewModel = historyViewModel,
                         modifier = Modifier.fillMaxSize(),
                         onViewCommitDiff = onViewCommitDiff
                     )
-                    2 -> BranchesScreen(
+                    MainPage.Branches -> BranchesScreen(
                         branchesViewModel = branchesViewModel,
                         tagsViewModel = tagsViewModel,
                         modifier = Modifier.fillMaxSize(),
                         onCreateTag = { branchName ->
-                            tagsViewModel.showCreateDialog()
+                            tagsViewModel.showCreateDialog(branchName)
                         },
                         onShowInHistory = { branchName ->
-                            navigateToPage(1)
+                            historyViewModel.filterByBranch(branchName)
+                            navigateToPage(MainPage.History.ordinal)
                         }
                     )
-                    3 -> MyReposScreen(
+                    MainPage.MyRepos -> MyReposScreen(
                         myReposViewModel = myReposViewModel,
                         modifier = Modifier.fillMaxSize(),
                         onNavigateToAddRepository = onNavigateToAddRepository
                     )
-                    4 -> SettingsScreen(
+                    MainPage.Settings -> SettingsScreen(
                         modifier = Modifier.fillMaxSize(),
                         onNavigateToPermissions = onNavigateToPermissions,
                         onNavigateToCredentials = onNavigateToCredentials,
                         onNavigateToMasterPassword = onNavigateToMasterPassword,
                         onMasterPasswordSuccess = onMasterPasswordSuccess
                     )
+                    null -> { }
                 }
             }
 

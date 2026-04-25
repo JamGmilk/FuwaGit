@@ -27,6 +27,7 @@ sealed class CredentialStoreEvent {
     data object CredentialExported : CredentialStoreEvent()
     data object CredentialImported : CredentialStoreEvent()
     data object BiometricEnabled : CredentialStoreEvent()
+    data object UnlockSuccess : CredentialStoreEvent()
     data class Error(val message: String) : CredentialStoreEvent()
 }
 
@@ -101,6 +102,7 @@ class CredentialStoreViewModel @Inject constructor(
                             showUnlockDialog = false
                         )
                     }
+                    viewModelScope.launch { _events.emit(CredentialStoreEvent.UnlockSuccess) }
                     loadCredentials()
                 }
         }
@@ -223,6 +225,7 @@ class CredentialStoreViewModel @Inject constructor(
                             showUnlockDialog = false
                         )
                     }
+                    viewModelScope.launch { _events.emit(CredentialStoreEvent.UnlockSuccess) }
                     loadCredentials()
                 }
                 is AppResult.Error -> {
