@@ -17,10 +17,15 @@ object CrashLogManager {
     private const val MAX_LOG_FILES = 10
     private const val LOG_PREFIX = "crash_"
 
-    private val TIMESTAMP_FORMAT = SimpleDateFormat("yyyy_MM_dd_HH_mm_ss", Locale.US)
-    private val DISPLAY_FORMAT = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US)
+    private val timestampFormat = ThreadLocal.withInitial {
+        SimpleDateFormat("yyyy_MM_dd_HH_mm_ss", Locale.US)
+    }
+    private val displayFormat = ThreadLocal.withInitial {
+        SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US)
+    }
 
     private var defaultHandler: Thread.UncaughtExceptionHandler? = null
+    @Volatile
     private var isInitialized = false
     private lateinit var logDir: File
     private var appVersion: String = "Unknown"
@@ -35,12 +40,9 @@ object CrashLogManager {
 
         appVersion = try {
             val packageInfo = context.packageManager.getPackageInfo(context.packageName, 0)
-            val versionCode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                packageInfo.longVersionCode.toString()
-            } else {
-                packageInfo.versionCode.toString()
-            }
-            "${packageInfo.versionName} ($versionCode)"
+            val versionCode = packageInfo.versionCode
+            val versionName = packageInfo.versionName ?: "Unknown"
+            "$versionName ($versionCode)"
         } catch (e: Exception) {
             "Unknown"
         }
@@ -60,7 +62,8 @@ object CrashLogManager {
             return
         }
 
-        val timestamp = TIMESTAMP_FORMAT.format(Date())
+        val timestampDateFormat = timestampFormat.get()!!
+        val timestamp = timestampDateFormat.format(Date())
         val logFile = File(logDir, "${LOG_PREFIX}${timestamp}.txt")
 
         try {
@@ -75,7 +78,7 @@ object CrashLogManager {
 
     private fun PrintWriter.writeLogHeader(title: String) {
         println("=== $title ===")
-        println("Time: ${DISPLAY_FORMAT.format(Date())}")
+        println("Time: ${displayFormat.get()!!.format(Date())}")
         println("App Version: $appVersion")
         println("Android: ${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT})")
         println("Device: ${Build.MANUFACTURER}/${Build.MODEL}")
@@ -109,10 +112,9 @@ object CrashLogManager {
             writer.writeCauseChain(throwable)
             writer.println("=== End of Crash Log ===")
         }
-        cleanupOldLogs()
     }
 
-    private fun cleanupOldLogs() {
+    private fun cleanupOldLogsSync() {
         val logFiles = logDir.listFiles { file ->
             file.isFile && file.name.startsWith(LOG_PREFIX) && file.name.endsWith(".txt")
         }?.sortedByDescending { it.lastModified() } ?: return
@@ -132,7 +134,8 @@ object CrashLogManager {
     }
 
     fun getAllLogsContent(): String {
-        val logs = getLogFiles().mapIndexed { index, file ->
+        val logFiles = getLogFiles()
+        val logs = logFiles.mapIndexed { index, file ->
             buildString {
                 if (index > 0) append("\n\n========================================\n========================================\n\n")
                 append(file.readText())
@@ -140,8 +143,8 @@ object CrashLogManager {
         }
         return buildString {
             append("=== FuwaGit Crash Logs Export ===\n")
-            append("Exported at: ${DISPLAY_FORMAT.format(Date())}\n")
-            append("Total crash logs: ${getLogFiles().size}\n")
+            append("Exported at: ${displayFormat.get()!!.format(Date())}\n")
+            append("Total crash logs: ${logFiles.size}\n")
             append("================================\n\n")
             append(logs.joinToString(""))
         }
@@ -157,7 +160,8 @@ object CrashLogManager {
     }
 
     fun logManualError(tag: String, message: String, throwable: Throwable? = null) {
-        val timestamp = TIMESTAMP_FORMAT.format(Date())
+        val timestampDateFormat = timestampFormat.get()!!
+        val timestamp = timestampDateFormat.format(Date())
         val logFile = File(logDir, "${LOG_PREFIX}manual_${timestamp}.txt")
 
         try {
