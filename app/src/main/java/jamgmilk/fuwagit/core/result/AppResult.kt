@@ -40,7 +40,7 @@ sealed class AppResult<out T> {
         } catch (e: AppException) {
             Error(e)
         } catch (e: Exception) {
-            Error(AppException.Unknown(e.message ?: "Unknown error"))
+            Error(AppException.Unknown(e.message ?: "Unknown error", e))
         }
     }
 }
@@ -108,17 +108,17 @@ sealed class AppException : Exception() {
 
     data class NetworkError(override val message: String) : AppException()
 
-    data class Unknown(override val message: String) : AppException()
+    data class Unknown(override val message: String, val originalCause: Throwable? = null) : AppException()
 }
 
-fun <T> Result<T>.toAppResult(): AppResult<T> = fold(
-    onSuccess = { AppResult.Success(it) },
-    onFailure = {
-        AppResult.Error(
-            when (it) {
-                is AppException -> it
-                else -> AppException.Unknown(it.message ?: "Unknown error")
+fun <T> Result<T>.toAppResult(): AppResult<T> {
+    return when {
+        isSuccess -> AppResult.Success(getOrThrow())
+        else -> AppResult.Error(
+            when (val e = exceptionOrNull()) {
+                is AppException -> e
+                else -> AppException.Unknown(e?.message ?: "Unknown error", e)
             }
         )
     }
-)
+}
