@@ -32,6 +32,7 @@ data class SettingsUiState(
     val verboseLogging: Boolean = false,
     val darkMode: String = "system",
     val language: String = "system",
+    val dynamicColor: Boolean = true,
     val globalUserName: String? = null,
     val globalUserEmail: String? = null,
     val applyResult: ApplyConfigResult? = null,
@@ -101,6 +102,7 @@ class SettingsViewModel @Inject constructor(
                             verboseLogging = prefs.verboseLogging,
                             darkMode = prefs.darkMode,
                             language = prefs.language,
+                            dynamicColor = prefs.dynamicColor,
                             autoLockTimeout = prefs.autoLockTimeout,
                             isFirstRun = prefs.isFirstRun
                         )
@@ -174,6 +176,12 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch {
             settingsRepository.saveLanguage(language)
             _events.emit(SettingsEvent.LanguageChanged(language))
+        }
+    }
+
+    fun saveDynamicColor(enabled: Boolean) {
+        viewModelScope.launch {
+            settingsRepository.saveDynamicColor(enabled)
         }
     }
 

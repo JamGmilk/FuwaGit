@@ -7,6 +7,7 @@ data class AppPreferences(
     val verboseLogging: Boolean = false,
     val darkMode: String = "system",
     val language: String = "system",
+    val dynamicColor: Boolean = true,
     val autoLockTimeout: String = "300",
     val isFirstRun: Boolean = true
 )

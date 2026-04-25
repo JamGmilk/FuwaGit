@@ -36,6 +36,7 @@ class SettingsRepositoryImpl @Inject constructor(
                 verboseLogging = prefs.verboseLogging,
                 darkMode = prefs.darkMode,
                 language = prefs.language,
+                dynamicColor = prefs.dynamicColor,
                 autoLockTimeout = prefs.autoLockTimeout,
                 isFirstRun = prefs.isFirstRun
             )
@@ -76,6 +77,10 @@ class SettingsRepositoryImpl @Inject constructor(
 
     override suspend fun saveLanguage(language: String) {
         appPreferencesStore.setLanguage(language)
+    }
+
+    override suspend fun saveDynamicColor(enabled: Boolean) {
+        appPreferencesStore.setDynamicColor(enabled)
     }
 
     override suspend fun saveAutoLockTimeout(timeout: String) {
