@@ -176,7 +176,7 @@ class JGitMergeDataSource @Inject constructor(
             if (!java.io.File(gitDir, "MERGE_HEAD").exists()) {
                 throw Exception("No merge in progress to abort")
             }
-            git.reset().setMode(org.eclipse.jgit.api.ResetCommand.ResetType.HARD).call()
+            git.reset().setMode(org.eclipse.jgit.api.ResetCommand.ResetType.MERGE).call()
             "Merge aborted"
         }
 
