@@ -118,13 +118,17 @@ class JGitStatusDataSource @Inject constructor(
      * Unstages a specific file.
      */
     override fun unstageFile(repoPath: String, filePath: String): Result<Unit> = core.withGit(repoPath) { git ->
-        val headRef = git.repository.resolve("HEAD")
-        if (headRef == null) {
-            git.rm().setCached(true).addFilepattern(filePath).call()
-        } else {
-            git.reset().setRef("HEAD").addPath(filePath).call()
+        try {
+            val headRef = git.repository.resolve("HEAD")
+            if (headRef == null) {
+                git.rm().setCached(true).addFilepattern(filePath).call()
+            } else {
+                git.reset().setRef("HEAD").addPath(filePath).call()
+            }
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
         }
-        Unit
     }
 
     /**
