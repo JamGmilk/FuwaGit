@@ -184,7 +184,7 @@ class JGitMergeDataSource @Inject constructor(
         core.withGit(repoPath) { git ->
             val cleanedPaths = git.clean()
                 .setCleanDirectories(true)
-                .setIgnore(false)
+                .setIgnore(true)
                 .setDryRun(dryRun)
                 .call()
             CleanResult(files = cleanedPaths.toList(), isDryRun = dryRun)
