@@ -116,6 +116,7 @@ class OnboardingViewModel @Inject constructor(
         viewModelScope.launch {
             setupMasterPasswordUseCase(state.password, state.confirmPassword, state.passwordHint.ifBlank { null })
                 .onSuccess {
+                    clearSensitiveData()
                     if (state.enableBiometric && activity != null) {
                         enableBiometricUseCase(activity) { result ->
                             when (result) {
@@ -140,6 +141,12 @@ class OnboardingViewModel @Inject constructor(
                 .onError { e ->
                     _uiState.update { it.copy(isSettingPassword = false, passwordError = e.message) }
                 }
+        }
+    }
+
+    private fun clearSensitiveData() {
+        _uiState.update {
+            it.copy(password = "", confirmPassword = "")
         }
     }
 
