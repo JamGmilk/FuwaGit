@@ -517,7 +517,7 @@ private fun SecuritySettingsCard(
     isDecryptionUnlocked: Boolean = false,
     isMasterPasswordSet: Boolean = false,
     onBiometricEnabledChange: ((Boolean) -> Unit)? = null,
-    autoLockTimeout: String = "300",
+    autoLockTimeout: String = "600",
     onAutoLockTimeoutChange: (String) -> Unit = {}
 ) {
     val colors = MaterialTheme.colorScheme

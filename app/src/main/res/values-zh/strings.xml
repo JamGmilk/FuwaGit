@@ -83,7 +83,7 @@
     <string name="settings_auto_lock_30_minutes">30 分钟</string>
     <string name="settings_auto_lock_1_hour">1 小时</string>
     <string name="settings_auto_lock_seconds_format">%1$d 秒</string>
-    <string name="settings_auto_lock_description">设置凭据自动锁定前的超时时间（秒）。设为 0 可禁用自动锁定。</string>
+    <string name="settings_auto_lock_description">设置超时时间（秒）。凭据将在此空闲期后自动锁定。输入 0 可禁用自动锁定（永不过期）。</string>
 
     <!-- Git Configuration -->
     <string name="settings_configuration">配置</string>
@@ -124,7 +124,7 @@
     <string name="settings_test_file_picker_subtitle">打开文件选择器并显示所选路径</string>
     <string name="test_file_picker_title">测试文件选择器</string>
     <string name="settings_timeout_label">超时时间（秒）</string>
-    <string name="settings_timeout_placeholder">300</string>
+    <string name="settings_timeout_placeholder">600</string>
     <string name="settings_reset_onboarding">重置引导</string>
     <string name="settings_reset_onboarding_subtitle">立即显示引导屏幕</string>
     <string name="settings_reset_onboarding_confirm">这将重置首次运行标记。引导屏幕将立即显示。</string>

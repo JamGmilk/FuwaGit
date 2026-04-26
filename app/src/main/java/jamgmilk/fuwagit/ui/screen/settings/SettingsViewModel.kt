@@ -36,7 +36,7 @@ data class SettingsUiState(
     val globalUserName: String? = null,
     val globalUserEmail: String? = null,
     val applyResult: ApplyConfigResult? = null,
-    val autoLockTimeout: String = "300",
+    val autoLockTimeout: String = "600",
     val isFirstRun: Boolean = true
 )
 

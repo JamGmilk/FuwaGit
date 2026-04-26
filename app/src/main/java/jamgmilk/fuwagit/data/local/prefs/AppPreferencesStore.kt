@@ -46,7 +46,7 @@ class AppPreferencesStore @Inject constructor(
             darkMode = prefs[PreferencesKeys.DARK_MODE] ?: "system",
             language = prefs[PreferencesKeys.LANGUAGE] ?: "system",
             dynamicColor = prefs[PreferencesKeys.DYNAMIC_COLOR] ?: true,
-            autoLockTimeout = prefs[PreferencesKeys.AUTO_LOCK_TIMEOUT] ?: "300",
+            autoLockTimeout = prefs[PreferencesKeys.AUTO_LOCK_TIMEOUT] ?: "600",
             isFirstRun = prefs[PreferencesKeys.IS_FIRST_RUN] ?: true
         )
     }

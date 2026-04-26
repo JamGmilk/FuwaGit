@@ -83,7 +83,7 @@
     <string name="settings_auto_lock_30_minutes">30 minutes</string>
     <string name="settings_auto_lock_1_hour">1 hour</string>
     <string name="settings_auto_lock_seconds_format">%1$d seconds</string>
-    <string name="settings_auto_lock_description">Set the timeout duration in seconds after which the credentials will be automatically locked. Set to 0 to disable auto-lock.</string>
+    <string name="settings_auto_lock_description">Set the timeout duration in seconds. Credentials will auto-lock after this period of inactivity. Enter 0 to disable auto-lock (never expires).</string>
 
     <!-- Git Configuration -->
     <string name="settings_configuration">Configuration</string>
@@ -124,7 +124,7 @@
     <string name="settings_test_file_picker_subtitle">Open file picker and show selected path</string>
     <string name="test_file_picker_title">Test File Picker</string>
     <string name="settings_timeout_label">Timeout (seconds)</string>
-    <string name="settings_timeout_placeholder">300</string>
+    <string name="settings_timeout_placeholder">600</string>
     <string name="settings_reset_onboarding">Reset Onboarding</string>
     <string name="settings_reset_onboarding_subtitle">Show onboarding screen immediately</string>
     <string name="settings_reset_onboarding_confirm">This will reset the first-run flag. The onboarding screen will appear immediately.</string>

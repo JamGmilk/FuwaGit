@@ -61,7 +61,7 @@ class SecureCredentialStore @Inject constructor(
         val timeoutSeconds = appPreferencesStore.preferencesFlow
             .first { true }
             .autoLockTimeout
-            .toLongOrNull() ?: 300L
+            .toLongOrNull() ?: 600L
 
         val validTimeout = when {
             timeoutSeconds < 0 -> 0L
@@ -157,14 +157,12 @@ class SecureCredentialStore @Inject constructor(
                 return@synchronized null
             }
 
-            val effectiveTimeout = if (isBiometricSession) sessionTimeout else 0L
-
-            if (effectiveTimeout == 0L) {
+            if (sessionTimeout == 0L) {
                 return@synchronized key
             }
 
             val elapsed = System.currentTimeMillis() - lastUnlockTime
-            if (elapsed < effectiveTimeout) {
+            if (elapsed < sessionTimeout) {
                 return@synchronized key
             }
 
