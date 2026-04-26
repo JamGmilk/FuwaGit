@@ -258,11 +258,31 @@ class JGitRemoteDataSource @Inject constructor(
                             }
                         }
                     } else if (localRef != null) {
-                        // localRef exists, remoteRef doesn't - normal for new branch
+                        // No remote ref yet, proceed with push
                     } else {
                         val headRevision = try { git.repository.resolve("HEAD") } catch (_: Exception) { null }
                         if (headRevision == null) {
                             throw Exception("Repository has no commits. Make at least one commit before pushing.")
+                        }
+                    }
+                } else if (options.forceWithLease && !options.pushAllBranches) {
+                    val localBranch = git.repository.branch
+                    val trackingRef = git.repository.exactRef("refs/remotes/$targetRemote/$localBranch")
+                    if (trackingRef != null) {
+                        val currentRef = git.repository.exactRef("refs/heads/$localBranch")
+                        if (currentRef != null) {
+                            org.eclipse.jgit.revwalk.RevWalk(git.repository).use { revWalk ->
+                                val trackingCommit = revWalk.parseCommit(trackingRef.objectId)
+                                val currentCommit = revWalk.parseCommit(currentRef.objectId)
+                                val isAncestor = revWalk.isMergedInto(currentCommit, trackingCommit)
+                                if (!isAncestor) {
+                                    throw Exception(
+                                        "Force-with-lease denied: remote '$targetRemote/$localBranch' has new commits " +
+                                        "that you don't have locally. Fetch them first to get the latest changes, " +
+                                        "or use regular force push if you're sure you want to overwrite."
+                                    )
+                                }
+                            }
                         }
                     }
                 }
@@ -277,12 +297,27 @@ class JGitRemoteDataSource @Inject constructor(
 
                     if (options.pushTags) pushCommand.setPushTags()
 
-                    if (options.forceWithLease || options.forcePush) {
+                    if (options.forcePush) {
+                        pushCommand.setForce(true)
+                    } else if (options.forceWithLease && !options.pushAllBranches) {
                         pushCommand.setForce(true)
                     }
 
                     core.configureCredentials(pushCommand, credentials)
-                    pushCommand.call()
+                    val results = pushCommand.call()
+
+                    for (result in results) {
+                        for (update in result.remoteUpdates) {
+                            val status = update.status
+                            if (status != org.eclipse.jgit.transport.RemoteRefUpdate.Status.OK &&
+                                status != org.eclipse.jgit.transport.RemoteRefUpdate.Status.UP_TO_DATE &&
+                                status != org.eclipse.jgit.transport.RemoteRefUpdate.Status.NON_EXISTING) {
+                                throw Exception("Push rejected for ${update.remoteName}: ${status.name}. " +
+                                    "This may indicate that the remote branch was modified by someone else " +
+                                    "after your last fetch. Try fetching again.")
+                            }
+                        }
+                    }
 
                     if (options.setUpstreamOnPush) {
                         val currentBranch = git.repository.branch
