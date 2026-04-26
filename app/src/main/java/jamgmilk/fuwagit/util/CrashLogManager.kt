@@ -43,7 +43,7 @@ object CrashLogManager {
             val versionCode = packageInfo.versionCode
             val versionName = packageInfo.versionName ?: "Unknown"
             "$versionName ($versionCode)"
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             "Unknown"
         }
 
@@ -69,6 +69,7 @@ object CrashLogManager {
         try {
             writeCrashLog(logFile, thread, throwable)
             Log.i(TAG, "Crash log written to: ${logFile.absolutePath}")
+            cleanupOldLogsSync()
         } catch (e: Exception) {
             Log.e(TAG, "Failed to write crash log", e)
         }
@@ -180,6 +181,7 @@ object CrashLogManager {
                 writer.println("=== End of Manual Error Log ===")
             }
             Log.d(TAG, "Manual error log written to: ${logFile.absolutePath}")
+            cleanupOldLogsSync()
         } catch (e: Exception) {
             Log.e(TAG, "Failed to write manual error log", e)
         }

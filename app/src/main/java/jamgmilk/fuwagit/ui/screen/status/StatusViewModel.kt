@@ -17,6 +17,7 @@ import jamgmilk.fuwagit.domain.usecase.git.MergeUseCase
 import jamgmilk.fuwagit.ui.components.DangerousOperationType
 import jamgmilk.fuwagit.ui.state.RepoStateManager
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -98,6 +99,7 @@ class StatusViewModel @Inject constructor(
     val events: SharedFlow<StatusEvent> = _events.asSharedFlow()
 
     private var currentRepoPath: String? = null
+    private var refreshJob: Job? = null
 
     init {
         viewModelScope.launch {
@@ -181,7 +183,8 @@ class StatusViewModel @Inject constructor(
     fun refreshWorkspace() {
         val path = currentRepoPath ?: return
 
-        viewModelScope.launch {
+        refreshJob?.cancel()
+        refreshJob = viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
 
             val filesResult = withContext(Dispatchers.IO) { gitStatus.getDetailedStatus(path) }

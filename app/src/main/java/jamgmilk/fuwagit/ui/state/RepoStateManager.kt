@@ -75,30 +75,32 @@ class RepoStateManager @Inject constructor(
             isLoading = true
         )
 
-        val result = when {
-            !file.exists() -> {
-                repoDataStore.setCurrentRepo(null)
-                ValidationResult.Error("Path does not exist")
+        scope.launch(Dispatchers.IO) {
+            val result = when {
+                !file.exists() -> {
+                    repoDataStore.setCurrentRepo(null)
+                    ValidationResult.Error("Path does not exist")
+                }
+                !File(file, ".git").exists() -> {
+                    repoDataStore.setCurrentRepo(null)
+                    ValidationResult.Error("Not a git repository")
+                }
+                else -> {
+                    repoDataStore.setCurrentRepo(path)
+                    repoDataStore.updateLastAccessed(path)
+                    ValidationResult.Success(path, name)
+                }
             }
-            !File(file, ".git").exists() -> {
-                repoDataStore.setCurrentRepo(null)
-                ValidationResult.Error("Not a git repository")
-            }
-            else -> {
-                repoDataStore.setCurrentRepo(path)
-                repoDataStore.updateLastAccessed(path)
-                ValidationResult.Success(path, name)
-            }
-        }
 
-        _repoInfo.value = when (result) {
-            is ValidationResult.Success -> RepoInfo(
-                repoPath = result.path,
-                repoName = result.name
-            )
-            is ValidationResult.Error -> RepoInfo(
-                error = result.message
-            )
+            _repoInfo.value = when (result) {
+                is ValidationResult.Success -> RepoInfo(
+                    repoPath = result.path,
+                    repoName = result.name
+                )
+                is ValidationResult.Error -> RepoInfo(
+                    error = result.message
+                )
+            }
         }
     }
 

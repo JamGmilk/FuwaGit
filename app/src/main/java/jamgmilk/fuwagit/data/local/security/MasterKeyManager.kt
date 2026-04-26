@@ -89,9 +89,10 @@ class MasterKeyManager @Inject constructor(
                         Base64.encodeToString(salt, Base64.NO_WRAP))
                 }
 
-                val result = SecretKeySpec(masterKey.encoded, "AES")
+                val encodedBytes = masterKey.encoded
+                val result = SecretKeySpec(encodedBytes.copyOf(), "AES")
+                java.util.Arrays.fill(encodedBytes, 0.toByte())
                 derivedKey.secureZero()
-                masterKey.encoded?.let { java.util.Arrays.fill(it, 0.toByte()) }
                 result
             }
         }
@@ -197,7 +198,7 @@ class MasterKeyManager @Inject constructor(
                                         putString(KEY_BIOMETRIC_IV,
                                             Base64.encodeToString(actualIv, Base64.NO_WRAP))
                                         putBoolean(KEY_BIOMETRIC_ENABLED, true)
-                                        apply()
+                                        commit()
                                     }
                                     if (BuildConfig.DEBUG) Log.d(TAG, "enableBiometric: success saved to prefs with IV size ${actualIv?.size}")
                                     onSuccess()
