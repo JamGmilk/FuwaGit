@@ -60,7 +60,7 @@ class MyReposViewModel @Inject constructor(
                 }
             }
             size
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             0L
         }
     }
@@ -81,7 +81,7 @@ class MyReposViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
-            repoDataStore.getSavedReposFlow().collectLatest { repos ->
+            repoDataStore.getAllReposFlow().collectLatest { repos ->
                 val currentPath = currentRepoManager.getRepoPath()
                 val currentSizes = _uiState.value.repoSizes
                 val items = buildRepoItems(repos, currentPath, currentSizes)
@@ -126,7 +126,7 @@ class MyReposViewModel @Inject constructor(
         }
     }
 
-    suspend fun addRepo(path: String, alias: String? = null, credentialId: String? = null, showSnackbar: Boolean = true): Boolean {
+    fun addRepo(path: String, alias: String? = null, credentialId: String? = null, showSnackbar: Boolean = true): Boolean {
         val repo = RepoData(path = path, alias = alias, credentialId = credentialId)
         val result = repoDataStore.addRepo(repo)
         if (result && currentRepoManager.getRepoPath() == null) {
@@ -138,7 +138,7 @@ class MyReposViewModel @Inject constructor(
         return result
     }
 
-    suspend fun removeRepo(path: String): Boolean {
+    fun removeRepo(path: String): Boolean {
         val result = repoDataStore.removeRepo(path)
         if (result && currentRepoManager.getRepoPath() == path) {
             currentRepoManager.clearRepo()
@@ -146,7 +146,7 @@ class MyReposViewModel @Inject constructor(
         return result
     }
 
-    suspend fun setCurrentRepo(path: String?) {
+    fun setCurrentRepo(path: String?) {
         currentRepoManager.setRepoPath(path)
     }
 

@@ -35,7 +35,7 @@ class RepoDataStore @Inject constructor(
     private val _reposFlow = MutableStateFlow<List<RepoData>>(emptyList())
     val reposFlow: Flow<List<RepoData>> = _reposFlow.asStateFlow()
 
-    fun getSavedReposFlow(): Flow<List<RepoData>> = reposFlow
+    fun getAllReposFlow(): Flow<List<RepoData>> = reposFlow
 
     private var cachedWrapper: RepoListWrapper = loadFromFile()
 
@@ -55,7 +55,7 @@ class RepoDataStore @Inject constructor(
                     json.decodeFromString<RepoListWrapper>(content)
                 }
             }
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             RepoListWrapper()
         }
     }
@@ -77,13 +77,11 @@ class RepoDataStore @Inject constructor(
 
     private fun persistAndNotify(repos: List<RepoData>, currentPath: String?): List<RepoData> {
         val wrapper = RepoListWrapper(repos, currentPath)
-        cachedWrapper = wrapper
         saveToFile(wrapper)
+        cachedWrapper = wrapper
         _reposFlow.value = repos
         return repos
     }
-
-    fun getSavedRepos(): List<RepoData> = cachedWrapper.repos
 
     fun getAllRepos(): List<RepoData> = cachedWrapper.repos
 
@@ -100,7 +98,7 @@ class RepoDataStore @Inject constructor(
             currentList.add(repo)
             persistAndNotify(currentList, cachedWrapper.currentRepoPath)
             true
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             false
         }
     }
@@ -112,7 +110,7 @@ class RepoDataStore @Inject constructor(
             val newCurrentPath = if (cachedWrapper.currentRepoPath == path) null else cachedWrapper.currentRepoPath
             persistAndNotify(currentList, newCurrentPath)
             true
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             false
         }
     }

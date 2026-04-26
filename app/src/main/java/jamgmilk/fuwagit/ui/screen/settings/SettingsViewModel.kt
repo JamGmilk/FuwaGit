@@ -76,7 +76,7 @@ class SettingsViewModel @Inject constructor(
     private fun observeRepositories() {
         viewModelScope.launch {
             launch {
-                repoRepository.getSavedReposFlow().collect { repos ->
+                repoRepository.getAllReposFlow().collect { repos ->
                     _uiState.update { it.copy(savedReposCount = repos.size) }
                 }
             }
@@ -228,7 +228,7 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
-    suspend fun getCurrentRepoPath(): String? {
+    fun getCurrentRepoPath(): String? {
         return repoStateManager.getRepoPath()
     }
 }

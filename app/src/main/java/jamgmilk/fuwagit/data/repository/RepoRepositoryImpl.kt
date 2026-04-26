@@ -12,12 +12,12 @@ class RepoRepositoryImpl @Inject constructor(
     private val repoDataStore: RepoDataStore
 ) : RepoRepository {
 
-    override fun getSavedReposFlow(): Flow<List<RepoData>> {
-        return repoDataStore.getSavedReposFlow()
+    override fun getAllReposFlow(): Flow<List<RepoData>> {
+        return repoDataStore.getAllReposFlow()
     }
 
     override suspend fun getAllRepos(): List<RepoData> {
-        return repoDataStore.getSavedRepos()
+        return repoDataStore.getAllRepos()
     }
 
     override suspend fun setCurrentRepo(path: String?) {
