@@ -351,7 +351,10 @@ fun MainScreen(
     LaunchedEffect(Unit) {
         credentialStoreViewModel.events.collect { event ->
             when (event) {
-                is CredentialStoreEvent.UnlockSuccess -> statusViewModel.onCredentialUnlocked()
+                is CredentialStoreEvent.UnlockSuccess -> {
+                    statusViewModel.onCredentialUnlocked()
+                    myReposViewModel.onCredentialUnlocked()
+                }
                 else -> { }
             }
         }
