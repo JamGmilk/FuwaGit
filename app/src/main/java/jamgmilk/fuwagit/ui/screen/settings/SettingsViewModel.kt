@@ -9,6 +9,7 @@ import jamgmilk.fuwagit.domain.repository.RepoRepository
 import jamgmilk.fuwagit.domain.repository.SettingsRepository
 import jamgmilk.fuwagit.domain.usecase.git.ApplyGitConfigToAllRepos
 import jamgmilk.fuwagit.ui.state.RepoStateManager
+import jamgmilk.fuwagit.util.LanguageManager
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -93,6 +94,7 @@ class SettingsViewModel @Inject constructor(
                 }
             }
             launch {
+                var isFirstEmit = true
                 settingsRepository.preferencesFlow().collect { prefs ->
                     _uiState.update {
                         it.copy(
@@ -106,6 +108,10 @@ class SettingsViewModel @Inject constructor(
                             autoLockTimeout = prefs.autoLockTimeout,
                             isFirstRun = prefs.isFirstRun
                         )
+                    }
+                    if (isFirstEmit) {
+                        LanguageManager.setLanguage(prefs.language)
+                        isFirstEmit = false
                     }
                 }
             }

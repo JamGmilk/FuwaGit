@@ -11,16 +11,26 @@ class UnlockWithBiometricUseCase @Inject constructor(
     private val credentialRepository: CredentialRepository,
     private val biometricRepository: BiometricRepository
 ) {
-    operator fun invoke(activity: FragmentActivity, onResult: (AppResult<Unit>) -> Unit) {
-        biometricRepository.unlockWithBiometric(
+    suspend operator fun invoke(
+        activity: FragmentActivity,
+        title: String,
+        subtitle: String,
+        negativeButtonText: String
+    ): AppResult<Unit> {
+        val result = biometricRepository.unlockWithBiometric(
             activity = activity,
-            onSuccess = { key ->
-                credentialRepository.setMasterKeyFromBiometric(key)
-                onResult(AppResult.Success(Unit))
-            },
-            onError = { message ->
-                onResult(AppResult.Error(AppException.BiometricError(message)))
-            }
+            title = title,
+            subtitle = subtitle,
+            negativeButtonText = negativeButtonText
         )
+        return when (result) {
+            is AppResult.Success -> {
+                credentialRepository.setMasterKeyFromBiometric(result.data)
+                AppResult.Success(Unit)
+            }
+            is AppResult.Error -> {
+                AppResult.Error(AppException.BiometricError(result.message ?: "Biometric error"))
+            }
+        }
     }
 }

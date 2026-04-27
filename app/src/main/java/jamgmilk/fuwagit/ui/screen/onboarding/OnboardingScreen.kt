@@ -72,6 +72,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.res.painterResource
+import androidx.fragment.app.FragmentActivity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.graphics.painter.BitmapPainter
 import androidx.compose.ui.graphics.painter.Painter
@@ -83,7 +84,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
-import androidx.fragment.app.FragmentActivity
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -105,7 +105,7 @@ fun OnboardingScreen(
     val steps = OnboardingStep.entries
     val pagerState = rememberPagerState(pageCount = { steps.size })
     val context = LocalContext.current
-    val fragmentActivity = context as? FragmentActivity
+    val activity = context as? FragmentActivity
     MaterialTheme.colorScheme
     var isPermissionGranted by remember { mutableStateOf(false) }
 
@@ -172,7 +172,7 @@ fun OnboardingScreen(
             isGitConfigValid = uiState.userName.isNotBlank() && uiState.userEmail.isNotBlank() && uiState.defaultBranch.isNotBlank(),
             onNext = viewModel::nextStep,
             onSkipPassword = viewModel::skipPassword,
-            onSetupPassword = { viewModel.setupPasswordAndContinue(fragmentActivity) },
+            onSetupPassword = { activity?.let { viewModel.setupPasswordAndContinue(it) } },
             onSaveConfig = viewModel::saveConfigAndContinue,
             onAddRepository = onAddRepository,
             onComplete = {

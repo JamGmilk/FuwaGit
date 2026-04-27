@@ -44,7 +44,6 @@ fun CredentialScreen(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
-    val activity = context as? FragmentActivity
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { androidx.compose.material3.SnackbarHostState() }
 
@@ -124,6 +123,9 @@ fun CredentialScreen(
     }
 
     if (uiState.showUnlockDialog) {
+        val biometricUnlockTitle = stringResource(R.string.biometric_unlock_title)
+        val biometricUnlockSubtitle = stringResource(R.string.credentials_unlock_biometric_subtitle)
+        val biometricUsePasswordText = stringResource(R.string.credentials_use_password)
         UnlockDialog(
             onDismiss = { viewModel.dismissUnlockDialog() },
             onUnlock = { password ->
@@ -131,7 +133,15 @@ fun CredentialScreen(
             },
             biometricEnabled = uiState.isBiometricEnabled,
             onUnlockWithBiometric = {
-                activity?.let { viewModel.unlockWithBiometric(it) }
+                val activity = context as? FragmentActivity
+                activity?.let {
+                    viewModel.unlockWithBiometric(
+                        it,
+                        biometricUnlockTitle,
+                        biometricUnlockSubtitle,
+                        biometricUsePasswordText
+                    )
+                }
             },
             passwordHint = uiState.passwordHint,
             error = uiState.error,

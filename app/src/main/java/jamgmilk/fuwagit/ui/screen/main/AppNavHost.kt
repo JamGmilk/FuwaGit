@@ -37,6 +37,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.fragment.app.FragmentActivity
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
@@ -44,11 +45,11 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
-import androidx.fragment.app.FragmentActivity
 import android.content.Context
 import android.content.res.Configuration
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
+import jamgmilk.fuwagit.R
 import jamgmilk.fuwagit.ui.navigation.AddRepoTab
 import jamgmilk.fuwagit.ui.navigation.DiffType
 import jamgmilk.fuwagit.ui.navigation.NavRoutes
@@ -227,7 +228,6 @@ fun AppNavHost(navController: NavHostController, startDestination: String = NavR
             }
 
             composable(NavRoutes.PERMISSIONS) {
-                val activity = LocalContext.current.requireActivity()
                 val credentialUiState by credentialStoreViewModel.uiState.collectAsStateWithLifecycle()
                 var sshTestResult by remember { mutableStateOf<SshTestResult>(SshTestResult.Idle) }
 
@@ -254,7 +254,12 @@ fun AppNavHost(navController: NavHostController, startDestination: String = NavR
                         },
                         biometricEnabled = credentialUiState.isBiometricEnabled,
                         onUnlockWithBiometric = {
-                            credentialStoreViewModel.unlockWithBiometric(activity)
+                            credentialStoreViewModel.unlockWithBiometric(
+                                activity,
+                                context.getString(R.string.biometric_unlock_title),
+                                context.getString(R.string.credentials_unlock_biometric_subtitle),
+                                context.getString(R.string.credentials_use_password)
+                            )
                         }
                     )
                 }

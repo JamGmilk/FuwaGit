@@ -104,7 +104,7 @@ dependencies {
     implementation(libs.androidx.security.crypto)
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.navigation.runtime.ktx)
-    implementation(libs.androidx.biometric)
+    implementation(libs.androidx.biometric.compose)
     implementation(libs.androidx.appcompat)
     implementation(libs.androidx.datastore.preferences)
 

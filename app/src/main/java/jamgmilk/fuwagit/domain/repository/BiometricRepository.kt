@@ -10,23 +10,32 @@ import javax.crypto.SecretKey
  */
 interface BiometricRepository {
     /**
-     * Enable biometric authentication by encrypting the master key.
+     * Check if biometric authentication can be used.
      */
-    fun enableBiometric(
+    fun canAuthenticate(): Boolean
+
+    /**
+     * Enable biometric authentication by encrypting and storing the master key.
+     * Uses BiometricPrompt to secure the encryption.
+     */
+    suspend fun enableBiometric(
         activity: FragmentActivity,
         masterKey: SecretKey,
-        onSuccess: () -> Unit,
-        onError: (String) -> Unit
-    )
+        title: String,
+        subtitle: String,
+        negativeButtonText: String
+    ): AppResult<Unit>
 
     /**
      * Unlock using biometric authentication, returning the decrypted master key.
+     * Uses BiometricPrompt to secure the decryption.
      */
-    fun unlockWithBiometric(
+    suspend fun unlockWithBiometric(
         activity: FragmentActivity,
-        onSuccess: (SecretKey) -> Unit,
-        onError: (String) -> Unit
-    )
+        title: String,
+        subtitle: String,
+        negativeButtonText: String
+    ): AppResult<SecretKey>
 
     /**
      * Check if biometric authentication is enabled.
@@ -36,7 +45,7 @@ interface BiometricRepository {
     /**
      * Disable biometric authentication.
      */
-    fun disableBiometric(): AppResult<Unit>
+    suspend fun disableBiometric(): AppResult<Unit>
 
     /**
      * Check if master password is set.

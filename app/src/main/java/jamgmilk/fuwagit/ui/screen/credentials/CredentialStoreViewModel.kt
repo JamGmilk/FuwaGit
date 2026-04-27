@@ -197,27 +197,34 @@ class CredentialStoreViewModel @Inject constructor(
         }
     }
 
-    fun enableBiometric(activity: FragmentActivity) {
+    fun enableBiometric(
+        activity: FragmentActivity,
+        title: String,
+        subtitle: String,
+        negativeButtonText: String
+    ) {
         viewModelScope.launch {
-            credentialFacade.enableBiometric(activity) { result ->
-                when (result) {
-                    is AppResult.Success -> {
-                        _uiState.update { it.copy(isBiometricEnabled = true) }
-                        viewModelScope.launch { _events.emit(CredentialStoreEvent.BiometricEnabled) }
-                    }
-                    is AppResult.Error -> {
-                        _uiState.update { it.copy(error = result.message ?: "Biometric error") }
-                        viewModelScope.launch { _events.emit(CredentialStoreEvent.Error(result.message ?: "Biometric error")) }
-                    }
+            credentialFacade.enableBiometric(activity, title, subtitle, negativeButtonText)
+                .onSuccess {
+                    _uiState.update { it.copy(isBiometricEnabled = true) }
+                    _events.emit(CredentialStoreEvent.BiometricEnabled)
                 }
-            }
+                .onError { e ->
+                    _uiState.update { it.copy(error = e.message ?: "Biometric error") }
+                    _events.emit(CredentialStoreEvent.Error(e.message ?: "Biometric error"))
+                }
         }
     }
 
-    fun unlockWithBiometric(activity: FragmentActivity) {
-        credentialFacade.unlockWithBiometric(activity) { result ->
-            when (result) {
-                is AppResult.Success -> {
+    fun unlockWithBiometric(
+        activity: FragmentActivity,
+        title: String,
+        subtitle: String,
+        negativeButtonText: String
+    ) {
+        viewModelScope.launch {
+            credentialFacade.unlockWithBiometric(activity, title, subtitle, negativeButtonText)
+                .onSuccess {
                     _uiState.update {
                         it.copy(
                             isDecryptionUnlocked = true,
@@ -225,14 +232,13 @@ class CredentialStoreViewModel @Inject constructor(
                             showUnlockDialog = false
                         )
                     }
-                    viewModelScope.launch { _events.emit(CredentialStoreEvent.UnlockSuccess) }
+                    _events.emit(CredentialStoreEvent.UnlockSuccess)
                     loadCredentials()
                 }
-                is AppResult.Error -> {
-                    _uiState.update { it.copy(error = result.message ?: "Biometric error") }
-                    viewModelScope.launch { _events.emit(CredentialStoreEvent.Error(result.message ?: "Biometric error")) }
+                .onError { e ->
+                    _uiState.update { it.copy(error = e.message ?: "Biometric error") }
+                    _events.emit(CredentialStoreEvent.Error(e.message ?: "Biometric error"))
                 }
-            }
         }
     }
 
@@ -341,14 +347,6 @@ class CredentialStoreViewModel @Inject constructor(
         }
     }
 
-    /**
-     * Test SSH connection with the given host and key UUID.
-     * Retrieves the decrypted private key from the vault (requires unlock).
-     *
-     * @param host The SSH host (e.g., "git@github.com")
-     * @param sshKeyUuid The UUID of the SSH key to test
-     * @param onResult Callback to receive the test result
-     */
     fun testSshConnection(
         host: String,
         sshKeyUuid: String,

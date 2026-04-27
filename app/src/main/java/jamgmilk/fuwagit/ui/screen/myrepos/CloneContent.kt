@@ -92,7 +92,6 @@ internal fun CloneContent(
     onCloneComplete: (String) -> Unit
 ) {
     val context = LocalContext.current
-    val activity = context as? FragmentActivity
     val scope = rememberCoroutineScope()
     val credentialsUiState by credentialsViewModel.uiState.collectAsStateWithLifecycle()
 
@@ -386,6 +385,7 @@ internal fun CloneContent(
     }
 
     if (showUnlockDialog) {
+        val activity = context as? FragmentActivity
         UnlockDialog(
             onDismiss = { showUnlockDialog = false },
             onUnlock = { password ->
@@ -393,7 +393,14 @@ internal fun CloneContent(
             },
             biometricEnabled = credentialsUiState.isBiometricEnabled,
             onUnlockWithBiometric = {
-                activity?.let { credentialsViewModel.unlockWithBiometric(it) }
+                activity?.let {
+                    credentialsViewModel.unlockWithBiometric(
+                        it,
+                        context.getString(R.string.biometric_unlock_title),
+                        context.getString(R.string.credentials_unlock_biometric_subtitle),
+                        context.getString(R.string.credentials_use_password)
+                    )
+                }
             },
             passwordHint = credentialsUiState.passwordHint,
             error = credentialsUiState.error,

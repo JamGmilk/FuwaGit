@@ -3,9 +3,8 @@ package jamgmilk.fuwagit.ui.screen.settings
 import android.content.Intent
 import android.os.Build
 import android.util.Log
-import androidx.appcompat.app.AppCompatDelegate
-import androidx.core.os.LocaleListCompat
 import jamgmilk.fuwagit.BuildConfig
+import jamgmilk.fuwagit.util.LanguageManager
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
@@ -134,8 +133,8 @@ fun SettingsScreen(
     credentialsViewModel: CredentialStoreViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
-    val resources = LocalResources.current
     val activity = context as? FragmentActivity
+    val resources = LocalResources.current
     val settingsUiState by settingsViewModel.uiState.collectAsStateWithLifecycle()
     val credentialsUiState by credentialsViewModel.uiState.collectAsStateWithLifecycle()
     val applyResult = settingsUiState.applyResult
@@ -175,12 +174,7 @@ fun SettingsScreen(
         settingsViewModel.events.collect { event ->
             when (event) {
                 is SettingsEvent.LanguageChanged -> {
-                    val localeList = when (event.language) {
-                        "zh" -> LocaleListCompat.forLanguageTags("zh")
-                        "en" -> LocaleListCompat.forLanguageTags("en")
-                        else -> LocaleListCompat.getEmptyLocaleList()
-                    }
-                    AppCompatDelegate.setApplicationLocales(localeList)
+                    LanguageManager.setLanguage(event.language)
                 }
             }
         }
@@ -209,14 +203,15 @@ fun SettingsScreen(
             Pair(credentialsUiState.isDecryptionUnlocked, pendingBiometricEnable) 
         }.collectLatest { (isUnlocked, pendingEnable) ->
             if (BuildConfig.DEBUG) Log.d(TAG, "snapshotFlow: isDecryptionUnlocked=$isUnlocked, pendingBiometricEnable=$pendingEnable")
-            if (isUnlocked && pendingEnable) {
-                if (BuildConfig.DEBUG) Log.d(TAG, "snapshotFlow: calling enableBiometric, activity=$activity")
-                if (activity == null) {
-                    Log.e(TAG, "snapshotFlow: activity is NULL, cannot enable biometric")
-                }
+            if (isUnlocked && pendingEnable && activity != null) {
                 delay(100)
                 pendingBiometricEnable = false
-                activity?.let { credentialsViewModel.enableBiometric(it) }
+                credentialsViewModel.enableBiometric(
+                    activity = activity,
+                    title = context.getString(R.string.biometric_enable_title),
+                    subtitle = context.getString(R.string.biometric_enable_subtitle),
+                    negativeButtonText = context.getString(R.string.settings_biometric_cancel)
+                )
             }
         }
     }
@@ -272,7 +267,7 @@ fun SettingsScreen(
             isDecryptionUnlocked = credentialsUiState.isDecryptionUnlocked,
             isMasterPasswordSet = credentialsUiState.isMasterPasswordSet,
             onBiometricEnabledChange = { enabled ->
-                if (BuildConfig.DEBUG) Log.d(TAG, "Switch toggled: enabled=$enabled, isDecryptionUnlocked=${credentialsUiState.isDecryptionUnlocked}, activity=$activity")
+                if (BuildConfig.DEBUG) Log.d(TAG, "Switch toggled: enabled=$enabled, isDecryptionUnlocked=${credentialsUiState.isDecryptionUnlocked}")
                 if (enabled) {
                     if (!credentialsUiState.isDecryptionUnlocked) {
                         if (BuildConfig.DEBUG) Log.d(TAG, "Enabling biometric but locked, showing unlock dialog")
@@ -280,7 +275,14 @@ fun SettingsScreen(
                         credentialsViewModel.showUnlockDialog()
                     } else {
                         if (BuildConfig.DEBUG) Log.d(TAG, "Calling enableBiometric directly")
-                        activity?.let { credentialsViewModel.enableBiometric(it) }
+                        activity?.let {
+                            credentialsViewModel.enableBiometric(
+                                activity = it,
+                                title = context.getString(R.string.biometric_enable_title),
+                                subtitle = context.getString(R.string.biometric_enable_subtitle),
+                                negativeButtonText = context.getString(R.string.settings_biometric_cancel)
+                            )
+                        }
                     }
                 } else {
                     if (!credentialsUiState.isDecryptionUnlocked && credentialsUiState.isBiometricEnabled) {
@@ -380,7 +382,14 @@ fun SettingsScreen(
             },
             biometricEnabled = credentialsUiState.isBiometricEnabled,
             onUnlockWithBiometric = {
-                activity?.let { credentialsViewModel.unlockWithBiometric(it) }
+                activity?.let {
+                    credentialsViewModel.unlockWithBiometric(
+                        it,
+                        context.getString(R.string.biometric_unlock_title),
+                        context.getString(R.string.credentials_unlock_biometric_subtitle),
+                        context.getString(R.string.credentials_use_password)
+                    )
+                }
             },
             passwordHint = credentialsUiState.passwordHint,
             error = credentialsUiState.error,
@@ -1931,7 +1940,7 @@ private fun AppearanceSettingsCard(
     }
 
     val languageLabel = when (language) {
-        "zh" -> stringResource(R.string.settings_language_zh_cn)
+        "zh-Hans" -> stringResource(R.string.settings_language_zh_cn)
         "en" -> stringResource(R.string.settings_language_en)
         else -> stringResource(R.string.settings_language_system)
     }
@@ -2027,7 +2036,7 @@ private fun AppearanceSettingsCard(
                 ) {
                     val languageOptions = listOf(
                         "system" to stringResource(R.string.settings_language_system),
-                        "zh" to stringResource(R.string.settings_language_zh_cn),
+                        "zh-Hans" to stringResource(R.string.settings_language_zh_cn),
                         "en" to stringResource(R.string.settings_language_en)
                     )
 

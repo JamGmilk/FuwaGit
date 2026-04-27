@@ -59,4 +59,6 @@ interface CredentialRepository {
     suspend fun importCredentials(jsonData: String): AppResult<Unit>
 
     suspend fun disableBiometric(): AppResult<Unit>
+
+    suspend fun changeMasterPassword(oldPassword: String, newPassword: String, hint: String?): AppResult<Unit>
 }
