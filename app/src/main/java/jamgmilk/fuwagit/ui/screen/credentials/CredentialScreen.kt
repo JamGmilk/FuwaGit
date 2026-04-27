@@ -262,7 +262,6 @@ fun CredentialScreen(
         is CredentialDialogState.ImportCredentials -> {
             ImportCredentialsDialog(
                 viewModel = viewModel,
-                snackbarHostState = snackbarHostState,
                 onDismiss = { dialogState = CredentialDialogState.None }
             )
         }

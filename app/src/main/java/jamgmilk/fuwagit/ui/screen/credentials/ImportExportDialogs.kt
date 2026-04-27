@@ -135,13 +135,18 @@ fun ExportCredentialsDialog(
 @Composable
 fun ImportCredentialsDialog(
     viewModel: CredentialStoreViewModel,
-    snackbarHostState: SnackbarHostState,
     onDismiss: () -> Unit
 ) {
     val colors = MaterialTheme.colorScheme
-    val scope = rememberCoroutineScope()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var importData by remember { mutableStateOf("") }
-    var isLoading by remember { mutableStateOf(false) }
+    var hasStartedImport by remember { mutableStateOf(false) }
+
+    LaunchedEffect(uiState.isLoading) {
+        if (hasStartedImport && !uiState.isLoading) {
+            onDismiss()
+        }
+    }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -178,7 +183,7 @@ fun ImportCredentialsDialog(
                     modifier = Modifier.fillMaxWidth()
                 )
 
-                if (isLoading) {
+                if (uiState.isLoading) {
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
                         CircularProgressIndicator(modifier = Modifier.size(24.dp), color = colors.primary)
                         Spacer(Modifier.width(8.dp))
@@ -191,16 +196,15 @@ fun ImportCredentialsDialog(
             Button(
                 onClick = {
                     if (importData.isNotBlank()) {
-                        isLoading = true
+                        hasStartedImport = true
                         viewModel.importCredentials(importData)
-                        isLoading = false
                     }
                 },
-                enabled = importData.isNotBlank() && !isLoading,
+                enabled = importData.isNotBlank() && !uiState.isLoading,
                 colors = ButtonDefaults.buttonColors(containerColor = colors.primary),
                 shape = RoundedCornerShape(12.dp)
             ) {
-                if (isLoading) {
+                if (uiState.isLoading) {
                     CircularProgressIndicator(modifier = Modifier.size(18.dp), color = Color.White, strokeWidth = 2.dp)
                 } else {
                     Text(stringResource(R.string.action_import))
