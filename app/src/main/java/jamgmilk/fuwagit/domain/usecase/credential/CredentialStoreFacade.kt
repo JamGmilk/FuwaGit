@@ -45,7 +45,7 @@ class CredentialStoreFacade @Inject constructor(
     }
 
     fun isBiometricEnabled(): Boolean {
-        return biometricRepository.isBiometricEnabled()
+        return credentialRepository.isBiometricEnabled()
     }
 
     fun getMasterPasswordHint(): String? {

@@ -11,6 +11,7 @@ import jamgmilk.fuwagit.domain.model.credential.SshKey
 import jamgmilk.fuwagit.domain.usecase.credential.CredentialStoreFacade
 import jamgmilk.fuwagit.domain.usecase.git.TestSshConnectionUseCase
 import jamgmilk.fuwagit.ui.screen.permissions.SshTestResult
+import jamgmilk.fuwagit.ui.state.CredentialSessionManager
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -48,7 +49,8 @@ data class CredentialsStoreUiState(
 @HiltViewModel
     class CredentialStoreViewModel @Inject constructor(
     private val credentialFacade: CredentialStoreFacade,
-    private val testSshConnectionUseCase: TestSshConnectionUseCase
+    private val testSshConnectionUseCase: TestSshConnectionUseCase,
+    private val sessionManager: CredentialSessionManager
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(CredentialsStoreUiState())
@@ -58,17 +60,28 @@ data class CredentialsStoreUiState(
     val events: SharedFlow<CredentialStoreEvent> = _events.asSharedFlow()
 
     init {
+        observeGlobalSession()
         initialize()
     }
 
-    fun initialize() {
-        _uiState.update {
-            it.copy(
-                isMasterPasswordSet = credentialFacade.isMasterPasswordSet(),
-                isBiometricEnabled = credentialFacade.isBiometricEnabled(),
-                passwordHint = credentialFacade.getMasterPasswordHint()
-            )
+    private fun observeGlobalSession() {
+        viewModelScope.launch {
+            sessionManager.sessionState.collect { session ->
+                _uiState.update {
+                    it.copy(
+                        isDecryptionUnlocked = session.isUnlocked,
+                        isMasterPasswordSet = session.isMasterPasswordSet,
+                        isBiometricEnabled = session.isBiometricEnabled,
+                        passwordHint = session.passwordHint,
+                        showUnlockDialog = session.showUnlockDialog
+                    )
+                }
+            }
         }
+    }
+
+    fun initialize() {
+        sessionManager.refreshSessionState()
         loadCredentials()
     }
 
@@ -76,12 +89,6 @@ data class CredentialsStoreUiState(
         executeWithLoading {
             credentialFacade.unlockWithPassword(password)
                 .onSuccess {
-                    _uiState.update {
-                        it.copy(
-                            isDecryptionUnlocked = true,
-                            showUnlockDialog = false
-                        )
-                    }
                     viewModelScope.launch { _events.emit(CredentialStoreEvent.UnlockSuccess) }
                     loadCredentials()
                 }
@@ -90,10 +97,6 @@ data class CredentialsStoreUiState(
 
     private fun loadCredentials() {
         viewModelScope.launch {
-            _uiState.update {
-                it.copy(isDecryptionUnlocked = credentialFacade.isUnlocked())
-            }
-
             credentialFacade.getHttpsCredentials()
                 .onSuccess { credentials ->
                     _uiState.update { it.copy(httpsCredentials = credentials) }
@@ -147,14 +150,29 @@ data class CredentialsStoreUiState(
     }
 
     fun exportCredentials() {
-        executeWithLoading {
-            credentialFacade.exportCredentials()
+        viewModelScope.launch {
+            if (!credentialFacade.isUnlocked()) {
+                _uiState.update {
+                    it.copy(isDecryptionUnlocked = false)
+                }
+                _events.emit(CredentialStoreEvent.Error("Vault is locked. Please unlock first."))
+                return@launch
+            }
+            _uiState.update { it.copy(isLoading = true, error = null) }
+            val result = credentialFacade.exportCredentials()
+            result
                 .onSuccess { data ->
                     _uiState.update {
                         it.copy(exportedData = data)
                     }
-                    _events.emit(CredentialStoreEvent.CredentialExported)
                 }
+                .onError { e ->
+                    _uiState.update { it.copy(error = e.message ?: "Unknown error") }
+                }
+            _uiState.update { it.copy(isLoading = false) }
+            result.onSuccess {
+                _events.emit(CredentialStoreEvent.CredentialExported)
+            }
         }
     }
 
@@ -177,7 +195,7 @@ data class CredentialsStoreUiState(
         viewModelScope.launch {
             credentialFacade.enableBiometric(activity, title, subtitle, negativeButtonText)
                 .onSuccess {
-                    _uiState.update { it.copy(isBiometricEnabled = true) }
+                    sessionManager.reloadConfig()
                     _events.emit(CredentialStoreEvent.BiometricEnabled)
                 }
                 .onError { e ->
@@ -196,13 +214,6 @@ data class CredentialsStoreUiState(
         viewModelScope.launch {
             credentialFacade.unlockWithBiometric(activity, title, subtitle, negativeButtonText)
                 .onSuccess {
-                    _uiState.update {
-                        it.copy(
-                            isDecryptionUnlocked = true,
-                            isBiometricEnabled = true,
-                            showUnlockDialog = false
-                        )
-                    }
                     _events.emit(CredentialStoreEvent.UnlockSuccess)
                     loadCredentials()
                 }
@@ -216,23 +227,20 @@ data class CredentialsStoreUiState(
     fun disableBiometric() {
         viewModelScope.launch {
             credentialFacade.disableBiometric()
-            _uiState.update { it.copy(isBiometricEnabled = false) }
+            sessionManager.reloadConfig()
         }
     }
 
     fun lock() {
         credentialFacade.lock()
-        _uiState.update {
-            it.copy(isDecryptionUnlocked = false)
-        }
     }
 
     fun showUnlockDialog() {
-        _uiState.update { it.copy(showUnlockDialog = true) }
+        sessionManager.showUnlockDialog()
     }
 
     fun dismissUnlockDialog() {
-        _uiState.update { it.copy(showUnlockDialog = false) }
+        sessionManager.dismissUnlockDialog()
     }
 
     fun clearError() {

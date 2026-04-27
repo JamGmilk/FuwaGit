@@ -8,7 +8,9 @@ import jamgmilk.fuwagit.data.local.credential.ExportData
 import jamgmilk.fuwagit.data.local.credential.HttpsCredential
 import jamgmilk.fuwagit.data.local.credential.SshKey
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import java.io.File
@@ -28,10 +30,14 @@ private class SecureSecretKey(private val keyBytes: ByteArray, private val algor
     }
 }
 
+sealed class VaultStateEvent {
+    data object Unlocked : VaultStateEvent()
+    data object Locked : VaultStateEvent()
+}
+
 @Singleton
 class SecureCredentialStore @Inject constructor(
-    @ApplicationContext private val context: Context,
-    private val appPreferencesStore: jamgmilk.fuwagit.data.local.prefs.AppPreferencesStore
+    @ApplicationContext private val context: Context
 ) {
 
     companion object {
@@ -57,22 +63,8 @@ class SecureCredentialStore @Inject constructor(
     private val sessionLock = Any()
     private val fileLock = Any()
 
-    private suspend fun getSessionTimeoutMillis(): Long {
-        val timeoutSeconds = appPreferencesStore.preferencesFlow
-            .first { true }
-            .autoLockTimeout
-            .toLongOrNull() ?: 600L
-
-        val validTimeout = when {
-            timeoutSeconds < 0 -> 0L
-            timeoutSeconds == 0L -> 0L
-            timeoutSeconds < 30 -> 30L
-            timeoutSeconds > 86400 -> 86400L
-            else -> timeoutSeconds
-        }
-
-        return if (validTimeout == 0L) 0L else validTimeout * 1000L
-    }
+    private val _vaultStateEvents = MutableSharedFlow<VaultStateEvent>(extraBufferCapacity = 1)
+    val vaultStateEvents: SharedFlow<VaultStateEvent> = _vaultStateEvents.asSharedFlow()
 
     fun loadCredentialData(): CredentialData {
         synchronized(fileLock) {
@@ -121,6 +113,7 @@ class SecureCredentialStore @Inject constructor(
     }
 
     fun cacheMasterKey(key: SecretKey) {
+        val wasLocked = cachedMasterKey == null
         synchronized(sessionLock) {
             secureClearCachedKey()
             val secureKey = SecureSecretKey(key.encoded, key.algorithm)
@@ -128,15 +121,22 @@ class SecureCredentialStore @Inject constructor(
             lastUnlockTime = System.currentTimeMillis()
             isBiometricSession = false
         }
+        if (wasLocked) {
+            _vaultStateEvents.tryEmit(VaultStateEvent.Unlocked)
+        }
     }
 
     fun cacheMasterKeyFromBiometric(key: SecretKey) {
+        val wasLocked = cachedMasterKey == null
         synchronized(sessionLock) {
             secureClearCachedKey()
             val secureKey = SecureSecretKey(key.encoded, key.algorithm)
             cachedMasterKey = secureKey
             lastUnlockTime = System.currentTimeMillis()
             isBiometricSession = true
+        }
+        if (wasLocked) {
+            _vaultStateEvents.tryEmit(VaultStateEvent.Unlocked)
         }
     }
 
@@ -145,10 +145,12 @@ class SecureCredentialStore @Inject constructor(
         cachedMasterKey = null
     }
 
-    suspend fun getCachedMasterKey(): SecretKey? {
-        val sessionTimeout = getSessionTimeoutMillis()
+    fun getCachedMasterKey(): SecretKey? = getCachedMasterKey(0L)
 
-        return synchronized(sessionLock) {
+    fun getCachedMasterKey(timeoutMillis: Long): SecretKey? {
+        var didTimeoutExpire = false
+
+        val key = synchronized(sessionLock) {
             val key = cachedMasterKey
 
             if (key == null) {
@@ -157,27 +159,38 @@ class SecureCredentialStore @Inject constructor(
                 return@synchronized null
             }
 
-            if (sessionTimeout == 0L) {
+            if (timeoutMillis == 0L) {
                 return@synchronized key
             }
 
             val elapsed = System.currentTimeMillis() - lastUnlockTime
-            if (elapsed < sessionTimeout) {
+            if (elapsed < timeoutMillis) {
                 return@synchronized key
             }
 
+            didTimeoutExpire = true
             secureClearCachedKey()
             lastUnlockTime = 0
             isBiometricSession = false
             null
         }
+
+        if (didTimeoutExpire) {
+            _vaultStateEvents.tryEmit(VaultStateEvent.Locked)
+        }
+
+        return key
     }
 
     fun clearCachedMasterKey() {
+        val wasUnlocked = cachedMasterKey != null
         synchronized(sessionLock) {
             secureClearCachedKey()
             lastUnlockTime = 0
             isBiometricSession = false
+        }
+        if (wasUnlocked) {
+            _vaultStateEvents.tryEmit(VaultStateEvent.Locked)
         }
     }
 

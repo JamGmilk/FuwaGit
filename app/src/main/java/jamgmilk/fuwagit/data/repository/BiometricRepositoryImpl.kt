@@ -63,23 +63,11 @@ class BiometricRepositoryImpl @Inject constructor(
         }
     }
 
-    override fun isBiometricEnabled(): Boolean {
-        return masterKeyManager.isBiometricEnabled()
-    }
-
     override suspend fun disableBiometric(): AppResult<Unit> {
         return AppResult.catching {
             biometricKeyManager.deleteBiometricKey()
             masterKeyManager.clearEncryptedMasterKey()
             masterKeyManager.setBiometricEnabledInternal(false)
         }
-    }
-
-    override fun isMasterPasswordSet(): Boolean {
-        return masterKeyManager.isMasterPasswordSet()
-    }
-
-    override fun getMasterPasswordHint(): String? {
-        return masterKeyManager.getPasswordHint()
     }
 }

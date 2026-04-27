@@ -15,7 +15,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import jamgmilk.fuwagit.R
 import jamgmilk.fuwagit.core.util.calculateFingerprint
@@ -120,33 +119,6 @@ fun CredentialScreen(
                 onInfo = { dialogState = CredentialDialogState.SshInfo(it) }
             )
         }
-    }
-
-    if (uiState.showUnlockDialog) {
-        val biometricUnlockTitle = stringResource(R.string.biometric_unlock_title)
-        val biometricUnlockSubtitle = stringResource(R.string.credentials_unlock_biometric_subtitle)
-        val biometricUsePasswordText = stringResource(R.string.credentials_use_password)
-        UnlockDialog(
-            onDismiss = { viewModel.dismissUnlockDialog() },
-            onUnlock = { password ->
-                viewModel.unlockWithPassword(password)
-            },
-            biometricEnabled = uiState.isBiometricEnabled,
-            onUnlockWithBiometric = {
-                val activity = context as? FragmentActivity
-                activity?.let {
-                    viewModel.unlockWithBiometric(
-                        it,
-                        biometricUnlockTitle,
-                        biometricUnlockSubtitle,
-                        biometricUsePasswordText
-                    )
-                }
-            },
-            passwordHint = uiState.passwordHint,
-            error = uiState.error,
-            isLoading = uiState.isLoading
-        )
     }
 
     when (val state = dialogState) {

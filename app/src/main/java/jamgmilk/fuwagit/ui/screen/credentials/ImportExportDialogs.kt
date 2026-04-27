@@ -64,15 +64,24 @@ fun ExportCredentialsDialog(
     val scope = rememberCoroutineScope()
     val clipboardManager = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val exportedData = uiState.exportedData
     var isLoading by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
+        if (!uiState.isDecryptionUnlocked) {
+            onDismiss()
+            return@LaunchedEffect
+        }
         isLoading = true
         viewModel.exportCredentials()
         isLoading = false
     }
 
-    val exportedData = uiState.exportedData
+    LaunchedEffect(uiState.isDecryptionUnlocked, uiState.error) {
+        if (!uiState.isDecryptionUnlocked && exportedData == null && !isLoading) {
+            onDismiss()
+        }
+    }
 
     AlertDialog(
         onDismissRequest = onDismiss,
