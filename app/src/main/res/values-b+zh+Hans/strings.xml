@@ -74,6 +74,11 @@
     <string name="settings_biometric_tap_to_unlock">请先点击解锁凭据</string>
     <string name="settings_biometric_enabled">已启用</string>
     <string name="settings_biometric_use_fingerprint">使用指纹解锁</string>
+    <string name="settings_biometric_cancel">取消</string>
+    <string name="biometric_enable_title">启用生物识别解锁</string>
+    <string name="biometric_enable_subtitle">使用指纹快速访问凭据</string>
+    <string name="biometric_unlock_title">解锁凭据</string>
+    <string name="biometric_not_available">生物识别验证不可用</string>
     <string name="settings_auto_lock_timeout">自动锁定超时</string>
     <string name="settings_auto_lock_subtitle_format">会话将在%1$s后过期</string>
     <string name="settings_auto_lock_never">从不</string>
@@ -138,6 +143,7 @@
     <string name="settings_clear_commit_editmsg_confirm_title">清除 COMMIT_EDITMSG</string>
     <string name="settings_clear_commit_editmsg_empty">当前仓库中没有 COMMIT_EDITMSG 文件</string>
     <string name="settings_clear_commit_editmsg_deleted">COMMIT_EDITMSG 文件已删除</string>
+    <string name="settings_commit_editmsg_deleted">COMMIT_EDITMSG 文件已删除</string>
     <string name="settings_no_commit_editmsg">未找到 COMMIT_EDITMSG 文件</string>
     <string name="settings_no_repository_selected">未选择仓库</string>
     <string name="settings_export_logs">导出日志</string>
@@ -268,6 +274,9 @@
     <string name="credentials_unlocking">正在解锁…</string>
     <string name="credentials_unlock">解锁</string>
     <string name="credentials_unlock_with_biometric">使用生物识别解锁</string>
+    <string name="credentials_unlock_biometric_subtitle">使用指纹快速解锁</string>
+    <string name="credentials_use_password">使用密码</string>
+    <string name="credentials_cancel">取消</string>
     <string name="credentials_changing">正在更改…</string>
     <string name="credentials_change_password">更改密码</string>
     <string name="credentials_master_password_set_successfully">主密码已设置</string>
@@ -344,6 +353,7 @@
     <string name="credentials_import_paste_placeholder">在此粘贴JSON数据…</string>
     <string name="credentials_current_hint_format">当前提示：%1$s</string>
     <string name="credentials_copied_to_clipboard">已复制到剪贴板！</string>
+    <string name="credentials_export_copied">已复制到剪贴板！</string>
     <string name="credentials_security_warning">安全警告</string>
     <string name="credentials_importing">正在导入…</string>
 
@@ -717,5 +727,18 @@
     <string name="onboarding_local_repo_desc">打开设备上的现有仓库</string>
     <string name="onboarding_add_repo">添加</string>
     <string name="onboarding_complete_title">要开始了哟~</string>
+
+    <!-- ========== Validation Errors ========== -->
+    <string name="password_mismatch">密码不匹配</string>
+    <string name="password_too_short">密码必须至少 6 个字符</string>
+    <string name="biometric_error">生物识别错误</string>
+    <string name="biometric_setup_failed">生物识别设置失败</string>
+    <string name="credentials_not_found">未找到凭据</string>
+    <string name="branch_not_merged">分支包含未合并的提交</string>
+    <string name="branch_not_merged_suggestion">使用强制删除来移除它</string>
+    <string name="cannot_delete_current_branch">无法删除当前检出的分支</string>
+    <string name="cannot_delete_current_branch_suggestion">请先切换到另一个分支</string>
+    <string name="branch_up_to_date">当前分支已与目标分支同步。</string>
+    <string name="branch_unmerged_commits">分支包含未合并的提交。这是合并操作的预期行为。</string>
 
 </resources>

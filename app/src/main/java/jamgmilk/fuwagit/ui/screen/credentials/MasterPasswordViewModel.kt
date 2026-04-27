@@ -74,7 +74,7 @@ class MasterPasswordViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
 
-            credentialFacade.setupMasterPassword(password, confirmPassword, hint)
+            credentialFacade.setupMasterPassword(password, hint)
                 .onSuccess {
                     _uiState.update {
                         it.copy(

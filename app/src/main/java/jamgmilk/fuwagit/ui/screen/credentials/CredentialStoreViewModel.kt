@@ -37,21 +37,16 @@ data class CredentialsStoreUiState(
     val isBiometricEnabled: Boolean = false,
     val isDecryptionUnlocked: Boolean = false,
     val showUnlockDialog: Boolean = false,
-    val showChangePasswordDialog: Boolean = false,
-    val changePasswordError: String? = null,
     val passwordHint: String? = null,
     val httpsCredentials: List<HttpsCredential> = emptyList(),
     val sshKeys: List<SshKey> = emptyList(),
     val isLoading: Boolean = false,
     val error: String? = null,
-    val exportedData: String? = null,
-    val showExportDialog: Boolean = false,
-    val showImportDialog: Boolean = false,
-    val importSuccess: Boolean = false
+    val exportedData: String? = null
 )
 
 @HiltViewModel
-class CredentialStoreViewModel @Inject constructor(
+    class CredentialStoreViewModel @Inject constructor(
     private val credentialFacade: CredentialStoreFacade,
     private val testSshConnectionUseCase: TestSshConnectionUseCase
 ) : ViewModel() {
@@ -75,21 +70,6 @@ class CredentialStoreViewModel @Inject constructor(
             )
         }
         loadCredentials()
-    }
-
-    fun setupMasterPassword(password: String, confirmPassword: String, hint: String?) {
-        executeWithLoading {
-            credentialFacade.setupMasterPassword(password, confirmPassword, hint)
-                .onSuccess {
-                    _uiState.update {
-                        it.copy(
-                            isMasterPasswordSet = true,
-                            showUnlockDialog = false
-                        )
-                    }
-                    loadCredentials()
-                }
-        }
     }
 
     fun unlockWithPassword(password: String) {
@@ -171,10 +151,7 @@ class CredentialStoreViewModel @Inject constructor(
             credentialFacade.exportCredentials()
                 .onSuccess { data ->
                     _uiState.update {
-                        it.copy(
-                            exportedData = data,
-                            showExportDialog = true
-                        )
+                        it.copy(exportedData = data)
                     }
                     _events.emit(CredentialStoreEvent.CredentialExported)
                 }
@@ -185,12 +162,6 @@ class CredentialStoreViewModel @Inject constructor(
         executeWithLoading {
             credentialFacade.importCredentials(jsonData)
                 .onSuccess {
-                    _uiState.update {
-                        it.copy(
-                            showImportDialog = false,
-                            importSuccess = true
-                        )
-                    }
                     _events.emit(CredentialStoreEvent.CredentialImported)
                     loadCredentials()
                 }
@@ -262,66 +233,6 @@ class CredentialStoreViewModel @Inject constructor(
 
     fun dismissUnlockDialog() {
         _uiState.update { it.copy(showUnlockDialog = false) }
-    }
-
-    fun showExportDialog() {
-        _uiState.update { it.copy(showExportDialog = true) }
-    }
-
-    fun dismissExportDialog() {
-        _uiState.update { it.copy(showExportDialog = false, exportedData = null) }
-    }
-
-    fun showImportDialog() {
-        _uiState.update { it.copy(showImportDialog = true) }
-    }
-
-    fun dismissImportDialog() {
-        _uiState.update { it.copy(showImportDialog = false) }
-    }
-
-    fun showChangePasswordDialog() {
-        _uiState.update { it.copy(showChangePasswordDialog = true, changePasswordError = null) }
-    }
-
-    fun dismissChangePasswordDialog() {
-        _uiState.update { it.copy(showChangePasswordDialog = false, changePasswordError = null) }
-    }
-
-    fun changeMasterPassword(oldPassword: String, newPassword: String, confirmPassword: String, hint: String?) {
-        if (newPassword != confirmPassword) {
-            _uiState.update { it.copy(changePasswordError = "Passwords do not match") }
-            return
-        }
-        if (newPassword.length < 6) {
-            _uiState.update { it.copy(changePasswordError = "Password must be at least 6 characters") }
-            return
-        }
-
-        viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, changePasswordError = null) }
-
-            credentialFacade.changeMasterPassword(oldPassword, newPassword, hint)
-                .onSuccess {
-                    _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            showChangePasswordDialog = false,
-                            changePasswordError = null,
-                            passwordHint = hint,
-                            isBiometricEnabled = false
-                        )
-                    }
-                }
-                .onError {
-                    _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            changePasswordError = "Incorrect old password"
-                        )
-                    }
-                }
-        }
     }
 
     fun clearError() {

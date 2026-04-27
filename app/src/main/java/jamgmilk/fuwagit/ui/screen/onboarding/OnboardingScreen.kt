@@ -6,9 +6,6 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Environment
 import android.provider.Settings
-import android.graphics.Bitmap
-import android.graphics.Canvas
-import android.graphics.drawable.Drawable
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -32,7 +29,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AccountTree
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.CloudDownload
 import androidx.compose.material.icons.filled.CreateNewFolder
@@ -67,15 +63,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.res.painterResource
-import androidx.fragment.app.FragmentActivity
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.graphics.painter.BitmapPainter
-import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -84,6 +76,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
+import androidx.fragment.app.FragmentActivity
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -92,7 +85,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import jamgmilk.fuwagit.R
 import jamgmilk.fuwagit.ui.navigation.AddRepoTab
 import jamgmilk.fuwagit.ui.theme.AppShapes
-import androidx.core.graphics.createBitmap
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -106,6 +98,9 @@ fun OnboardingScreen(
     val pagerState = rememberPagerState(pageCount = { steps.size })
     val context = LocalContext.current
     val activity = context as? FragmentActivity
+    val biometricTitle = stringResource(R.string.biometric_enable_title)
+    val biometricSubtitle = stringResource(R.string.biometric_enable_subtitle)
+    val biometricCancelText = stringResource(R.string.settings_biometric_cancel)
     MaterialTheme.colorScheme
     var isPermissionGranted by remember { mutableStateOf(false) }
 
@@ -172,7 +167,16 @@ fun OnboardingScreen(
             isGitConfigValid = uiState.userName.isNotBlank() && uiState.userEmail.isNotBlank() && uiState.defaultBranch.isNotBlank(),
             onNext = viewModel::nextStep,
             onSkipPassword = viewModel::skipPassword,
-            onSetupPassword = { activity?.let { viewModel.setupPasswordAndContinue(it) } },
+            onSetupPassword = {
+                activity?.let {
+                    viewModel.setupPasswordAndContinue(
+                        it,
+                        biometricTitle,
+                        biometricSubtitle,
+                        biometricCancelText
+                    )
+                }
+            },
             onSaveConfig = viewModel::saveConfigAndContinue,
             onAddRepository = onAddRepository,
             onComplete = {
@@ -198,7 +202,7 @@ private fun StepIndicator(
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        OnboardingStep.entries.forEachIndexed { index, step ->
+        OnboardingStep.entries.forEachIndexed { index, _ ->
             val isActive = index <= currentStep.ordinal
             val isCurrent = index == currentStep.ordinal
 

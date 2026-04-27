@@ -727,4 +727,17 @@
     <string name="onboarding_add_repo">Add</string>
     <string name="onboarding_complete_title">You\'re All Set!</string>
 
+    <!-- ========== Validation Errors ========== -->
+    <string name="password_mismatch">Passwords do not match</string>
+    <string name="password_too_short">Password must be at least 6 characters</string>
+    <string name="biometric_error">Biometric error</string>
+    <string name="biometric_setup_failed">Biometric setup failed</string>
+    <string name="credentials_not_found">No credentials found</string>
+    <string name="branch_not_merged">The branch contains commits that have not been merged</string>
+    <string name="branch_not_merged_suggestion">Use force delete to remove it anyway</string>
+    <string name="cannot_delete_current_branch">Cannot delete the currently checked out branch</string>
+    <string name="cannot_delete_current_branch_suggestion">Switch to another branch first</string>
+    <string name="branch_up_to_date">The current branch is already up to date with the target branch.</string>
+    <string name="branch_unmerged_commits">The branch contains unmerged commits. This is expected for a merge operation.</string>
+
 </resources>

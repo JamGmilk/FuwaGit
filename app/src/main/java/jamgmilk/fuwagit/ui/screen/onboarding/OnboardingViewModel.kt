@@ -89,15 +89,20 @@ class OnboardingViewModel @Inject constructor(
         _uiState.update { it.copy(enableBiometric = enable) }
     }
 
-    fun enableBiometricIfNeeded(activity: FragmentActivity) {
+    fun enableBiometricIfNeeded(
+        activity: FragmentActivity,
+        title: String,
+        subtitle: String,
+        negativeButtonText: String
+    ) {
         if (!_uiState.value.enableBiometric) return
 
         viewModelScope.launch {
             credentialFacade.enableBiometric(
                 activity = activity,
-                title = "Enable Biometric Unlock",
-                subtitle = "Use your fingerprint to quickly access credentials",
-                negativeButtonText = "Cancel"
+                title = title,
+                subtitle = subtitle,
+                negativeButtonText = negativeButtonText
             ).onSuccess {
                 _uiState.update { it.copy(isBiometricSetupComplete = true) }
             }.onError { e ->
@@ -118,7 +123,12 @@ class OnboardingViewModel @Inject constructor(
         _uiState.update { it.copy(defaultBranch = branch) }
     }
 
-    fun setupPasswordAndContinue(activity: FragmentActivity) {
+    fun setupPasswordAndContinue(
+        activity: FragmentActivity,
+        biometricTitle: String,
+        biometricSubtitle: String,
+        biometricNegativeButtonText: String
+    ) {
         val state = _uiState.value
         if (state.password.length < 6) {
             _uiState.update { it.copy(passwordError = "Password must be at least 6 characters") }
@@ -131,12 +141,12 @@ class OnboardingViewModel @Inject constructor(
 
         _uiState.update { it.copy(isSettingPassword = true, passwordError = null) }
         viewModelScope.launch {
-            credentialFacade.setupMasterPassword(state.password, state.confirmPassword, state.passwordHint.ifBlank { null })
+            credentialFacade.setupMasterPassword(state.password, state.passwordHint.ifBlank { null })
                 .onSuccess {
                     clearSensitiveData()
                     _uiState.update { it.copy(isSettingPassword = false) }
                     if (state.enableBiometric) {
-                        enableBiometricIfNeeded(activity)
+                        enableBiometricIfNeeded(activity, biometricTitle, biometricSubtitle, biometricNegativeButtonText)
                     } else {
                         nextStep()
                     }
@@ -145,19 +155,6 @@ class OnboardingViewModel @Inject constructor(
                     _uiState.update { it.copy(isSettingPassword = false, passwordError = e.message) }
                 }
         }
-    }
-
-    fun onBiometricSetupComplete() {
-        _uiState.update { it.copy(isBiometricSetupComplete = true) }
-        nextStep()
-    }
-
-    fun onBiometricSetupError(error: String) {
-        _uiState.update { it.copy(biometricSetupError = error) }
-    }
-
-    fun completePasswordSetup() {
-        nextStep()
     }
 
     private fun clearSensitiveData() {

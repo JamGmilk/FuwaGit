@@ -173,12 +173,6 @@ class CredentialRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun disableBiometric(): AppResult<Unit> {
-        return AppResult.catching {
-            masterKeyManager.disableBiometric()
-        }
-    }
-
     override suspend fun changeMasterPassword(oldPassword: String, newPassword: String, hint: String?): AppResult<Unit> {
         return AppResult.catching {
             masterKeyManager.changeMasterPassword(oldPassword, newPassword).getOrThrow()

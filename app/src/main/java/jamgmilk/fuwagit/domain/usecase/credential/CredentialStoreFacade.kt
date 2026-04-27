@@ -4,11 +4,13 @@ import androidx.fragment.app.FragmentActivity
 import jamgmilk.fuwagit.core.result.AppResult
 import jamgmilk.fuwagit.domain.model.credential.HttpsCredential
 import jamgmilk.fuwagit.domain.model.credential.SshKey
+import jamgmilk.fuwagit.domain.repository.BiometricRepository
 import jamgmilk.fuwagit.domain.repository.CredentialRepository
 import javax.inject.Inject
 
 class CredentialStoreFacade @Inject constructor(
     private val credentialRepository: CredentialRepository,
+    private val biometricRepository: BiometricRepository,
     private val enableBiometricUseCase: EnableBiometricUseCase,
     private val unlockWithBiometricUseCase: UnlockWithBiometricUseCase
 ) {
@@ -30,7 +32,7 @@ class CredentialStoreFacade @Inject constructor(
         return unlockWithBiometricUseCase(activity, title, subtitle, negativeButtonText)
     }
 
-    suspend fun setupMasterPassword(password: String, confirmPassword: String, hint: String?): AppResult<Unit> {
+    suspend fun setupMasterPassword(password: String, hint: String?): AppResult<Unit> {
         return credentialRepository.setupMasterPassword(password, hint)
     }
 
@@ -43,7 +45,7 @@ class CredentialStoreFacade @Inject constructor(
     }
 
     fun isBiometricEnabled(): Boolean {
-        return credentialRepository.isBiometricEnabled()
+        return biometricRepository.isBiometricEnabled()
     }
 
     fun getMasterPasswordHint(): String? {
@@ -51,7 +53,7 @@ class CredentialStoreFacade @Inject constructor(
     }
 
     suspend fun disableBiometric(): AppResult<Unit> {
-        return credentialRepository.disableBiometric()
+        return biometricRepository.disableBiometric()
     }
 
     suspend fun unlockWithPassword(password: String): AppResult<Unit> {
