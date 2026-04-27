@@ -192,7 +192,6 @@
     <string name="status_push_failed">Push failed: %1$s</string>
     <string name="status_pull_failed">Pull failed: %1$s</string>
     <string name="status_fetch_failed">Fetch failed: %1$s</string>
-    <string name="status_credential_unlock_required">Please unlock credential vault in Settings first</string>
     <string name="status_action_push">Push</string>
     <string name="status_action_fetch">Fetch</string>
     <string name="status_action_stage_all">Stage All</string>

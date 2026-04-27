@@ -263,14 +263,33 @@ fun AppNavHost(navController: NavHostController, startDestination: String = NavR
             }
 
             composable(NavRoutes.CREDENTIALS) {
-                val activity = LocalContext.current.requireActivity()
-                val credentialsViewModel: CredentialStoreViewModel = hiltViewModel(
-                    viewModelStoreOwner = activity
-                )
+                val credentialUiState by credentialStoreViewModel.uiState.collectAsStateWithLifecycle()
+
                 CredentialScreen(
-                    viewModel = credentialsViewModel,
+                    viewModel = credentialStoreViewModel,
                     onBack = { navController.popBackStack() }
                 )
+
+                if (credentialUiState.showUnlockDialog) {
+                    UnlockDialog(
+                        onDismiss = { credentialStoreViewModel.dismissUnlockDialog() },
+                        onUnlock = { password ->
+                            credentialStoreViewModel.unlockWithPassword(password)
+                        },
+                        biometricEnabled = credentialUiState.isBiometricEnabled,
+                        onUnlockWithBiometric = {
+                            credentialStoreViewModel.unlockWithBiometric(
+                                activity,
+                                context.getString(R.string.biometric_unlock_title),
+                                context.getString(R.string.credentials_unlock_biometric_subtitle),
+                                context.getString(R.string.credentials_use_password)
+                            )
+                        },
+                        passwordHint = credentialUiState.passwordHint,
+                        error = credentialUiState.error,
+                        isLoading = credentialUiState.isLoading
+                    )
+                }
             }
 
             composable(NavRoutes.MASTER_PASSWORD) {
@@ -398,6 +417,7 @@ fun MainScreen(
                 when (MainPage.entries.getOrNull(page)) {
                     MainPage.Status -> StatusScreen(
                         statusViewModel = statusViewModel,
+                        credentialStoreViewModel = credentialStoreViewModel,
                         modifier = Modifier.fillMaxSize(),
                         onViewDiff = { filePath, isStaged ->
                             val diffType = if (isStaged) DiffType.STAGED else DiffType.WORKING_TREE

@@ -200,7 +200,6 @@
     <string name="status_push_failed">Push 失败：%1$s</string>
     <string name="status_pull_failed">Pull 失败：%1$s</string>
     <string name="status_fetch_failed">Fetch 失败：%1$s</string>
-    <string name="status_credential_unlock_required">请先在设置中解锁凭据保险库</string>
 
     <!-- ========== Branches Screen ========== -->
     <string name="branches_refresh_description">刷新</string>
