@@ -2,8 +2,10 @@ package jamgmilk.fuwagit.util
 
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageInfo
 import android.os.Build
 import android.util.Log
+import androidx.core.content.pm.PackageInfoCompat
 import java.io.File
 import java.io.FileWriter
 import java.io.PrintWriter
@@ -40,7 +42,7 @@ object CrashLogManager {
 
         appVersion = try {
             val packageInfo = context.packageManager.getPackageInfo(context.packageName, 0)
-            val versionCode = packageInfo.versionCode
+            val versionCode = PackageInfoCompat.getLongVersionCode(packageInfo)
             val versionName = packageInfo.versionName ?: "Unknown"
             "$versionName ($versionCode)"
         } catch (_: Exception) {

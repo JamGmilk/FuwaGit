@@ -74,6 +74,7 @@
     <string name="settings_biometric_tap_to_unlock">Tap to unlock credentials first</string>
     <string name="settings_biometric_enabled">Enabled</string>
     <string name="settings_biometric_use_fingerprint">Use fingerprint to unlock</string>
+    <string name="settings_biometric_cancel">Cancel</string>
     <string name="settings_auto_lock_timeout">Auto-Lock Timeout</string>
     <string name="settings_auto_lock_subtitle_format">Session expires after %1$s</string>
     <string name="settings_auto_lock_never">Never</string>
@@ -260,6 +261,7 @@
     <string name="credentials_passwords_do_not_match">Passwords do not match</string>
     <string name="credentials_at_least_6_characters">At least 6 characters</string>
     <string name="credentials_incorrect_password">Incorrect password</string>
+    <string name="credentials_cancel">Cancel</string>
     <string name="credentials_set_password">Set Password</string>
     <string name="credentials_setting">Setting…</string>
     <string name="credentials_changing">Changing…</string>
@@ -270,6 +272,12 @@
     <string name="credentials_unlocking">Unlocking…</string>
     <string name="credentials_unlock">Unlock</string>
     <string name="credentials_unlock_with_biometric">Unlock with biometric</string>
+    <string name="credentials_unlock_biometric_subtitle">Use your fingerprint to access credentials</string>
+    <string name="credentials_use_password">Use Password</string>
+    <string name="biometric_enable_title">Enable Biometric Unlock</string>
+    <string name="biometric_enable_subtitle">Use your fingerprint to quickly access credentials</string>
+    <string name="biometric_unlock_title">Unlock Credentials</string>
+    <string name="biometric_not_available">Biometric authentication not available</string>
     <string name="credentials_add_https_credential">Add HTTPS Credential</string>
     <string name="credentials_host_label">Host</string>
     <string name="credentials_host_placeholder">github.com</string>
