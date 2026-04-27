@@ -18,6 +18,7 @@ compiler.xml
 vcs.xml
 markdown.xml
 .name
+planningMode.xml
 
 # --- Project Structure ---
 libraries/
