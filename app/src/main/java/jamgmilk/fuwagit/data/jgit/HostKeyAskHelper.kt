@@ -4,10 +4,10 @@ import android.util.Base64
 import android.util.Log
 import com.jcraft.jsch.HostKey
 import com.jcraft.jsch.HostKeyRepository
+import jamgmilk.fuwagit.core.util.SshFingerprintUtils
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
-import java.security.MessageDigest
 import java.util.Collections
 import java.util.WeakHashMap
 import java.util.concurrent.CompletableFuture
@@ -55,32 +55,26 @@ object HostKeyAskHelper {
     fun inferKeyTypeInfo(key: ByteArray): KeyTypeInfo {
         if (key.size < 8) return KeyTypeInfo("ssh-rsa", 0)
 
-        val typeStr = extractString(key, 0) ?: return KeyTypeInfo("ssh-rsa", 0)
+        val typeStr = extractString(key) ?: return KeyTypeInfo("ssh-rsa", 0)
         val typeCode = keyStringToType(typeStr)
         val canonicalStr = KEY_TYPE_TO_STRING[typeCode] ?: "ssh-rsa"
 
         return KeyTypeInfo(canonicalStr, typeCode)
     }
 
-    private fun extractString(data: ByteArray, offset: Int): String? {
-        if (offset + 4 > data.size) return null
-        val length = ((data[offset].toInt() and 0xFF) shl 24) or
-                ((data[offset + 1].toInt() and 0xFF) shl 16) or
-                ((data[offset + 2].toInt() and 0xFF) shl 8) or
-                (data[offset + 3].toInt() and 0xFF)
-        if (offset + 4 + length > data.size) return null
-        return String(data, offset + 4, length, Charsets.UTF_8)
+    private fun extractString(data: ByteArray): String? {
+        if (4 > data.size) return null
+        val length = ((data[0].toInt() and 0xFF) shl 24) or
+                ((data[1].toInt() and 0xFF) shl 16) or
+                ((data[2].toInt() and 0xFF) shl 8) or
+                (data[3].toInt() and 0xFF)
+        if (4 + length > data.size) return null
+        return String(data, 4, length, Charsets.UTF_8)
     }
 
     fun computeFingerprint(key: ByteArray): String {
         return try {
-            val digest = MessageDigest.getInstance("SHA-256").digest(key)
-            val sb = StringBuilder(digest.size * 3 - 1)
-            digest.forEachIndexed { i, b ->
-                if (i > 0) sb.append(':')
-                sb.append("%02x".format(b))
-            }
-            sb.toString()
+            SshFingerprintUtils.computeHostKeyFingerprint(key)
         } catch (e: Exception) {
             Log.e(TAG, "Failed to compute fingerprint", e)
             "unknown"
@@ -117,7 +111,7 @@ class FuwaHostKeyRepositoryImpl(
             decodedKeyCache[hostKey] ?: run {
                 try {
                     Base64.decode(hostKey.key, Base64.NO_WRAP).also { decodedKeyCache[hostKey] = it }
-                } catch (e: Exception) {
+                } catch (_: Exception) {
                     null
                 }
             }
@@ -150,7 +144,7 @@ class FuwaHostKeyRepositoryImpl(
 
         val keyBytes = try {
             Base64.decode(keyBase64, Base64.NO_WRAP)
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             return null
         }
 
@@ -247,7 +241,7 @@ class FuwaHostKeyRepositoryImpl(
                 Log.i(TAG, "User rejected new host key for $host")
                 return HOST_KEY_NOT_FOUND
             }
-        } catch (e: java.util.concurrent.TimeoutException) {
+        } catch (_: java.util.concurrent.TimeoutException) {
             Log.w(TAG, "Host key ask timed out for $host")
             future.complete(false)
             return HOST_KEY_NOT_FOUND
@@ -279,11 +273,6 @@ class FuwaHostKeyRepositoryImpl(
         } catch (e: Exception) {
             Log.e(TAG, "Failed to save known_hosts: ${e.message}")
         }
-    }
-
-    fun addHostKeyDirectly(host: String, keyType: Int, key: ByteArray) {
-        hostKeys.add(HostKey(host, keyType, key))
-        saveToFile()
     }
 
     companion object {

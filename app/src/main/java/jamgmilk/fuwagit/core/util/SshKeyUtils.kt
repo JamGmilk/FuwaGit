@@ -8,7 +8,6 @@ import java.io.StringReader
 import java.io.StringWriter
 import java.math.BigInteger
 import java.security.KeyPairGenerator
-import java.security.MessageDigest
 import java.security.SecureRandom
 import java.security.interfaces.RSAPrivateCrtKey
 import java.util.Base64
@@ -63,7 +62,7 @@ private fun generateRsaKeyPair(comment: String = ""): Pair<String, String> {
     val publicKeyEncoded = encodeRsaPublicKey(publicKey, comment)
     if (BuildConfig.DEBUG) Log.d(SSH_KEY_LOG_TAG, "generateRsaKeyPair: Public key encoded: ${publicKeyEncoded.take(50)}...")
 
-    val privateKey = encodeRsaPrivateKey(keyPair.private as RSAPrivateCrtKey, comment)
+    val privateKey = encodeRsaPrivateKey(keyPair.private as RSAPrivateCrtKey)
     if (BuildConfig.DEBUG) Log.d(SSH_KEY_LOG_TAG, "generateRsaKeyPair: Private key encoded (PKCS#1), length: ${privateKey.length}")
 
     return Pair(publicKeyEncoded, privateKey)
@@ -99,7 +98,7 @@ private fun encodeRsaPublicKey(publicKey: java.security.interfaces.RSAPublicKey,
     return if (comment.isNotBlank()) "ssh-rsa $base64Key $comment" else "ssh-rsa $base64Key"
 }
 
-private fun encodeRsaPrivateKey(privateKey: RSAPrivateCrtKey, comment: String = ""): String {
+private fun encodeRsaPrivateKey(privateKey: RSAPrivateCrtKey): String {
     val vector = ASN1EncodableVector()
     vector.add(ASN1Integer(BigInteger.ZERO))
     vector.add(ASN1Integer(privateKey.modulus))
@@ -223,18 +222,7 @@ private fun writeOpenSshString(dos: DataOutputStream, bytes: ByteArray) {
 }
 
 fun calculateFingerprint(publicKey: String): String {
-    if (BuildConfig.DEBUG) Log.d(SSH_KEY_LOG_TAG, "Calculating fingerprint for publicKey: ${publicKey.take(50)}...")
-
-    val keyPart = publicKey.substringAfter(" ").substringBefore(" ")
-    if (BuildConfig.DEBUG) Log.d(SSH_KEY_LOG_TAG, "Key part for fingerprint: ${keyPart.take(20)}...")
-
-    val keyBytes = Base64.getDecoder().decode(keyPart)
-    val md = MessageDigest.getInstance("SHA-256")
-    val digest = md.digest(keyBytes)
-    val fingerprint = "SHA256:${Base64.getEncoder().withoutPadding().encodeToString(digest)}"
-
-    if (BuildConfig.DEBUG) Log.d(SSH_KEY_LOG_TAG, "Fingerprint calculated: $fingerprint")
-    return fingerprint
+    return SshFingerprintUtils.computePublicKeyFingerprint(publicKey)
 }
 
 fun detectSshKeyType(privateKey: String): String {
@@ -283,8 +271,8 @@ private fun detectOpenSshKeyType(keyContent: ByteArray): String {
             return "Unknown"
         }
 
-        val kdfName = readString(dis)
-        val kdfOptions = readString(dis)
+        readString(dis) // kdfName
+        readString(dis) // kdfOptions
 
         dis.readInt()
 

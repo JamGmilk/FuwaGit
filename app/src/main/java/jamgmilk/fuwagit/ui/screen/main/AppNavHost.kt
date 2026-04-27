@@ -180,9 +180,6 @@ fun AppNavHost(navController: NavHostController, startDestination: String = NavR
                             popUpTo(NavRoutes.MAIN) { saveState = true }
                         }
                     },
-                    onMasterPasswordSuccess = {
-                        navController.popBackStack()
-                    },
                     onViewFileDiff = { filePath, diffType ->
                         val encodedPath = URLEncoder.encode(filePath, StandardCharsets.UTF_8.name())
                         navController.navigate("${NavRoutes.FILE_DIFF}?filePath=$encodedPath&diffType=${diffType.name}")
@@ -328,7 +325,6 @@ fun MainScreen(
     onNavigateToPermissions: () -> Unit,
     onNavigateToCredentials: () -> Unit,
     onNavigateToMasterPassword: () -> Unit,
-    onMasterPasswordSuccess: () -> Unit = {},
     onViewFileDiff: ((String, DiffType) -> Unit)? = null,
     onViewCommitDiff: ((DiffViewRequest) -> Unit)? = null
 ) {
@@ -434,8 +430,7 @@ fun MainScreen(
                         modifier = Modifier.fillMaxSize(),
                         onNavigateToPermissions = onNavigateToPermissions,
                         onNavigateToCredentials = onNavigateToCredentials,
-                        onNavigateToMasterPassword = onNavigateToMasterPassword,
-                        onMasterPasswordSuccess = onMasterPasswordSuccess
+                        onNavigateToMasterPassword = onNavigateToMasterPassword
                     )
                     null -> { }
                 }
