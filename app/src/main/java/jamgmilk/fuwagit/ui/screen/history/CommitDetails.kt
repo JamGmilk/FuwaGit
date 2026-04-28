@@ -58,7 +58,6 @@ import androidx.compose.ui.unit.dp
 import jamgmilk.fuwagit.R
 import jamgmilk.fuwagit.domain.model.git.GitChangeType
 import jamgmilk.fuwagit.domain.model.git.GitCommit
-import jamgmilk.fuwagit.domain.model.git.GitCommitDetail
 import jamgmilk.fuwagit.domain.model.git.GitCommitFileChange
 import jamgmilk.fuwagit.domain.model.git.GitResetMode
 import java.text.SimpleDateFormat

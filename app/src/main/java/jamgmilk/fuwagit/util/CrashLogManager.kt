@@ -2,7 +2,6 @@ package jamgmilk.fuwagit.util
 
 import android.content.Context
 import android.content.Intent
-import android.content.pm.PackageInfo
 import android.os.Build
 import android.util.Log
 import androidx.core.content.pm.PackageInfoCompat

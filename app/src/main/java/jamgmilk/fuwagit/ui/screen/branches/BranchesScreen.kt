@@ -65,6 +65,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -495,7 +496,7 @@ private fun BranchListContent(
         item(contentType = "header") {
             SectionHeader(
                 title = stringResource(R.string.branches_local_branches),
-                subtitle = stringResource(R.string.branches_count_format, localBranches.size),
+                subtitle = pluralStringResource(R.plurals.branches_count, localBranches.size),
                 icon = Icons.Outlined.AccountTree,
                 color = colors.primary
             )
@@ -538,7 +539,7 @@ private fun BranchListContent(
         item {
             SectionHeader(
                 title = stringResource(R.string.branches_remote_branches),
-                subtitle = stringResource(R.string.branches_count_format, remoteBranches.size),
+                subtitle = pluralStringResource(R.plurals.branches_count, remoteBranches.size),
                 icon = Icons.Default.Cloud,
                 color = colors.secondary
             )

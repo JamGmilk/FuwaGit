@@ -54,6 +54,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -466,7 +467,6 @@ fun CleanPreviewDialog(
             Column(
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                // 显示消息（如果有）
                 if (message != null) {
                     Text(
                         text = message,
@@ -475,10 +475,9 @@ fun CleanPreviewDialog(
                     )
                 }
 
-                // 显示文件列表（如果有）
                 if (untrackedFiles.isNotEmpty()) {
                     Text(
-                        text = stringResource(R.string.dialog_clean_files_to_delete_format, untrackedFiles.size),
+                        text = pluralStringResource(R.plurals.clean_files_to_delete, untrackedFiles.size),
                         style = MaterialTheme.typography.bodyMedium,
                         color = colors.onSurfaceVariant
                     )
@@ -608,7 +607,7 @@ fun CleanResultDialog(
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 Text(
-                    text = stringResource(R.string.dialog_clean_deleted_count_format, cleanedFiles.size),
+                    text = pluralStringResource(R.plurals.clean_deleted_count, cleanedFiles.size),
                     style = MaterialTheme.typography.bodyMedium,
                     color = colors.onSurfaceVariant
                 )

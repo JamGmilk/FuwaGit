@@ -88,6 +88,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -580,7 +581,7 @@ private fun SecuritySettingsCard(
                     600L -> stringResource(R.string.settings_auto_lock_10_minutes)
                     1800L -> stringResource(R.string.settings_auto_lock_30_minutes)
                     3600L -> stringResource(R.string.settings_auto_lock_1_hour)
-                    else -> stringResource(R.string.settings_auto_lock_seconds_format, (autoLockTimeout.toLongOrNull() ?: 0L).toInt())
+                    else -> pluralStringResource(R.plurals.settings_auto_lock_seconds, (autoLockTimeout.toLongOrNull() ?: 0L).toInt())
                 }
 
                 ExpandableSettingsItem(

@@ -5,7 +5,7 @@ import androidx.compose.ui.res.stringResource
 import jamgmilk.fuwagit.R
 import java.text.SimpleDateFormat
 import java.util.Date
-import java.util.Locale
+import androidx.compose.ui.platform.LocalLocale
 
 @Composable
 fun formatRelativeTime(timestamp: Long): String {
@@ -18,7 +18,7 @@ fun formatRelativeTime(timestamp: Long): String {
         diff < 86_400_000 -> stringResource(R.string.history_time_hours_ago, diff / 3_600_000)
         diff < 604_800_000 -> stringResource(R.string.history_time_days_ago, diff / 86_400_000)
         else -> {
-            val sdf = SimpleDateFormat("MMM dd", Locale.getDefault())
+            val sdf = SimpleDateFormat("MMM dd", LocalLocale.current.platformLocale)
             sdf.format(Date(timestamp))
         }
     }

@@ -115,6 +115,10 @@ fun AppNavHost(navController: NavHostController, startDestination: String = NavR
         viewModelStoreOwner = activity
     )
 
+    val biometricUnlockTitle = stringResource(R.string.biometric_unlock_title)
+    val credentialsUnlockBiometricSubtitle = stringResource(R.string.credentials_unlock_biometric_subtitle)
+    val credentialsUsePassword = stringResource(R.string.credentials_use_password)
+
     LaunchedEffect(Unit) {
         HostKeyAskHelper.requests.collect { request ->
             pendingRequests.add(request)
@@ -253,9 +257,9 @@ fun AppNavHost(navController: NavHostController, startDestination: String = NavR
                         onUnlockWithBiometric = {
                             credentialStoreViewModel.unlockWithBiometric(
                                 activity,
-                                context.getString(R.string.biometric_unlock_title),
-                                context.getString(R.string.credentials_unlock_biometric_subtitle),
-                                context.getString(R.string.credentials_use_password)
+                                biometricUnlockTitle,
+                                credentialsUnlockBiometricSubtitle,
+                                credentialsUsePassword
                             )
                         }
                     )
@@ -280,9 +284,9 @@ fun AppNavHost(navController: NavHostController, startDestination: String = NavR
                         onUnlockWithBiometric = {
                             credentialStoreViewModel.unlockWithBiometric(
                                 activity,
-                                context.getString(R.string.biometric_unlock_title),
-                                context.getString(R.string.credentials_unlock_biometric_subtitle),
-                                context.getString(R.string.credentials_use_password)
+                                biometricUnlockTitle,
+                                credentialsUnlockBiometricSubtitle,
+                                credentialsUsePassword
                             )
                         },
                         passwordHint = credentialUiState.passwordHint,

@@ -129,10 +129,10 @@ fun MyReposScreen(
     Box(modifier = modifier.fillMaxSize()) {
         Scaffold(
             snackbarHost = { SnackbarHost(snackbarHostState) }
-        ) { _ ->
+        ) { innerPadding ->
             ScreenTemplate(
                 title = stringResource(R.string.myrepos_screen_title),
-                modifier = Modifier.fillMaxSize()
+                modifier = Modifier.fillMaxSize().padding(innerPadding)
             ) {
                 Surface(
                     modifier = Modifier

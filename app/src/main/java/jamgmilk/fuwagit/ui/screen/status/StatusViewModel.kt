@@ -575,8 +575,7 @@ class StatusViewModel @Inject constructor(
 
     fun onCredentialUnlocked() {
         viewModelScope.launch {
-            val pendingOp = _uiState.value.pendingGitOperation
-            when (pendingOp) {
+            when (val pendingOp = _uiState.value.pendingGitOperation) {
                 is PendingGitOperation.Pull -> executePull(pendingOp.repoPath)
                 is PendingGitOperation.Push -> executePush(pendingOp.repoPath)
                 is PendingGitOperation.Fetch -> executeFetch(pendingOp.repoPath)

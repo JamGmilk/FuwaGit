@@ -148,11 +148,10 @@ class JGitCommitDataSource @Inject constructor(
             commitBuilder.call().id.name()
         }.let { result ->
             if (result.isFailure) {
-                val exception = result.exceptionOrNull()
-                when {
-                    exception is LockFailedException -> Result.failure(Exception("Cannot commit: repository lock failed."))
-                    exception is JGitInternalException -> Result.failure(Exception("Git error: ${exception.message}"))
-                    exception is Exception -> Result.failure(exception)
+                when (val exception = result.exceptionOrNull()) {
+                    is LockFailedException -> Result.failure(Exception("Cannot commit: repository lock failed."))
+                    is JGitInternalException -> Result.failure(Exception("Git error: ${exception.message}"))
+                    is Exception -> Result.failure(exception)
                     else -> result
                 }
             } else {

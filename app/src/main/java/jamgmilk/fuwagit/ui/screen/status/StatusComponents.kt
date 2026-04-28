@@ -50,6 +50,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -608,7 +609,7 @@ internal fun CommitCard(
                             )
                             Spacer(Modifier.width(4.dp))
                             Text(
-                                text = stringResource(R.string.status_staged_count, stagedCount),
+                                text = pluralStringResource(R.plurals.status_staged_count, stagedCount),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = colors.primary
                             )
@@ -798,7 +799,7 @@ internal fun TerminalLogsCard(
                 )
                 if (logs.isNotEmpty()) {
                     Text(
-                        text = stringResource(R.string.terminal_lines_format, logs.size),
+                        text = pluralStringResource(R.plurals.terminal_lines_count, logs.size),
                         style = MaterialTheme.typography.labelSmall,
                         color = colors.onSurfaceVariant.copy(alpha = 0.6f)
                     )

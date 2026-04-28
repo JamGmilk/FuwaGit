@@ -304,7 +304,7 @@ private fun detectOpenSshKeyType(keyContent: ByteArray): String {
 
 private fun readString(dis: java.io.DataInputStream): String {
     val length = dis.readInt()
-    if (length <= 0 || length > 262144) {
+    if (length !in 1..262144) {
         return ""
     }
     val bytes = ByteArray(length)

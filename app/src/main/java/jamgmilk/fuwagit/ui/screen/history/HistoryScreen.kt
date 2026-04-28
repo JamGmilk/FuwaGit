@@ -23,6 +23,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -75,13 +76,13 @@ fun HistoryScreen(
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) }
-    ) { _ ->
+    ) { innerPadding  ->
         ScreenTemplate(
             title = stringResource(R.string.screen_history),
-            modifier = modifier.fillMaxSize(),
+            modifier = modifier.fillMaxSize().padding(innerPadding),
             actions = {
                 Text(
-                    text = stringResource(R.string.history_commits_count_format, history.size),
+                    text = pluralStringResource(R.plurals.history_commits_count, history.size),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

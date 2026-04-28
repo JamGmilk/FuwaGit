@@ -1,7 +1,48 @@
-<resources xmlns:tools="http://schemas.android.com/tools">
+<resources>
+
+    <!-- ========== Plurals ========== -->
+    <plurals name="settings_auto_lock_seconds">
+        <item quantity="one">%d second</item>
+        <item quantity="other">%d seconds</item>
+    </plurals>
+
+    <plurals name="status_staged_count">
+        <item quantity="one">%d staged</item>
+        <item quantity="other">%d staged</item>
+    </plurals>
+
+    <plurals name="branches_count">
+        <item quantity="one">%d branch</item>
+        <item quantity="other">%d branches</item>
+    </plurals>
+
+    <plurals name="remote_count">
+        <item quantity="one">Remote (%d found)</item>
+        <item quantity="other">Remote (%d found)</item>
+    </plurals>
+
+    <plurals name="history_commits_count">
+        <item quantity="one">%d commit</item>
+        <item quantity="other">%d commits</item>
+    </plurals>
+
+    <plurals name="terminal_lines_count">
+        <item quantity="one">%d line</item>
+        <item quantity="other">%d lines</item>
+    </plurals>
+
+    <plurals name="clean_files_to_delete">
+        <item quantity="one">The following %d untracked file will be permanently deleted:</item>
+        <item quantity="other">The following %d untracked files will be permanently deleted:</item>
+    </plurals>
+
+    <plurals name="clean_deleted_count">
+        <item quantity="one">Successfully deleted %d file:</item>
+        <item quantity="other">Successfully deleted %d files:</item>
+    </plurals>
 
     <!-- ========== App Config ========== -->
-    <string name="app_name" translatable="false">FuwaGit</string>
+    <string name="app_name">FuwaGit</string>
 
     <!-- ========== Common Actions ========== -->
     <string name="action_cancel">Cancel</string>
@@ -15,7 +56,6 @@
     <string name="action_select">Select</string>
     <string name="action_copy">Copy</string>
     <string name="action_import">Import</string>
-    <string name="action_export">Export</string>
     <string name="action_preview">Preview</string>
     <string name="action_finish">Finish</string>
     <string name="action_rename">Rename</string>
@@ -23,7 +63,6 @@
     <string name="action_create">Create</string>
     <string name="action_add">Add</string>
     <string name="action_initialize">Initialize</string>
-    <string name="action_apply">Apply</string>
     <string name="action_retry">Retry</string>
     <string name="action_expand">Expand</string>
     <string name="action_collapse">Collapse</string>
@@ -83,7 +122,7 @@
     <string name="settings_auto_lock_10_minutes">10 minutes</string>
     <string name="settings_auto_lock_30_minutes">30 minutes</string>
     <string name="settings_auto_lock_1_hour">1 hour</string>
-    <string name="settings_auto_lock_seconds_format">%1$d seconds</string>
+
     <string name="settings_auto_lock_description">Set the timeout duration in seconds. Credentials will auto-lock after this period of inactivity. Enter 0 to disable auto-lock (never expires).</string>
 
     <!-- Git Configuration -->
@@ -104,13 +143,6 @@
     <string name="settings_set_upstream_on_push_subtitle">Automatically set upstream branch when pushing for the first time</string>
 
     <!-- Sync & Backup -->
-    <string name="settings_sync_backup">Sync &amp; Backup</string>
-    <string name="settings_auto_sync">Auto Sync</string>
-    <string name="settings_auto_sync_subtitle">Periodic pull/push in background</string>
-    <string name="settings_conflict_safe_mode">Safe Conflict Strategy</string>
-    <string name="settings_conflict_safe_mode_subtitle">Prefer no-overwrite during merge</string>
-    <string name="settings_backup_before_sync">Backup Before Sync</string>
-    <string name="settings_backup_before_sync_subtitle">Create snapshot before pull/rebase</string>
 
     <!-- Storage & Permissions -->
     <string name="settings_storage">Storage</string>
@@ -141,7 +173,6 @@
     <string name="settings_clear_commit_editmsg_subtitle">Delete .git/COMMIT_EDITMSG in current repo</string>
     <string name="settings_clear_commit_editmsg_confirm_title">Clear COMMIT_EDITMSG</string>
     <string name="settings_clear_commit_editmsg_empty">No COMMIT_EDITMSG file in current repo</string>
-    <string name="settings_clear_commit_editmsg_deleted">COMMIT_EDITMSG file deleted</string>
     <string name="settings_export_logs">Export Logs</string>
     <string name="settings_export_logs_subtitle">Share crash logs for bug reporting</string>
     <string name="settings_export_logs_empty">No crash logs to export</string>
@@ -174,7 +205,7 @@
     <string name="status_staged_subtitle">Ready to commit</string>
     <string name="status_nothing_to_commit">Nothing to commit</string>
     <string name="status_commit_changes">Commit Changes</string>
-    <string name="status_staged_count">%1$d staged</string>
+
     <string name="status_commit_message_placeholder">Enter commit message…</string>
     <string name="status_commit_button">Commit</string>
     <string name="status_actions">Actions</string>
@@ -208,7 +239,7 @@
     <string name="branches_init_repo_message">Initialize a repository to see branches</string>
     <string name="branches_local_branches">Local Branches</string>
     <string name="branches_remote_branches">Remote Branches</string>
-    <string name="branches_count_format">%1$d branches</string>
+
     <string name="branches_no_local_branches">No local branches</string>
     <string name="branches_no_remote_branches">No remote branches</string>
     <string name="branches_remote_label">Remote</string>
@@ -260,7 +291,6 @@
     <string name="credentials_passwords_do_not_match">Passwords do not match</string>
     <string name="credentials_at_least_6_characters">At least 6 characters</string>
     <string name="credentials_incorrect_password">Incorrect password</string>
-    <string name="credentials_cancel">Cancel</string>
     <string name="credentials_set_password">Set Password</string>
     <string name="credentials_setting">Setting…</string>
     <string name="credentials_changing">Changing…</string>
@@ -276,7 +306,6 @@
     <string name="biometric_enable_title">Enable Biometric Unlock</string>
     <string name="biometric_enable_subtitle">Use your fingerprint to quickly access credentials</string>
     <string name="biometric_unlock_title">Unlock Credentials</string>
-    <string name="biometric_not_available">Biometric authentication not available</string>
     <string name="credentials_add_https_credential">Add HTTPS Credential</string>
     <string name="credentials_host_label">Host</string>
     <string name="credentials_host_placeholder">github.com</string>
@@ -293,7 +322,6 @@
     <string name="credentials_setup_master_password_full">Set Master Password</string>
     <string name="credentials_setup_full_description">Create a master password to protect your sensitive credentials. You\'ll need this password to view passwords and private keys.</string>
     <string name="credentials_master_password_set_successfully">Master password has been set</string>
-    <string name="credentials_master_password_changed_successfully">Master password has been changed</string>
     <string name="credentials_generate_ssh_key">Generate SSH Key</string>
     <string name="credentials_key_name_label">Key Name</string>
     <string name="credentials_key_name_placeholder">My Key</string>
@@ -354,7 +382,6 @@
     <string name="credentials_copied_to_clipboard">Copied to clipboard!</string>
     <string name="credentials_security_warning">Security Warning</string>
     <string name="credentials_importing">Importing…</string>
-    <string name="credentials_export_copied">Copied to clipboard!</string>
 
     <!-- Credential Info Dialog -->
     <string name="credential_info_host">Host</string>
@@ -398,7 +425,6 @@
     <string name="myrepos_clean_untracked_title">Clean Untracked Files</string>
     <string name="myrepos_clean_untracked_description">Remove untracked files from the working directory. This action cannot be undone. Click \'Preview\' to see which files will be deleted.</string>
     <string name="myrepos_repository_added">Repository added</string>
-    <string name="myrepos_repository_added_success">Repository added successfully</string>
     <string name="myrepos_repo_info_title">Repository Info</string>
     <string name="myrepos_not_git_repo_warning">This directory is not a Git repository</string>
     <string name="myrepos_scanning_files">Scanning for untracked files…</string>
@@ -411,8 +437,6 @@
     <string name="add_repo_tab_local">Add Local</string>
     <string name="clone_remote_url_header">Remote URL</string>
     <string name="clone_repository_url_label">Repository URL</string>
-    <string name="clone_protocol_https">HTTPS</string>
-    <string name="clone_protocol_ssh">SSH</string>
     <string name="clone_credential_selector_https">HTTPS Credential (optional)</string>
     <string name="clone_credential_selector_ssh">Select SSH Key</string>
     <string name="clone_credential_selected_format">HTTPS: %1$s</string>
@@ -451,14 +475,6 @@
     <string name="local_remote_url_optional">Remote URL (Optional)</string>
     <string name="local_info_guide">Select a local folder to begin managing it with Git.</string>
     <string name="local_select_folder">Select Folder</string>
-    <string name="local_remote_count_format">Remote (%1$d found)</string>
-    <string name="local_no_folder_selected">No folder selected</string>
-    <string name="local_git_repo_detected">Git repository detected</string>
-    <string name="local_not_git_repo">Not a Git repository</string>
-    <string name="local_pick_folder">Pick folder</string>
-    <string name="local_repository_label_format">Repository: %1$s</string>
-    <string name="local_user_label_format">User: %1$s</string>
-    <string name="local_head_label_format">HEAD: %1$s</string>
 
     <!-- ========== Configure Remote ========== -->
     <string name="remote_url_label">Remote URL</string>
@@ -489,8 +505,6 @@
     <string name="hostkey_dialog_security_title">Security Notice</string>
     <string name="hostkey_dialog_security_warning">Only accept if you trust this server. Accepting unknown host keys could allow man-in-the-middle attacks.</string>
     <string name="hostkey_dialog_accept">Trust</string>
-    <string name="hostkey_dialog_rejected">Host key rejected</string>
-    <string name="hostkey_dialog_no_callback">Cannot verify host: credential vault is locked</string>
     <string name="hostkey_dialog_timeout">Auto-reject in %ds</string>
 
     <!-- ========== Permissions Screen ========== -->
@@ -503,7 +517,7 @@
     <string name="permissions_status_unknown">Unknown</string>
 
     <!-- ========== History Screen ========== -->
-    <string name="history_commits_count_format">%1$d commits</string>
+
     <string name="history_error_title">Failed to load history</string>
     <string name="history_no_commits">No commits yet</string>
     <string name="history_first_commit_message">Make your first commit to see history</string>
@@ -574,16 +588,12 @@
     <string name="file_diff_error">Failed to load diff</string>
 
     <!-- ========== Terminal ========== -->
-    <string name="terminal_lines_format">%1$d lines</string>
+
     <string name="terminal_no_output">No output yet</string>
 
     <!-- ========== Dialogs ========== -->
     <!-- General Dialogs -->
     <string name="dialog_confirm_dangerous_title">Warning</string>
-    <string name="dialog_operation_successful">Operation Successful</string>
-    <string name="dialog_operation_failed">Operation Failed</string>
-    <string name="dialog_error_format">Error: %1$s</string>
-    <string name="dialog_suggestion_format">Suggestion: %1$s</string>
 
     <!-- Reset Dialog -->
     <string name="dialog_reset_confirm_title_format">Confirm %1$s Reset</string>
@@ -603,10 +613,8 @@
     <string name="dialog_reset_button_format">Reset %1$s</string>
 
     <!-- Conflict Dialog -->
-    <string name="dialog_merge_conflicts">Merge Conflicts Detected</string>
     <string name="dialog_merge_conflict_title_format">%1$s Conflicts</string>
     <string name="dialog_conflict_count_format">%1$s conflict(s) need resolution</string>
-    <string name="dialog_conflict_files_message">The following files have conflicts:</string>
     <string name="dialog_how_to_resolve">How to resolve:</string>
     <string name="dialog_resolve_step1">1. Edit each file to resolve conflict markers (&lt;&lt;&lt;&lt;&lt;&lt;, ======, &gt;&gt;&gt;&gt;&gt;&gt;)</string>
     <string name="dialog_resolve_step2">2. Click \'Mark as Resolved\' for each file after editing</string>
@@ -623,24 +631,10 @@
     <string name="dialog_clean_info">Clean Info</string>
     <string name="dialog_clean_failed">Clean Failed</string>
     <string name="dialog_clean_untracked_title">Clean Untracked Files</string>
-    <string name="dialog_clean_files_to_delete_format">The following %1$d untracked file(s) will be permanently deleted:</string>
     <string name="dialog_clean_no_files">No untracked files found.</string>
     <string name="dialog_delete_all">Delete All</string>
     <string name="dialog_clean_completed">Clean Completed</string>
-    <string name="dialog_clean_deleted_count_format">Successfully deleted %1$d file(s):</string>
     <string name="dialog_clean_no_files_deleted">No files were deleted</string>
-
-    <!-- Apply to All Dialog -->
-    <string name="apply_to_all_repos_title">Apply to All Repositories</string>
-    <string name="apply_to_all_repos_description">This will apply the following settings to all saved repositories:</string>
-    <string name="apply_to_all_repos_also_global">Also apply to Global Config</string>
-    <string name="apply_to_all_repos_also_global_subtitle">This will update the global settings</string>
-
-    <!-- Apply Config Result Dialog -->
-    <string name="apply_config_result_success">Success</string>
-    <string name="apply_config_result_issues">Completed with Issues</string>
-    <string name="apply_config_result_success_format">%1$d/%2$d repositories updated successfully</string>
-    <string name="apply_config_result_failed_repos">Failed repositories:</string>
 
     <!-- File Picker Dialog -->
     <string name="filepicker_cannot_access">Cannot access this directory</string>
@@ -649,49 +643,18 @@
     <string name="filepicker_folder_name">Folder name</string>
     <string name="filepicker_invalid_folder_name">Invalid folder name or already exists</string>
 
-    <!-- Settings Config Dialog -->
-    <string name="settings_config_name_format">user.name: %1$s</string>
-    <string name="settings_config_email_format">user.email: %1$s</string>
-    <string name="settings_error_format">%1$s: %2$s</string>
-
     <!-- ========== ViewModel Messages ========== -->
-    <string name="vm_passwords_do_not_match">Passwords do not match</string>
-    <string name="vm_password_min_chars">Password must be at least 6 characters</string>
-    <string name="vm_incorrect_old_password">Incorrect old password</string>
     <string name="vm_branch_deleted_success">Branch \'%1$s\' deleted successfully</string>
-    <string name="vm_branch_not_fully_merged">The branch contains commits that haven\'t been merged. Use force delete to remove it anyway.</string>
-    <string name="vm_branch_checked_out">Cannot delete the currently checked out branch. Switch to another branch first.</string>
-    <string name="vm_unknown_error">Unknown error</string>
     <string name="vm_merge_success">Successfully merged \'%1$s\' into current branch</string>
-    <string name="vm_merge_conflict_hint">Resolve the conflicts manually in the Status screen, then commit the changes.</string>
-    <string name="vm_merge_not_fully_merged">The branch contains unmerged commits. This is expected for a merge operation.</string>
-    <string name="vm_merge_up_to_date">Check if the current branch is up to date and try again.</string>
     <string name="vm_rebase_success">Successfully rebased onto \'%1$s\'</string>
-    <string name="vm_rebase_conflict_hint" tools:ignore="TypographyDashes">Resolve conflicts and run \'git rebase --continue\', or \'git rebase --abort\' to cancel.</string>
-    <string name="vm_rebase_up_to_date">The current branch is already up to date with the target branch.</string>
-    <string name="vm_rebase_abort_hint" tools:ignore="TypographyDashes">Run \'git rebase --abort\' to cancel the rebase operation.</string>
-    <string name="vm_conflicts_resolved">Conflicts resolved</string>
-    <string name="vm_select_target_repo">Select a target repo</string>
-    <string name="vm_select_target_repo_path">Select a target repo path</string>
-    <string name="vm_git_repository">Git repository</string>
-    <string name="vm_not_git_repository">Not a git repository</string>
     <string name="vm_changes_discarded">Changes to \'%1$s\' have been discarded</string>
-    <string name="vm_discard_error_hint">Make sure the file is not staged or locked by another process.</string>
-    <string name="vm_no_untracked_files">No untracked files to clean</string>
-    <string name="vm_clean_failed">Failed to clean: %1$s</string>
-    <string name="vm_clean_get_files_failed">Failed to get untracked files: %1$s</string>
-    <string name="vm_clean_get_list_failed">Failed to get file list: %1$s</string>
     <string name="vm_checkout_success">Switched to branch \'%1$s\'</string>
-    <string name="vm_checkout_failed">Failed to switch branch</string>
     <string name="vm_branch_created_success">Branch \'%1$s\' created successfully</string>
-    <string name="vm_branch_creation_failed">Failed to create branch</string>
     <string name="vm_branch_renamed_success">Branch renamed to \'%1$s\'</string>
-    <string name="vm_branch_rename_failed">Failed to rename branch</string>
     <string name="vm_tag_lightweight_created">Lightweight tag \'%1$s\' created</string>
     <string name="vm_tag_annotated_created">Annotated tag \'%1$s\' created</string>
     <string name="vm_tag_deleted">Tag \'%1$s\' deleted</string>
     <string name="vm_tag_push_success">Tag \'%1$s\' pushed successfully</string>
-    <string name="vm_tag_failed">Failed to perform tag operation</string>
 
     <!-- ========== Onboarding ========== -->
     <string name="onboarding_welcome_title">Welcome to FuwaGit</string>
@@ -727,16 +690,6 @@
     <string name="onboarding_complete_title">You\'re All Set!</string>
 
     <!-- ========== Validation Errors ========== -->
-    <string name="password_mismatch">Passwords do not match</string>
-    <string name="password_too_short">Password must be at least 6 characters</string>
-    <string name="biometric_error">Biometric error</string>
-    <string name="biometric_setup_failed">Biometric setup failed</string>
     <string name="credentials_not_found">No credentials found</string>
-    <string name="branch_not_merged">The branch contains commits that have not been merged</string>
-    <string name="branch_not_merged_suggestion">Use force delete to remove it anyway</string>
-    <string name="cannot_delete_current_branch">Cannot delete the currently checked out branch</string>
-    <string name="cannot_delete_current_branch_suggestion">Switch to another branch first</string>
-    <string name="branch_up_to_date">The current branch is already up to date with the target branch.</string>
-    <string name="branch_unmerged_commits">The branch contains unmerged commits. This is expected for a merge operation.</string>
 
 </resources>
