@@ -12,7 +12,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -42,11 +41,14 @@ fun CredentialScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { androidx.compose.material3.SnackbarHostState() }
 
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+
+    val credentialsFailedGenerateSshKey = stringResource(R.string.credentials_failed_generate_ssh_key)
+    val credentialsErrorGeneratingSshKey = stringResource(R.string.credentials_error_generating_ssh_key)
+    val credentialsErrorImportingKey = stringResource(R.string.credentials_error_importing_key)
 
     var dialogState by remember { mutableStateOf<CredentialDialogState>(CredentialDialogState.None) }
     var showDeleteConfirm by remember { mutableStateOf<Pair<String, Boolean>?>(null) }
@@ -149,12 +151,12 @@ fun CredentialScreen(
                             )
                         } else {
                             scope.launch {
-                                snackbarHostState.showSnackbar(context.getString(R.string.credentials_failed_generate_ssh_key))
+                                snackbarHostState.showSnackbar(credentialsFailedGenerateSshKey)
                             }
                         }
                     } catch (e: Exception) {
                         scope.launch {
-                            snackbarHostState.showSnackbar(context.getString(R.string.credentials_error_generating_ssh_key, e.message ?: ""))
+                            snackbarHostState.showSnackbar(String.format(credentialsErrorGeneratingSshKey, e.message ?: ""))
                         }
                     }
                     dialogState = CredentialDialogState.None
@@ -189,7 +191,7 @@ fun CredentialScreen(
                         } catch (e: Exception) {
                             scope.launch {
                                 snackbarHostState.showSnackbar(
-                                    context.getString(R.string.credentials_error_importing_key, e.message ?: "")
+                                    String.format(credentialsErrorImportingKey, e.message ?: "")
                                 )
                             }
                         }

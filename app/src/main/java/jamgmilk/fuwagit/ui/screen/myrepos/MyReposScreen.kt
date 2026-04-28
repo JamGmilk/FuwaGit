@@ -94,10 +94,11 @@ fun MyReposScreen(
     modifier: Modifier = Modifier,
     onNavigateToAddRepository: () -> Unit = {}
 ) {
-    val context = LocalContext.current
     val uiState by myReposViewModel.uiState.collectAsStateWithLifecycle()
     val currentRepoInfo by myReposViewModel.currentRepoInfo.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
+
+    val myreposPathCopied = stringResource(R.string.myrepos_path_copied)
 
     val folders = uiState.repoItems
     val selectedTarget = currentRepoInfo.repoPath
@@ -216,9 +217,9 @@ fun MyReposScreen(
                     showRepoInfoDialog.value = true
                 }
             },
-            onShowSnackbar = { path ->
+            onShowSnackbar = { _ ->
                 scope.launch {
-                    snackbarHostState.showSnackbar(context.getString(R.string.myrepos_path_copied))
+                    snackbarHostState.showSnackbar(myreposPathCopied)
                 }
             }
         )
@@ -642,8 +643,6 @@ private fun RepoHeader(
     item: RepoFolderItem,
     onCopyPath: () -> Unit
 ) {
-    val context = LocalContext.current
-
     Row(
         modifier = Modifier
             .fillMaxWidth()

@@ -77,6 +77,14 @@ fun StatusScreen(
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
 
+    val statusPushFailed = stringResource(R.string.status_push_failed)
+    val statusPullFailed = stringResource(R.string.status_pull_failed)
+    val statusFetchFailed = stringResource(R.string.status_fetch_failed)
+    val vmChangesDiscarded = stringResource(R.string.vm_changes_discarded)
+    val biometricUnlockTitle = stringResource(R.string.biometric_unlock_title)
+    val credentialsUnlockBiometricSubtitle = stringResource(R.string.credentials_unlock_biometric_subtitle)
+    val credentialsUsePassword = stringResource(R.string.credentials_use_password)
+
     LaunchedEffect(uiState.repoPath) {
         if (uiState.repoPath != null) {
             statusViewModel.refreshAll()
@@ -90,25 +98,25 @@ fun StatusScreen(
                     scope.launch { snackbarHostState.showSnackbar(event.message) }
                 }
                 is StatusEvent.PushError -> {
-                    scope.launch { snackbarHostState.showSnackbar(context.getString(R.string.status_push_failed, event.message)) }
+                    scope.launch { snackbarHostState.showSnackbar(String.format(statusPushFailed, event.message)) }
                 }
                 is StatusEvent.PullSuccess -> {
                     scope.launch { snackbarHostState.showSnackbar(event.message) }
                 }
                 is StatusEvent.PullError -> {
-                    scope.launch { snackbarHostState.showSnackbar(context.getString(R.string.status_pull_failed, event.message)) }
+                    scope.launch { snackbarHostState.showSnackbar(String.format(statusPullFailed, event.message)) }
                 }
                 is StatusEvent.FetchSuccess -> {
                     scope.launch { snackbarHostState.showSnackbar(event.message) }
                 }
                 is StatusEvent.FetchError -> {
-                    scope.launch { snackbarHostState.showSnackbar(context.getString(R.string.status_fetch_failed, event.message)) }
+                    scope.launch { snackbarHostState.showSnackbar(String.format(statusFetchFailed, event.message)) }
                 }
                 is StatusEvent.CredentialUnlockRequired -> {
                     credentialStoreViewModel.showUnlockDialog()
                 }
                 is StatusEvent.DiscardChangesSuccess -> {
-                    scope.launch { snackbarHostState.showSnackbar(context.getString(R.string.vm_changes_discarded, event.fileName)) }
+                    scope.launch { snackbarHostState.showSnackbar(String.format(vmChangesDiscarded, event.fileName)) }
                 }
                 is StatusEvent.DiscardChangesError -> {
                     val message = "${event.reason}\n${event.suggestion}"
@@ -355,9 +363,9 @@ fun StatusScreen(
             onUnlockWithBiometric = {
                 credentialStoreViewModel.unlockWithBiometric(
                     activity,
-                    context.getString(R.string.biometric_unlock_title),
-                    context.getString(R.string.credentials_unlock_biometric_subtitle),
-                    context.getString(R.string.credentials_use_password)
+                    biometricUnlockTitle,
+                    credentialsUnlockBiometricSubtitle,
+                    credentialsUsePassword
                 )
             },
             passwordHint = credentialUiState.passwordHint,

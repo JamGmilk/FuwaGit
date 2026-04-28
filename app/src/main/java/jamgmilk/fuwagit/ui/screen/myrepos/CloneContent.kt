@@ -31,7 +31,6 @@ import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.Link
-import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.ReportProblem
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material3.Button
@@ -60,8 +59,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
-import androidx.fragment.app.FragmentActivity
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -69,6 +66,8 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.fragment.app.FragmentActivity
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import jamgmilk.fuwagit.R
 import jamgmilk.fuwagit.core.util.UrlUtils
 import jamgmilk.fuwagit.domain.model.credential.HttpsCredential
@@ -96,6 +95,10 @@ internal fun CloneContent(
     val credentialsUiState by credentialsViewModel.uiState.collectAsStateWithLifecycle()
 
     val strAuthFailed = stringResource(R.string.clone_auth_failed)
+    val cloneCloneSuccess = stringResource(R.string.clone_clone_success)
+    val biometricUnlockTitle = stringResource(R.string.biometric_unlock_title)
+    val credentialsUnlockBiometricSubtitle = stringResource(R.string.credentials_unlock_biometric_subtitle)
+    val credentialsUsePassword = stringResource(R.string.credentials_use_password)
 
     var cloneUrl by remember { mutableStateOf("") }
     var debouncedUrl by remember { mutableStateOf("") }
@@ -176,7 +179,7 @@ internal fun CloneContent(
                 scope.launch {
                     val credentialId = if (isHttps) selectedHttpsUuid else selectedSshUuid
                     myReposViewModel.addRepo(fullPath, null, credentialId)
-                    snackbarHostState.showSnackbar(context.getString(R.string.clone_clone_success))
+                    snackbarHostState.showSnackbar(cloneCloneSuccess)
                 }
                 onCloneComplete(fullPath)
             }.onError { e ->
@@ -396,9 +399,9 @@ internal fun CloneContent(
                 activity?.let {
                     credentialsViewModel.unlockWithBiometric(
                         it,
-                        context.getString(R.string.biometric_unlock_title),
-                        context.getString(R.string.credentials_unlock_biometric_subtitle),
-                        context.getString(R.string.credentials_use_password)
+                        biometricUnlockTitle,
+                        credentialsUnlockBiometricSubtitle,
+                        credentialsUsePassword
                     )
                 }
             },

@@ -129,6 +129,19 @@ fun SettingsScreen(
     val settingsUiState by settingsViewModel.uiState.collectAsStateWithLifecycle()
     val credentialsUiState by credentialsViewModel.uiState.collectAsStateWithLifecycle()
 
+    val credentialsMasterPasswordSetSuccessfully = stringResource(R.string.credentials_master_password_set_successfully)
+    val biometricEnableTitle = stringResource(R.string.biometric_enable_title)
+    val biometricEnableSubtitle = stringResource(R.string.biometric_enable_subtitle)
+    val settingsBiometricCancel = stringResource(R.string.settings_biometric_cancel)
+    val settingsPleaseSetMasterPasswordFirst = stringResource(R.string.settings_please_set_master_password_first)
+    val settingsClearKnownHostsDeleted = stringResource(R.string.settings_clear_known_hosts_deleted)
+    val settingsCommitEditmsgDeleted = stringResource(R.string.settings_commit_editmsg_deleted)
+    val settingsNoCommitEditmsg = stringResource(R.string.settings_no_commit_editmsg)
+    val settingsNoRepositorySelected = stringResource(R.string.settings_no_repository_selected)
+    val biometricUnlockTitle = stringResource(R.string.biometric_unlock_title)
+    val credentialsUnlockBiometricSubtitle = stringResource(R.string.credentials_unlock_biometric_subtitle)
+    val credentialsUsePassword = stringResource(R.string.credentials_use_password)
+
     var showFilePicker by rememberSaveable { mutableStateOf(false) }
     var pendingBiometricEnable by rememberSaveable { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
@@ -176,7 +189,7 @@ fun SettingsScreen(
         if (!previousMasterPasswordSet && credentialsUiState.isMasterPasswordSet) {
             scope.launch {
                 snackbarHostState.showSnackbar(
-                    message = context.getString(R.string.credentials_master_password_set_successfully)
+                    message = credentialsMasterPasswordSetSuccessfully
                 )
             }
         }
@@ -193,9 +206,9 @@ fun SettingsScreen(
                 pendingBiometricEnable = false
                 credentialsViewModel.enableBiometric(
                     activity = activity,
-                    title = context.getString(R.string.biometric_enable_title),
-                    subtitle = context.getString(R.string.biometric_enable_subtitle),
-                    negativeButtonText = context.getString(R.string.settings_biometric_cancel)
+                    title = biometricEnableTitle,
+                    subtitle = biometricEnableSubtitle,
+                    negativeButtonText = settingsBiometricCancel
                 )
             }
         }
@@ -233,7 +246,7 @@ fun SettingsScreen(
                 if (!credentialsUiState.isMasterPasswordSet) {
                     scope.launch {
                         snackbarHostState.showSnackbar(
-                            message = context.getString(R.string.settings_please_set_master_password_first)
+                            message = settingsPleaseSetMasterPasswordFirst
                         )
                     }
                 } else {
@@ -258,9 +271,9 @@ fun SettingsScreen(
                         activity?.let {
                             credentialsViewModel.enableBiometric(
                                 activity = it,
-                                title = context.getString(R.string.biometric_enable_title),
-                                subtitle = context.getString(R.string.biometric_enable_subtitle),
-                                negativeButtonText = context.getString(R.string.settings_biometric_cancel)
+                                title = biometricEnableTitle,
+                                subtitle = biometricEnableSubtitle,
+                                negativeButtonText = settingsBiometricCancel
                             )
                         }
                     }
@@ -306,7 +319,7 @@ fun SettingsScreen(
             onResetOnboarding = { settingsViewModel.resetOnboarding() },
             onClearKnownHostsComplete = {
                 scope.launch {
-                    snackbarHostState.showSnackbar(context.getString(R.string.settings_clear_known_hosts_deleted))
+                    snackbarHostState.showSnackbar(settingsClearKnownHostsDeleted)
                 }
             },
             onClearCommitEditMsgComplete = {
@@ -316,12 +329,12 @@ fun SettingsScreen(
                         val commitEditMsg = java.io.File(repoPath, ".git/COMMIT_EDITMSG")
                         if (commitEditMsg.exists()) {
                             commitEditMsg.delete()
-                            snackbarHostState.showSnackbar(context.getString(R.string.settings_commit_editmsg_deleted))
+                            snackbarHostState.showSnackbar(settingsCommitEditmsgDeleted)
                         } else {
-                            snackbarHostState.showSnackbar(context.getString(R.string.settings_no_commit_editmsg))
+                            snackbarHostState.showSnackbar(settingsNoCommitEditmsg)
                         }
                     } else {
-                        snackbarHostState.showSnackbar(context.getString(R.string.settings_no_repository_selected))
+                        snackbarHostState.showSnackbar(settingsNoRepositorySelected)
                     }
                 }
             },
@@ -365,9 +378,9 @@ fun SettingsScreen(
                 activity?.let {
                     credentialsViewModel.unlockWithBiometric(
                         it,
-                        context.getString(R.string.biometric_unlock_title),
-                        context.getString(R.string.credentials_unlock_biometric_subtitle),
-                        context.getString(R.string.credentials_use_password)
+                        biometricUnlockTitle,
+                        credentialsUnlockBiometricSubtitle,
+                        credentialsUsePassword
                     )
                 }
             },
