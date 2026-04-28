@@ -8,14 +8,14 @@ import jamgmilk.fuwagit.data.local.credential.ExportData
 import jamgmilk.fuwagit.data.local.credential.HttpsCredential
 import jamgmilk.fuwagit.data.local.credential.SshKey
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import java.io.File
 import java.nio.charset.StandardCharsets
 import javax.crypto.Cipher
-import javax.crypto.KeyGenerator
-import javax.crypto.Mac
 import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
 import javax.inject.Inject
@@ -30,18 +30,19 @@ private class SecureSecretKey(private val keyBytes: ByteArray, private val algor
     }
 }
 
+sealed class VaultStateEvent {
+    data object Unlocked : VaultStateEvent()
+    data object Locked : VaultStateEvent()
+}
+
 @Singleton
 class SecureCredentialStore @Inject constructor(
-    @ApplicationContext private val context: Context,
-    private val appPreferencesStore: jamgmilk.fuwagit.data.local.prefs.AppPreferencesStore
+    @ApplicationContext private val context: Context
 ) {
 
     companion object {
         private const val DATA_FILE = "credential_data.json"
         private const val ENCRYPTED_MARKER = "ENC:AES_GCM:"
-        private const val HMAC_ALGORITHM = "HmacSHA256"
-        private const val HMAC_KEY_ALIAS = "fuwagit_credential_hmac_key"
-        private const val HMAC_KEY_SIZE = 32
         private const val GCM_TAG_LENGTH = 128
         private const val GCM_IV_LENGTH = 12
     }
@@ -62,68 +63,8 @@ class SecureCredentialStore @Inject constructor(
     private val sessionLock = Any()
     private val fileLock = Any()
 
-    private val hmacKey: SecretKey by lazy {
-        getOrCreateHmacKey()
-    }
-
-    private fun getOrCreateHmacKey(): SecretKey {
-        val keyStore = java.security.KeyStore.getInstance("AndroidKeyStore").apply { load(null) }
-        return if (keyStore.containsAlias(HMAC_KEY_ALIAS)) {
-            keyStore.getKey(HMAC_KEY_ALIAS, null) as SecretKey
-        } else {
-            val keyGenerator = KeyGenerator.getInstance(
-                android.security.keystore.KeyProperties.KEY_ALGORITHM_HMAC_SHA256,
-                "AndroidKeyStore"
-            )
-            val spec = android.security.keystore.KeyGenParameterSpec.Builder(
-                HMAC_KEY_ALIAS,
-                android.security.keystore.KeyProperties.PURPOSE_SIGN or android.security.keystore.KeyProperties.PURPOSE_VERIFY
-            )
-                .setKeySize(HMAC_KEY_SIZE * 8)
-                .build()
-            keyGenerator.init(spec)
-            keyGenerator.generateKey()
-        }
-    }
-
-    private fun computeHmac(data: String): String {
-        val mac = Mac.getInstance(HMAC_ALGORITHM)
-        mac.init(hmacKey)
-        val hmacBytes = mac.doFinal(data.toByteArray(StandardCharsets.UTF_8))
-        return Base64.encodeToString(hmacBytes, Base64.NO_WRAP)
-    }
-
-    private fun verifyHmac(data: String, expectedHmac: String): Boolean {
-        return try {
-            val computed = computeHmac(data)
-            computed == expectedHmac
-        } catch (_: Exception) {
-            false
-        }
-    }
-
-    /**
-     * Gets the session timeout in milliseconds from user preferences.
-     * Returns 0 if auto-lock is disabled, or the configured timeout value otherwise.
-     * Negative values are treated as disabled (0).
-     * Minimum timeout is 30 seconds, maximum is 24 hours.
-     */
-    private suspend fun getSessionTimeoutMillis(): Long {
-        val timeoutSeconds = appPreferencesStore.preferencesFlow
-            .first { true }
-            .autoLockTimeout
-            .toLongOrNull() ?: 300L
-
-        val validTimeout = when {
-            timeoutSeconds < 0 -> 0L
-            timeoutSeconds == 0L -> 0L
-            timeoutSeconds < 30 -> 30L
-            timeoutSeconds > 86400 -> 86400L
-            else -> timeoutSeconds
-        }
-
-        return if (validTimeout == 0L) 0L else validTimeout * 1000L
-    }
+    private val _vaultStateEvents = MutableSharedFlow<VaultStateEvent>(extraBufferCapacity = 1)
+    val vaultStateEvents: SharedFlow<VaultStateEvent> = _vaultStateEvents.asSharedFlow()
 
     fun loadCredentialData(): CredentialData {
         synchronized(fileLock) {
@@ -135,22 +76,11 @@ class SecureCredentialStore @Inject constructor(
                     if (content.isBlank()) {
                         CredentialData()
                     } else {
-                        val lines = content.lines()
-                        if (lines.size >= 2 && lines[0].length == 44) {
-                            val hmac = lines[0]
-                            val jsonContent = lines.drop(1).joinToString("\n")
-                            if (verifyHmac(jsonContent, hmac)) {
-                                json.decodeFromString(jsonContent)
-                            } else {
-                                CredentialData()
-                            }
-                        } else {
-                            json.decodeFromString(content)
-                        }
+                        json.decodeFromString(content)
                     }
                 }
-            } catch (_: Exception) {
-                CredentialData()
+            } catch (e: Exception) {
+                throw SecurityException("Failed to load credential data: ${e.message}", e)
             }
         }
     }
@@ -159,11 +89,10 @@ class SecureCredentialStore @Inject constructor(
         synchronized(fileLock) {
             val updatedData = data.copy(updatedAt = System.currentTimeMillis())
             val jsonString = json.encodeToString(updatedData)
-            val hmac = computeHmac(jsonString)
 
             val tempFile = File(context.filesDir, "$DATA_FILE.tmp")
             try {
-                tempFile.writeText("$hmac\n$jsonString")
+                tempFile.writeText(jsonString)
                 if (!tempFile.renameTo(dataFile)) {
                     tempFile.copyTo(dataFile, overwrite = true)
                     tempFile.delete()
@@ -184,6 +113,7 @@ class SecureCredentialStore @Inject constructor(
     }
 
     fun cacheMasterKey(key: SecretKey) {
+        val wasLocked = cachedMasterKey == null
         synchronized(sessionLock) {
             secureClearCachedKey()
             val secureKey = SecureSecretKey(key.encoded, key.algorithm)
@@ -191,15 +121,22 @@ class SecureCredentialStore @Inject constructor(
             lastUnlockTime = System.currentTimeMillis()
             isBiometricSession = false
         }
+        if (wasLocked) {
+            _vaultStateEvents.tryEmit(VaultStateEvent.Unlocked)
+        }
     }
 
     fun cacheMasterKeyFromBiometric(key: SecretKey) {
+        val wasLocked = cachedMasterKey == null
         synchronized(sessionLock) {
             secureClearCachedKey()
             val secureKey = SecureSecretKey(key.encoded, key.algorithm)
             cachedMasterKey = secureKey
             lastUnlockTime = System.currentTimeMillis()
             isBiometricSession = true
+        }
+        if (wasLocked) {
+            _vaultStateEvents.tryEmit(VaultStateEvent.Unlocked)
         }
     }
 
@@ -208,10 +145,12 @@ class SecureCredentialStore @Inject constructor(
         cachedMasterKey = null
     }
 
-    suspend fun getCachedMasterKey(): SecretKey? {
-        val sessionTimeout = getSessionTimeoutMillis()
+    fun getCachedMasterKey(): SecretKey? = getCachedMasterKey(0L)
 
-        return synchronized(sessionLock) {
+    fun getCachedMasterKey(timeoutMillis: Long): SecretKey? {
+        var didTimeoutExpire = false
+
+        val key = synchronized(sessionLock) {
             val key = cachedMasterKey
 
             if (key == null) {
@@ -220,29 +159,38 @@ class SecureCredentialStore @Inject constructor(
                 return@synchronized null
             }
 
-            val effectiveTimeout = if (isBiometricSession) sessionTimeout else 0L
-
-            if (effectiveTimeout == 0L) {
+            if (timeoutMillis == 0L) {
                 return@synchronized key
             }
 
             val elapsed = System.currentTimeMillis() - lastUnlockTime
-            if (elapsed < effectiveTimeout) {
+            if (elapsed < timeoutMillis) {
                 return@synchronized key
             }
 
+            didTimeoutExpire = true
             secureClearCachedKey()
             lastUnlockTime = 0
             isBiometricSession = false
             null
         }
+
+        if (didTimeoutExpire) {
+            _vaultStateEvents.tryEmit(VaultStateEvent.Locked)
+        }
+
+        return key
     }
 
     fun clearCachedMasterKey() {
+        val wasUnlocked = cachedMasterKey != null
         synchronized(sessionLock) {
             secureClearCachedKey()
             lastUnlockTime = 0
             isBiometricSession = false
+        }
+        if (wasUnlocked) {
+            _vaultStateEvents.tryEmit(VaultStateEvent.Locked)
         }
     }
 

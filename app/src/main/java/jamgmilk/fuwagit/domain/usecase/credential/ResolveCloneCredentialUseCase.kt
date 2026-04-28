@@ -31,7 +31,7 @@ class ResolveCloneCredentialUseCase @Inject constructor(
                 resolveHttpsCredential(selectedCredentialUuid, httpsCredentials)
             }
             selectedSshKeyUuid != null -> {
-                resolveSshCredential(selectedSshKeyUuid, sshKeys)
+                resolveSshCredential(selectedSshKeyUuid)
             }
             else -> {
                 resolveAutoSelectCredential(httpsCredentials, sshKeys, remoteUrl)
@@ -49,8 +49,7 @@ class ResolveCloneCredentialUseCase @Inject constructor(
     }
 
     private suspend fun resolveSshCredential(
-        uuid: String,
-        sshKeys: List<SshKey>
+        uuid: String
     ): CloneCredential? {
         val privateKey = getSshPrivateKeyUseCase(uuid).getOrNull() ?: return null
         val passphrase = getSshPassphraseUseCase(uuid).getOrNull()
@@ -64,9 +63,11 @@ class ResolveCloneCredentialUseCase @Inject constructor(
     ): CloneCredential? {
         if (httpsCredentials.isNotEmpty()) {
             if (remoteUrl != null) {
-                val host = UrlUtils.extractHost(remoteUrl)
-                if (host != null) {
-                    val matched = httpsCredentials.find { it.host.contains(host, ignoreCase = true) }
+                val remoteHost = UrlUtils.extractHost(remoteUrl)
+                if (remoteHost != null) {
+                    val matched = httpsCredentials.find { cred ->
+                        isHostMatch(cred.host, remoteHost)
+                    }
                     if (matched != null) {
                         return resolveHttpsCredential(matched.uuid, httpsCredentials)
                     }
@@ -76,9 +77,16 @@ class ResolveCloneCredentialUseCase @Inject constructor(
         }
 
         if (sshKeys.isNotEmpty()) {
-            return resolveSshCredential(sshKeys.first().uuid, sshKeys)
+            return resolveSshCredential(sshKeys.first().uuid)
         }
 
         return null
+    }
+
+    private fun isHostMatch(credHost: String, remoteHost: String): Boolean {
+        val normalizedCredHost = credHost.lowercase()
+        val normalizedRemoteHost = remoteHost.lowercase()
+        return normalizedCredHost == normalizedRemoteHost ||
+               normalizedRemoteHost.endsWith(".$normalizedCredHost")
     }
 }

@@ -48,7 +48,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -97,27 +96,47 @@ fun MasterPasswordScreen(
                 .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
         ) {
+            val context = LocalContext.current
+            val activity = context as? FragmentActivity
+
+            val biometricTitle = stringResource(R.string.biometric_enable_title)
+            val biometricSubtitle = stringResource(R.string.biometric_enable_subtitle)
+            val biometricNegativeButtonText = stringResource(R.string.settings_biometric_cancel)
+
             MasterPasswordContent(
                 mode = mode,
                 passwordHint = uiState.passwordHint,
                 isBiometricEnabled = uiState.isBiometricEnabled,
                 error = uiState.error,
                 isLoading = uiState.isLoading,
+                biometricTitle = biometricTitle,
+                biometricSubtitle = biometricSubtitle,
+                biometricNegativeButtonText = biometricNegativeButtonText,
                 onSetup = { password, confirmPassword, hint ->
-                    viewModel.setupMasterPassword(password, confirmPassword, hint)
+                    viewModel.setupPasswordAndContinue(password, confirmPassword, hint)
                 },
-                onChange = { activity, oldPassword, newPassword, confirmPassword, hint, biometricEnabled ->
+                onChange = { oldPassword, newPassword, confirmPassword, hint, biometricEnabled ->
                     viewModel.changeMasterPassword(
-                        activity = activity,
                         oldPassword = oldPassword,
                         newPassword = newPassword,
                         confirmPassword = confirmPassword,
                         hint = hint,
-                        biometricEnabled = biometricEnabled
+                        biometricEnabled = biometricEnabled,
+                        activity = activity!!,
+                        biometricTitle = biometricTitle,
+                        biometricSubtitle = biometricSubtitle,
+                        biometricNegativeButtonText = biometricNegativeButtonText
                     )
                 },
-                onEnableBiometric = { activity ->
-                    viewModel.enableBiometric(activity)
+                onEnableBiometric = {
+                    activity?.let {
+                        viewModel.enableBiometric(
+                            it,
+                            biometricTitle,
+                            biometricSubtitle,
+                            biometricNegativeButtonText
+                        )
+                    }
                 },
                 onDisableBiometric = {
                     viewModel.disableBiometric()
@@ -138,23 +157,23 @@ private fun MasterPasswordContent(
     isBiometricEnabled: Boolean,
     error: String?,
     isLoading: Boolean,
+    biometricTitle: String,
+    biometricSubtitle: String,
+    biometricNegativeButtonText: String,
     onSetup: (password: String, confirmPassword: String, hint: String?) -> Unit,
     onChange: (
-        activity: FragmentActivity?,
         oldPassword: String,
         newPassword: String,
         confirmPassword: String,
         hint: String?,
         biometricEnabled: Boolean
     ) -> Unit,
-    onEnableBiometric: (FragmentActivity) -> Unit,
+    onEnableBiometric: () -> Unit,
     onDisableBiometric: () -> Unit,
     onClearError: () -> Unit,
     onComplete: () -> Unit
 ) {
     val colors = MaterialTheme.colorScheme
-    val context = LocalContext.current
-    val activity = context as? FragmentActivity
 
     var oldPassword by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -389,7 +408,7 @@ private fun MasterPasswordContent(
             onCheckedChange = { enabled ->
                 if (isSetupMode) {
                     if (enabled) {
-                        activity?.let { onEnableBiometric(it) }
+                        onEnableBiometric()
                     } else {
                         onDisableBiometric()
                     }
@@ -407,7 +426,6 @@ private fun MasterPasswordContent(
                     onSetup(password, confirmPassword, hint.ifBlank { null })
                 } else {
                     onChange(
-                        activity,
                         oldPassword,
                         password,
                         confirmPassword,

@@ -176,7 +176,7 @@ class JGitMergeDataSource @Inject constructor(
             if (!java.io.File(gitDir, "MERGE_HEAD").exists()) {
                 throw Exception("No merge in progress to abort")
             }
-            git.reset().setMode(org.eclipse.jgit.api.ResetCommand.ResetType.HARD).call()
+            git.reset().setMode(org.eclipse.jgit.api.ResetCommand.ResetType.MERGE).call()
             "Merge aborted"
         }
 
@@ -184,7 +184,7 @@ class JGitMergeDataSource @Inject constructor(
         core.withGit(repoPath) { git ->
             val cleanedPaths = git.clean()
                 .setCleanDirectories(true)
-                .setIgnore(false)
+                .setIgnore(true)
                 .setDryRun(dryRun)
                 .call()
             CleanResult(files = cleanedPaths.toList(), isDryRun = dryRun)

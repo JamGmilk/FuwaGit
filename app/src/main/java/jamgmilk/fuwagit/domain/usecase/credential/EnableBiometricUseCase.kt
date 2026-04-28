@@ -13,23 +13,19 @@ class EnableBiometricUseCase @Inject constructor(
 ) {
     suspend operator fun invoke(
         activity: FragmentActivity,
-        onResult: (AppResult<Unit>) -> Unit
-    ) {
+        title: String,
+        subtitle: String,
+        negativeButtonText: String
+    ): AppResult<Unit> {
         val masterKey = credentialRepository.getCachedMasterKey()
-            ?: run {
-                onResult(AppResult.Error(AppException.MasterKeyNotUnlocked()))
-                return
-            }
+            ?: return AppResult.Error(AppException.MasterKeyNotUnlocked())
 
-        biometricRepository.enableBiometric(
+        return biometricRepository.enableBiometric(
             activity = activity,
             masterKey = masterKey,
-            onSuccess = {
-                onResult(AppResult.Success(Unit))
-            },
-            onError = { message ->
-                onResult(AppResult.Error(AppException.BiometricError(message)))
-            }
+            title = title,
+            subtitle = subtitle,
+            negativeButtonText = negativeButtonText
         )
     }
 }

@@ -38,7 +38,7 @@ import jamgmilk.fuwagit.R
 import jamgmilk.fuwagit.domain.model.git.GitTag
 import java.text.SimpleDateFormat
 import java.util.Date
-import java.util.Locale
+import androidx.compose.ui.platform.LocalLocale
 
 @Composable
 fun TagDetailDialog(
@@ -49,7 +49,6 @@ fun TagDetailDialog(
     val colors = MaterialTheme.colorScheme
     val context = LocalContext.current
     
-    // Pre-fetch strings for use in non-composable contexts
     val strTagNameLabel = stringResource(R.string.tags_tag_name_label)
     val strTagNameCopied = stringResource(R.string.tags_tag_name_copied)
 
@@ -107,7 +106,7 @@ fun TagDetailDialog(
                 }
                 
                 if (tag.timestamp != null) {
-                    val dateFormat = SimpleDateFormat("MMM dd, yyyy HH:mm:ss", Locale.getDefault())
+                    val dateFormat = SimpleDateFormat("MMM dd, yyyy HH:mm:ss", LocalLocale.current.platformLocale)
                     DetailRow(label = stringResource(R.string.tags_tag_created), value = dateFormat.format(Date(tag.timestamp)))
                 }
             }

@@ -44,6 +44,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.stringResource
+import jamgmilk.fuwagit.R
 import jamgmilk.fuwagit.domain.model.credential.HttpsCredential
 import jamgmilk.fuwagit.domain.model.credential.SshKey
 import jamgmilk.fuwagit.ui.theme.AppShapes
@@ -127,7 +129,7 @@ fun CredentialSelectDialog(
                 ) {
                     if (currentItems.isEmpty()) {
                         Box(Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) {
-                            Text("No credentials found", style = MaterialTheme.typography.bodyMedium, color = colors.onSurfaceVariant)
+                            Text(stringResource(R.string.credentials_not_found), style = MaterialTheme.typography.bodyMedium, color = colors.onSurfaceVariant)
                         }
                     } else {
                         currentItems.forEachIndexed { index, item ->

@@ -8,6 +8,6 @@ data class AppPreferences(
     val darkMode: String = "system",
     val language: String = "system",
     val dynamicColor: Boolean = true,
-    val autoLockTimeout: String = "300",
+    val autoLockTimeout: String = "600",
     val isFirstRun: Boolean = true
 )

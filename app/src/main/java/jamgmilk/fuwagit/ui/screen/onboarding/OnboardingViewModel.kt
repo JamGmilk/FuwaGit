@@ -4,16 +4,15 @@ import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
-import jamgmilk.fuwagit.core.result.AppResult
 import jamgmilk.fuwagit.domain.repository.SettingsRepository
-import jamgmilk.fuwagit.domain.usecase.credential.EnableBiometricUseCase
-import jamgmilk.fuwagit.domain.usecase.credential.SetupMasterPasswordUseCase
+import jamgmilk.fuwagit.domain.usecase.credential.CredentialStoreFacade
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+
 import androidx.compose.runtime.Stable
 
 enum class OnboardingStep {
@@ -37,14 +36,15 @@ data class OnboardingUiState(
     val enableBiometric: Boolean = false,
     val isSettingPassword: Boolean = false,
     val passwordError: String? = null,
-    val isSavingConfig: Boolean = false
+    val isSavingConfig: Boolean = false,
+    val isBiometricSetupComplete: Boolean = false,
+    val biometricSetupError: String? = null
 )
 
 @HiltViewModel
 class OnboardingViewModel @Inject constructor(
     private val settingsRepository: SettingsRepository,
-    private val setupMasterPasswordUseCase: SetupMasterPasswordUseCase,
-    private val enableBiometricUseCase: EnableBiometricUseCase
+    private val credentialFacade: CredentialStoreFacade
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(OnboardingUiState())
@@ -89,6 +89,28 @@ class OnboardingViewModel @Inject constructor(
         _uiState.update { it.copy(enableBiometric = enable) }
     }
 
+    fun enableBiometricIfNeeded(
+        activity: FragmentActivity,
+        title: String,
+        subtitle: String,
+        negativeButtonText: String
+    ) {
+        if (!_uiState.value.enableBiometric) return
+
+        viewModelScope.launch {
+            credentialFacade.enableBiometric(
+                activity = activity,
+                title = title,
+                subtitle = subtitle,
+                negativeButtonText = negativeButtonText
+            ).onSuccess {
+                _uiState.update { it.copy(isBiometricSetupComplete = true) }
+            }.onError { e ->
+                _uiState.update { it.copy(biometricSetupError = e.message) }
+            }
+        }
+    }
+
     fun updateUserName(name: String) {
         _uiState.update { it.copy(userName = name) }
     }
@@ -101,7 +123,12 @@ class OnboardingViewModel @Inject constructor(
         _uiState.update { it.copy(defaultBranch = branch) }
     }
 
-    fun setupPasswordAndContinue(activity: FragmentActivity?) {
+    fun setupPasswordAndContinue(
+        activity: FragmentActivity,
+        biometricTitle: String,
+        biometricSubtitle: String,
+        biometricNegativeButtonText: String
+    ) {
         val state = _uiState.value
         if (state.password.length < 6) {
             _uiState.update { it.copy(passwordError = "Password must be at least 6 characters") }
@@ -114,32 +141,25 @@ class OnboardingViewModel @Inject constructor(
 
         _uiState.update { it.copy(isSettingPassword = true, passwordError = null) }
         viewModelScope.launch {
-            setupMasterPasswordUseCase(state.password, state.confirmPassword, state.passwordHint.ifBlank { null })
+            credentialFacade.setupMasterPassword(state.password, state.passwordHint.ifBlank { null })
                 .onSuccess {
-                    if (state.enableBiometric && activity != null) {
-                        enableBiometricUseCase(activity) { result ->
-                            when (result) {
-                                is AppResult.Success -> {
-                                    nextStep()
-                                }
-                                is AppResult.Error -> {
-                                    _uiState.update {
-                                        it.copy(
-                                            isSettingPassword = false,
-                                            passwordError = result.message ?: "Biometric setup failed"
-                                        )
-                                    }
-                                }
-                            }
-                        }
+                    clearSensitiveData()
+                    _uiState.update { it.copy(isSettingPassword = false) }
+                    if (state.enableBiometric) {
+                        enableBiometricIfNeeded(activity, biometricTitle, biometricSubtitle, biometricNegativeButtonText)
                     } else {
-                        _uiState.update { it.copy(isSettingPassword = false) }
                         nextStep()
                     }
                 }
                 .onError { e ->
                     _uiState.update { it.copy(isSettingPassword = false, passwordError = e.message) }
                 }
+        }
+    }
+
+    private fun clearSensitiveData() {
+        _uiState.update {
+            it.copy(password = "", confirmPassword = "")
         }
     }
 

@@ -18,7 +18,6 @@ import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.SnackbarDuration
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
@@ -33,6 +32,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import jamgmilk.fuwagit.R
 import jamgmilk.fuwagit.domain.model.git.GitChangeType
@@ -40,6 +40,8 @@ import jamgmilk.fuwagit.domain.model.git.GitFileStatus
 import jamgmilk.fuwagit.ui.components.DangerousOperationType
 import jamgmilk.fuwagit.ui.components.ScreenTemplate
 import jamgmilk.fuwagit.ui.components.TwoStepConfirmDialog
+import jamgmilk.fuwagit.ui.screen.credentials.CredentialStoreViewModel
+import jamgmilk.fuwagit.ui.screen.credentials.UnlockDialog
 import kotlinx.coroutines.launch
 
 data class StatusStats(
@@ -55,10 +57,12 @@ data class StatusStats(
 @Composable
 fun StatusScreen(
     statusViewModel: StatusViewModel,
+    credentialStoreViewModel: CredentialStoreViewModel,
     modifier: Modifier = Modifier,
     onViewDiff: ((String, Boolean) -> Unit)? = null
 ) {
     val uiState by statusViewModel.uiState.collectAsStateWithLifecycle()
+    val credentialUiState by credentialStoreViewModel.uiState.collectAsStateWithLifecycle()
     val files = uiState.workspaceFiles
     val staged by remember(files) { derivedStateOf { files.filter { it.isStaged } } }
     val workspace by remember(files) { derivedStateOf { files.filter { !it.isStaged } } }
@@ -69,8 +73,17 @@ fun StatusScreen(
     val currentBranch = uiState.currentBranch
     val colors = MaterialTheme.colorScheme
     val context = LocalContext.current
+    val activity = context as FragmentActivity
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
+
+    val statusPushFailed = stringResource(R.string.status_push_failed)
+    val statusPullFailed = stringResource(R.string.status_pull_failed)
+    val statusFetchFailed = stringResource(R.string.status_fetch_failed)
+    val vmChangesDiscarded = stringResource(R.string.vm_changes_discarded)
+    val biometricUnlockTitle = stringResource(R.string.biometric_unlock_title)
+    val credentialsUnlockBiometricSubtitle = stringResource(R.string.credentials_unlock_biometric_subtitle)
+    val credentialsUsePassword = stringResource(R.string.credentials_use_password)
 
     LaunchedEffect(uiState.repoPath) {
         if (uiState.repoPath != null) {
@@ -85,35 +98,35 @@ fun StatusScreen(
                     scope.launch { snackbarHostState.showSnackbar(event.message) }
                 }
                 is StatusEvent.PushError -> {
-                    scope.launch { snackbarHostState.showSnackbar(context.getString(R.string.status_push_failed, event.message), duration = SnackbarDuration.Long) }
+                    scope.launch { snackbarHostState.showSnackbar(String.format(statusPushFailed, event.message)) }
                 }
                 is StatusEvent.PullSuccess -> {
                     scope.launch { snackbarHostState.showSnackbar(event.message) }
                 }
                 is StatusEvent.PullError -> {
-                    scope.launch { snackbarHostState.showSnackbar(context.getString(R.string.status_pull_failed, event.message), duration = SnackbarDuration.Long) }
+                    scope.launch { snackbarHostState.showSnackbar(String.format(statusPullFailed, event.message)) }
                 }
                 is StatusEvent.FetchSuccess -> {
                     scope.launch { snackbarHostState.showSnackbar(event.message) }
                 }
                 is StatusEvent.FetchError -> {
-                    scope.launch { snackbarHostState.showSnackbar(context.getString(R.string.status_fetch_failed, event.message), duration = SnackbarDuration.Long) }
+                    scope.launch { snackbarHostState.showSnackbar(String.format(statusFetchFailed, event.message)) }
                 }
                 is StatusEvent.CredentialUnlockRequired -> {
-                    scope.launch { snackbarHostState.showSnackbar(context.getString(R.string.status_credential_unlock_required)) }
+                    credentialStoreViewModel.showUnlockDialog()
                 }
                 is StatusEvent.DiscardChangesSuccess -> {
-                    scope.launch { snackbarHostState.showSnackbar(context.getString(R.string.vm_changes_discarded, event.fileName)) }
+                    scope.launch { snackbarHostState.showSnackbar(String.format(vmChangesDiscarded, event.fileName)) }
                 }
                 is StatusEvent.DiscardChangesError -> {
                     val message = "${event.reason}\n${event.suggestion}"
-                    scope.launch { snackbarHostState.showSnackbar(message, duration = SnackbarDuration.Long) }
+                    scope.launch { snackbarHostState.showSnackbar(message) }
                 }
                 is StatusEvent.ConflictResolved -> {
                     scope.launch { snackbarHostState.showSnackbar(event.message) }
                 }
                 is StatusEvent.ConflictError -> {
-                    scope.launch { snackbarHostState.showSnackbar(event.message, duration = SnackbarDuration.Long) }
+                    scope.launch { snackbarHostState.showSnackbar(event.message) }
                 }
                 is StatusEvent.AbortRebaseSuccess -> {
                     scope.launch { snackbarHostState.showSnackbar(event.message) }
@@ -337,6 +350,27 @@ fun StatusScreen(
                 }
             },
             onDismiss = { statusViewModel.cancelConflictResolution() }
+        )
+    }
+
+    if (credentialUiState.showUnlockDialog) {
+        UnlockDialog(
+            onDismiss = { credentialStoreViewModel.dismissUnlockDialog() },
+            onUnlock = { password ->
+                credentialStoreViewModel.unlockWithPassword(password)
+            },
+            biometricEnabled = credentialUiState.isBiometricEnabled,
+            onUnlockWithBiometric = {
+                credentialStoreViewModel.unlockWithBiometric(
+                    activity,
+                    biometricUnlockTitle,
+                    credentialsUnlockBiometricSubtitle,
+                    credentialsUsePassword
+                )
+            },
+            passwordHint = credentialUiState.passwordHint,
+            error = credentialUiState.error,
+            isLoading = credentialUiState.isLoading
         )
     }
 }

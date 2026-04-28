@@ -148,11 +148,10 @@ class JGitCommitDataSource @Inject constructor(
             commitBuilder.call().id.name()
         }.let { result ->
             if (result.isFailure) {
-                val exception = result.exceptionOrNull()
-                when {
-                    exception is LockFailedException -> Result.failure(Exception("Cannot commit: repository lock failed."))
-                    exception is JGitInternalException -> Result.failure(Exception("Git error: ${exception.message}"))
-                    exception is Exception -> Result.failure(exception)
+                when (val exception = result.exceptionOrNull()) {
+                    is LockFailedException -> Result.failure(Exception("Cannot commit: repository lock failed."))
+                    is JGitInternalException -> Result.failure(Exception("Git error: ${exception.message}"))
+                    is Exception -> Result.failure(exception)
                     else -> result
                 }
             } else {
@@ -164,9 +163,40 @@ class JGitCommitDataSource @Inject constructor(
     override fun reset(repoPath: String, commitHash: String, mode: GitResetMode): Result<String> {
         return try {
             core.withGit(repoPath) { git ->
-                // 验证 commitHash 是否存在
                 git.repository.resolve(commitHash)
                     ?: throw Exception("Commit not found: $commitHash")
+
+                val status = git.status().call()
+                val hasUncommittedChanges = status.hasUncommittedChanges()
+
+                if (mode == GitResetMode.HARD && hasUncommittedChanges) {
+                    val workingDirectoryChanges = status.modified.isNotEmpty() ||
+                        status.added.isNotEmpty() ||
+                        status.removed.isNotEmpty() ||
+                        status.changed.isNotEmpty()
+
+                    if (workingDirectoryChanges) {
+                        val stashResult = try {
+                            git.stashCreate()
+                                .setIncludeUntracked(true)
+                                .call()
+                        } catch (_: Exception) {
+                            null
+                        }
+
+                        if (stashResult != null) {
+                            val resetCommand = git.reset().setRef(commitHash)
+                                .setMode(org.eclipse.jgit.api.ResetCommand.ResetType.HARD)
+                            resetCommand.call()
+                            return@withGit "Reset to $commitHash (hard): All changes auto-stashed (stash@{0} = ${stashResult.name}). Use 'git stash pop' to restore."
+                        } else {
+                            throw Exception(
+                                "Cannot reset: there are uncommitted changes that could not be auto-stashed. " +
+                                "Please commit or stash your changes before performing a hard reset."
+                            )
+                        }
+                    }
+                }
 
                 val resetCommand = git.reset().setRef(commitHash)
                 when (mode) {

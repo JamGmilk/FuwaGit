@@ -9,9 +9,9 @@ import kotlinx.coroutines.flow.Flow
  */
 interface RepoRepository {
     /**
-     * Get the list of saved repositories as a Flow.
+     * Get the list of repositories as a Flow.
      */
-    fun getSavedReposFlow(): Flow<List<RepoData>>
+    fun getAllReposFlow(): Flow<List<RepoData>>
 
     /**
      * Get the list of saved repositories (one-time).

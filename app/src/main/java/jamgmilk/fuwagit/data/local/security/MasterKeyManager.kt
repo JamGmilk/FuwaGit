@@ -2,19 +2,11 @@ package jamgmilk.fuwagit.data.local.security
 
 import android.content.Context
 import android.content.SharedPreferences
-import android.security.keystore.KeyGenParameterSpec
-import android.security.keystore.KeyProperties
 import android.util.Base64
-import android.util.Log
-import androidx.biometric.BiometricPrompt
 import androidx.core.content.edit
-import androidx.fragment.app.FragmentActivity
 import dagger.hilt.android.qualifiers.ApplicationContext
-import jamgmilk.fuwagit.BuildConfig
-import jamgmilk.fuwagit.data.biometric.BiometricAuthManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import java.security.KeyStore
 import java.security.SecureRandom
 import javax.crypto.Cipher
 import javax.crypto.KeyGenerator
@@ -39,27 +31,21 @@ private class SecureDerivedKey(private val spec: PBEKeySpec, private val keyByte
 @Singleton
 class MasterKeyManager @Inject constructor(
     @ApplicationContext private val context: Context,
-    private val biometricAuthManager: BiometricAuthManager
+    private val secureCredentialStore: SecureCredentialStore
 ) {
 
     companion object {
         private const val TAG = "MasterKeyManager"
-        private const val KEYSTORE_BIOMETRIC_ALIAS = "fuwagit_biometric_key"
         private const val PREFS_NAME = "credential_key_store"
         private const val KEY_ENCRYPTED_MASTER = "encrypted_master_key"
         private const val KEY_SALT = "salt"
         private const val KEY_BIOMETRIC_ENABLED = "biometric_enabled"
-        private const val KEY_BIOMETRIC_ENCRYPTED_MASTER = "biometric_encrypted_master"
-        private const val KEY_BIOMETRIC_IV = "biometric_iv"
-        private const val PBKDF2_ITERATIONS = 100000
         private const val KEY_PASSWORD_HINT = "password_hint"
+        private const val PBKDF2_ITERATIONS = 100000
+        private const val KEY_ENCRYPTED_BIOMETRIC_MASTER = "encrypted_biometric_master_key"
         private const val KEY_LENGTH = 256
         private const val GCM_TAG_LENGTH = 128
         private const val GCM_IV_LENGTH = 12
-    }
-
-    private val keyStore: KeyStore by lazy {
-        KeyStore.getInstance("AndroidKeyStore").apply { load(null) }
     }
 
     private val prefs: SharedPreferences by lazy {
@@ -89,9 +75,10 @@ class MasterKeyManager @Inject constructor(
                         Base64.encodeToString(salt, Base64.NO_WRAP))
                 }
 
-                val result = SecretKeySpec(masterKey.encoded, "AES")
+                val encodedBytes = masterKey.encoded
+                val result = SecretKeySpec(encodedBytes.copyOf(), "AES")
+                java.util.Arrays.fill(encodedBytes, 0.toByte())
                 derivedKey.secureZero()
-                masterKey.encoded?.let { java.util.Arrays.fill(it, 0.toByte()) }
                 result
             }
         }
@@ -160,153 +147,38 @@ class MasterKeyManager @Inject constructor(
         }
     }
 
-    fun enableBiometric(
-        activity: FragmentActivity,
-        masterKey: SecretKey,
-        onSuccess: () -> Unit,
-        onError: (String) -> Unit
-    ) {
-        if (BuildConfig.DEBUG) Log.d(TAG, "enableBiometric: starting")
-        try {
-            if (keyStore.containsAlias(KEYSTORE_BIOMETRIC_ALIAS)) {
-                if (BuildConfig.DEBUG) Log.d(TAG, "enableBiometric: deleting existing key")
-                keyStore.deleteEntry(KEYSTORE_BIOMETRIC_ALIAS)
-            }
-
-            if (BuildConfig.DEBUG) Log.d(TAG, "enableBiometric: creating biometric key")
-            createBiometricKey()
-
-            if (BuildConfig.DEBUG) Log.d(TAG, "enableBiometric: creating cipher")
-            val cipher = createBiometricCipher()
-
-            biometricAuthManager.authenticateWithCrypto(
-                activity = activity,
-                action = BiometricAuthManager.AuthAction.ENABLE,
-                cryptoObject = BiometricPrompt.CryptoObject(cipher),
-                onResult = { result ->
-                    when (result) {
-                        is BiometricAuthManager.AuthResult.SuccessWithCrypto -> {
-                            if (BuildConfig.DEBUG) Log.d(TAG, "enableBiometric: onAuthenticationSucceeded")
-                            result.result.cryptoObject?.cipher?.let { c ->
-                                try {
-                                    val encrypted = c.doFinal(masterKey.encoded)
-                                    val actualIv = c.iv
-                                    prefs.edit {
-                                        putString(KEY_BIOMETRIC_ENCRYPTED_MASTER,
-                                            Base64.encodeToString(encrypted, Base64.NO_WRAP))
-                                        putString(KEY_BIOMETRIC_IV,
-                                            Base64.encodeToString(actualIv, Base64.NO_WRAP))
-                                        putBoolean(KEY_BIOMETRIC_ENABLED, true)
-                                        apply()
-                                    }
-                                    if (BuildConfig.DEBUG) Log.d(TAG, "enableBiometric: success saved to prefs with IV size ${actualIv?.size}")
-                                    onSuccess()
-                                } catch (e: Exception) {
-                                    Log.e(TAG, "enableBiometric: doFinal failed: ${e.message}")
-                                    onError("Encryption failed: ${e.message}")
-                                }
-                            } ?: run {
-                                Log.e(TAG, "enableBiometric: Cipher is null")
-                                onError("Cipher is null")
-                            }
-                        }
-                        is BiometricAuthManager.AuthResult.Error -> {
-                            Log.e(TAG, "enableBiometric: onAuthenticationError: ${result.code} - ${result.message}")
-                            onError(result.message)
-                        }
-                        is BiometricAuthManager.AuthResult.Cancelled -> {
-                            if (BuildConfig.DEBUG) Log.d(TAG, "enableBiometric: cancelled")
-                        }
-                    }
+    suspend fun enableBiometric(masterKey: SecretKey): Result<Unit> {
+        return withContext(Dispatchers.IO) {
+            runCatching {
+                secureCredentialStore.cacheMasterKey(masterKey)
+                prefs.edit {
+                    putBoolean(KEY_BIOMETRIC_ENABLED, true)
                 }
-            )
-        } catch (e: Exception) {
-            Log.e(TAG, "enableBiometric: exception: ${e.message}", e)
-            onError(e.message ?: "Failed to enable biometric")
+            }
         }
     }
 
-    fun unlockWithBiometric(
-        activity: FragmentActivity,
-        onSuccess: (SecretKey) -> Unit,
-        onError: (String) -> Unit
-    ) {
-        if (BuildConfig.DEBUG) Log.d(TAG, "unlockWithBiometric: starting")
-        try {
-            val ivBase64 = prefs.getString(KEY_BIOMETRIC_IV, null)
-            if (ivBase64 == null) {
-                Log.e(TAG, "unlockWithBiometric: Biometric not set up")
-                onError("Biometric not set up")
-                return
-            }
-
-            val iv = Base64.decode(ivBase64, Base64.NO_WRAP)
-            val cipher = createBiometricCipherForDecrypt(iv)
-
-            biometricAuthManager.authenticateWithCrypto(
-                activity = activity,
-                action = BiometricAuthManager.AuthAction.UNLOCK,
-                cryptoObject = BiometricPrompt.CryptoObject(cipher),
-                onResult = { result ->
-                    when (result) {
-                        is BiometricAuthManager.AuthResult.SuccessWithCrypto -> {
-                            if (BuildConfig.DEBUG) Log.d(TAG, "unlockWithBiometric: onAuthenticationSucceeded")
-                            result.result.cryptoObject?.cipher?.let { c ->
-                                val encryptedBase64 = prefs.getString(KEY_BIOMETRIC_ENCRYPTED_MASTER, null)
-                                if (encryptedBase64 != null) {
-                                    try {
-                                        val encrypted = Base64.decode(encryptedBase64, Base64.NO_WRAP)
-                                        val masterKeyBytes = c.doFinal(encrypted)
-                                        if (BuildConfig.DEBUG) Log.d(TAG, "unlockWithBiometric: success")
-                                        onSuccess(SecretKeySpec(masterKeyBytes, "AES"))
-                                    } catch (e: Exception) {
-                                        Log.e(TAG, "unlockWithBiometric: doFinal failed: ${e.message}")
-                                        if (e is javax.crypto.AEADBadTagException) {
-                                            Log.w(TAG, "unlockWithBiometric: AEADBadTagException, disabling biometric")
-                                            disableBiometric()
-                                            onError("Biometric data corrupted. Please re-enable in settings.")
-                                        } else {
-                                            onError("Decryption failed: ${e.message}")
-                                        }
-                                    }
-                                } else {
-                                    Log.e(TAG, "unlockWithBiometric: No biometric data found")
-                                    onError("No biometric data found")
-                                }
-                            } ?: run {
-                                Log.e(TAG, "unlockWithBiometric: Cipher is null")
-                                onError("Cipher is null")
-                            }
-                        }
-                        is BiometricAuthManager.AuthResult.Error -> {
-                            Log.e(TAG, "unlockWithBiometric: onAuthenticationError: ${result.code} - ${result.message}")
-                            onError(result.message)
-                        }
-                        is BiometricAuthManager.AuthResult.Cancelled -> {
-                            if (BuildConfig.DEBUG) Log.d(TAG, "unlockWithBiometric: cancelled")
-                        }
-                    }
+    suspend fun unlockWithBiometric(): Result<SecretKey> {
+        return withContext(Dispatchers.IO) {
+            try {
+                val cachedKey = secureCredentialStore.getCachedMasterKey()
+                if (cachedKey != null) {
+                    Result.success(cachedKey)
+                } else {
+                    Result.failure(Exception("Biometric session expired. Please enter your password."))
                 }
-            )
-        } catch (e: Exception) {
-            Log.e(TAG, "unlockWithBiometric: exception: ${e.message}", e)
-            onError(e.message ?: "Failed to unlock with biometric")
+            } catch (e: Exception) {
+                Result.failure(e)
+            }
         }
     }
 
-    fun disableBiometric() {
-        prefs.edit {
-            remove(KEY_BIOMETRIC_ENCRYPTED_MASTER)
-            remove(KEY_BIOMETRIC_IV)
-            putBoolean(KEY_BIOMETRIC_ENABLED, false)
-            apply()
-        }
-        try {
-            if (keyStore.containsAlias(KEYSTORE_BIOMETRIC_ALIAS)) {
-                keyStore.deleteEntry(KEYSTORE_BIOMETRIC_ALIAS)
+    suspend fun disableBiometric() {
+        withContext(Dispatchers.IO) {
+            secureCredentialStore.clearCachedMasterKey()
+            prefs.edit {
+                putBoolean(KEY_BIOMETRIC_ENABLED, false)
             }
-        } catch (e: Exception) {
-            Log.e(TAG, "disableBiometric: failed to delete key entry", e)
         }
     }
 
@@ -316,6 +188,26 @@ class MasterKeyManager @Inject constructor(
 
     fun getPasswordHint(): String? {
         return prefs.getString(KEY_PASSWORD_HINT, null)
+    }
+
+    fun hasEncryptedMasterKey(): Boolean {
+        return prefs.contains(KEY_ENCRYPTED_BIOMETRIC_MASTER)
+    }
+
+    fun getEncryptedMasterKey(): String? {
+        return prefs.getString(KEY_ENCRYPTED_BIOMETRIC_MASTER, null)
+    }
+
+    fun saveEncryptedMasterKey(encryptedKey: String) {
+        prefs.edit { putString(KEY_ENCRYPTED_BIOMETRIC_MASTER, encryptedKey) }
+    }
+
+    fun clearEncryptedMasterKey() {
+        prefs.edit { remove(KEY_ENCRYPTED_BIOMETRIC_MASTER) }
+    }
+
+    fun setBiometricEnabledInternal(enabled: Boolean) {
+        prefs.edit { putBoolean(KEY_BIOMETRIC_ENABLED, enabled) }
     }
 
     private fun generateRandomKey(): SecretKey {
@@ -337,40 +229,5 @@ class MasterKeyManager @Inject constructor(
         val cipher = Cipher.getInstance("AES/GCM/NoPadding")
         cipher.init(Cipher.DECRYPT_MODE, key, GCMParameterSpec(GCM_TAG_LENGTH, iv))
         return cipher.doFinal(encrypted)
-    }
-
-    private fun createBiometricKey() {
-        val keyGenerator = KeyGenerator.getInstance(
-            KeyProperties.KEY_ALGORITHM_AES,
-            "AndroidKeyStore"
-        )
-
-        val spec = KeyGenParameterSpec.Builder(
-            KEYSTORE_BIOMETRIC_ALIAS,
-            KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT
-        )
-            .setBlockModes(KeyProperties.BLOCK_MODE_GCM)
-            .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE)
-            .setKeySize(KEY_LENGTH)
-            .setUserAuthenticationRequired(true)
-            .setInvalidatedByBiometricEnrollment(true)
-            .build()
-
-        keyGenerator.init(spec)
-        keyGenerator.generateKey()
-    }
-
-    private fun createBiometricCipher(): Cipher {
-        val secretKey = keyStore.getKey(KEYSTORE_BIOMETRIC_ALIAS, null) as SecretKey
-        val cipher = Cipher.getInstance("AES/GCM/NoPadding")
-        cipher.init(Cipher.ENCRYPT_MODE, secretKey)
-        return cipher
-    }
-
-    private fun createBiometricCipherForDecrypt(iv: ByteArray): Cipher {
-        val secretKey = keyStore.getKey(KEYSTORE_BIOMETRIC_ALIAS, null) as SecretKey
-        val cipher = Cipher.getInstance("AES/GCM/NoPadding")
-        cipher.init(Cipher.DECRYPT_MODE, secretKey, GCMParameterSpec(GCM_TAG_LENGTH, iv))
-        return cipher
     }
 }

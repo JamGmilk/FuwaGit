@@ -37,6 +37,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.fragment.app.FragmentActivity
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
@@ -44,11 +45,11 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
-import androidx.fragment.app.FragmentActivity
 import android.content.Context
 import android.content.res.Configuration
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
+import jamgmilk.fuwagit.R
 import jamgmilk.fuwagit.ui.navigation.AddRepoTab
 import jamgmilk.fuwagit.ui.navigation.DiffType
 import jamgmilk.fuwagit.ui.navigation.NavRoutes
@@ -113,6 +114,10 @@ fun AppNavHost(navController: NavHostController, startDestination: String = NavR
     val credentialStoreViewModel: CredentialStoreViewModel = hiltViewModel(
         viewModelStoreOwner = activity
     )
+
+    val biometricUnlockTitle = stringResource(R.string.biometric_unlock_title)
+    val credentialsUnlockBiometricSubtitle = stringResource(R.string.credentials_unlock_biometric_subtitle)
+    val credentialsUsePassword = stringResource(R.string.credentials_use_password)
 
     LaunchedEffect(Unit) {
         HostKeyAskHelper.requests.collect { request ->
@@ -179,9 +184,6 @@ fun AppNavHost(navController: NavHostController, startDestination: String = NavR
                             popUpTo(NavRoutes.MAIN) { saveState = true }
                         }
                     },
-                    onMasterPasswordSuccess = {
-                        navController.popBackStack()
-                    },
                     onViewFileDiff = { filePath, diffType ->
                         val encodedPath = URLEncoder.encode(filePath, StandardCharsets.UTF_8.name())
                         navController.navigate("${NavRoutes.FILE_DIFF}?filePath=$encodedPath&diffType=${diffType.name}")
@@ -227,7 +229,6 @@ fun AppNavHost(navController: NavHostController, startDestination: String = NavR
             }
 
             composable(NavRoutes.PERMISSIONS) {
-                val activity = LocalContext.current.requireActivity()
                 val credentialUiState by credentialStoreViewModel.uiState.collectAsStateWithLifecycle()
                 var sshTestResult by remember { mutableStateOf<SshTestResult>(SshTestResult.Idle) }
 
@@ -254,21 +255,45 @@ fun AppNavHost(navController: NavHostController, startDestination: String = NavR
                         },
                         biometricEnabled = credentialUiState.isBiometricEnabled,
                         onUnlockWithBiometric = {
-                            credentialStoreViewModel.unlockWithBiometric(activity)
+                            credentialStoreViewModel.unlockWithBiometric(
+                                activity,
+                                biometricUnlockTitle,
+                                credentialsUnlockBiometricSubtitle,
+                                credentialsUsePassword
+                            )
                         }
                     )
                 }
             }
 
             composable(NavRoutes.CREDENTIALS) {
-                val activity = LocalContext.current.requireActivity()
-                val credentialsViewModel: CredentialStoreViewModel = hiltViewModel(
-                    viewModelStoreOwner = activity
-                )
+                val credentialUiState by credentialStoreViewModel.uiState.collectAsStateWithLifecycle()
+
                 CredentialScreen(
-                    viewModel = credentialsViewModel,
+                    viewModel = credentialStoreViewModel,
                     onBack = { navController.popBackStack() }
                 )
+
+                if (credentialUiState.showUnlockDialog) {
+                    UnlockDialog(
+                        onDismiss = { credentialStoreViewModel.dismissUnlockDialog() },
+                        onUnlock = { password ->
+                            credentialStoreViewModel.unlockWithPassword(password)
+                        },
+                        biometricEnabled = credentialUiState.isBiometricEnabled,
+                        onUnlockWithBiometric = {
+                            credentialStoreViewModel.unlockWithBiometric(
+                                activity,
+                                biometricUnlockTitle,
+                                credentialsUnlockBiometricSubtitle,
+                                credentialsUsePassword
+                            )
+                        },
+                        passwordHint = credentialUiState.passwordHint,
+                        error = credentialUiState.error,
+                        isLoading = credentialUiState.isLoading
+                    )
+                }
             }
 
             composable(NavRoutes.MASTER_PASSWORD) {
@@ -323,7 +348,6 @@ fun MainScreen(
     onNavigateToPermissions: () -> Unit,
     onNavigateToCredentials: () -> Unit,
     onNavigateToMasterPassword: () -> Unit,
-    onMasterPasswordSuccess: () -> Unit = {},
     onViewFileDiff: ((String, DiffType) -> Unit)? = null,
     onViewCommitDiff: ((DiffViewRequest) -> Unit)? = null
 ) {
@@ -351,7 +375,10 @@ fun MainScreen(
     LaunchedEffect(Unit) {
         credentialStoreViewModel.events.collect { event ->
             when (event) {
-                is CredentialStoreEvent.UnlockSuccess -> statusViewModel.onCredentialUnlocked()
+                is CredentialStoreEvent.UnlockSuccess -> {
+                    statusViewModel.onCredentialUnlocked()
+                    myReposViewModel.onCredentialUnlocked()
+                }
                 else -> { }
             }
         }
@@ -394,6 +421,7 @@ fun MainScreen(
                 when (MainPage.entries.getOrNull(page)) {
                     MainPage.Status -> StatusScreen(
                         statusViewModel = statusViewModel,
+                        credentialStoreViewModel = credentialStoreViewModel,
                         modifier = Modifier.fillMaxSize(),
                         onViewDiff = { filePath, isStaged ->
                             val diffType = if (isStaged) DiffType.STAGED else DiffType.WORKING_TREE
@@ -426,8 +454,7 @@ fun MainScreen(
                         modifier = Modifier.fillMaxSize(),
                         onNavigateToPermissions = onNavigateToPermissions,
                         onNavigateToCredentials = onNavigateToCredentials,
-                        onNavigateToMasterPassword = onNavigateToMasterPassword,
-                        onMasterPasswordSuccess = onMasterPasswordSuccess
+                        onNavigateToMasterPassword = onNavigateToMasterPassword
                     )
                     null -> { }
                 }

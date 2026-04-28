@@ -3,7 +3,6 @@ package jamgmilk.fuwagit.ui.screen.tags
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -47,8 +46,8 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -70,7 +69,6 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import jamgmilk.fuwagit.R
 import jamgmilk.fuwagit.domain.model.git.GitTag
-import jamgmilk.fuwagit.ui.components.DangerousOperationType
 import jamgmilk.fuwagit.ui.components.ScreenTemplate
 import jamgmilk.fuwagit.ui.theme.AppShapes
 import kotlinx.coroutines.launch
@@ -149,7 +147,6 @@ fun TagsContent(
     onShowSnackbar: (String) -> Unit = {}
 ) {
     val uiState by tagsViewModel.uiState.collectAsStateWithLifecycle()
-    val colors = MaterialTheme.colorScheme
     var tagForDetail by remember { mutableStateOf<GitTag?>(null) }
 
     if (uiState.tags.isEmpty()) {
@@ -164,7 +161,6 @@ fun TagsContent(
         )
     }
 
-    // Tag 详情对话框
     if (tagForDetail != null) {
         TagDetailDialog(
             tag = tagForDetail!!,
@@ -174,9 +170,6 @@ fun TagsContent(
     }
 }
 
-/**
- * 标签相关对话框集合（创建、删除、推送、操作结果）
- */
 @Composable
 fun TagsDialogs(
     tagsViewModel: TagsViewModel,
@@ -185,17 +178,22 @@ fun TagsDialogs(
     val uiState by tagsViewModel.uiState.collectAsStateWithLifecycle()
     var showCreateDialog by remember { mutableStateOf(false) }
     var createTagType by remember { mutableStateOf(CreateTagType.Annotated) }
-    val context = LocalContext.current
     val scope = rememberCoroutineScope()
+
+    val vmTagAnnotatedCreated = stringResource(R.string.vm_tag_annotated_created)
+    val vmTagLightweightCreated = stringResource(R.string.vm_tag_lightweight_created)
+    val vmTagDeleted = stringResource(R.string.vm_tag_deleted)
+    val vmTagPushSuccess = stringResource(R.string.vm_tag_push_success)
+    val vmCheckoutSuccess = stringResource(R.string.vm_checkout_success)
 
     LaunchedEffect(Unit) {
         tagsViewModel.events.collect { event ->
             when (event) {
                 is TagUiEvent.CreateSuccess -> {
                     val message = if (event.isAnnotated) {
-                        context.getString(R.string.vm_tag_annotated_created, event.tagName)
+                        String.format(vmTagAnnotatedCreated, event.tagName)
                     } else {
-                        context.getString(R.string.vm_tag_lightweight_created, event.tagName)
+                        String.format(vmTagLightweightCreated, event.tagName)
                     }
                     scope.launch { snackbarHostState.showSnackbar(message) }
                 }
@@ -203,13 +201,13 @@ fun TagsDialogs(
                     scope.launch { snackbarHostState.showSnackbar(event.message, duration = SnackbarDuration.Long) }
                 }
                 is TagUiEvent.DeleteSuccess -> {
-                    scope.launch { snackbarHostState.showSnackbar(context.getString(R.string.vm_tag_deleted, event.tagName)) }
+                    scope.launch { snackbarHostState.showSnackbar(String.format(vmTagDeleted, event.tagName)) }
                 }
                 is TagUiEvent.DeleteError -> {
                     scope.launch { snackbarHostState.showSnackbar(event.message, duration = SnackbarDuration.Long) }
                 }
                 is TagUiEvent.PushSuccess -> {
-                    scope.launch { snackbarHostState.showSnackbar(context.getString(R.string.vm_tag_push_success, event.tagName)) }
+                    scope.launch { snackbarHostState.showSnackbar(String.format(vmTagPushSuccess, event.tagName)) }
                 }
                 is TagUiEvent.PushAllSuccess -> {
                     scope.launch { snackbarHostState.showSnackbar(event.message) }
@@ -218,7 +216,7 @@ fun TagsDialogs(
                     scope.launch { snackbarHostState.showSnackbar(event.message, duration = SnackbarDuration.Long) }
                 }
                 is TagUiEvent.CheckoutSuccess -> {
-                    scope.launch { snackbarHostState.showSnackbar(context.getString(R.string.vm_checkout_success, event.tagName)) }
+                    scope.launch { snackbarHostState.showSnackbar(String.format(vmCheckoutSuccess, event.tagName)) }
                 }
                 is TagUiEvent.CheckoutError -> {
                     scope.launch { snackbarHostState.showSnackbar(event.message, duration = SnackbarDuration.Long) }
@@ -403,7 +401,6 @@ private fun SearchFilterBar(
             .fillMaxWidth()
             .padding(12.dp)
     ) {
-        // 搜索框
         OutlinedTextField(
             value = searchQuery,
             onValueChange = onSearchQueryChange,

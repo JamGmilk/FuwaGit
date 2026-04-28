@@ -11,6 +11,7 @@ import jamgmilk.fuwagit.domain.model.credential.SshKey
 import jamgmilk.fuwagit.domain.usecase.credential.CredentialStoreFacade
 import jamgmilk.fuwagit.domain.usecase.git.TestSshConnectionUseCase
 import jamgmilk.fuwagit.ui.screen.permissions.SshTestResult
+import jamgmilk.fuwagit.ui.state.CredentialSessionManager
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -37,23 +38,19 @@ data class CredentialsStoreUiState(
     val isBiometricEnabled: Boolean = false,
     val isDecryptionUnlocked: Boolean = false,
     val showUnlockDialog: Boolean = false,
-    val showChangePasswordDialog: Boolean = false,
-    val changePasswordError: String? = null,
     val passwordHint: String? = null,
     val httpsCredentials: List<HttpsCredential> = emptyList(),
     val sshKeys: List<SshKey> = emptyList(),
     val isLoading: Boolean = false,
     val error: String? = null,
-    val exportedData: String? = null,
-    val showExportDialog: Boolean = false,
-    val showImportDialog: Boolean = false,
-    val importSuccess: Boolean = false
+    val exportedData: String? = null
 )
 
 @HiltViewModel
-class CredentialStoreViewModel @Inject constructor(
+    class CredentialStoreViewModel @Inject constructor(
     private val credentialFacade: CredentialStoreFacade,
-    private val testSshConnectionUseCase: TestSshConnectionUseCase
+    private val testSshConnectionUseCase: TestSshConnectionUseCase,
+    private val sessionManager: CredentialSessionManager
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(CredentialsStoreUiState())
@@ -63,45 +60,35 @@ class CredentialStoreViewModel @Inject constructor(
     val events: SharedFlow<CredentialStoreEvent> = _events.asSharedFlow()
 
     init {
+        observeGlobalSession()
         initialize()
     }
 
-    fun initialize() {
-        _uiState.update {
-            it.copy(
-                isMasterPasswordSet = credentialFacade.isMasterPasswordSet(),
-                isBiometricEnabled = credentialFacade.isBiometricEnabled(),
-                passwordHint = credentialFacade.getMasterPasswordHint()
-            )
+    private fun observeGlobalSession() {
+        viewModelScope.launch {
+            sessionManager.sessionState.collect { session ->
+                _uiState.update {
+                    it.copy(
+                        isDecryptionUnlocked = session.isUnlocked,
+                        isMasterPasswordSet = session.isMasterPasswordSet,
+                        isBiometricEnabled = session.isBiometricEnabled,
+                        passwordHint = session.passwordHint,
+                        showUnlockDialog = session.showUnlockDialog
+                    )
+                }
+            }
         }
-        loadCredentials()
     }
 
-    fun setupMasterPassword(password: String, confirmPassword: String, hint: String?) {
-        executeWithLoading {
-            credentialFacade.setupMasterPassword(password, confirmPassword, hint)
-                .onSuccess {
-                    _uiState.update {
-                        it.copy(
-                            isMasterPasswordSet = true,
-                            showUnlockDialog = false
-                        )
-                    }
-                    loadCredentials()
-                }
-        }
+    fun initialize() {
+        sessionManager.refreshSessionState()
+        loadCredentials()
     }
 
     fun unlockWithPassword(password: String) {
         executeWithLoading {
             credentialFacade.unlockWithPassword(password)
                 .onSuccess {
-                    _uiState.update {
-                        it.copy(
-                            isDecryptionUnlocked = true,
-                            showUnlockDialog = false
-                        )
-                    }
                     viewModelScope.launch { _events.emit(CredentialStoreEvent.UnlockSuccess) }
                     loadCredentials()
                 }
@@ -110,10 +97,6 @@ class CredentialStoreViewModel @Inject constructor(
 
     private fun loadCredentials() {
         viewModelScope.launch {
-            _uiState.update {
-                it.copy(isDecryptionUnlocked = credentialFacade.isUnlocked())
-            }
-
             credentialFacade.getHttpsCredentials()
                 .onSuccess { credentials ->
                     _uiState.update { it.copy(httpsCredentials = credentials) }
@@ -167,17 +150,29 @@ class CredentialStoreViewModel @Inject constructor(
     }
 
     fun exportCredentials() {
-        executeWithLoading {
-            credentialFacade.exportCredentials()
+        viewModelScope.launch {
+            if (!credentialFacade.isUnlocked()) {
+                _uiState.update {
+                    it.copy(isDecryptionUnlocked = false)
+                }
+                _events.emit(CredentialStoreEvent.Error("Vault is locked. Please unlock first."))
+                return@launch
+            }
+            _uiState.update { it.copy(isLoading = true, error = null) }
+            val result = credentialFacade.exportCredentials()
+            result
                 .onSuccess { data ->
                     _uiState.update {
-                        it.copy(
-                            exportedData = data,
-                            showExportDialog = true
-                        )
+                        it.copy(exportedData = data)
                     }
-                    _events.emit(CredentialStoreEvent.CredentialExported)
                 }
+                .onError { e ->
+                    _uiState.update { it.copy(error = e.message ?: "Unknown error") }
+                }
+            _uiState.update { it.copy(isLoading = false) }
+            result.onSuccess {
+                _events.emit(CredentialStoreEvent.CredentialExported)
+            }
         }
     }
 
@@ -185,137 +180,67 @@ class CredentialStoreViewModel @Inject constructor(
         executeWithLoading {
             credentialFacade.importCredentials(jsonData)
                 .onSuccess {
-                    _uiState.update {
-                        it.copy(
-                            showImportDialog = false,
-                            importSuccess = true
-                        )
-                    }
                     _events.emit(CredentialStoreEvent.CredentialImported)
                     loadCredentials()
                 }
         }
     }
 
-    fun enableBiometric(activity: FragmentActivity) {
+    fun enableBiometric(
+        activity: FragmentActivity,
+        title: String,
+        subtitle: String,
+        negativeButtonText: String
+    ) {
         viewModelScope.launch {
-            credentialFacade.enableBiometric(activity) { result ->
-                when (result) {
-                    is AppResult.Success -> {
-                        _uiState.update { it.copy(isBiometricEnabled = true) }
-                        viewModelScope.launch { _events.emit(CredentialStoreEvent.BiometricEnabled) }
-                    }
-                    is AppResult.Error -> {
-                        _uiState.update { it.copy(error = result.message ?: "Biometric error") }
-                        viewModelScope.launch { _events.emit(CredentialStoreEvent.Error(result.message ?: "Biometric error")) }
-                    }
+            credentialFacade.enableBiometric(activity, title, subtitle, negativeButtonText)
+                .onSuccess {
+                    sessionManager.reloadConfig()
+                    _events.emit(CredentialStoreEvent.BiometricEnabled)
                 }
-            }
+                .onError { e ->
+                    _uiState.update { it.copy(error = e.message ?: "Biometric error") }
+                    _events.emit(CredentialStoreEvent.Error(e.message ?: "Biometric error"))
+                }
         }
     }
 
-    fun unlockWithBiometric(activity: FragmentActivity) {
-        credentialFacade.unlockWithBiometric(activity) { result ->
-            when (result) {
-                is AppResult.Success -> {
-                    _uiState.update {
-                        it.copy(
-                            isDecryptionUnlocked = true,
-                            isBiometricEnabled = true,
-                            showUnlockDialog = false
-                        )
-                    }
-                    viewModelScope.launch { _events.emit(CredentialStoreEvent.UnlockSuccess) }
+    fun unlockWithBiometric(
+        activity: FragmentActivity,
+        title: String,
+        subtitle: String,
+        negativeButtonText: String
+    ) {
+        viewModelScope.launch {
+            credentialFacade.unlockWithBiometric(activity, title, subtitle, negativeButtonText)
+                .onSuccess {
+                    _events.emit(CredentialStoreEvent.UnlockSuccess)
                     loadCredentials()
                 }
-                is AppResult.Error -> {
-                    _uiState.update { it.copy(error = result.message ?: "Biometric error") }
-                    viewModelScope.launch { _events.emit(CredentialStoreEvent.Error(result.message ?: "Biometric error")) }
+                .onError { e ->
+                    _uiState.update { it.copy(error = e.message ?: "Biometric error") }
+                    _events.emit(CredentialStoreEvent.Error(e.message ?: "Biometric error"))
                 }
-            }
         }
     }
 
     fun disableBiometric() {
         viewModelScope.launch {
             credentialFacade.disableBiometric()
-            _uiState.update { it.copy(isBiometricEnabled = false) }
+            sessionManager.reloadConfig()
         }
     }
 
     fun lock() {
         credentialFacade.lock()
-        _uiState.update {
-            it.copy(isDecryptionUnlocked = false)
-        }
     }
 
     fun showUnlockDialog() {
-        _uiState.update { it.copy(showUnlockDialog = true) }
+        sessionManager.showUnlockDialog()
     }
 
     fun dismissUnlockDialog() {
-        _uiState.update { it.copy(showUnlockDialog = false) }
-    }
-
-    fun showExportDialog() {
-        _uiState.update { it.copy(showExportDialog = true) }
-    }
-
-    fun dismissExportDialog() {
-        _uiState.update { it.copy(showExportDialog = false, exportedData = null) }
-    }
-
-    fun showImportDialog() {
-        _uiState.update { it.copy(showImportDialog = true) }
-    }
-
-    fun dismissImportDialog() {
-        _uiState.update { it.copy(showImportDialog = false) }
-    }
-
-    fun showChangePasswordDialog() {
-        _uiState.update { it.copy(showChangePasswordDialog = true, changePasswordError = null) }
-    }
-
-    fun dismissChangePasswordDialog() {
-        _uiState.update { it.copy(showChangePasswordDialog = false, changePasswordError = null) }
-    }
-
-    fun changeMasterPassword(oldPassword: String, newPassword: String, confirmPassword: String, hint: String?) {
-        if (newPassword != confirmPassword) {
-            _uiState.update { it.copy(changePasswordError = "Passwords do not match") }
-            return
-        }
-        if (newPassword.length < 6) {
-            _uiState.update { it.copy(changePasswordError = "Password must be at least 6 characters") }
-            return
-        }
-
-        viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, changePasswordError = null) }
-
-            credentialFacade.changeMasterPassword(oldPassword, newPassword, hint)
-                .onSuccess {
-                    _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            showChangePasswordDialog = false,
-                            changePasswordError = null,
-                            passwordHint = hint,
-                            isBiometricEnabled = false
-                        )
-                    }
-                }
-                .onError {
-                    _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            changePasswordError = "Incorrect old password"
-                        )
-                    }
-                }
-        }
+        sessionManager.dismissUnlockDialog()
     }
 
     fun clearError() {
@@ -341,14 +266,6 @@ class CredentialStoreViewModel @Inject constructor(
         }
     }
 
-    /**
-     * Test SSH connection with the given host and key UUID.
-     * Retrieves the decrypted private key from the vault (requires unlock).
-     *
-     * @param host The SSH host (e.g., "git@github.com")
-     * @param sshKeyUuid The UUID of the SSH key to test
-     * @param onResult Callback to receive the test result
-     */
     fun testSshConnection(
         host: String,
         sshKeyUuid: String,

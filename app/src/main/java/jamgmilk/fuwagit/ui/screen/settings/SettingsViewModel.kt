@@ -9,6 +9,7 @@ import jamgmilk.fuwagit.domain.repository.RepoRepository
 import jamgmilk.fuwagit.domain.repository.SettingsRepository
 import jamgmilk.fuwagit.domain.usecase.git.ApplyGitConfigToAllRepos
 import jamgmilk.fuwagit.ui.state.RepoStateManager
+import jamgmilk.fuwagit.util.LanguageManager
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -36,7 +37,7 @@ data class SettingsUiState(
     val globalUserName: String? = null,
     val globalUserEmail: String? = null,
     val applyResult: ApplyConfigResult? = null,
-    val autoLockTimeout: String = "300",
+    val autoLockTimeout: String = "600",
     val isFirstRun: Boolean = true
 )
 
@@ -76,7 +77,7 @@ class SettingsViewModel @Inject constructor(
     private fun observeRepositories() {
         viewModelScope.launch {
             launch {
-                repoRepository.getSavedReposFlow().collect { repos ->
+                repoRepository.getAllReposFlow().collect { repos ->
                     _uiState.update { it.copy(savedReposCount = repos.size) }
                 }
             }
@@ -93,6 +94,7 @@ class SettingsViewModel @Inject constructor(
                 }
             }
             launch {
+                var isFirstEmit = true
                 settingsRepository.preferencesFlow().collect { prefs ->
                     _uiState.update {
                         it.copy(
@@ -106,6 +108,10 @@ class SettingsViewModel @Inject constructor(
                             autoLockTimeout = prefs.autoLockTimeout,
                             isFirstRun = prefs.isFirstRun
                         )
+                    }
+                    if (isFirstEmit) {
+                        LanguageManager.setLanguage(prefs.language)
+                        isFirstEmit = false
                     }
                 }
             }
@@ -228,7 +234,7 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
-    suspend fun getCurrentRepoPath(): String? {
+    fun getCurrentRepoPath(): String? {
         return repoStateManager.getRepoPath()
     }
 }

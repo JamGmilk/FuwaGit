@@ -5,7 +5,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import jamgmilk.fuwagit.core.result.AppException
-import jamgmilk.fuwagit.core.result.AppResult
 import jamgmilk.fuwagit.domain.usecase.credential.CredentialStoreFacade
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -62,7 +61,7 @@ class MasterPasswordViewModel @Inject constructor(
         }
     }
 
-    fun setupMasterPassword(password: String, confirmPassword: String, hint: String?) {
+    fun setupPasswordAndContinue(password: String, confirmPassword: String, hint: String?) {
         if (password != confirmPassword) {
             _uiState.update { it.copy(error = "Passwords do not match") }
             return
@@ -75,7 +74,7 @@ class MasterPasswordViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
 
-            credentialFacade.setupMasterPassword(password, confirmPassword, hint)
+            credentialFacade.setupMasterPassword(password, hint)
                 .onSuccess {
                     _uiState.update {
                         it.copy(
@@ -98,13 +97,34 @@ class MasterPasswordViewModel @Inject constructor(
         }
     }
 
+    fun enableBiometric(
+        activity: FragmentActivity,
+        title: String,
+        subtitle: String,
+        negativeButtonText: String
+    ) {
+        viewModelScope.launch {
+            credentialFacade.enableBiometric(activity, title, subtitle, negativeButtonText)
+                .onSuccess {
+                    _uiState.update { it.copy(isBiometricEnabled = true) }
+                    _events.emit(MasterPasswordEvent.BiometricEnabled)
+                }
+                .onError { e ->
+                    _events.emit(MasterPasswordEvent.BiometricError(e.message ?: "Biometric error"))
+                }
+        }
+    }
+
     fun changeMasterPassword(
-        activity: FragmentActivity?,
         oldPassword: String,
         newPassword: String,
         confirmPassword: String,
         hint: String?,
-        biometricEnabled: Boolean
+        biometricEnabled: Boolean,
+        activity: FragmentActivity,
+        biometricTitle: String,
+        biometricSubtitle: String,
+        biometricNegativeButtonText: String
     ) {
         if (newPassword != confirmPassword) {
             _uiState.update { it.copy(error = "Passwords do not match") }
@@ -121,74 +141,29 @@ class MasterPasswordViewModel @Inject constructor(
 
             credentialFacade.changeMasterPassword(oldPassword, newPassword, hint)
                 .onSuccess {
-                    when {
-                        wasBiometricEnabled && !biometricEnabled -> {
-                            credentialFacade.disableBiometric()
-                            viewModelScope.launch {
-                                finishPasswordChange(hint = hint, biometricEnabled = false)
+                    if (wasBiometricEnabled && !biometricEnabled) {
+                        credentialFacade.disableBiometric()
+                        finishPasswordChange(hint = hint, biometricEnabled = false)
+                    } else if (biometricEnabled) {
+                        credentialFacade.enableBiometric(
+                            activity = activity,
+                            title = biometricTitle,
+                            subtitle = biometricSubtitle,
+                            negativeButtonText = biometricNegativeButtonText
+                        )
+                            .onSuccess {
+                                finishPasswordChange(hint = hint, biometricEnabled = true)
                             }
-                        }
-
-                        !wasBiometricEnabled && biometricEnabled -> {
-                            credentialFacade.unlockWithPassword(newPassword)
-                                .onSuccess {
-                                    if (activity == null) {
-                                        val message = AppException.MasterKeyNotUnlocked().message
-                                        _uiState.update {
-                                            it.copy(
-                                                isLoading = false,
-                                                error = message
-                                            )
-                                        }
-                                        _events.emit(MasterPasswordEvent.Error(message))
-                                        return@onSuccess
-                                    }
-
-                                    credentialFacade.enableBiometric(activity) { result ->
-                                        when (result) {
-                                            is AppResult.Success -> {
-                                                viewModelScope.launch {
-                                                    finishPasswordChange(hint = hint, biometricEnabled = true)
-                                                }
-                                            }
-
-                                            is AppResult.Error -> {
-                                                val message = result.message ?: "Biometric error"
-                                                viewModelScope.launch {
-                                                    _uiState.update {
-                                                        it.copy(
-                                                            isLoading = false,
-                                                            error = message
-                                                        )
-                                                    }
-                                                    _events.emit(MasterPasswordEvent.Error(message))
-                                                }
-                                            }
-                                        }
-                                    }
+                            .onError { e ->
+                                _uiState.update {
+                                    it.copy(
+                                        isLoading = false,
+                                        error = e.message ?: "Biometric setup failed"
+                                    )
                                 }
-                                .onError { e ->
-                                    val message = e.message ?: AppException.MasterKeyNotUnlocked().message
-                                    viewModelScope.launch {
-                                        _uiState.update {
-                                            it.copy(
-                                                isLoading = false,
-                                                error = message
-                                            )
-                                        }
-                                        _events.emit(MasterPasswordEvent.Error(message))
-                                    }
-                                }
-                        }
-
-                        else -> {
-                            viewModelScope.launch {
-                                finishPasswordChange(
-                                    hint = hint,
-                                    biometricEnabled = wasBiometricEnabled
-                                )
                             }
-                        }
+                    } else {
+                        finishPasswordChange(hint = hint, biometricEnabled = wasBiometricEnabled)
                     }
                 }
                 .onError { e ->
@@ -204,36 +179,15 @@ class MasterPasswordViewModel @Inject constructor(
         }
     }
 
-    fun clearError() {
-        _uiState.update { it.copy(error = null) }
-    }
-
-    fun enableBiometric(activity: FragmentActivity) {
-        viewModelScope.launch {
-            credentialFacade.enableBiometric(activity) { result ->
-                when (result) {
-                    is AppResult.Success -> {
-                        viewModelScope.launch {
-                            _uiState.update { it.copy(isBiometricEnabled = true) }
-                            _events.emit(MasterPasswordEvent.BiometricEnabled)
-                        }
-                    }
-                    is AppResult.Error -> {
-                        viewModelScope.launch {
-                            _uiState.update { it.copy(error = result.message ?: "Biometric error") }
-                            _events.emit(MasterPasswordEvent.BiometricError(result.message ?: "Biometric error"))
-                        }
-                    }
-                }
-            }
-        }
-    }
-
     fun disableBiometric() {
         viewModelScope.launch {
             credentialFacade.disableBiometric()
             _uiState.update { it.copy(isBiometricEnabled = false) }
         }
+    }
+
+    fun clearError() {
+        _uiState.update { it.copy(error = null) }
     }
 
     private suspend fun finishPasswordChange(hint: String?, biometricEnabled: Boolean) {

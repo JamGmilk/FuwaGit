@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.util.Log
+import androidx.core.content.pm.PackageInfoCompat
 import java.io.File
 import java.io.FileWriter
 import java.io.PrintWriter
@@ -40,10 +41,10 @@ object CrashLogManager {
 
         appVersion = try {
             val packageInfo = context.packageManager.getPackageInfo(context.packageName, 0)
-            val versionCode = packageInfo.versionCode
+            val versionCode = PackageInfoCompat.getLongVersionCode(packageInfo)
             val versionName = packageInfo.versionName ?: "Unknown"
             "$versionName ($versionCode)"
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             "Unknown"
         }
 
@@ -69,6 +70,7 @@ object CrashLogManager {
         try {
             writeCrashLog(logFile, thread, throwable)
             Log.i(TAG, "Crash log written to: ${logFile.absolutePath}")
+            cleanupOldLogsSync()
         } catch (e: Exception) {
             Log.e(TAG, "Failed to write crash log", e)
         }
@@ -180,6 +182,7 @@ object CrashLogManager {
                 writer.println("=== End of Manual Error Log ===")
             }
             Log.d(TAG, "Manual error log written to: ${logFile.absolutePath}")
+            cleanupOldLogsSync()
         } catch (e: Exception) {
             Log.e(TAG, "Failed to write manual error log", e)
         }

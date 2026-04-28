@@ -1,148 +1,64 @@
-<p align="center">
-  <img src="./app/src/main/res/mipmap-xxxhdpi/ic_launcher.webp" width="200" alt="FuwaGit Logo" />
-</p>
+<div align="right">
 
-# <p align="center">FuwaGit</p>
+**English** | [简体中文](README.zh-Hans.md)
 
-</br>
-
-<p align="center">
-  <img alt="API" src="https://img.shields.io/badge/API%2026+-50f270?logo=android&logoColor=black&style=for-the-badge"/>
-  <img alt="Kotlin" src="https://img.shields.io/badge/Kotlin-a503fc?logo=kotlin&logoColor=white&style=for-the-badge"/>
-  <img alt="Jetpack Compose" src="https://img.shields.io/badge/Jetpack%20Compose-4285F4?logo=jetpackcompose&logoColor=white&style=for-the-badge"/>
-  <img alt="Material You" src="https://custom-icon-badges.demolab.com/badge/Material%20You-lightblue?logo=material-you&logoColor=333&style=for-the-badge"/>
-</p>
-
-</br>
+</div>
 
 <div align="center">
 
-# Overview
+<img src="./app/src/main/res/mipmap-xxxhdpi/ic_launcher.webp" width="192" alt="FuwaGit Logo" />
 
-FuwaGit is a lightweight and powerful Git client for Android that brings full Git operations to your mobile device. Whether you're managing repositories, committing changes, or collaborating with others, FuwaGit provides a smooth and intuitive experience with secure credential management.
+# FuwaGit
 
-Built with modern Android technologies including Jetpack Compose and Material Design 3, FuwaGit offers a beautiful interface while maintaining robust functionality for developers on the go.
+![API](https://img.shields.io/badge/API%2026+-50f270?logo=android&logoColor=black&style=for-the-badge)
+![Kotlin](https://img.shields.io/badge/Kotlin-a503fc?logo=kotlin&logoColor=white&style=for-the-badge)
+![Jetpack Compose](https://img.shields.io/badge/Jetpack%20Compose-4285F4?logo=jetpackcompose&logoColor=white&style=for-the-badge)
+![Material You](https://custom-icon-badges.demolab.com/badge/Material%20You-lightblue?logo=material-you&logoColor=333&style=for-the-badge)
 
-Fuwa (ふわ): light and airy~
+FuwaGit is a lightweight and powerful Git client for Android. Built with modern technologies like Jetpack Compose and Material Design 3, it offers a beautiful interface for developers on the go.
 
+*Fuwa (ふわ): light and airy~*
+
+---
 </div>
 
-# Screenshots
+## Screenshots
 
+|                                                        |                                                        |                                                        |
+|:------------------------------------------------------:|:------------------------------------------------------:|:------------------------------------------------------:|
+| <img src="screenshots/Screenshot_1.jpg" width="300" /> | <img src="screenshots/Screenshot_2.jpg" width="300" /> | <img src="screenshots/Screenshot_6.jpg" width="300" /> |
 
-<p align="center">
-  <img src="screenshots/Screenshot_1.jpg" width="300" />
-  <img src="screenshots/Screenshot_2.jpg" width="300" />
-  <img src="screenshots/Screenshot_6.jpg" width="300" />
-</p>
+## Download
 
+Grab the latest APK from the [Releases](https://github.com/JamGmilk/FuwaGit/releases/latest) page.
 
-# Download
+## Tech Stack
 
-Go to the [Releases](https://github.com/JamGmilk/FuwaGit/releases/latest) and download the latest APK.
+| Component         | Technology        |
+|:------------------|:------------------|
+| **Language**      | Kotlin            |
+| **UI Framework**  | Jetpack Compose   |
+| **Design System** | Material Design 3 |
+| **Git Library**   | Eclipse JGit      |
+| **SSH**           | JSch              |
+| **DI**            | Hilt              |
+| **Min SDK**       | 26 (Android 8.0)  |
 
-# Installation Instructions
+## Features
 
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/JamGmilk/FuwaGit.git
-   ```
-2. Install dependencies using Gradle:
-   ```bash
-   ./gradlew build
-   ```
-3. The debug APK will be generated at:
-   ```bash
-   app/build/outputs/apk/debug/app-debug.apk
-   ```
+### Git Operations
+- **Full Lifecycle**: Clone (HTTPS/SSH), Commit, Push, Pull, and Fetch.
+- **Branching**: Create, delete, rename, and checkout branches easily.
+- **Advanced**: Merge with conflict detection, interactive rebase, and tags support.
+- **Resets**: Support for Soft, Mixed, and Hard resets.
+- **Diff View**: Built-in syntax highlighting for viewing changes.
 
-# Tech Stack
+### Security & UX
+- **Biometric Lock**: Protect your Git credentials with fingerprint/face unlock.
+- **AES-256 Encryption**: Secure storage backed by the Android Keystore.
+- **SSH Key Gen**: Generate Ed25519 or RSA keys directly in the app.
+- **Dynamic Theming**: Full support for Material You and Dark Mode.
 
-| Component | Technology |
-|:----------|:----------|
-| Language | Kotlin |
-| UI Framework | Jetpack Compose |
-| Design System | Material Design 3 |
-| Git Library | Eclipse JGit 6.8.0 |
-| SSH | JSch |
-| DI | Hilt |
-| Min SDK | 26 (Android 8.0) |
-| Target SDK | 36 |
-
-# ✨ Features
-
-## Git Operations
-
-- **Clone** - Clone remote repositories via HTTPS or SSH
-- **Commit** - Stage changes and create commits with custom messages
-- **Push** - Push commits to remote repositories
-- **Pull** - Pull changes from remote with merge/rebase support
-- **Fetch** - Fetch updates without merging
-- **Branch Management** - Create, delete, rename, checkout branches
-- **Merge** - Merge branches with conflict detection
-- **Rebase** - Interactive rebase support
-- **Tags** - Create, delete, and push tags (lightweight and annotated)
-- **Reset** - Soft, mixed, and hard reset support
-- **Diff** - View file differences with syntax highlighting
-
-## Repository Management
-
-- **Multi-Repo Support** - Manage multiple repositories simultaneously
-- **Local Repos** - Add existing local Git repositories
-- **Remote Cloning** - Clone from GitHub, GitLab, Bitbucket, or any Git server
-- **Repository Info** - View detailed repository information
-- **Clean** - Remove untracked files with preview
-
-## Security
-
-- **Master Password** - Encrypt all stored credentials with AES-256
-- **Biometric Unlock** - Use fingerprint to quickly unlock credentials
-- **Secure Storage** - Android Keystore-backed credential encryption
-- **SSH Key Management** - Generate and store Ed25519/RSA SSH keys
-- **HTTPS Credentials** - Securely store usernames and personal access tokens
-- **Auto-Lock** - Configurable automatic vault locking
-
-## User Experience
-
-- **Material Design 3** - Modern and beautiful UI with dynamic theming
-- **Dark/Light Mode** - System-following or manual theme selection
-- **Multi-language** - English and Simplified Chinese support
-
-
-# Dependencies
-
-- [Eclipse JGit](https://www.eclipse.org/jgit/) - Pure Java implementation of Git
-- [JSch](https://github.com/mwiede/jsch) - SSH2 protocol implementation
-- [Bouncy Castle](https://www.bouncycastle.org/) - Cryptographic algorithms
-- [Jetpack Compose](https://developer.android.com/jetpack/compose) - Modern declarative UI
-- [Material 3](https://developer.android.com/compose/material3) - Material Design components
-- [Hilt](https://dagger.dev/hilt/) - Dependency injection
-- [Kotlinx Serialization](https://kotlinlang.org/docs/serialization.html) - JSON parsing
-
-
-# License
-
-```xml
-MIT License
-
-Copyright (c) 2026 JamGmilk
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-```
-</div>
+## License
+    Copyright 2026 JamGmilk
+    MIT License

@@ -20,8 +20,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Label
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Folder
-import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Link
 import androidx.compose.material3.Button
@@ -43,12 +41,12 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import jamgmilk.fuwagit.R
-import jamgmilk.fuwagit.core.util.PathUtils
 import jamgmilk.fuwagit.ui.components.FilePickerDialog
 import jamgmilk.fuwagit.ui.components.SectionCard
 import jamgmilk.fuwagit.ui.theme.AppShapes
@@ -221,7 +219,7 @@ private fun RemoteSelectorDropdown(
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
             Text(
-                text = stringResource(R.string.local_remote_count_format, remotes.size),
+                text = pluralStringResource(R.plurals.remote_count, remotes.size),
                 style = MaterialTheme.typography.labelMedium,
                 color = colors.onSurfaceVariant
             )

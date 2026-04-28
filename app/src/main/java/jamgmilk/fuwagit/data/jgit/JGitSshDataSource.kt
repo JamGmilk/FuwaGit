@@ -118,10 +118,10 @@ class JGitSshDataSource @Inject constructor(
             cleanupConnection(channel, session)
             privateKeyBytes.secureZero()
             passphraseBytes?.secureZero()
-            if (serverBanner.isNotBlank()) {
-                return Result.success(serverBanner)
+            return if (serverBanner.isNotBlank()) {
+                Result.success(serverBanner)
             } else {
-                return Result.success("SSH connection successful to $username@$hostname")
+                Result.success("SSH connection successful to $username@$hostname")
             }
         } catch (e: com.jcraft.jsch.JSchException) {
             debugLog("SSH connection failed: ${e.message}")

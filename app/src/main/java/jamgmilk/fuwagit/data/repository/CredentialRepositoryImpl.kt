@@ -50,7 +50,7 @@ class CredentialRepositoryImpl @Inject constructor(
 
     override fun getMasterPasswordHint(): String? = masterKeyManager.getPasswordHint()
 
-    override suspend fun isUnlocked(): Boolean = secureStore.getCachedMasterKey() != null
+    override suspend fun isUnlocked(): Boolean = getCachedMasterKey() != null
 
     override fun lock() = secureStore.clearCachedMasterKey()
 
@@ -60,7 +60,7 @@ class CredentialRepositoryImpl @Inject constructor(
 
     override fun setMasterKeyFromBiometric(key: SecretKey) = secureStore.cacheMasterKeyFromBiometric(key)
 
-    private suspend fun getMasterKey(): SecretKey =
+    private fun getMasterKey(): SecretKey =
         secureStore.getCachedMasterKey() ?: throw AppException.MasterKeyNotUnlocked()
 
     private suspend fun <T> getCredentialOrThrow(
@@ -173,9 +173,12 @@ class CredentialRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun disableBiometric(): AppResult<Unit> {
+    override suspend fun changeMasterPassword(oldPassword: String, newPassword: String, hint: String?): AppResult<Unit> {
         return AppResult.catching {
-            masterKeyManager.disableBiometric()
+            masterKeyManager.changeMasterPassword(oldPassword, newPassword).getOrThrow()
+            if (hint != null) {
+                masterKeyManager.setPasswordHint(hint)
+            }
         }
     }
 }

@@ -11,6 +11,8 @@ import org.eclipse.jgit.api.Git
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder
 import java.io.File
 import java.security.Security
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.locks.ReentrantLock
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -23,9 +25,16 @@ class JGitCoreDataSource @Inject constructor(
 
     companion object {
         private const val TAG = "JGitCoreDataSource"
+        private val repoLocks = ConcurrentHashMap<String, ReentrantLock>()
+    }
+
+    private fun getLockForRepo(repoPath: String): ReentrantLock {
+        return repoLocks.computeIfAbsent(repoPath) { ReentrantLock() }
     }
 
     override fun <T> withGit(repoPath: String, block: (Git) -> T): Result<T> {
+        val lock = getLockForRepo(repoPath)
+        lock.lock()
         return try {
             Git.open(File(repoPath)).use { git ->
                 Result.success(block(git))
@@ -33,6 +42,8 @@ class JGitCoreDataSource @Inject constructor(
         } catch (e: Exception) {
             Log.e(TAG, "Git operation failed for $repoPath", e)
             Result.failure(e)
+        } finally {
+            lock.unlock()
         }
     }
 
@@ -74,7 +85,7 @@ class JGitCoreDataSource @Inject constructor(
         return try {
             val gitDir = File(path, ".git")
             gitDir.exists() && gitDir.isDirectory
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             false
         }
     }
@@ -87,7 +98,7 @@ class JGitCoreDataSource @Inject constructor(
                 .build().use { repository ->
                     repository.isBare || repository.directory.exists()
                 }
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             false
         }
     }

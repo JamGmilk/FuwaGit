@@ -3,9 +3,6 @@ package jamgmilk.fuwagit.ui.screen.settings
 import android.content.Intent
 import android.os.Build
 import android.util.Log
-import androidx.appcompat.app.AppCompatDelegate
-import androidx.core.os.LocaleListCompat
-import jamgmilk.fuwagit.BuildConfig
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
@@ -27,10 +24,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.AccountTree
@@ -38,21 +35,17 @@ import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Backup
 import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.Build
-import androidx.compose.material.icons.filled.Business
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.CloudSync
 import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.CreditCard
 import androidx.compose.material.icons.filled.DarkMode
-import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Fingerprint
 import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Shield
@@ -60,25 +53,23 @@ import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material.icons.filled.Terminal
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.outlined.Info
-import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.SnackbarDuration
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -89,6 +80,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -96,8 +88,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalLifecycleOwner
-import androidx.compose.ui.platform.LocalResources
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -110,17 +101,19 @@ import androidx.core.content.pm.PackageInfoCompat
 import androidx.core.net.toUri
 import androidx.fragment.app.FragmentActivity
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import jamgmilk.fuwagit.BuildConfig
 import jamgmilk.fuwagit.R
 import jamgmilk.fuwagit.ui.components.FilePickerDialog
 import jamgmilk.fuwagit.ui.components.ScreenTemplate
 import jamgmilk.fuwagit.ui.screen.credentials.CredentialStoreViewModel
 import jamgmilk.fuwagit.ui.screen.credentials.UnlockDialog
 import jamgmilk.fuwagit.util.CrashLogManager
+import jamgmilk.fuwagit.util.LanguageManager
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
-import androidx.compose.runtime.snapshotFlow
 
 private const val TAG = "SettingsScreen"
 @Composable
@@ -129,16 +122,26 @@ fun SettingsScreen(
     onNavigateToPermissions: () -> Unit = {},
     onNavigateToCredentials: () -> Unit = {},
     onNavigateToMasterPassword: () -> Unit = {},
-    onMasterPasswordSuccess: () -> Unit = {},
     settingsViewModel: SettingsViewModel = hiltViewModel(),
     credentialsViewModel: CredentialStoreViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
-    val resources = LocalResources.current
     val activity = context as? FragmentActivity
     val settingsUiState by settingsViewModel.uiState.collectAsStateWithLifecycle()
     val credentialsUiState by credentialsViewModel.uiState.collectAsStateWithLifecycle()
-    val applyResult = settingsUiState.applyResult
+
+    val credentialsMasterPasswordSetSuccessfully = stringResource(R.string.credentials_master_password_set_successfully)
+    val biometricEnableTitle = stringResource(R.string.biometric_enable_title)
+    val biometricEnableSubtitle = stringResource(R.string.biometric_enable_subtitle)
+    val settingsBiometricCancel = stringResource(R.string.settings_biometric_cancel)
+    val settingsPleaseSetMasterPasswordFirst = stringResource(R.string.settings_please_set_master_password_first)
+    val settingsClearKnownHostsDeleted = stringResource(R.string.settings_clear_known_hosts_deleted)
+    val settingsCommitEditmsgDeleted = stringResource(R.string.settings_commit_editmsg_deleted)
+    val settingsNoCommitEditmsg = stringResource(R.string.settings_no_commit_editmsg)
+    val settingsNoRepositorySelected = stringResource(R.string.settings_no_repository_selected)
+    val biometricUnlockTitle = stringResource(R.string.biometric_unlock_title)
+    val credentialsUnlockBiometricSubtitle = stringResource(R.string.credentials_unlock_biometric_subtitle)
+    val credentialsUsePassword = stringResource(R.string.credentials_use_password)
 
     var showFilePicker by rememberSaveable { mutableStateOf(false) }
     var pendingBiometricEnable by rememberSaveable { mutableStateOf(false) }
@@ -159,11 +162,6 @@ fun SettingsScreen(
         }
     }
 
-    LaunchedEffect(applyResult) {
-        applyResult?.let {
-        }
-    }
-
     LaunchedEffect(credentialsUiState.error) {
         credentialsUiState.error?.let { errorMessage ->
             snackbarHostState.showSnackbar(errorMessage, duration = SnackbarDuration.Long)
@@ -175,12 +173,7 @@ fun SettingsScreen(
         settingsViewModel.events.collect { event ->
             when (event) {
                 is SettingsEvent.LanguageChanged -> {
-                    val localeList = when (event.language) {
-                        "zh" -> LocaleListCompat.forLanguageTags("zh")
-                        "en" -> LocaleListCompat.forLanguageTags("en")
-                        else -> LocaleListCompat.getEmptyLocaleList()
-                    }
-                    AppCompatDelegate.setApplicationLocales(localeList)
+                    LanguageManager.setLanguage(event.language)
                 }
             }
         }
@@ -197,7 +190,7 @@ fun SettingsScreen(
         if (!previousMasterPasswordSet && credentialsUiState.isMasterPasswordSet) {
             scope.launch {
                 snackbarHostState.showSnackbar(
-                    message = context.getString(R.string.credentials_master_password_set_successfully)
+                    message = credentialsMasterPasswordSetSuccessfully
                 )
             }
         }
@@ -209,14 +202,15 @@ fun SettingsScreen(
             Pair(credentialsUiState.isDecryptionUnlocked, pendingBiometricEnable) 
         }.collectLatest { (isUnlocked, pendingEnable) ->
             if (BuildConfig.DEBUG) Log.d(TAG, "snapshotFlow: isDecryptionUnlocked=$isUnlocked, pendingBiometricEnable=$pendingEnable")
-            if (isUnlocked && pendingEnable) {
-                if (BuildConfig.DEBUG) Log.d(TAG, "snapshotFlow: calling enableBiometric, activity=$activity")
-                if (activity == null) {
-                    Log.e(TAG, "snapshotFlow: activity is NULL, cannot enable biometric")
-                }
+            if (isUnlocked && pendingEnable && activity != null) {
                 delay(100)
                 pendingBiometricEnable = false
-                activity?.let { credentialsViewModel.enableBiometric(it) }
+                credentialsViewModel.enableBiometric(
+                    activity = activity,
+                    title = biometricEnableTitle,
+                    subtitle = biometricEnableSubtitle,
+                    negativeButtonText = settingsBiometricCancel
+                )
             }
         }
     }
@@ -241,15 +235,10 @@ fun SettingsScreen(
             userEmail = settingsUiState.userEmail,
             defaultBranch = settingsUiState.defaultBranch,
             setUpstreamOnPush = settingsUiState.setUpstreamOnPush,
-            applyResult = applyResult,
             onUserConfigSave = { name, email -> settingsViewModel.saveUserConfig(name, email) },
             onDefaultBranchSave = { settingsViewModel.saveDefaultBranch(it) },
             onSetUpstreamOnPushChange = { settingsViewModel.saveSetUpstreamOnPush(it) },
             onReload = { settingsViewModel.reloadUserConfig() },
-            onApplyToAllRepos = { name, email, alsoToGlobal ->
-                settingsViewModel.applyConfigToAllRepos(name, email, alsoToGlobal)
-            },
-            onClearApplyResult = { settingsViewModel.clearApplyResult() },
             modifier = Modifier.fillMaxWidth()
         )
 
@@ -258,7 +247,7 @@ fun SettingsScreen(
                 if (!credentialsUiState.isMasterPasswordSet) {
                     scope.launch {
                         snackbarHostState.showSnackbar(
-                            message = context.getString(R.string.settings_please_set_master_password_first)
+                            message = settingsPleaseSetMasterPasswordFirst
                         )
                     }
                 } else {
@@ -272,7 +261,7 @@ fun SettingsScreen(
             isDecryptionUnlocked = credentialsUiState.isDecryptionUnlocked,
             isMasterPasswordSet = credentialsUiState.isMasterPasswordSet,
             onBiometricEnabledChange = { enabled ->
-                if (BuildConfig.DEBUG) Log.d(TAG, "Switch toggled: enabled=$enabled, isDecryptionUnlocked=${credentialsUiState.isDecryptionUnlocked}, activity=$activity")
+                if (BuildConfig.DEBUG) Log.d(TAG, "Switch toggled: enabled=$enabled, isDecryptionUnlocked=${credentialsUiState.isDecryptionUnlocked}")
                 if (enabled) {
                     if (!credentialsUiState.isDecryptionUnlocked) {
                         if (BuildConfig.DEBUG) Log.d(TAG, "Enabling biometric but locked, showing unlock dialog")
@@ -280,7 +269,14 @@ fun SettingsScreen(
                         credentialsViewModel.showUnlockDialog()
                     } else {
                         if (BuildConfig.DEBUG) Log.d(TAG, "Calling enableBiometric directly")
-                        activity?.let { credentialsViewModel.enableBiometric(it) }
+                        activity?.let {
+                            credentialsViewModel.enableBiometric(
+                                activity = it,
+                                title = biometricEnableTitle,
+                                subtitle = biometricEnableSubtitle,
+                                negativeButtonText = settingsBiometricCancel
+                            )
+                        }
                     }
                 } else {
                     if (!credentialsUiState.isDecryptionUnlocked && credentialsUiState.isBiometricEnabled) {
@@ -324,7 +320,7 @@ fun SettingsScreen(
             onResetOnboarding = { settingsViewModel.resetOnboarding() },
             onClearKnownHostsComplete = {
                 scope.launch {
-                    snackbarHostState.showSnackbar(context.getString(R.string.settings_clear_known_hosts_deleted))
+                    snackbarHostState.showSnackbar(settingsClearKnownHostsDeleted)
                 }
             },
             onClearCommitEditMsgComplete = {
@@ -334,16 +330,16 @@ fun SettingsScreen(
                         val commitEditMsg = java.io.File(repoPath, ".git/COMMIT_EDITMSG")
                         if (commitEditMsg.exists()) {
                             commitEditMsg.delete()
-                            snackbarHostState.showSnackbar(context.getString(R.string.settings_commit_editmsg_deleted))
+                            snackbarHostState.showSnackbar(settingsCommitEditmsgDeleted)
                         } else {
-                            snackbarHostState.showSnackbar(context.getString(R.string.settings_no_commit_editmsg))
+                            snackbarHostState.showSnackbar(settingsNoCommitEditmsg)
                         }
                     } else {
-                        snackbarHostState.showSnackbar(context.getString(R.string.settings_no_repository_selected))
+                        snackbarHostState.showSnackbar(settingsNoRepositorySelected)
                     }
                 }
             },
-            onExportLogsComplete = { hasLogs, message ->
+            onExportLogsComplete = { _, message ->
                 scope.launch {
                     snackbarHostState.showSnackbar(message)
                 }
@@ -380,7 +376,14 @@ fun SettingsScreen(
             },
             biometricEnabled = credentialsUiState.isBiometricEnabled,
             onUnlockWithBiometric = {
-                activity?.let { credentialsViewModel.unlockWithBiometric(it) }
+                activity?.let {
+                    credentialsViewModel.unlockWithBiometric(
+                        it,
+                        biometricUnlockTitle,
+                        credentialsUnlockBiometricSubtitle,
+                        credentialsUsePassword
+                    )
+                }
             },
             passwordHint = credentialsUiState.passwordHint,
             error = credentialsUiState.error,
@@ -517,7 +520,7 @@ private fun SecuritySettingsCard(
     isDecryptionUnlocked: Boolean = false,
     isMasterPasswordSet: Boolean = false,
     onBiometricEnabledChange: ((Boolean) -> Unit)? = null,
-    autoLockTimeout: String = "300",
+    autoLockTimeout: String = "600",
     onAutoLockTimeoutChange: (String) -> Unit = {}
 ) {
     val colors = MaterialTheme.colorScheme
@@ -578,7 +581,7 @@ private fun SecuritySettingsCard(
                     600L -> stringResource(R.string.settings_auto_lock_10_minutes)
                     1800L -> stringResource(R.string.settings_auto_lock_30_minutes)
                     3600L -> stringResource(R.string.settings_auto_lock_1_hour)
-                    else -> stringResource(R.string.settings_auto_lock_seconds_format, (autoLockTimeout.toLongOrNull() ?: 0L).toInt())
+                    else -> pluralStringResource(R.plurals.settings_auto_lock_seconds, (autoLockTimeout.toLongOrNull() ?: 0L).toInt())
                 }
 
                 ExpandableSettingsItem(
@@ -645,61 +648,61 @@ private fun SecuritySettingsCard(
     }
 }
 
-@Composable
-private fun SyncSettingsCard(
-    autoSync: Boolean,
-    onAutoSyncChange: (Boolean) -> Unit,
-    conflictSafeMode: Boolean,
-    onConflictSafeModeChange: (Boolean) -> Unit,
-    backupBeforeSync: Boolean,
-    onBackupBeforeSyncChange: (Boolean) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    val colors = MaterialTheme.colorScheme
-
-    ElevatedCard(
-        modifier = modifier.border(1.dp, colors.outlineVariant, RoundedCornerShape(24.dp)),
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.elevatedCardColors(containerColor = colors.surfaceContainerLow),
-        elevation = CardDefaults.elevatedCardElevation(0.dp)
-    ) {
-        Column(modifier = Modifier.fillMaxWidth()) {
-            SettingsSectionHeader(
-                title = stringResource(R.string.settings_sync_backup),
-                icon = Icons.Default.CloudSync,
-                color = colors.secondary
-            )
-
-            SettingsSwitchItem(
-                title = stringResource(R.string.settings_auto_sync),
-                subtitle = stringResource(R.string.settings_auto_sync_subtitle),
-                icon = Icons.Default.Schedule,
-                checked = autoSync,
-                onCheckedChange = onAutoSyncChange
-            )
-
-            HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
-
-            SettingsSwitchItem(
-                title = stringResource(R.string.settings_conflict_safe_mode),
-                subtitle = stringResource(R.string.settings_conflict_safe_mode_subtitle),
-                icon = Icons.Default.Shield,
-                checked = conflictSafeMode,
-                onCheckedChange = onConflictSafeModeChange
-            )
-
-            HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
-
-            SettingsSwitchItem(
-                title = stringResource(R.string.settings_backup_before_sync),
-                subtitle = stringResource(R.string.settings_backup_before_sync_subtitle),
-                icon = Icons.Default.Backup,
-                checked = backupBeforeSync,
-                onCheckedChange = onBackupBeforeSyncChange
-            )
-        }
-    }
-}
+//@Composable
+//private fun SyncSettingsCard(
+//    autoSync: Boolean,
+//    onAutoSyncChange: (Boolean) -> Unit,
+//    conflictSafeMode: Boolean,
+//    onConflictSafeModeChange: (Boolean) -> Unit,
+//    backupBeforeSync: Boolean,
+//    onBackupBeforeSyncChange: (Boolean) -> Unit,
+//    modifier: Modifier = Modifier
+//) {
+//    val colors = MaterialTheme.colorScheme
+//
+//    ElevatedCard(
+//        modifier = modifier.border(1.dp, colors.outlineVariant, RoundedCornerShape(24.dp)),
+//        shape = RoundedCornerShape(24.dp),
+//        colors = CardDefaults.elevatedCardColors(containerColor = colors.surfaceContainerLow),
+//        elevation = CardDefaults.elevatedCardElevation(0.dp)
+//    ) {
+//        Column(modifier = Modifier.fillMaxWidth()) {
+//            SettingsSectionHeader(
+//                title = stringResource(R.string.settings_sync_backup),
+//                icon = Icons.Default.CloudSync,
+//                color = colors.secondary
+//            )
+//
+//            SettingsSwitchItem(
+//                title = stringResource(R.string.settings_auto_sync),
+//                subtitle = stringResource(R.string.settings_auto_sync_subtitle),
+//                icon = Icons.Default.Schedule,
+//                checked = autoSync,
+//                onCheckedChange = onAutoSyncChange
+//            )
+//
+//            HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+//
+//            SettingsSwitchItem(
+//                title = stringResource(R.string.settings_conflict_safe_mode),
+//                subtitle = stringResource(R.string.settings_conflict_safe_mode_subtitle),
+//                icon = Icons.Default.Shield,
+//                checked = conflictSafeMode,
+//                onCheckedChange = onConflictSafeModeChange
+//            )
+//
+//            HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+//
+//            SettingsSwitchItem(
+//                title = stringResource(R.string.settings_backup_before_sync),
+//                subtitle = stringResource(R.string.settings_backup_before_sync_subtitle),
+//                icon = Icons.Default.Backup,
+//                checked = backupBeforeSync,
+//                onCheckedChange = onBackupBeforeSyncChange
+//            )
+//        }
+//    }
+//}
 
 @Composable
 private fun DeveloperOptionsCard(
@@ -1023,7 +1026,7 @@ private fun AboutCard(
     val packageInfo = remember(context) {
         try {
             context.packageManager.getPackageInfo(context.packageName, 0)
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             null
         }
     }
@@ -1091,13 +1094,10 @@ private fun GlobalConfigCard(
     userEmail: String,
     defaultBranch: String,
     setUpstreamOnPush: Boolean,
-    applyResult: ApplyConfigResult?,
     onUserConfigSave: (String, String) -> Unit,
     onDefaultBranchSave: (String) -> Unit,
     onSetUpstreamOnPushChange: (Boolean) -> Unit,
     onReload: suspend () -> Unit,
-    onApplyToAllRepos: (String, String, Boolean) -> Unit,
-    onClearApplyResult: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val colors = MaterialTheme.colorScheme
@@ -1223,14 +1223,6 @@ private fun GlobalConfigCard(
                         }
                     }
                 }
-            }
-
-            // Show application configuration result dialog
-            if (applyResult != null) {
-                ApplyConfigResultDialog(
-                    result = applyResult,
-                    onDismiss = { onClearApplyResult() }
-                )
             }
 
             HorizontalDivider(
@@ -1403,231 +1395,7 @@ private fun SettingsNavigationItem(
     }
 }
 
-/**
- * 应用到所有仓库对话框
- */
 @Composable
-private fun ApplyToAllReposDialog(
-    name: String,
-    email: String,
-    onApply: (Boolean) -> Unit,
-    onDismiss: () -> Unit
-) {
-    var applyToGlobal by remember { mutableStateOf(false) }
-    val colors = MaterialTheme.colorScheme
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        icon = {
-            Box(
-                modifier = Modifier
-                    .size(56.dp)
-                    .background(colors.secondary.copy(alpha = 0.15f), CircleShape),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    Icons.Default.Business,
-                    contentDescription = null,
-                    tint = colors.secondary,
-                    modifier = Modifier.size(28.dp)
-                )
-            }
-        },
-        title = {
-            Text(
-                text = stringResource(R.string.apply_to_all_repos_title),
-                fontWeight = FontWeight.Bold,
-                style = MaterialTheme.typography.titleLarge
-            )
-        },
-        text = {
-            Column(
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                Text(
-                    text = stringResource(R.string.apply_to_all_repos_description),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-
-                Surface(
-                    shape = RoundedCornerShape(8.dp),
-                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Column(
-                        modifier = Modifier.padding(12.dp),
-                        verticalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                Icons.Default.Person,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Text(
-                                text = stringResource(R.string.settings_config_name_format, name),
-                                style = MaterialTheme.typography.bodySmall,
-                                fontFamily = FontFamily.Monospace
-                            )
-                        }
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                Icons.Default.Email,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Text(
-                                text = stringResource(R.string.settings_config_email_format, email),
-                                style = MaterialTheme.typography.bodySmall,
-                                fontFamily = FontFamily.Monospace
-                            )
-                        }
-                    }
-                }
-
-                HorizontalDivider()
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = stringResource(R.string.apply_to_all_repos_also_global),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                        Text(
-                            text = stringResource(R.string.apply_to_all_repos_also_global_subtitle),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    Checkbox(
-                        checked = applyToGlobal,
-                        onCheckedChange = { applyToGlobal = it }
-                    )
-                }
-            }
-        },
-        confirmButton = {
-            Button(
-                onClick = { onApply(applyToGlobal) },
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Icon(
-                    Icons.Default.Check,
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp)
-                )
-                Spacer(Modifier.width(6.dp))
-                Text(stringResource(R.string.action_apply))
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(stringResource(R.string.action_cancel))
-            }
-        },
-        shape = RoundedCornerShape(24.dp)
-    )
-}
-
-/**
- * 应用配置结果对话框
- */
-@Composable
-private fun ApplyConfigResultDialog(
-    result: ApplyConfigResult,
-    onDismiss: () -> Unit
-) {
-    val colors = MaterialTheme.colorScheme
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        icon = {
-            Box(
-                modifier = Modifier
-                    .size(56.dp)
-                    .background(
-                        (if (result.allSuccess) colors.primary else colors.tertiary).copy(alpha = 0.15f),
-                        CircleShape
-                    ),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    if (result.allSuccess) Icons.Default.CheckCircle else Icons.Default.Warning,
-                    contentDescription = null,
-                    tint = if (result.allSuccess) colors.primary else colors.tertiary,
-                    modifier = Modifier.size(28.dp)
-                )
-            }
-        },
-        title = {
-            Text(
-                text = if (result.allSuccess) stringResource(R.string.apply_config_result_success) else stringResource(R.string.apply_config_result_issues),
-                fontWeight = FontWeight.Bold,
-                style = MaterialTheme.typography.titleLarge
-            )
-        },
-        text = {
-            Column(
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                Text(
-                    text = stringResource(R.string.apply_config_result_success_format, result.successCount, result.totalCount),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-
-                if (result.failures.isNotEmpty()) {
-                    Text(
-                        text = stringResource(R.string.apply_config_result_failed_repos),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.error
-                    )
-
-                    Column(
-                        verticalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        result.failures.forEach { (path, error) ->
-                            Surface(
-                                shape = RoundedCornerShape(6.dp),
-                                color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.2f)
-                            ) {
-                                Text(
-                                    text = stringResource(R.string.settings_error_format, path, error),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    modifier = Modifier.padding(8.dp),
-                                    fontFamily = FontFamily.Monospace
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        confirmButton = {
-            Button(
-                onClick = onDismiss,
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Text(stringResource(R.string.action_ok))
-            }
-        },
-        shape = RoundedCornerShape(24.dp)
-    )
-}@Composable
 private fun SettingsSwitchItem(
     title: String,
     subtitle: String,
@@ -1931,7 +1699,7 @@ private fun AppearanceSettingsCard(
     }
 
     val languageLabel = when (language) {
-        "zh" -> stringResource(R.string.settings_language_zh_cn)
+        "zh-Hans" -> stringResource(R.string.settings_language_zh_cn)
         "en" -> stringResource(R.string.settings_language_en)
         else -> stringResource(R.string.settings_language_system)
     }
@@ -2027,7 +1795,7 @@ private fun AppearanceSettingsCard(
                 ) {
                     val languageOptions = listOf(
                         "system" to stringResource(R.string.settings_language_system),
-                        "zh" to stringResource(R.string.settings_language_zh_cn),
+                        "zh-Hans" to stringResource(R.string.settings_language_zh_cn),
                         "en" to stringResource(R.string.settings_language_en)
                     )
 
