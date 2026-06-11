@@ -63,6 +63,12 @@ android {
         generateLocaleConfig = true
     }
 
+    packaging {
+        resources {
+            excludes += "plugin.properties"
+        }
+    }
+
 }
 
 java {
