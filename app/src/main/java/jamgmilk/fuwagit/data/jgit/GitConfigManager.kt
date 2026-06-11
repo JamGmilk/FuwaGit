@@ -37,8 +37,8 @@ class GitConfigManager @Inject constructor() {
             } else {
                 ""
             }
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to read repo config file at $repoPath", e)
+        } catch (t: Throwable) {
+            Log.e(TAG, "Failed to read repo config file at $repoPath", t)
             ""
         }
     }
@@ -61,9 +61,9 @@ class GitConfigManager @Inject constructor() {
                 it.repository.config.save()
                 Result.success(result)
             }
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to access repo config at $repoPath", e)
-            Result.failure(e)
+        } catch (t: Throwable) {
+            Log.e(TAG, "Failed to access repo config at $repoPath", t)
+            Result.failure(t)
         }
     }
 }

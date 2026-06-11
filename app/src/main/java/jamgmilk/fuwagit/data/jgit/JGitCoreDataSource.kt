@@ -39,9 +39,9 @@ class JGitCoreDataSource @Inject constructor(
             Git.open(File(repoPath)).use { git ->
                 Result.success(block(git))
             }
-        } catch (e: Exception) {
-            Log.e(TAG, "Git operation failed for $repoPath", e)
-            Result.failure(e)
+        } catch (t: Throwable) {
+            Log.e(TAG, "Git operation failed for $repoPath", t)
+            Result.failure(t)
         } finally {
             lock.unlock()
         }
@@ -74,9 +74,9 @@ class JGitCoreDataSource @Inject constructor(
                 }
 
             Result.success("Repository initialized at $repoPath")
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to init repository", e)
-            Result.failure(e)
+        } catch (t: Throwable) {
+            Log.e(TAG, "Failed to init repository", t)
+            Result.failure(t)
         }
     }
 
@@ -85,7 +85,7 @@ class JGitCoreDataSource @Inject constructor(
         return try {
             val gitDir = File(path, ".git")
             gitDir.exists() && gitDir.isDirectory
-        } catch (_: Exception) {
+        } catch (_: Throwable) {
             false
         }
     }
@@ -98,7 +98,7 @@ class JGitCoreDataSource @Inject constructor(
                 .build().use { repository ->
                     repository.isBare || repository.directory.exists()
                 }
-        } catch (_: Exception) {
+        } catch (_: Throwable) {
             false
         }
     }
@@ -207,9 +207,9 @@ class JGitCoreDataSource @Inject constructor(
                     info["HEAD"] = "No commits yet"
                 }
             }
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to get repo info", e)
-            info["error"] = e.message ?: "Unknown error"
+        } catch (t: Throwable) {
+            Log.e(TAG, "Failed to get repo info", t)
+            info["error"] = t.message ?: "Unknown error"
         }
         return info
     }
@@ -266,8 +266,8 @@ class JGitCoreDataSource @Inject constructor(
                                     null,
                                     passphraseBytes
                                 )
-                            } catch (e: Exception) {
-                                Log.e(TAG, "Failed to configure SSH identity or known hosts", e)
+                            } catch (t: Throwable) {
+                                Log.e(TAG, "Failed to configure SSH identity or known hosts", t)
                             } finally {
                                 SecurityUtils.zeroBytes(privateKeyBytes)
                                 SecurityUtils.zeroBytes(passphraseBytes)
@@ -278,10 +278,10 @@ class JGitCoreDataSource @Inject constructor(
                 }
             }
             Log.i(TAG, "SSH transport configured for command")
-        } catch (e: Exception) {
+        } catch (t: Throwable) {
             SecurityUtils.zeroBytes(privateKeyBytes)
             SecurityUtils.zeroBytes(passphraseBytes)
-            Log.e(TAG, "Failed to configure SSH", e)
+            Log.e(TAG, "Failed to configure SSH", t)
         }
     }
 }

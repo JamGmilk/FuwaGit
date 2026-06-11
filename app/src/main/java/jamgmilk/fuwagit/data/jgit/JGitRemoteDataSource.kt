@@ -62,9 +62,9 @@ class JGitRemoteDataSource @Inject constructor(
                 git.repository.directory?.parentFile?.absolutePath ?: localPath
             }
             Result.success(result)
-        } catch (e: Exception) {
-            Log.e("JGitRemoteDataSource", "Failed to clone repository", e)
-            Result.failure(e)
+        } catch (t: Throwable) {
+            Log.e("JGitRemoteDataSource", "Failed to clone repository", t)
+            Result.failure(t)
         }
     }
 
