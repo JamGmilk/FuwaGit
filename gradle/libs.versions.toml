@@ -22,6 +22,7 @@ hilt = "2.59.2"
 hiltNavigationCompose = "1.3.0"
 ksp = "2.3.8"
 uiGraphics = "1.11.2"
+desugarJdkLibsNio = "2.0.1"
 
 [libraries]
 # Core & Lifecycle
@@ -66,6 +67,7 @@ junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
 androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }
 androidx-compose-ui-graphics = { group = "androidx.compose.ui", name = "ui-graphics", version.ref = "uiGraphics" }
+desugar-jdk-libs-nio = { module = "com.android.tools:desugar_jdk_libs_nio", version.ref = "desugarJdkLibsNio" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
